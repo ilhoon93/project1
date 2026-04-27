@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npx --yes create-next-app@14 . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm)",
+      "Bash(mv /c/project1/.claude /c/.claude_project1_tmp)",
+      "Read(//c//**)",
+      "Bash(npm install *)",
+      "Bash(npm uninstall *)",
+      "Bash(npx --yes shadcn@latest init -d -y --base-color stone)",
+      "Bash(npx --yes shadcn@latest init --help)",
+      "Bash(npx --yes shadcn@latest init -d -y -f)",
+      "Bash(npm run *)"
+    ]
+  }
+}
