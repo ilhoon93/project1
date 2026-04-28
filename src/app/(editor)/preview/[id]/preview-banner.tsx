@@ -33,7 +33,7 @@ export function PreviewBanner({ invitationId, slug, isPublished, paidAt }: Props
 
   return (
     <div className="fixed left-1/2 top-3 z-30 flex -translate-x-1/2 flex-col items-center gap-1">
-      <div className="flex items-center gap-2 rounded-full bg-black/80 px-3 py-1.5 text-xs text-white shadow-lg backdrop-blur">
+      <div className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-black/80 px-3 py-1.5 text-[11px] text-white shadow-lg backdrop-blur">
         <span className="font-medium">미리보기</span>
         <span className="text-white/40">|</span>
         {isPublished ? (

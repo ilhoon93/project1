@@ -56,14 +56,14 @@ export function SlideContainer({ children }: { children: ReactNode[] }) {
         ))}
       </div>
 
-      {/* prev/next chevrons (desktop hint) */}
-      <div className="pointer-events-none absolute inset-0 z-20 hidden md:flex md:items-center md:justify-between md:px-4">
+      {/* prev/next chevrons */}
+      <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-between px-2 md:px-4">
         <button
           type="button"
           onClick={prev}
           disabled={index === 0}
           aria-label="이전"
-          className="pointer-events-auto grid h-10 w-10 place-items-center rounded-full bg-white/70 text-[#8B7355] shadow disabled:opacity-30"
+          className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-white/70 text-lg text-[#8B7355] shadow disabled:opacity-30 md:h-10 md:w-10"
         >
           ‹
         </button>
@@ -72,7 +72,7 @@ export function SlideContainer({ children }: { children: ReactNode[] }) {
           onClick={next}
           disabled={index === slides.length - 1}
           aria-label="다음"
-          className="pointer-events-auto grid h-10 w-10 place-items-center rounded-full bg-white/70 text-[#8B7355] shadow disabled:opacity-30"
+          className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-white/70 text-lg text-[#8B7355] shadow disabled:opacity-30 md:h-10 md:w-10"
         >
           ›
         </button>
