@@ -35,8 +35,9 @@ export function SlideContainer({
   const prev = () => setIndex((i) => Math.max(i - 1, 0));
 
   const onDragEnd = (_: unknown, info: PanInfo) => {
-    if (info.offset.x < -SWIPE_THRESHOLD) next();
-    else if (info.offset.x > SWIPE_THRESHOLD) prev();
+    // 사용자 요청: 오른쪽으로 스와이프 = 다음, 왼쪽으로 스와이프 = 이전
+    if (info.offset.x > SWIPE_THRESHOLD) next();
+    else if (info.offset.x < -SWIPE_THRESHOLD) prev();
   };
 
   return (
@@ -89,7 +90,7 @@ export function SlideContainer({
           onClick={prev}
           disabled={index === 0}
           aria-label="이전"
-          className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-white/70 text-lg shadow disabled:opacity-30 md:h-10 md:w-10"
+          className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-white/15 text-lg backdrop-blur-sm transition-colors hover:bg-white/35 disabled:opacity-15 md:h-10 md:w-10"
           style={{ color: palette.accent }}
         >
           ‹
@@ -99,7 +100,7 @@ export function SlideContainer({
           onClick={next}
           disabled={index === slides.length - 1}
           aria-label="다음"
-          className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-white/70 text-lg shadow disabled:opacity-30 md:h-10 md:w-10"
+          className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-white/15 text-lg backdrop-blur-sm transition-colors hover:bg-white/35 disabled:opacity-15 md:h-10 md:w-10"
           style={{ color: palette.accent }}
         >
           ›

@@ -41,6 +41,7 @@ export function InvitationSlides({
         brideName={brideName}
         weddingDate={weddingDate}
         main={content.main}
+        isPreview={isPreview}
       />
     ),
     story: content.story.enabled ? <StorySlide story={content.story} /> : null,
