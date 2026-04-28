@@ -1,4 +1,23 @@
 import { z } from 'zod';
+import { COLOR_THEMES, FONT_KEYS, PETAL_TYPES, SECTION_KEYS } from '@/lib/theme';
+
+// ── theme (global look & feel + page ordering) ────────────
+
+export const ThemeSchema = z
+  .object({
+    colorTheme: z.enum(COLOR_THEMES).default('cream'),
+    petalType: z.enum(PETAL_TYPES).default('flower'),
+    font: z.enum(FONT_KEYS).default('serif'),
+    // Stored as plain strings so adding new section keys later doesn't break
+    // existing data; reconcilePageOrder() in lib/theme.ts normalizes at render time.
+    pageOrder: z.array(z.string()).default([...SECTION_KEYS]),
+  })
+  .default({
+    colorTheme: 'cream',
+    petalType: 'flower',
+    font: 'serif',
+    pageOrder: [...SECTION_KEYS],
+  });
 
 // ── individual section schemas ────────────────────────────
 
@@ -92,6 +111,7 @@ export const AccountSectionSchema = z
 // ── full invitation content ──────────────────────────────
 
 export const InvitationContentSchema = z.object({
+  theme: ThemeSchema,
   main: MainSectionSchema,
   story: StorySectionSchema,
   gallery: GallerySectionSchema,

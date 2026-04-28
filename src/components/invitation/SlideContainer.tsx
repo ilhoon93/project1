@@ -3,12 +3,33 @@
 import { useState, type ReactNode } from 'react';
 import { motion, type PanInfo } from 'framer-motion';
 import { FallingPetals } from '@/components/shared/FallingPetals';
+import {
+  FONT_OPTIONS,
+  THEME_PALETTES,
+  type ColorTheme,
+  type FontKey,
+  type PetalType,
+} from '@/lib/theme';
 
 const SWIPE_THRESHOLD = 60;
 
-export function SlideContainer({ children }: { children: ReactNode[] }) {
+interface Props {
+  children: ReactNode[];
+  colorTheme?: ColorTheme;
+  petalType?: PetalType;
+  font?: FontKey;
+}
+
+export function SlideContainer({
+  children,
+  colorTheme = 'cream',
+  petalType = 'flower',
+  font = 'serif',
+}: Props) {
   const slides = children.filter(Boolean);
   const [index, setIndex] = useState(0);
+  const palette = THEME_PALETTES[colorTheme];
+  const fontFamily = FONT_OPTIONS[font].family;
 
   const next = () => setIndex((i) => Math.min(i + 1, slides.length - 1));
   const prev = () => setIndex((i) => Math.max(i - 1, 0));
@@ -19,8 +40,11 @@ export function SlideContainer({ children }: { children: ReactNode[] }) {
   };
 
   return (
-    <div className="relative h-[100dvh] w-screen overflow-hidden bg-[#FAF7F2] text-[#3D2E1F]">
-      <FallingPetals />
+    <div
+      className="relative h-[100dvh] w-screen overflow-hidden"
+      style={{ backgroundColor: palette.bg, color: palette.fg, fontFamily }}
+    >
+      <FallingPetals type={petalType} colors={palette.petals} />
 
       <motion.div
         className="flex h-full"
@@ -49,9 +73,11 @@ export function SlideContainer({ children }: { children: ReactNode[] }) {
             type="button"
             onClick={() => setIndex(i)}
             aria-label={`${i + 1}번 슬라이드로 이동`}
-            className={`pointer-events-auto h-1.5 rounded-full transition-all ${
-              i === index ? 'w-5 bg-[#8B7355]' : 'w-1.5 bg-[#D4C5B0]'
-            }`}
+            className="pointer-events-auto h-1.5 rounded-full transition-all"
+            style={{
+              width: i === index ? 20 : 6,
+              backgroundColor: i === index ? palette.accent : palette.dot,
+            }}
           />
         ))}
       </div>
@@ -63,7 +89,8 @@ export function SlideContainer({ children }: { children: ReactNode[] }) {
           onClick={prev}
           disabled={index === 0}
           aria-label="이전"
-          className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-white/70 text-lg text-[#8B7355] shadow disabled:opacity-30 md:h-10 md:w-10"
+          className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-white/70 text-lg shadow disabled:opacity-30 md:h-10 md:w-10"
+          style={{ color: palette.accent }}
         >
           ‹
         </button>
@@ -72,7 +99,8 @@ export function SlideContainer({ children }: { children: ReactNode[] }) {
           onClick={next}
           disabled={index === slides.length - 1}
           aria-label="다음"
-          className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-white/70 text-lg text-[#8B7355] shadow disabled:opacity-30 md:h-10 md:w-10"
+          className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-white/70 text-lg shadow disabled:opacity-30 md:h-10 md:w-10"
+          style={{ color: palette.accent }}
         >
           ›
         </button>
