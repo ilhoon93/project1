@@ -1,4 +1,6 @@
+import type { ReactNode } from 'react';
 import type { InvitationContent } from '@/types/invitation';
+import { reconcilePageOrder, type SectionKey } from '@/lib/theme';
 import { SlideContainer } from './SlideContainer';
 import { SignatureGate } from './SignatureGate';
 import { VisitTracker } from './VisitTracker';
@@ -32,55 +34,63 @@ export function InvitationSlides({
   guestbookMessages = [],
   isPreview,
 }: Props) {
-  const slides = [
-    <MainSlide
-      key="main"
-      groomName={groomName}
-      brideName={brideName}
-      weddingDate={weddingDate}
-      main={content.main}
-    />,
-    content.story.enabled && <StorySlide key="story" story={content.story} />,
-    content.gallery.enabled && <GallerySlide key="gallery" gallery={content.gallery} />,
-    content.video.enabled && content.video.url && (
-      <VideoSlide key="video" video={content.video} />
-    ),
-    content.quiz.enabled && content.quiz.questions.length > 0 && (
-      <QuizSlide
-        key="quiz"
-        quiz={content.quiz}
-        invitationId={invitationId}
-        isPreview={isPreview}
+  const slidesByKey: Record<SectionKey, ReactNode | null> = {
+    main: (
+      <MainSlide
+        groomName={groomName}
+        brideName={brideName}
+        weddingDate={weddingDate}
+        main={content.main}
       />
     ),
-    content.vote.enabled && content.vote.questions.length > 0 && (
-      <VoteSlide
-        key="vote"
-        vote={content.vote}
-        invitationId={invitationId}
-        isPreview={isPreview}
-      />
-    ),
-    content.guestbook.enabled && (
+    story: content.story.enabled ? <StorySlide story={content.story} /> : null,
+    gallery: content.gallery.enabled ? <GallerySlide gallery={content.gallery} /> : null,
+    video:
+      content.video.enabled && content.video.url ? (
+        <VideoSlide video={content.video} />
+      ) : null,
+    quiz:
+      content.quiz.enabled && content.quiz.questions.length > 0 ? (
+        <QuizSlide quiz={content.quiz} invitationId={invitationId} isPreview={isPreview} />
+      ) : null,
+    vote:
+      content.vote.enabled && content.vote.questions.length > 0 ? (
+        <VoteSlide vote={content.vote} invitationId={invitationId} isPreview={isPreview} />
+      ) : null,
+    guestbook: content.guestbook.enabled ? (
       <GuestbookSlide
-        key="guestbook"
         guestbook={content.guestbook}
         invitationId={invitationId}
         initialMessages={guestbookMessages}
         isPreview={isPreview}
       />
-    ),
-    content.account.enabled &&
-      (content.account.groom.length > 0 || content.account.bride.length > 0) && (
-        <AccountSlide key="account" account={content.account} />
-      ),
-    <ClosingSlide key="closing" message={content.closing} />,
-  ].filter(Boolean);
+    ) : null,
+    account:
+      content.account.enabled &&
+      (content.account.groom.length > 0 || content.account.bride.length > 0) ? (
+        <AccountSlide account={content.account} />
+      ) : null,
+    closing: <ClosingSlide message={content.closing} />,
+  };
+
+  const orderedKeys = reconcilePageOrder(content.theme.pageOrder);
+  const slides = orderedKeys
+    .map((key) => {
+      const node = slidesByKey[key];
+      return node ? <div key={key}>{node}</div> : null;
+    })
+    .filter(Boolean) as ReactNode[];
 
   return (
     <SignatureGate invitationId={invitationId} disabled={isPreview}>
       <VisitTracker invitationId={invitationId} disabled={isPreview} />
-      <SlideContainer>{slides}</SlideContainer>
+      <SlideContainer
+        colorTheme={content.theme.colorTheme}
+        petalType={content.theme.petalType}
+        font={content.theme.font}
+      >
+        {slides}
+      </SlideContainer>
     </SignatureGate>
   );
 }

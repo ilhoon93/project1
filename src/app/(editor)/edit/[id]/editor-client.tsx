@@ -14,6 +14,7 @@ import { GuestbookEditor } from '@/components/editor/sections/GuestbookEditor';
 import { AccountEditor } from '@/components/editor/sections/AccountEditor';
 import { ClosingEditor } from '@/components/editor/sections/ClosingEditor';
 import { MetaEditor } from '@/components/editor/sections/MetaEditor';
+import { ThemeEditor } from '@/components/editor/sections/ThemeEditor';
 
 interface Props {
   invitationId: string;
@@ -51,6 +52,7 @@ export function EditorClient({ invitationId, meta, content }: Props) {
 
       <main className="mx-auto flex max-w-2xl flex-col gap-3 px-4 py-6 pb-32">
         <MetaEditor />
+        <ThemeEditor />
         <MainEditor />
         <StoryEditor />
         <GalleryEditor />
