@@ -21,12 +21,15 @@ export const ThemeSchema = z
 
 // ── individual section schemas ────────────────────────────
 
+export const MAIN_LAYOUTS = ['poster', 'polaroid', 'illustration', 'text'] as const;
+
 export const MainSectionSchema = z
   .object({
+    layout: z.enum(MAIN_LAYOUTS).default('poster'),
     heroImage: z.string().url().nullable().optional(),
     greeting: z.string().max(500).default(''),
   })
-  .default({ greeting: '' });
+  .default({ layout: 'poster', greeting: '' });
 
 export const StoryChapterSchema = z.object({
   title: z.enum(['첫 만남', '고백', '프로포즈']),

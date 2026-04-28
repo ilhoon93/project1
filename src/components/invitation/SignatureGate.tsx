@@ -17,6 +17,14 @@ interface StoredIdentity {
 
 const storageKey = (id: string) => `wedding-guest:${id}`;
 
+/** Event name MainSlide dispatches when the 입장하기 button is clicked. */
+export const SIGNATURE_GATE_OPEN_EVENT = 'wedding:open-signature-gate';
+
+export function openSignatureGate() {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event(SIGNATURE_GATE_OPEN_EVENT));
+}
+
 export function SignatureGate({ invitationId, disabled, children }: Props) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
@@ -32,6 +40,13 @@ export function SignatureGate({ invitationId, disabled, children }: Props) {
     const stored = window.localStorage.getItem(storageKey(invitationId));
     if (!stored) setOpen(true);
   }, [invitationId, disabled]);
+
+  useEffect(() => {
+    if (disabled) return;
+    const handler = () => setOpen(true);
+    window.addEventListener(SIGNATURE_GATE_OPEN_EVENT, handler);
+    return () => window.removeEventListener(SIGNATURE_GATE_OPEN_EVENT, handler);
+  }, [disabled]);
 
   const persistIdentity = (identity: StoredIdentity) => {
     window.localStorage.setItem(storageKey(invitationId), JSON.stringify(identity));
