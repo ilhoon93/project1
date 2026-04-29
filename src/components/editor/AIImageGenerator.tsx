@@ -110,7 +110,7 @@ export function AIImageGenerator({ invitationId, alreadyUsed }: Props) {
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
 
       // Update local store; autosave will persist (server already did).
-      if (main) patch('main', { ...main, heroImage: data.url });
+      if (main) patch('main', { ...main, heroImage: data.url, aiUsed: true });
       setStage('done');
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : '생성 실패');

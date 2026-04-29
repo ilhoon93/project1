@@ -10,33 +10,58 @@ export function GallerySlide({ gallery }: { gallery: InvitationContent['gallery'
     return (
       <section className="flex min-h-full flex-col items-center justify-center gap-3 px-6 py-16">
         <h2 className="text-xl font-light">갤러리</h2>
-        <p className="text-sm text-[#8B7355]">아직 등록된 사진이 없습니다</p>
+        <p className="text-sm opacity-70">아직 등록된 사진이 없습니다</p>
       </section>
     );
   }
 
+  const layout = gallery.layout ?? 'grid';
+
   return (
     <section className="flex min-h-full flex-col gap-6 px-6 py-16">
       <header className="text-center">
-        <p className="text-xs tracking-[0.3em] text-[#8B7355]">GALLERY</p>
+        <p className="text-xs tracking-[0.3em] opacity-70">GALLERY</p>
         <h2 className="mt-2 text-xl font-light">우리의 순간들</h2>
       </header>
 
-      <ul className="grid grid-cols-3 gap-1">
-        {gallery.images.map((url, i) => (
-          <li key={`${url}-${i}`}>
+      {layout === 'grid' ? (
+        <ul className="grid grid-cols-3 gap-1">
+          {gallery.images.map((url, i) => (
+            <li key={`${url}-${i}`}>
+              <button
+                type="button"
+                onClick={() => setLightbox(i)}
+                className="block aspect-square w-full overflow-hidden"
+                aria-label={`사진 ${i + 1} 확대`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        // slide layout — horizontally scrolling row of larger photos.
+        <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2">
+          {gallery.images.map((url, i) => (
             <button
+              key={`${url}-${i}`}
               type="button"
               onClick={() => setLightbox(i)}
-              className="block aspect-square w-full overflow-hidden"
               aria-label={`사진 ${i + 1} 확대`}
+              className="relative aspect-[3/4] w-64 flex-shrink-0 snap-center overflow-hidden rounded-md"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
+              <img
+                src={url}
+                alt=""
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
             </button>
-          </li>
-        ))}
-      </ul>
+          ))}
+        </div>
+      )}
 
       {lightbox !== null && (
         <button

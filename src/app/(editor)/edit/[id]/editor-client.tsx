@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useEditorStore } from '@/stores/editor';
 import type { InvitationContent } from '@/types/invitation';
 import { EditorToolbar } from '@/components/editor/EditorToolbar';
+import { AIPanel } from '@/components/editor/AIPanel';
 import { MainEditor } from '@/components/editor/sections/MainEditor';
 import { StoryEditor } from '@/components/editor/sections/StoryEditor';
 import { GalleryEditor } from '@/components/editor/sections/GalleryEditor';
@@ -25,10 +26,13 @@ interface Props {
 
 const AUTOSAVE_DEBOUNCE_MS = 2_000;
 
+type Tab = 'edit' | 'ai';
+
 export function EditorClient({ invitationId, meta, content }: Props) {
   const init = useEditorStore((s) => s.init);
   const status = useEditorStore((s) => s.status);
   const save = useEditorStore((s) => s.save);
+  const [tab, setTab] = useState<Tab>('edit');
 
   // Hydrate the store with server-provided data.
   // We use a ref to ensure init only runs once per page load even with
@@ -51,20 +55,66 @@ export function EditorClient({ invitationId, meta, content }: Props) {
     <div className="min-h-screen bg-muted/30">
       <EditorToolbar invitationId={invitationId} />
 
+      <div className="sticky top-[57px] z-10 border-b bg-background/80 backdrop-blur">
+        <div className="mx-auto flex max-w-2xl gap-1 px-4">
+          <TabButton selected={tab === 'edit'} onClick={() => setTab('edit')}>
+            기본 편집
+          </TabButton>
+          <TabButton selected={tab === 'ai'} onClick={() => setTab('ai')}>
+            AI 이미지
+          </TabButton>
+        </div>
+      </div>
+
       <main className="mx-auto flex max-w-2xl flex-col gap-3 px-4 py-6 pb-32">
-        <MetaEditor />
-        <ThemeEditor />
-        <MainEditor />
-        <BasicInfoEditor />
-        <StoryEditor />
-        <GalleryEditor />
-        <VideoEditor />
-        <QuizEditor />
-        <VoteEditor />
-        <GuestbookEditor />
-        <AccountEditor />
-        <ClosingEditor />
+        {tab === 'edit' ? (
+          <>
+            <MetaEditor />
+            <ThemeEditor />
+            <MainEditor />
+            <BasicInfoEditor />
+            <StoryEditor />
+            <GalleryEditor />
+            <VideoEditor />
+            <QuizEditor />
+            <VoteEditor />
+            <GuestbookEditor />
+            <AccountEditor />
+            <ClosingEditor />
+          </>
+        ) : (
+          <AIPanel />
+        )}
       </main>
     </div>
+  );
+}
+
+function TabButton({
+  selected,
+  onClick,
+  children,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={selected}
+      onClick={onClick}
+      className={`relative px-3 py-2.5 text-sm transition-colors ${
+        selected
+          ? 'font-medium text-foreground'
+          : 'text-muted-foreground hover:text-foreground'
+      }`}
+    >
+      {children}
+      {selected && (
+        <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-foreground" />
+      )}
+    </button>
   );
 }
