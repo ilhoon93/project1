@@ -159,19 +159,49 @@ export const GuestbookSectionSchema = z
   })
   .default({ enabled: true, coupleMessage: '' });
 
+// Allow drafts (empty fields) the same way Quiz/Vote do; render-time guards
+// in AccountSlide skip incomplete entries.
 export const BankAccountSchema = z.object({
-  bank: z.string().min(1).max(20),
-  number: z.string().min(1).max(30),
-  holder: z.string().min(1).max(20),
+  bank: z.string().max(20).default(''),
+  number: z.string().max(30).default(''),
+  holder: z.string().max(20).default(''),
 });
+
+export const ACCOUNT_PARTY_KEYS = [
+  'groom',
+  'bride',
+  'groomFather',
+  'groomMother',
+  'brideFather',
+  'brideMother',
+] as const;
+export type AccountPartyKey = (typeof ACCOUNT_PARTY_KEYS)[number];
 
 export const AccountSectionSchema = z
   .object({
     enabled: z.boolean().default(true),
+    /** Top-of-section guide message shown to guests. */
+    guide: z
+      .string()
+      .max(500)
+      .default('축하의 마음을 담아 마음 전하실 분들을 위해 계좌번호를 안내드립니다.'),
     groom: z.array(BankAccountSchema).max(3).default([]),
     bride: z.array(BankAccountSchema).max(3).default([]),
+    groomFather: z.array(BankAccountSchema).max(3).default([]),
+    groomMother: z.array(BankAccountSchema).max(3).default([]),
+    brideFather: z.array(BankAccountSchema).max(3).default([]),
+    brideMother: z.array(BankAccountSchema).max(3).default([]),
   })
-  .default({ enabled: true, groom: [], bride: [] });
+  .default({
+    enabled: true,
+    guide: '축하의 마음을 담아 마음 전하실 분들을 위해 계좌번호를 안내드립니다.',
+    groom: [],
+    bride: [],
+    groomFather: [],
+    groomMother: [],
+    brideFather: [],
+    brideMother: [],
+  });
 
 // ── full invitation content ──────────────────────────────
 

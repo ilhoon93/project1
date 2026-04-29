@@ -11,7 +11,7 @@ import { GallerySlide } from './slides/GallerySlide';
 import { VideoSlide } from './slides/VideoSlide';
 import { QuizSlide } from './slides/QuizSlide';
 import { VoteSlide } from './slides/VoteSlide';
-import { GuestbookSlide, type GuestbookMessage } from './slides/GuestbookSlide';
+import { GuestbookSlide } from './slides/GuestbookSlide';
 import { AccountSlide } from './slides/AccountSlide';
 import { ClosingSlide } from './slides/ClosingSlide';
 
@@ -21,7 +21,6 @@ interface Props {
   brideName: string;
   weddingDate: string | null;
   content: InvitationContent;
-  guestbookMessages?: GuestbookMessage[];
   /** Author preview mode — interactive forms are disabled, no signature gate. */
   isPreview?: boolean;
 }
@@ -32,7 +31,6 @@ export function InvitationSlides({
   brideName,
   weddingDate,
   content,
-  guestbookMessages = [],
   isPreview,
 }: Props) {
   const storyHasContent = content.story.chapters.some(
@@ -78,13 +76,17 @@ export function InvitationSlides({
       <GuestbookSlide
         guestbook={content.guestbook}
         invitationId={invitationId}
-        initialMessages={guestbookMessages}
         isPreview={isPreview}
       />
     ) : null,
     account:
       content.account.enabled &&
-      (content.account.groom.length > 0 || content.account.bride.length > 0) ? (
+      (content.account.groom.length > 0 ||
+        content.account.bride.length > 0 ||
+        content.account.groomFather.length > 0 ||
+        content.account.groomMother.length > 0 ||
+        content.account.brideFather.length > 0 ||
+        content.account.brideMother.length > 0) ? (
         <AccountSlide account={content.account} />
       ) : null,
     closing: <ClosingSlide message={content.closing} />,

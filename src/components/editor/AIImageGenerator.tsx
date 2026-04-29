@@ -7,7 +7,7 @@ import { useEditorStore } from '@/stores/editor';
 import { Button } from '@/components/ui/button';
 import { nanoid } from '@/lib/utils/nanoid';
 
-const MAX_FILE_BYTES = 8 * 1024 * 1024;
+const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const ACCEPT = ['image/jpeg', 'image/png', 'image/webp'];
 
 type Stage = 'idle' | 'uploading' | 'photo-ready' | 'generating' | 'done' | 'error';
@@ -50,7 +50,7 @@ export function AIImageGenerator({ invitationId, alreadyUsed }: Props) {
       return;
     }
     if (file.size > MAX_FILE_BYTES) {
-      setErrorMsg('이미지 크기는 8MB 이하여야 합니다.');
+      setErrorMsg('이미지 크기는 25MB 이하여야 합니다.');
       return;
     }
 

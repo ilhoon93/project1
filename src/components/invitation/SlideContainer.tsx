@@ -48,8 +48,9 @@ export function SlideContainer({
   const commitSwipe = (dx: number, dy: number) => {
     if (Math.abs(dy) > Math.abs(dx) * VERTICAL_BIAS) return;
     if (Math.abs(dx) < SWIPE_THRESHOLD) return;
-    // 사용자 요청: 오른쪽으로 스와이프 = 다음, 왼쪽으로 스와이프 = 이전
-    if (dx > 0) {
+    // Standard mobile / Instagram convention: swipe LEFT (finger moves right→left,
+    // dx < 0) advances to the next slide; swipe RIGHT goes back.
+    if (dx < 0) {
       setIndex((i) => Math.min(i + 1, slidesLen - 1));
     } else {
       setIndex((i) => Math.max(i - 1, 0));
@@ -59,8 +60,17 @@ export function SlideContainer({
   const goPrev = () => setIndex((i) => Math.max(i - 1, 0));
   const goNext = () => setIndex((i) => Math.min(i + 1, slidesLen - 1));
 
+  // Skip swipe detection when the gesture starts inside something that owns
+  // its own horizontal pan (e.g. the gallery's slide layout).
+  const isInsideNoSwipe = (target: EventTarget | null) =>
+    target instanceof Element && !!target.closest('[data-noswipe]');
+
   // ── touch handlers ─────────────────────────────────────────
   const onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (isInsideNoSwipe(e.target)) {
+      startRef.current = null;
+      return;
+    }
     const t = e.touches[0];
     if (!t) return;
     startRef.current = { x: t.clientX, y: t.clientY };
@@ -79,6 +89,7 @@ export function SlideContainer({
   // still gets caught.
   const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
+    if (isInsideNoSwipe(e.target)) return;
     startRef.current = { x: e.clientX, y: e.clientY };
     const onUp = (evt: MouseEvent) => {
       const start = startRef.current;

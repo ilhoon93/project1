@@ -42,7 +42,13 @@ export function GallerySlide({ gallery }: { gallery: InvitationContent['gallery'
         </ul>
       ) : (
         // slide layout — horizontally scrolling row of larger photos.
-        <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2">
+        // data-noswipe tells SlideContainer to ignore touches that start here
+        // so the user can swipe through gallery photos without flipping the
+        // outer slide deck.
+        <div
+          data-noswipe
+          className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2 [touch-action:pan-x_pan-y]"
+        >
           {gallery.images.map((url, i) => (
             <button
               key={`${url}-${i}`}
