@@ -3,6 +3,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { FallingPetals } from '@/components/shared/FallingPetals';
+import { BgmPlayer } from './BgmPlayer';
 import {
   FONT_OPTIONS,
   THEME_PALETTES,
@@ -19,6 +20,7 @@ interface Props {
   colorTheme?: ColorTheme;
   petalType?: PetalType;
   font?: FontKey;
+  bgmUrl?: string | null;
 }
 
 /**
@@ -36,6 +38,7 @@ export function SlideContainer({
   colorTheme = 'cream',
   petalType = 'flower',
   font = 'serif',
+  bgmUrl = null,
 }: Props) {
   const slides = children.filter(Boolean);
   const [index, setIndex] = useState(0);
@@ -107,6 +110,7 @@ export function SlideContainer({
       style={{ backgroundColor: palette.bg, color: palette.fg, fontFamily }}
     >
       <FallingPetals type={petalType} colors={palette.petals} />
+      {bgmUrl && <BgmPlayer url={bgmUrl} color={palette.accent} />}
 
       <motion.div
         className="flex h-full"

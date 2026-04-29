@@ -13,18 +13,16 @@ interface Props {
 }
 
 /**
- * Main slide. Layout: a flex column with the action buttons pinned to the
- * bottom of the slide and everything else stretched into a flex-1 middle
- * area that's centered. This keeps the screen feeling "full" — no big empty
- * gap at the bottom — while letting longer greetings push the buttons down
- * naturally.
+ * Main slide. All four layouts share the same outer wrapper that vertically
+ * centers ONE tight content stack (header → visual → names → date → greeting
+ * → buttons). Keeping the buttons inside the same flex group prevents the
+ * "half empty bottom" effect that appears when buttons are pinned to the
+ * bottom of a tall section.
  */
 export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
   const [confettiTrigger, setConfettiTrigger] = useState<number | null>(null);
 
   const handleEnter = () => {
-    // Works in both preview and live; SignatureGate's submit is a no-op in
-    // preview so the author can verify the popup appears.
     openSignatureGate();
   };
   const handleCelebrate = () => setConfettiTrigger(Date.now());
@@ -34,8 +32,7 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
   const overlay = layout === 'poster' && hasImage;
 
   return (
-    <section className="relative flex min-h-full flex-col px-6 pb-8 pt-10 text-center">
-      {/* Background — only the poster layout lays a hero image behind. */}
+    <section className="relative flex min-h-full items-center justify-center px-6 py-10 text-center">
       {overlay && (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -48,9 +45,8 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
         </>
       )}
 
-      {/* Middle stretch — content vertically centered inside the available space. */}
       <div
-        className={`relative z-10 flex flex-1 flex-col items-center justify-center gap-5 ${
+        className={`relative z-10 flex w-full max-w-md flex-col items-center gap-4 ${
           overlay ? 'text-white' : ''
         }`}
       >
@@ -73,11 +69,7 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
           <div className="relative rotate-[-3deg] rounded-sm bg-white p-3 pb-10 shadow-xl">
             {hasImage ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={main.heroImage!}
-                alt=""
-                className="h-56 w-48 object-cover"
-              />
+              <img src={main.heroImage!} alt="" className="h-56 w-48 object-cover" />
             ) : (
               <div className="grid h-56 w-48 place-items-center bg-gradient-to-br from-stone-200 to-stone-300 text-3xl text-stone-400">
                 📷
@@ -130,28 +122,23 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
             {main.greeting}
           </p>
         )}
-      </div>
 
-      {/* Buttons pinned to the bottom of the slide. */}
-      <div
-        className={`relative z-10 flex flex-shrink-0 flex-wrap items-center justify-center gap-2 pt-4 ${
-          overlay ? 'text-white' : ''
-        }`}
-      >
-        <button
-          type="button"
-          onClick={handleEnter}
-          className="rounded-full bg-white/85 px-5 py-2 text-xs font-medium text-[#3D2E1F] shadow-sm backdrop-blur-sm transition-colors hover:bg-white"
-        >
-          입장하기
-        </button>
-        <button
-          type="button"
-          onClick={handleCelebrate}
-          className="rounded-full border border-current/40 bg-transparent px-5 py-2 text-xs font-medium text-current backdrop-blur-sm transition-colors hover:bg-current/10"
-        >
-          축하하기 🎉
-        </button>
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={handleEnter}
+            className="rounded-full bg-white/85 px-5 py-2 text-xs font-medium text-[#3D2E1F] shadow-sm backdrop-blur-sm transition-colors hover:bg-white"
+          >
+            입장하기
+          </button>
+          <button
+            type="button"
+            onClick={handleCelebrate}
+            className="rounded-full border border-current/40 bg-transparent px-5 py-2 text-xs font-medium text-current backdrop-blur-sm transition-colors hover:bg-current/10"
+          >
+            축하하기 🎉
+          </button>
+        </div>
       </div>
 
       <Confetti trigger={confettiTrigger} />

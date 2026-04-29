@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useEditorStore } from '@/stores/editor';
-import type { InvitationContent } from '@/types/invitation';
+import { InvitationContentSchema, type InvitationContent } from '@/types/invitation';
 import { EditorToolbar } from '@/components/editor/EditorToolbar';
 import { AIPanel } from '@/components/editor/AIPanel';
 import { MainEditor } from '@/components/editor/sections/MainEditor';
@@ -40,13 +40,26 @@ export function EditorClient({ invitationId, meta, content }: Props) {
   // (e.g. user clicked 미리보기, came back, and Next.js may serve a cached
   // server render), keep the local store as-is. Otherwise round-tripping to
   // /preview wipes uncommitted edits with stale server data.
+  //
+  // We do still re-parse the local content through the current schema so any
+  // fields that didn't exist when the state was persisted (e.g. account
+  // groomFather/brideMother added in step 5) get filled in with defaults
+  // instead of crashing the editor with `undefined.map(...)`.
   const hydrated = useRef(false);
   useEffect(() => {
     if (hydrated.current) return;
     hydrated.current = true;
     const current = useEditorStore.getState();
     if (current.invitationId === invitationId && current.content) {
-      // Already initialized for this invitation — preserve in-memory edits.
+      try {
+        const reparsed = InvitationContentSchema.parse(current.content);
+        if (JSON.stringify(reparsed) !== JSON.stringify(current.content)) {
+          useEditorStore.setState({ content: reparsed });
+        }
+      } catch {
+        // If old persisted state can't be coerced, fall back to server data.
+        init(invitationId, meta, content);
+      }
       return;
     }
     init(invitationId, meta, content);
