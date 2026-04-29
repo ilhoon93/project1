@@ -12,7 +12,7 @@ import {
 } from '@/lib/theme';
 
 const SWIPE_THRESHOLD = 50;
-const VERTICAL_BIAS = 1.2; // require horizontal > 1.2x vertical to count as swipe
+const VERTICAL_BIAS = 1.2;
 
 interface Props {
   children: ReactNode[];
@@ -22,10 +22,14 @@ interface Props {
 }
 
 /**
- * Insta-style horizontal slide deck. We deliberately use raw pointer events
- * for swipe instead of framer-motion's `drag`, because the constrained-drag
- * + animate combo we used previously didn't fire reliably on touch devices
- * inside an `overflow-y-auto` slide. Animate is kept for the transition.
+ * Insta-style horizontal slide deck.
+ *
+ * Why this is implemented with raw touch+mouse events instead of
+ * framer-motion's `drag`: dragConstraints + an animated `x` competed badly on
+ * touch inside `overflow-y-auto`, and pointer events would sometimes never
+ * fire `pointerup` once the browser claimed the gesture for scroll. Raw
+ * touchstart/touchend always fires, even after a scroll, and the threshold +
+ * vertical-bias check filters out scroll-only gestures.
  */
 export function SlideContainer({
   children,
@@ -38,29 +42,52 @@ export function SlideContainer({
   const palette = THEME_PALETTES[colorTheme];
   const fontFamily = FONT_OPTIONS[font].family;
 
+  const slidesLen = slides.length;
   const startRef = useRef<{ x: number; y: number } | null>(null);
 
-  const next = () => setIndex((i) => Math.min(i + 1, slides.length - 1));
-  const prev = () => setIndex((i) => Math.max(i - 1, 0));
-
-  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // Only track primary pointer; ignore secondary touches.
-    if (!e.isPrimary) return;
-    startRef.current = { x: e.clientX, y: e.clientY };
-  };
-
-  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    const start = startRef.current;
-    startRef.current = null;
-    if (!start) return;
-    const dx = e.clientX - start.x;
-    const dy = e.clientY - start.y;
-    // Ignore vertical scroll gestures.
+  const commitSwipe = (dx: number, dy: number) => {
     if (Math.abs(dy) > Math.abs(dx) * VERTICAL_BIAS) return;
     if (Math.abs(dx) < SWIPE_THRESHOLD) return;
     // 사용자 요청: 오른쪽으로 스와이프 = 다음, 왼쪽으로 스와이프 = 이전
-    if (dx > 0) next();
-    else prev();
+    if (dx > 0) {
+      setIndex((i) => Math.min(i + 1, slidesLen - 1));
+    } else {
+      setIndex((i) => Math.max(i - 1, 0));
+    }
+  };
+
+  const goPrev = () => setIndex((i) => Math.max(i - 1, 0));
+  const goNext = () => setIndex((i) => Math.min(i + 1, slidesLen - 1));
+
+  // ── touch handlers ─────────────────────────────────────────
+  const onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    const t = e.touches[0];
+    if (!t) return;
+    startRef.current = { x: t.clientX, y: t.clientY };
+  };
+  const onTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    const start = startRef.current;
+    startRef.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    if (!t) return;
+    commitSwipe(t.clientX - start.x, t.clientY - start.y);
+  };
+
+  // ── mouse handlers (desktop) ──────────────────────────────
+  // We attach the up handler to window so a release outside the slide row
+  // still gets caught.
+  const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    startRef.current = { x: e.clientX, y: e.clientY };
+    const onUp = (evt: MouseEvent) => {
+      const start = startRef.current;
+      startRef.current = null;
+      window.removeEventListener('mouseup', onUp);
+      if (!start) return;
+      commitSwipe(evt.clientX - start.x, evt.clientY - start.y);
+    };
+    window.addEventListener('mouseup', onUp);
   };
 
   return (
@@ -71,19 +98,22 @@ export function SlideContainer({
       <FallingPetals type={petalType} colors={palette.petals} />
 
       <motion.div
-        className="flex h-full touch-pan-y"
+        className="flex h-full"
         animate={{ x: `-${index * 100}vw` }}
         transition={{ type: 'spring', stiffness: 300, damping: 32 }}
-        onPointerDown={onPointerDown}
-        onPointerUp={onPointerUp}
-        onPointerCancel={() => {
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        onTouchCancel={() => {
           startRef.current = null;
         }}
+        onMouseDown={onMouseDown}
       >
         {slides.map((slide, i) => (
           <div
             key={i}
-            className="relative h-full w-screen flex-shrink-0 overflow-y-auto"
+            // touch-pan-y lets the browser handle vertical scroll natively
+            // while horizontal swipes bubble up to the touch handlers above.
+            className="relative h-full w-screen flex-shrink-0 touch-pan-y overflow-y-auto"
           >
             {slide}
           </div>
@@ -111,7 +141,7 @@ export function SlideContainer({
       <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-between px-2 md:px-4">
         <button
           type="button"
-          onClick={prev}
+          onClick={goPrev}
           disabled={index === 0}
           aria-label="이전"
           className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-white/15 text-lg backdrop-blur-sm transition-colors hover:bg-white/35 disabled:opacity-15 md:h-10 md:w-10"
@@ -121,7 +151,7 @@ export function SlideContainer({
         </button>
         <button
           type="button"
-          onClick={next}
+          onClick={goNext}
           disabled={index === slides.length - 1}
           aria-label="다음"
           className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-white/15 text-lg backdrop-blur-sm transition-colors hover:bg-white/35 disabled:opacity-15 md:h-10 md:w-10"

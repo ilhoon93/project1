@@ -47,9 +47,9 @@ export async function POST(req: Request) {
   }
 
   const currentContent = InvitationContentSchema.parse(inv.content ?? {});
-  if (currentContent.main.heroImage) {
+  if (currentContent.main.aiUsed) {
     return NextResponse.json(
-      { error: '무료 미리보기는 1회만 사용 가능합니다. 추가 이미지는 결제 후 이용해주세요.' },
+      { error: '무료 AI 이미지 생성은 1회만 사용 가능합니다. 추가 이미지는 결제 후 이용해주세요.' },
       { status: 403 },
     );
   }
@@ -91,10 +91,10 @@ export async function POST(req: Request) {
     );
   }
 
-  // 6. Persist to content.main.heroImage (merge)
+  // 6. Persist to content.main.heroImage (merge) and mark the one-shot used.
   const nextContent = {
     ...currentContent,
-    main: { ...currentContent.main, heroImage: publicUrl },
+    main: { ...currentContent.main, heroImage: publicUrl, aiUsed: true },
   };
   const { error: upErr } = await supabase
     .from('invitations')

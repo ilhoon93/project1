@@ -28,8 +28,10 @@ export const MainSectionSchema = z
     layout: z.enum(MAIN_LAYOUTS).default('poster'),
     heroImage: z.string().url().nullable().optional(),
     greeting: z.string().max(500).default(''),
+    /** Free AI generation is one-shot; flips true after a successful run. */
+    aiUsed: z.boolean().default(false),
   })
-  .default({ layout: 'poster', greeting: '' });
+  .default({ layout: 'poster', greeting: '', aiUsed: false });
 
 // ── basic info slide (글귀 / 인사말 / 가족 / 날짜) ──────────
 
@@ -105,19 +107,23 @@ export const StorySectionSchema = z
     ],
   });
 
+export const GALLERY_LAYOUTS = ['slide', 'grid'] as const;
+
 export const GallerySectionSchema = z
   .object({
     enabled: z.boolean().default(true),
+    layout: z.enum(GALLERY_LAYOUTS).default('grid'),
     images: z.array(z.string().url()).max(20).default([]),
   })
-  .default({ enabled: true, images: [] });
+  .default({ enabled: true, layout: 'grid', images: [] });
 
 export const VideoSectionSchema = z
   .object({
     enabled: z.boolean().default(false),
+    title: z.string().max(50).default(''),
     url: z.string().url().nullable().default(null),
   })
-  .default({ enabled: false, url: null });
+  .default({ enabled: false, title: '', url: null });
 
 // Drafts may have empty strings while the user is still typing; render-time
 // guards in QuizSlide skip questions whose required fields are blank.
