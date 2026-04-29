@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { nanoid } from '@/lib/utils/nanoid';
 
-const MAX_FILE_BYTES = 8 * 1024 * 1024;
+const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const ACCEPT = ['image/jpeg', 'image/png', 'image/webp'];
 
 interface Props {
@@ -44,7 +44,7 @@ export function ImageUploader({
       return;
     }
     if (file.size > MAX_FILE_BYTES) {
-      setErrorMsg('이미지 크기는 8MB 이하여야 합니다.');
+      setErrorMsg('이미지 크기는 25MB 이하여야 합니다.');
       setStage('error');
       return;
     }

@@ -4,7 +4,6 @@ import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { InvitationContentSchema } from '@/types/invitation';
 import { InvitationSlides } from '@/components/invitation/InvitationSlides';
-import type { GuestbookMessage } from '@/components/invitation/slides/GuestbookSlide';
 
 interface PageProps {
   params: { slug: string };
@@ -40,17 +39,6 @@ async function fetchInvitation(slug: string): Promise<FetchResult> {
   return { kind: 'ok', inv: data };
 }
 
-async function fetchGuestbook(invitationId: string): Promise<GuestbookMessage[]> {
-  const supabase = createClient();
-  const { data } = await supabase
-    .from('guestbook_messages')
-    .select('id, visitor_name, message, created_at')
-    .eq('invitation_id', invitationId)
-    .order('created_at', { ascending: false })
-    .limit(50);
-  return (data as GuestbookMessage[] | null) ?? [];
-}
-
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const result = await fetchInvitation(params.slug);
   if (result.kind === 'missing') return { title: '미니멈 웨딩 스튜디오' };
@@ -70,7 +58,6 @@ export default async function PublicInvitationPage({ params }: PageProps) {
 
   const inv = result.inv;
   const content = InvitationContentSchema.parse(inv.content ?? {});
-  const guestbookMessages = await fetchGuestbook(inv.id);
 
   return (
     <InvitationSlides
@@ -79,7 +66,6 @@ export default async function PublicInvitationPage({ params }: PageProps) {
       brideName={inv.bride_name}
       weddingDate={inv.wedding_date}
       content={content}
-      guestbookMessages={guestbookMessages}
     />
   );
 }

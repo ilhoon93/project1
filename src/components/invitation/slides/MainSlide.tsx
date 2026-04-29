@@ -13,9 +13,11 @@ interface Props {
 }
 
 /**
- * Main slide. All four layouts share the same outer wrapper that pins a
- * single content stack to the visual center of the slide, so the screen
- * never reads as two disconnected halves regardless of viewport height.
+ * Main slide. Layout: a flex column with the action buttons pinned to the
+ * bottom of the slide and everything else stretched into a flex-1 middle
+ * area that's centered. This keeps the screen feeling "full" — no big empty
+ * gap at the bottom — while letting longer greetings push the buttons down
+ * naturally.
  */
 export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
   const [confettiTrigger, setConfettiTrigger] = useState<number | null>(null);
@@ -29,33 +31,12 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
 
   const layout = main.layout ?? 'poster';
   const hasImage = !!main.heroImage;
-  // Poster overlays the image with a dim layer for legibility; other
-  // layouts inherit the slide's theme bg.
   const overlay = layout === 'poster' && hasImage;
 
-  const Buttons = (
-    <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-      <button
-        type="button"
-        onClick={handleEnter}
-        className="rounded-full bg-white/85 px-5 py-2 text-xs font-medium text-[#3D2E1F] shadow-sm backdrop-blur-sm transition-colors hover:bg-white"
-      >
-        입장하기
-      </button>
-      <button
-        type="button"
-        onClick={handleCelebrate}
-        className="rounded-full border border-current/40 bg-transparent px-5 py-2 text-xs font-medium text-current backdrop-blur-sm transition-colors hover:bg-current/10"
-      >
-        축하하기 🎉
-      </button>
-    </div>
-  );
-
   return (
-    <section className="relative flex min-h-full items-center justify-center px-6 py-12 text-center">
+    <section className="relative flex min-h-full flex-col px-6 pb-8 pt-10 text-center">
       {/* Background — only the poster layout lays a hero image behind. */}
-      {layout === 'poster' && hasImage && (
+      {overlay && (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -67,12 +48,12 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
         </>
       )}
 
+      {/* Middle stretch — content vertically centered inside the available space. */}
       <div
-        className={`relative z-10 flex w-full max-w-md flex-col items-center gap-5 ${
+        className={`relative z-10 flex flex-1 flex-col items-center justify-center gap-5 ${
           overlay ? 'text-white' : ''
         }`}
       >
-        {/* layout-specific top accent */}
         {layout === 'poster' && (
           <p className={`text-xs tracking-[0.3em] ${overlay ? 'text-white/85' : 'opacity-70'}`}>
             OUR WEDDING
@@ -88,7 +69,6 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
           <p className="text-xs uppercase tracking-[0.4em] opacity-70">— Save the Date —</p>
         )}
 
-        {/* layout-specific visual element */}
         {layout === 'polaroid' && (
           <div className="relative rotate-[-3deg] rounded-sm bg-white p-3 pb-10 shadow-xl">
             {hasImage ? (
@@ -113,7 +93,6 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
         )}
         {layout === 'illustration' && <CoupleIllustration />}
 
-        {/* names — text layout has its own typography, others share */}
         {layout === 'text' ? (
           <h1 className="flex flex-col items-center gap-3 text-4xl font-light leading-tight">
             <span>{groomName}</span>
@@ -134,12 +113,10 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
             <span className={`text-base ${overlay ? 'text-white/80' : 'opacity-60'}`}>·</span>
             <span>{brideName}</span>
           </h1>
-        ) : null /* polaroid puts names in the frame caption already */}
+        ) : null /* polaroid puts names in the frame caption */}
 
         {weddingDate && (
-          <p
-            className={`text-sm tracking-widest ${overlay ? 'text-white/90' : 'opacity-80'}`}
-          >
+          <p className={`text-sm tracking-widest ${overlay ? 'text-white/90' : 'opacity-80'}`}>
             {formatDate(weddingDate)}
           </p>
         )}
@@ -153,8 +130,28 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
             {main.greeting}
           </p>
         )}
+      </div>
 
-        {Buttons}
+      {/* Buttons pinned to the bottom of the slide. */}
+      <div
+        className={`relative z-10 flex flex-shrink-0 flex-wrap items-center justify-center gap-2 pt-4 ${
+          overlay ? 'text-white' : ''
+        }`}
+      >
+        <button
+          type="button"
+          onClick={handleEnter}
+          className="rounded-full bg-white/85 px-5 py-2 text-xs font-medium text-[#3D2E1F] shadow-sm backdrop-blur-sm transition-colors hover:bg-white"
+        >
+          입장하기
+        </button>
+        <button
+          type="button"
+          onClick={handleCelebrate}
+          className="rounded-full border border-current/40 bg-transparent px-5 py-2 text-xs font-medium text-current backdrop-blur-sm transition-colors hover:bg-current/10"
+        >
+          축하하기 🎉
+        </button>
       </div>
 
       <Confetti trigger={confettiTrigger} />

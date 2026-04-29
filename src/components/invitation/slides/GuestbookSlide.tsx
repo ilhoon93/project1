@@ -13,17 +13,22 @@ export interface GuestbookMessage {
 interface Props {
   guestbook: InvitationContent['guestbook'];
   invitationId: string;
-  initialMessages: GuestbookMessage[];
+  /**
+   * Kept for backwards compatibility with the prop signature; per the plan,
+   * visitor messages are now PRIVATE — only the couple sees them in their
+   * own admin view, never on the public invitation. We accept the prop but
+   * never render the list to other guests.
+   */
+  initialMessages?: GuestbookMessage[];
   isPreview?: boolean;
 }
 
-export function GuestbookSlide({ guestbook, invitationId, initialMessages, isPreview }: Props) {
+export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [messages, setMessages] = useState(initialMessages);
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,8 +58,6 @@ export function GuestbookSlide({ guestbook, invitationId, initialMessages, isPre
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
-      // Optimistic prepend
-      setMessages((prev) => [data.message as GuestbookMessage, ...prev]);
       setSubmitted(true);
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : '제출 실패');
@@ -66,7 +69,7 @@ export function GuestbookSlide({ guestbook, invitationId, initialMessages, isPre
   return (
     <section className="flex min-h-full flex-col gap-6 px-6 py-16">
       <header className="text-center">
-        <p className="text-xs tracking-[0.3em] text-[#8B7355]">GUESTBOOK</p>
+        <p className="text-xs tracking-[0.3em] opacity-70">GUESTBOOK</p>
         <h2 className="mt-2 text-xl font-light">방명록</h2>
       </header>
 
@@ -76,8 +79,12 @@ export function GuestbookSlide({ guestbook, invitationId, initialMessages, isPre
         </p>
       )}
 
+      <p className="text-center text-xs opacity-70">
+        남기시는 메시지는 신랑신부에게만 전달되며, 다른 분들에게는 보이지 않습니다.
+      </p>
+
       {submitted ? (
-        <p className="text-center text-sm text-[#8B7355]">
+        <p className="text-center text-sm opacity-80">
           {isPreview
             ? '미리보기에서는 메시지가 저장되지 않습니다'
             : '메시지를 남겨주셔서 감사합니다 🙏'}
@@ -126,25 +133,6 @@ export function GuestbookSlide({ guestbook, invitationId, initialMessages, isPre
             {submitting ? '저장 중...' : '메시지 남기기'}
           </button>
         </form>
-      )}
-
-      {messages.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <h3 className="text-xs font-medium text-[#8B7355]">
-            받은 메시지 ({messages.length})
-          </h3>
-          <ul className="flex flex-col gap-2">
-            {messages.map((m) => (
-              <li
-                key={m.id}
-                className="rounded-md bg-white px-3 py-2.5 ring-1 ring-[#D4C5B0]"
-              >
-                <p className="text-xs font-medium text-[#8B7355]">{m.visitor_name}</p>
-                <p className="mt-0.5 whitespace-pre-line text-sm text-[#3D2E1F]">{m.message}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
       )}
     </section>
   );

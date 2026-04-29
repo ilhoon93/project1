@@ -34,13 +34,21 @@ export function EditorClient({ invitationId, meta, content }: Props) {
   const save = useEditorStore((s) => s.save);
   const [tab, setTab] = useState<Tab>('edit');
 
-  // Hydrate the store with server-provided data.
-  // We use a ref to ensure init only runs once per page load even with
-  // localStorage persist + StrictMode double-invocation.
+  // Hydrate the store with server-provided data on first mount.
+  //
+  // Important: if the persisted store already holds this invitation's content
+  // (e.g. user clicked 미리보기, came back, and Next.js may serve a cached
+  // server render), keep the local store as-is. Otherwise round-tripping to
+  // /preview wipes uncommitted edits with stale server data.
   const hydrated = useRef(false);
   useEffect(() => {
     if (hydrated.current) return;
     hydrated.current = true;
+    const current = useEditorStore.getState();
+    if (current.invitationId === invitationId && current.content) {
+      // Already initialized for this invitation — preserve in-memory edits.
+      return;
+    }
     init(invitationId, meta, content);
   }, [invitationId, meta, content, init]);
 

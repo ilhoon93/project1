@@ -8,7 +8,7 @@ import { GALLERY_LAYOUTS } from '@/types/invitation';
 import { SectionEditor } from '../SectionEditor';
 import { Button } from '@/components/ui/button';
 
-const MAX_FILE_BYTES = 8 * 1024 * 1024;
+const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const ACCEPT = ['image/jpeg', 'image/png', 'image/webp'];
 
 const LAYOUT_LABEL: Record<(typeof GALLERY_LAYOUTS)[number], { name: string; hint: string }> = {
@@ -40,7 +40,7 @@ export function GalleryEditor() {
         return;
       }
       if (f.size > MAX_FILE_BYTES) {
-        setErrorMsg('이미지 크기는 8MB 이하여야 합니다.');
+        setErrorMsg('이미지 크기는 25MB 이하여야 합니다.');
         return;
       }
       valid.push(f);
