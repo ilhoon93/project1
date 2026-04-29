@@ -11,19 +11,27 @@ interface Props {
 }
 
 export function QuizSlide({ quiz, invitationId, isPreview }: Props) {
-  if (quiz.questions.length === 0) {
+  // Drafts may include questions without text or full options; only render
+  // ones that are actually playable.
+  const playable = quiz.questions
+    .map((q, qi) => ({ q, qi }))
+    .filter(
+      ({ q }) => q.q.trim() && q.options.every((opt) => opt.trim()),
+    );
+
+  if (playable.length === 0) {
     return <EmptyState message="등록된 퀴즈가 없습니다" />;
   }
 
   return (
     <section className="flex min-h-full flex-col gap-8 px-6 py-16">
       <header className="text-center">
-        <p className="text-xs tracking-[0.3em] text-[#8B7355]">QUIZ</p>
+        <p className="text-xs tracking-[0.3em] opacity-70">QUIZ</p>
         <h2 className="mt-2 text-xl font-light">우리에 대한 퀴즈</h2>
       </header>
 
       <div className="flex flex-col gap-8">
-        {quiz.questions.map((q, qi) => (
+        {playable.map(({ q, qi }) => (
           <Question
             key={qi}
             qi={qi}

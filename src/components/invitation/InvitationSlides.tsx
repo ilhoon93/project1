@@ -5,6 +5,7 @@ import { SlideContainer } from './SlideContainer';
 import { SignatureGate } from './SignatureGate';
 import { VisitTracker } from './VisitTracker';
 import { MainSlide } from './slides/MainSlide';
+import { BasicInfoSlide } from './slides/BasicInfoSlide';
 import { StorySlide } from './slides/StorySlide';
 import { GallerySlide } from './slides/GallerySlide';
 import { VideoSlide } from './slides/VideoSlide';
@@ -34,6 +35,16 @@ export function InvitationSlides({
   guestbookMessages = [],
   isPreview,
 }: Props) {
+  const storyHasContent = content.story.chapters.some(
+    (c) => c.title.trim() || c.text.trim() || c.image,
+  );
+  const quizHasPlayable = content.quiz.questions.some(
+    (q) => q.q.trim() && q.options.every((opt) => opt.trim()),
+  );
+  const voteHasPlayable = content.vote.questions.some(
+    (q) => q.q.trim() && q.options.every((opt) => opt.trim()),
+  );
+
   const slidesByKey: Record<SectionKey, ReactNode | null> = {
     main: (
       <MainSlide
@@ -41,21 +52,26 @@ export function InvitationSlides({
         brideName={brideName}
         weddingDate={weddingDate}
         main={content.main}
-        isPreview={isPreview}
       />
     ),
-    story: content.story.enabled ? <StorySlide story={content.story} /> : null,
+    basic: content.basic.enabled ? (
+      <BasicInfoSlide basic={content.basic} weddingDate={weddingDate} />
+    ) : null,
+    story:
+      content.story.enabled && storyHasContent ? (
+        <StorySlide story={content.story} />
+      ) : null,
     gallery: content.gallery.enabled ? <GallerySlide gallery={content.gallery} /> : null,
     video:
       content.video.enabled && content.video.url ? (
         <VideoSlide video={content.video} />
       ) : null,
     quiz:
-      content.quiz.enabled && content.quiz.questions.length > 0 ? (
+      content.quiz.enabled && quizHasPlayable ? (
         <QuizSlide quiz={content.quiz} invitationId={invitationId} isPreview={isPreview} />
       ) : null,
     vote:
-      content.vote.enabled && content.vote.questions.length > 0 ? (
+      content.vote.enabled && voteHasPlayable ? (
         <VoteSlide vote={content.vote} invitationId={invitationId} isPreview={isPreview} />
       ) : null,
     guestbook: content.guestbook.enabled ? (

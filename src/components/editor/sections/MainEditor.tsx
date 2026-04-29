@@ -4,7 +4,7 @@ import { useEditorStore } from '@/stores/editor';
 import { MAIN_LAYOUTS } from '@/types/invitation';
 import { SectionEditor } from '../SectionEditor';
 import { TextAreaField } from '../form-fields';
-import { AIImageGenerator } from '../AIImageGenerator';
+import { ImageUploader } from '../ImageUploader';
 
 const LAYOUT_LABELS: Record<(typeof MAIN_LAYOUTS)[number], { name: string; hint: string }> = {
   poster: { name: '포스터', hint: '풀이미지 배경' },
@@ -54,22 +54,19 @@ export function MainEditor() {
           </div>
         </div>
 
-        {showImagePicker &&
-          (main.heroImage ? (
-            <div className="flex flex-col gap-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={main.heroImage}
-                alt="메인 이미지 미리보기"
-                className="aspect-[3/4] w-full rounded-md object-cover"
-              />
-              <p className="text-xs text-muted-foreground">
-                메인 이미지가 설정되었습니다. 추가 이미지는 결제 후 사용 가능합니다.
-              </p>
-            </div>
-          ) : (
-            <AIImageGenerator invitationId={invitationId} alreadyUsed={false} />
-          ))}
+        {showImagePicker && (
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-foreground">메인 사진</span>
+            <ImageUploader
+              value={main.heroImage ?? null}
+              onChange={(url) => patch('main', { ...main, heroImage: url })}
+              invitationId={invitationId}
+              folder="main"
+              previewAspect="aspect-[3/4]"
+              label="사진 선택하기"
+            />
+          </div>
+        )}
 
         <TextAreaField
           label="인사말"

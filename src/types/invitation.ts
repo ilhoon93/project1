@@ -31,16 +31,70 @@ export const MainSectionSchema = z
   })
   .default({ layout: 'poster', greeting: '' });
 
+// ── basic info slide (글귀 / 인사말 / 가족 / 날짜) ──────────
+
+export const ParentSchema = z.object({
+  name: z.string().max(20).default(''),
+  deceased: z.boolean().default(false),
+});
+
+export const BasicInfoSectionSchema = z
+  .object({
+    enabled: z.boolean().default(true),
+    quote: z
+      .object({
+        enabled: z.boolean().default(false),
+        text: z.string().max(200).default(''),
+      })
+      .default({ enabled: false, text: '' }),
+    greeting: z
+      .object({
+        enabled: z.boolean().default(true),
+        text: z.string().max(500).default(''),
+      })
+      .default({ enabled: true, text: '' }),
+    family: z
+      .object({
+        enabled: z.boolean().default(true),
+        groomFather: ParentSchema,
+        groomMother: ParentSchema,
+        brideFather: ParentSchema,
+        brideMother: ParentSchema,
+      })
+      .default({
+        enabled: true,
+        groomFather: { name: '', deceased: false },
+        groomMother: { name: '', deceased: false },
+        brideFather: { name: '', deceased: false },
+        brideMother: { name: '', deceased: false },
+      }),
+    showDate: z.boolean().default(true),
+  })
+  .default({
+    enabled: true,
+    quote: { enabled: false, text: '' },
+    greeting: { enabled: true, text: '' },
+    family: {
+      enabled: true,
+      groomFather: { name: '', deceased: false },
+      groomMother: { name: '', deceased: false },
+      brideFather: { name: '', deceased: false },
+      brideMother: { name: '', deceased: false },
+    },
+    showDate: true,
+  });
+
 export const StoryChapterSchema = z.object({
-  title: z.enum(['첫 만남', '고백', '프로포즈']),
+  // Free-form title — guidance text shown via placeholder ("첫 만남", "고백", "프로포즈" 등).
+  title: z.string().max(40).default(''),
   image: z.string().url().nullable().optional(),
-  text: z.string().max(300).default(''),
+  text: z.string().max(500).default(''),
 });
 
 export const StorySectionSchema = z
   .object({
     enabled: z.boolean().default(true),
-    chapters: z.array(StoryChapterSchema).length(3),
+    chapters: z.array(StoryChapterSchema).max(8).default([]),
   })
   .default({
     enabled: true,
@@ -65,9 +119,11 @@ export const VideoSectionSchema = z
   })
   .default({ enabled: false, url: null });
 
+// Drafts may have empty strings while the user is still typing; render-time
+// guards in QuizSlide skip questions whose required fields are blank.
 export const QuizQuestionSchema = z.object({
-  q: z.string().min(1).max(100),
-  options: z.array(z.string().min(1)).length(4),
+  q: z.string().max(100).default(''),
+  options: z.array(z.string().max(50).default('')).length(4),
   answer: z.number().int().min(0).max(3),
 });
 
@@ -79,8 +135,8 @@ export const QuizSectionSchema = z
   .default({ enabled: false, questions: [] });
 
 export const VoteQuestionSchema = z.object({
-  q: z.string().min(1).max(100),
-  options: z.array(z.string().min(1)).length(2),
+  q: z.string().max(100).default(''),
+  options: z.array(z.string().max(50).default('')).length(2),
 });
 
 export const VoteSectionSchema = z
@@ -116,6 +172,7 @@ export const AccountSectionSchema = z
 export const InvitationContentSchema = z.object({
   theme: ThemeSchema,
   main: MainSectionSchema,
+  basic: BasicInfoSectionSchema,
   story: StorySectionSchema,
   gallery: GallerySectionSchema,
   video: VideoSectionSchema,
