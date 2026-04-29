@@ -1,6 +1,9 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import { useEditorStore } from '@/stores/editor';
+import { createClient } from '@/lib/supabase/client';
+import { nanoid } from '@/lib/utils/nanoid';
 import {
   COLOR_THEMES,
   COLOR_THEME_LABELS,
@@ -15,15 +18,22 @@ import {
   type ColorTheme,
   type SectionKey,
 } from '@/lib/theme';
+import { Button } from '@/components/ui/button';
 import { SectionEditor } from '../SectionEditor';
+import { TextField } from '../form-fields';
+
+const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
+const AUDIO_ACCEPT = ['audio/mpeg', 'audio/mp4', 'audio/aac', 'audio/wav', 'audio/ogg'];
 
 export function ThemeEditor() {
   const content = useEditorStore((s) => s.content);
+  const invitationId = useEditorStore((s) => s.invitationId);
   const patch = useEditorStore((s) => s.patchSection);
   // Guard against stale persisted state from before the theme field existed.
   // EditorClient.init() will overwrite with parsed server data on mount.
-  if (!content || !content.theme) return null;
+  if (!content || !content.theme || !invitationId) return null;
   const theme = content.theme;
+  const bgm = theme.bgm ?? { enabled: false, url: null };
 
   const setTheme = (next: typeof theme) => patch('theme', next);
   const order = reconcilePageOrder(theme.pageOrder);
@@ -118,8 +128,148 @@ export function ThemeEditor() {
             ))}
           </ul>
         </Field>
+
+        {/* 배경 음악 */}
+        <BgmField
+          invitationId={invitationId}
+          enabled={bgm.enabled}
+          url={bgm.url}
+          onChange={(next) => setTheme({ ...theme, bgm: next })}
+        />
       </div>
     </SectionEditor>
+  );
+}
+
+function BgmField({
+  invitationId,
+  enabled,
+  url,
+  onChange,
+}: {
+  invitationId: string;
+  enabled: boolean;
+  url: string | null;
+  onChange: (next: { enabled: boolean; url: string | null }) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const handleFile = async (file: File) => {
+    setErrorMsg(null);
+    if (!AUDIO_ACCEPT.includes(file.type)) {
+      setErrorMsg('MP3, M4A, AAC, WAV, OGG 형식만 지원됩니다.');
+      return;
+    }
+    if (file.size > MAX_AUDIO_BYTES) {
+      setErrorMsg('음악 파일은 15MB 이하여야 합니다.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'mp3';
+      const path = `invitations/${invitationId}/bgm/${nanoid(10)}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from('public-images')
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (upErr) {
+        setErrorMsg(`업로드 실패: ${upErr.message}`);
+        return;
+      }
+      const { data } = supabase.storage.from('public-images').getPublicUrl(path);
+      if (data?.publicUrl) {
+        onChange({ enabled: true, url: data.publicUrl });
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Field
+      label="배경 음악"
+      hint="브라우저 정책상 첫 화면 터치 후에 자동으로 재생되며, 우측 상단 버튼으로 끄거나 켤 수 있습니다."
+    >
+      <div className="flex flex-col gap-2 rounded-md border bg-background p-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">사용 여부</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={enabled}
+            aria-label="배경 음악 사용 여부"
+            onClick={() => onChange({ enabled: !enabled, url })}
+            className={`inline-flex h-5 w-9 shrink-0 items-center overflow-hidden rounded-full p-0.5 transition-colors ${
+              enabled ? 'bg-primary' : 'bg-muted-foreground/30'
+            }`}
+          >
+            <span
+              className={`block h-4 w-4 rounded-full bg-background shadow-sm transition-transform ${
+                enabled ? 'translate-x-4' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+
+        {enabled && (
+          <>
+            <TextField
+              label="음악 URL (직접 입력)"
+              type="url"
+              value={url ?? ''}
+              placeholder="https://example.com/song.mp3"
+              onChange={(e) => onChange({ enabled, url: e.target.value || null })}
+              hint="MP3 등 외부 URL을 붙여넣을 수 있습니다"
+            />
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-foreground">또는 직접 업로드</span>
+              <input
+                ref={inputRef}
+                type="file"
+                accept={AUDIO_ACCEPT.join(',')}
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void handleFile(f);
+                  e.target.value = '';
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={busy}
+                onClick={() => inputRef.current?.click()}
+                className="self-start"
+              >
+                {busy ? '업로드 중...' : '음악 파일 선택'}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                MP3 · M4A · AAC · WAV · OGG, 최대 15MB
+              </p>
+            </div>
+
+            {url && (
+              <div className="flex items-center gap-2">
+                <audio src={url} controls className="h-9 w-full" preload="metadata" />
+                <button
+                  type="button"
+                  onClick={() => onChange({ enabled, url: null })}
+                  className="text-xs text-destructive hover:underline"
+                >
+                  제거
+                </button>
+              </div>
+            )}
+
+            {errorMsg && <p className="text-xs text-destructive">{errorMsg}</p>}
+          </>
+        )}
+      </div>
+    </Field>
   );
 }
 

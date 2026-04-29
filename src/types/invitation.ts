@@ -3,6 +3,13 @@ import { COLOR_THEMES, FONT_KEYS, PETAL_TYPES, SECTION_KEYS } from '@/lib/theme'
 
 // ── theme (global look & feel + page ordering) ────────────
 
+export const BgmSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    url: z.string().url().nullable().default(null),
+  })
+  .default({ enabled: false, url: null });
+
 export const ThemeSchema = z
   .object({
     colorTheme: z.enum(COLOR_THEMES).default('cream'),
@@ -11,12 +18,14 @@ export const ThemeSchema = z
     // Stored as plain strings so adding new section keys later doesn't break
     // existing data; reconcilePageOrder() in lib/theme.ts normalizes at render time.
     pageOrder: z.array(z.string()).default([...SECTION_KEYS]),
+    bgm: BgmSchema,
   })
   .default({
     colorTheme: 'cream',
     petalType: 'flower',
     font: 'serif',
     pageOrder: [...SECTION_KEYS],
+    bgm: { enabled: false, url: null },
   });
 
 // ── individual section schemas ────────────────────────────

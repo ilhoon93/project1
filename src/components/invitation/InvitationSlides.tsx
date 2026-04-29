@@ -107,6 +107,7 @@ export function InvitationSlides({
         colorTheme={content.theme.colorTheme}
         petalType={content.theme.petalType}
         font={content.theme.font}
+        bgmUrl={content.theme.bgm?.enabled ? content.theme.bgm.url : null}
       >
         {slides}
       </SlideContainer>
