@@ -15,6 +15,7 @@ import { AccountEditor } from '@/components/editor/sections/AccountEditor';
 import { ClosingEditor } from '@/components/editor/sections/ClosingEditor';
 import { MetaEditor } from '@/components/editor/sections/MetaEditor';
 import { ThemeEditor } from '@/components/editor/sections/ThemeEditor';
+import { BasicInfoEditor } from '@/components/editor/sections/BasicInfoEditor';
 
 interface Props {
   invitationId: string;
@@ -54,6 +55,7 @@ export function EditorClient({ invitationId, meta, content }: Props) {
         <MetaEditor />
         <ThemeEditor />
         <MainEditor />
+        <BasicInfoEditor />
         <StoryEditor />
         <GalleryEditor />
         <VideoEditor />

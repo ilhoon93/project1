@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
-import { motion, type PanInfo } from 'framer-motion';
+import { useRef, useState, type ReactNode } from 'react';
+import { motion } from 'framer-motion';
 import { FallingPetals } from '@/components/shared/FallingPetals';
 import {
   FONT_OPTIONS,
@@ -11,7 +11,8 @@ import {
   type PetalType,
 } from '@/lib/theme';
 
-const SWIPE_THRESHOLD = 60;
+const SWIPE_THRESHOLD = 50;
+const VERTICAL_BIAS = 1.2; // require horizontal > 1.2x vertical to count as swipe
 
 interface Props {
   children: ReactNode[];
@@ -20,6 +21,12 @@ interface Props {
   font?: FontKey;
 }
 
+/**
+ * Insta-style horizontal slide deck. We deliberately use raw pointer events
+ * for swipe instead of framer-motion's `drag`, because the constrained-drag
+ * + animate combo we used previously didn't fire reliably on touch devices
+ * inside an `overflow-y-auto` slide. Animate is kept for the transition.
+ */
 export function SlideContainer({
   children,
   colorTheme = 'cream',
@@ -31,13 +38,29 @@ export function SlideContainer({
   const palette = THEME_PALETTES[colorTheme];
   const fontFamily = FONT_OPTIONS[font].family;
 
+  const startRef = useRef<{ x: number; y: number } | null>(null);
+
   const next = () => setIndex((i) => Math.min(i + 1, slides.length - 1));
   const prev = () => setIndex((i) => Math.max(i - 1, 0));
 
-  const onDragEnd = (_: unknown, info: PanInfo) => {
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Only track primary pointer; ignore secondary touches.
+    if (!e.isPrimary) return;
+    startRef.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    const start = startRef.current;
+    startRef.current = null;
+    if (!start) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    // Ignore vertical scroll gestures.
+    if (Math.abs(dy) > Math.abs(dx) * VERTICAL_BIAS) return;
+    if (Math.abs(dx) < SWIPE_THRESHOLD) return;
     // 사용자 요청: 오른쪽으로 스와이프 = 다음, 왼쪽으로 스와이프 = 이전
-    if (info.offset.x > SWIPE_THRESHOLD) next();
-    else if (info.offset.x < -SWIPE_THRESHOLD) prev();
+    if (dx > 0) next();
+    else prev();
   };
 
   return (
@@ -48,13 +71,14 @@ export function SlideContainer({
       <FallingPetals type={petalType} colors={palette.petals} />
 
       <motion.div
-        className="flex h-full"
+        className="flex h-full touch-pan-y"
         animate={{ x: `-${index * 100}vw` }}
         transition={{ type: 'spring', stiffness: 300, damping: 32 }}
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.2}
-        onDragEnd={onDragEnd}
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+        onPointerCancel={() => {
+          startRef.current = null;
+        }}
       >
         {slides.map((slide, i) => (
           <div

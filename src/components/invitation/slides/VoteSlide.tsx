@@ -11,11 +11,15 @@ interface Props {
 }
 
 export function VoteSlide({ vote, invitationId, isPreview }: Props) {
-  if (vote.questions.length === 0) {
+  const playable = vote.questions
+    .map((q, qi) => ({ q, qi }))
+    .filter(({ q }) => q.q.trim() && q.options.every((opt) => opt.trim()));
+
+  if (playable.length === 0) {
     return (
       <section className="flex min-h-full flex-col items-center justify-center gap-3 px-6 py-16">
         <h2 className="text-xl font-light">투표</h2>
-        <p className="text-sm text-[#8B7355]">등록된 투표가 없습니다</p>
+        <p className="text-sm opacity-70">등록된 투표가 없습니다</p>
       </section>
     );
   }
@@ -23,12 +27,12 @@ export function VoteSlide({ vote, invitationId, isPreview }: Props) {
   return (
     <section className="flex min-h-full flex-col gap-8 px-6 py-16">
       <header className="text-center">
-        <p className="text-xs tracking-[0.3em] text-[#8B7355]">VOTE</p>
+        <p className="text-xs tracking-[0.3em] opacity-70">VOTE</p>
         <h2 className="mt-2 text-xl font-light">신랑 vs 신부</h2>
       </header>
 
       <div className="flex flex-col gap-8">
-        {vote.questions.map((q, qi) => (
+        {playable.map(({ q, qi }) => (
           <Question
             key={qi}
             qi={qi}

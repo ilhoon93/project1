@@ -34,6 +34,7 @@ export function SignatureGate({ invitationId, disabled, children }: Props) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const padRef = useRef<SignaturePadHandle>(null);
 
+  // Auto-open on first visit only respects `disabled` (skip in author preview).
   useEffect(() => {
     if (disabled) return;
     if (typeof window === 'undefined') return;
@@ -41,19 +42,20 @@ export function SignatureGate({ invitationId, disabled, children }: Props) {
     if (!stored) setOpen(true);
   }, [invitationId, disabled]);
 
+  // Manual open via 입장하기 button works even in preview, so authors can
+  // verify the popup. Submission is a no-op in preview (handleSubmit below).
   useEffect(() => {
-    if (disabled) return;
     const handler = () => setOpen(true);
     window.addEventListener(SIGNATURE_GATE_OPEN_EVENT, handler);
     return () => window.removeEventListener(SIGNATURE_GATE_OPEN_EVENT, handler);
-  }, [disabled]);
+  }, []);
 
   const persistIdentity = (identity: StoredIdentity) => {
     window.localStorage.setItem(storageKey(invitationId), JSON.stringify(identity));
   };
 
   const handleSkip = () => {
-    persistIdentity({ name: null, side: null });
+    if (!disabled) persistIdentity({ name: null, side: null });
     setOpen(false);
   };
 
@@ -68,6 +70,13 @@ export function SignatureGate({ invitationId, disabled, children }: Props) {
       return;
     }
     setErrorMsg(null);
+
+    // Author preview: skip API call entirely so the button feels real but
+    // doesn't add bogus signatures to the live invitation.
+    if (disabled) {
+      setOpen(false);
+      return;
+    }
     setSubmitting(true);
 
     const sig = padRef.current?.toDataURL() ?? null;

@@ -86,6 +86,7 @@ export const FONT_OPTIONS: Record<FontKey, FontOption> = {
 
 export const SECTION_KEYS = [
   'main',
+  'basic',
   'story',
   'gallery',
   'video',
@@ -99,6 +100,7 @@ export type SectionKey = (typeof SECTION_KEYS)[number];
 
 export const SECTION_LABELS: Record<SectionKey, string> = {
   main: '메인',
+  basic: '기본정보',
   story: '스토리',
   gallery: '갤러리',
   video: '영상',
