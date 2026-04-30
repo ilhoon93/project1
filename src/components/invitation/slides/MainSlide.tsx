@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import type { InvitationContent } from '@/types/invitation';
 import { Confetti } from '@/components/shared/Confetti';
 import { openSignatureGate } from '../SignatureGate';
@@ -16,15 +15,10 @@ interface Props {
 
 export function MainSlide({ groomName, brideName, weddingDate, main, onEnter }: Props) {
   const [confettiTrigger, setConfettiTrigger] = useState<number | null>(null);
-  const [leaving, setLeaving] = useState(false);
 
   const handleEnter = () => {
-    setLeaving(true);
-
-    setTimeout(() => {
-      openSignatureGate();
-      onEnter?.();
-    }, 350); // 애니메이션 후 이동
+    openSignatureGate();
+    onEnter?.();
   };
 
   const handleCelebrate = () => setConfettiTrigger(Date.now());
@@ -34,15 +28,7 @@ export function MainSlide({ groomName, brideName, weddingDate, main, onEnter }: 
   const overlay = layout === 'poster' && hasImage;
 
   return (
-    <motion.section
-      className="relative flex h-[100dvh] items-center justify-center px-6 py-10 text-center"
-      animate={
-        leaving
-          ? { scale: 1.05, opacity: 0 }
-          : { scale: 1, opacity: 1 }
-      }
-      transition={{ duration: 0.35, ease: 'easeInOut' }}
-    >
+    <section className="relative flex min-h-full items-center justify-center px-6 py-10 text-center">
       {/* 배경 */}
       {overlay && (
         <>
@@ -55,7 +41,7 @@ export function MainSlide({ groomName, brideName, weddingDate, main, onEnter }: 
         </>
       )}
 
-      {/* 컨텐츠 */}
+      {/* 메인 컨텐츠 (절대 수정 안함) */}
       <div
         className={`relative z-10 flex w-full max-w-md flex-col items-center gap-4 ${
           overlay ? 'text-white' : ''
@@ -138,21 +124,19 @@ export function MainSlide({ groomName, brideName, weddingDate, main, onEnter }: 
         )}
       </div>
 
-      {/* 그라데이션 */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/50 to-transparent" />
+      {/* 하단 그라데이션 */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/50 to-transparent" />
 
-      {/* CTA (위로 올림) */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-16 z-20 flex flex-col items-center gap-3 px-6">
-        {/* 입장하기 */}
+      {/* CTA (위치 살짝 내림) */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-10 z-20 flex flex-col items-center gap-2 px-6">
         <button
           type="button"
           onClick={handleEnter}
-          className="pointer-events-auto w-full max-w-xs rounded-full bg-white py-3 text-sm font-semibold text-[#3D2E1F] shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-[1.02] active:scale-[0.97]"
+          className="pointer-events-auto w-full max-w-xs rounded-full bg-white py-3 text-sm font-semibold text-[#3D2E1F] shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.97]"
         >
           입장하기
         </button>
 
-        {/* 축하하기 */}
         <button
           type="button"
           onClick={handleCelebrate}
@@ -165,7 +149,7 @@ export function MainSlide({ groomName, brideName, weddingDate, main, onEnter }: 
       </div>
 
       <Confetti trigger={confettiTrigger} />
-    </motion.section>
+    </section>
   );
 }
 
