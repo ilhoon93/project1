@@ -1,7 +1,7 @@
 'use client';
 
 import { useEditorStore } from '@/stores/editor';
-import { ACCOUNT_PARTY_KEYS, type AccountPartyKey } from '@/types/invitation';
+import { type AccountPartyKey } from '@/types/invitation';
 import { SectionEditor } from '../SectionEditor';
 import { TextField, TextAreaField } from '../form-fields';
 import { Button } from '@/components/ui/button';
