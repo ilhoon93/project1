@@ -9,7 +9,6 @@ export const COLOR_THEMES = [
   'sage',
   'dusk',
   'pearl',
-  'hanji',
 ] as const;
 export type ColorTheme = (typeof COLOR_THEMES)[number];
 
@@ -26,11 +25,6 @@ export interface Palette {
 // 펄 — 부드러운 라디얼 그라디언트로 진주빛 광택. 어디에나 무난.
 const PEARL_PATTERN =
   'radial-gradient(circle at 30% 20%, rgba(255,230,235,0.55) 0%, rgba(255,255,255,0) 38%), radial-gradient(circle at 75% 70%, rgba(220,235,255,0.5) 0%, rgba(255,255,255,0) 40%), radial-gradient(circle at 50% 50%, rgba(255,250,240,0.35) 0%, rgba(255,255,255,0) 60%)';
-
-// 한지 — 매우 옅은 종이 섬유 노이즈. 톤은 따뜻한 베이지지만 질감을
-// "은은하게" 만 비치도록 알파를 낮게 유지.
-const HANJI_PATTERN =
-  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='2' seed='5'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.34  0 0 0 0 0.22  0 0 0 0.035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")";
 
 export const THEME_PALETTES: Record<ColorTheme, Palette> = {
   cream: {
@@ -61,22 +55,14 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     dot: '#5C4F75',
     petals: ['#B8A6D6', '#D4A5DC', '#DDD0EB', '#E8D5F2'],
   },
+  // 펄 — 진주빛 배경 위에 남색 계열 글씨로 정갈한 톤.
   pearl: {
     bg: '#F8F4EE',
-    fg: '#3D2E2A',
-    accent: '#A88B6E',
-    dot: '#DCCFBE',
+    fg: '#1A2238',
+    accent: '#2C3E5C',
+    dot: '#B5BCC9',
     petals: ['#F5E1DA', '#E8D0C8', '#FFFFFF', '#EFD9D2'],
     bgPattern: PEARL_PATTERN,
-  },
-  // 한지 — 따뜻한 미색 + 옅은 종이 섬유 질감. 어르신/혼주께 친숙.
-  hanji: {
-    bg: '#F5ECD8',
-    fg: '#3A2A1A',
-    accent: '#8C5A3C',
-    dot: '#CCB68F',
-    petals: ['#E8C7A1', '#D6A88A', '#F0D6B8', '#C49A78'],
-    bgPattern: HANJI_PATTERN,
   },
 };
 
@@ -86,7 +72,6 @@ export const COLOR_THEME_LABELS: Record<ColorTheme, string> = {
   sage: '세이지',
   dusk: '더스크',
   pearl: '펄',
-  hanji: '한지',
 };
 
 // 'flower'/'heart'/'star' 는 글리프(2D), 'sakura'/'leaf'/'whitePetal' 은 텍스처형.
@@ -139,7 +124,6 @@ export const FONT_KEYS = [
   'sans',
   'gowun',
   'handwritten',
-  'songMyung',
   'dokdo',
 ] as const;
 export type FontKey = (typeof FONT_KEYS)[number];
@@ -154,7 +138,6 @@ export const FONT_OPTIONS: Record<FontKey, FontOption> = {
   sans: { label: '고딕', family: "'Noto Sans KR', sans-serif" },
   gowun: { label: '고운바탕', family: "'Gowun Batang', serif" },
   handwritten: { label: '손글씨', family: "'Gaegu', cursive" },
-  songMyung: { label: '송명', family: "'Song Myung', serif" },
   // 붓펜 느낌의 한글 필기체 — 손글씨(Gaegu)와는 결이 다름.
   dokdo: { label: '캘리', family: "'Dokdo', cursive" },
 };

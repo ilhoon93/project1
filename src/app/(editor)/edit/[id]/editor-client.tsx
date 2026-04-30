@@ -14,7 +14,6 @@ import { VoteEditor } from '@/components/editor/sections/VoteEditor';
 import { GuestbookEditor } from '@/components/editor/sections/GuestbookEditor';
 import { AccountEditor } from '@/components/editor/sections/AccountEditor';
 import { ClosingEditor } from '@/components/editor/sections/ClosingEditor';
-import { MetaEditor } from '@/components/editor/sections/MetaEditor';
 import { ThemeEditor } from '@/components/editor/sections/ThemeEditor';
 import { BasicInfoEditor } from '@/components/editor/sections/BasicInfoEditor';
 
@@ -90,7 +89,6 @@ export function EditorClient({ invitationId, meta, content }: Props) {
       <main className="mx-auto flex max-w-2xl flex-col gap-3 px-4 py-6 pb-32">
         {tab === 'edit' ? (
           <>
-            <MetaEditor />
             <ThemeEditor />
             <MainEditor />
             <BasicInfoEditor />

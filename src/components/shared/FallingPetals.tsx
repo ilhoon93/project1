@@ -221,14 +221,6 @@ export function PetalShape({ type, color }: { type: PetalType; color: string }) 
              C 34 16, 28 6, 21 4 Z"
           fill={`url(#${gradId}-shade)`}
         />
-        {/* 잎맥 */}
-        <path
-          d="M20 8 Q 19 25 20 45"
-          stroke="rgba(180,150,150,0.35)"
-          strokeWidth="0.5"
-          fill="none"
-          strokeLinecap="round"
-        />
       </svg>
     );
   }

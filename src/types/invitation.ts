@@ -237,8 +237,8 @@ export type BankAccount = z.infer<typeof BankAccountSchema>;
 // ── create / publish-time payloads ───────────────────────
 
 export const CreateInvitationSchema = z.object({
-  groomName: z.string().min(1).max(20),
-  brideName: z.string().min(1).max(20),
+  groomName: z.string().max(20).default(''),
+  brideName: z.string().max(20).default(''),
   weddingDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD format expected')
@@ -246,9 +246,11 @@ export const CreateInvitationSchema = z.object({
     .optional(),
 });
 
+// 이름/날짜는 새 알림장 생성 후 편집기 안에서 채워넣는 흐름이라
+// 빈 문자열도 허용. 발행 시점 검증은 별도 단계에서.
 export const UpdateInvitationSchema = z.object({
-  groomName: z.string().min(1).max(20).optional(),
-  brideName: z.string().min(1).max(20).optional(),
+  groomName: z.string().max(20).optional(),
+  brideName: z.string().max(20).optional(),
   weddingDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
