@@ -38,16 +38,10 @@ export function SlideContainer({
   const slidesLen = slides.length;
   const startRef = useRef<{ x: number; y: number } | null>(null);
 
-  // 현재 슬라이드가 메인(첫 번째)인지 확인
-  const isMainSlide = index === 0;
-
   const commitSwipe = (dx: number, dy: number) => {
-    // 메인 슬라이드에서는 스와이프 기능을 완전히 막음
-    if (isMainSlide) return;
-    
     if (Math.abs(dy) > Math.abs(dx) * VERTICAL_BIAS) return;
     if (Math.abs(dx) < SWIPE_THRESHOLD) return;
-    
+
     if (dx < 0) {
       setIndex((i) => Math.min(i + 1, slidesLen - 1));
     } else {
@@ -62,7 +56,7 @@ export function SlideContainer({
     target instanceof Element && !!target.closest('[data-noswipe]');
 
   const onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (isMainSlide || isInsideNoSwipe(e.target)) {
+    if (isInsideNoSwipe(e.target)) {
       startRef.current = null;
       return;
     }
@@ -81,7 +75,7 @@ export function SlideContainer({
   };
 
   const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isMainSlide || e.button !== 0 || isInsideNoSwipe(e.target)) return;
+    if (e.button !== 0 || isInsideNoSwipe(e.target)) return;
     startRef.current = { x: e.clientX, y: e.clientY };
     const onUp = (evt: MouseEvent) => {
       const start = startRef.current;
@@ -150,31 +144,29 @@ export function SlideContainer({
         ))}
       </div>
 
-      {/* 좌우 화살표: 메인 슬라이드가 아닐 때만 표시 및 배경 투명화 */}
-      {!isMainSlide && (
-        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-between px-2 md:px-4">
-          <button
-            type="button"
-            onClick={goPrev}
-            disabled={index === 0}
-            aria-label="이전"
-            className="pointer-events-auto grid h-9 w-9 place-items-center bg-transparent text-lg disabled:opacity-0 md:h-10 md:w-10"
-            style={{ color: palette.accent, background: 'transparent' }}
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            onClick={goNext}
-            disabled={index === slides.length - 1}
-            aria-label="다음"
-            className="pointer-events-auto grid h-9 w-9 place-items-center bg-transparent text-lg disabled:opacity-0 md:h-10 md:w-10"
-            style={{ color: palette.accent, background: 'transparent' }}
-          >
-            ›
-          </button>
-        </div>
-      )}
+      {/* 좌우 화살표: 끝 위치에선 disabled:opacity-0 으로 자연스레 사라짐 */}
+      <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-between px-2 md:px-4">
+        <button
+          type="button"
+          onClick={goPrev}
+          disabled={index === 0}
+          aria-label="이전"
+          className="pointer-events-auto grid h-9 w-9 place-items-center bg-transparent text-lg disabled:opacity-0 md:h-10 md:w-10"
+          style={{ color: palette.accent, background: 'transparent' }}
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          onClick={goNext}
+          disabled={index === slides.length - 1}
+          aria-label="다음"
+          className="pointer-events-auto grid h-9 w-9 place-items-center bg-transparent text-lg disabled:opacity-0 md:h-10 md:w-10"
+          style={{ color: palette.accent, background: 'transparent' }}
+        >
+          ›
+        </button>
+      </div>
     </div>
   );
 }
