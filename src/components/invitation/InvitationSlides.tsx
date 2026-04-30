@@ -21,7 +21,6 @@ interface Props {
   brideName: string;
   weddingDate: string | null;
   content: InvitationContent;
-  /** Author preview mode — interactive forms are disabled, no signature gate. */
   isPreview?: boolean;
 }
 
@@ -93,11 +92,10 @@ export function InvitationSlides({
   };
 
   const orderedKeys = reconcilePageOrder(content.theme.pageOrder);
+  
+  // SlideContainer의 cloneElement가 정상 작동하도록 컴포넌트 자체를 넘김
   const slides = orderedKeys
-    .map((key) => {
-      const node = slidesByKey[key];
-      return node ? <div key={key}>{node}</div> : null;
-    })
+    .map((key) => slidesByKey[key])
     .filter(Boolean) as ReactNode[];
 
   return (
