@@ -181,44 +181,54 @@ export function PetalShape({ type, color }: { type: PetalType; color: string }) 
     );
   }
 
-  if (type === 'ring') {
+  if (type === 'whitePetal') {
+    // 한 잎짜리 흰 꽃잎. 실사 사진 느낌이 나도록:
+    //  - 길쭉한 타원형의 꽃잎 형태 (한쪽 끝이 살짝 패임)
+    //  - 흰색에서 미세한 핑크/베이지 그라디언트 → 입체감
+    //  - 가운데 잎맥 라인 + 가장자리 살짝 그림자
     return (
-      <svg viewBox="0 0 40 40" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+      <svg viewBox="0 0 40 50" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
         <defs>
-          <radialGradient id={gradId} cx="50%" cy="40%" r="60%">
-            <stop offset="0%" stopColor="#FFF6D8" stopOpacity="1" />
-            <stop offset="60%" stopColor={color} stopOpacity="1" />
-            <stop offset="100%" stopColor="#7A5A12" stopOpacity="1" />
-          </radialGradient>
-          <radialGradient id={`${gradId}-d`} cx="50%" cy="50%" r="50%">
+          <radialGradient id={gradId} cx="50%" cy="35%" r="70%">
             <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
-            <stop offset="60%" stopColor="#E8F2FF" stopOpacity="0.95" />
-            <stop offset="100%" stopColor="#9DB6D9" stopOpacity="0.9" />
+            <stop offset="55%" stopColor="#FFF8F4" stopOpacity="0.98" />
+            <stop offset="100%" stopColor="#F2DCD4" stopOpacity="0.92" />
           </radialGradient>
+          <linearGradient id={`${gradId}-shade`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0" />
+            <stop offset="100%" stopColor="#C9A8A0" stopOpacity="0.18" />
+          </linearGradient>
         </defs>
-        {/* 반지 밴드 */}
-        <circle
-          cx="20"
-          cy="24"
-          r="11"
-          fill="none"
-          stroke={`url(#${gradId})`}
-          strokeWidth="3"
+        {/* 꽃잎 본체 — 위쪽에 살짝 패임(노치)으로 한쪽이 갈라진 모양 */}
+        <path
+          d="M20 4
+             C 12 6, 6 16, 8 28
+             C 9 36, 14 44, 20 47
+             C 26 44, 31 36, 32 28
+             C 34 16, 28 6, 21 4
+             C 21 6, 20 7, 20 8
+             C 20 7, 19 6, 19 4 Z"
+          fill={`url(#${gradId})`}
+          stroke="rgba(180,140,135,0.35)"
+          strokeWidth="0.4"
         />
-        {/* 다이아몬드 (윗 부분) */}
-        <g transform="translate(20 11)">
-          <polygon
-            points="0,-5 4,-1 2,4 -2,4 -4,-1"
-            fill={`url(#${gradId}-d)`}
-            stroke="rgba(80,100,140,0.5)"
-            strokeWidth="0.4"
-          />
-          <polygon
-            points="0,-5 4,-1 -4,-1"
-            fill="rgba(255,255,255,0.6)"
-            stroke="none"
-          />
-        </g>
+        {/* 입체감용 음영 오버레이 */}
+        <path
+          d="M20 4
+             C 12 6, 6 16, 8 28
+             C 9 36, 14 44, 20 47
+             C 26 44, 31 36, 32 28
+             C 34 16, 28 6, 21 4 Z"
+          fill={`url(#${gradId}-shade)`}
+        />
+        {/* 잎맥 */}
+        <path
+          d="M20 8 Q 19 25 20 45"
+          stroke="rgba(180,150,150,0.35)"
+          strokeWidth="0.5"
+          fill="none"
+          strokeLinecap="round"
+        />
       </svg>
     );
   }
