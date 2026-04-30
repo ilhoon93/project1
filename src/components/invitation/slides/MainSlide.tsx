@@ -10,21 +10,19 @@ interface Props {
   brideName: string;
   weddingDate: string | null;
   main: InvitationContent['main'];
+  onNext?: () => void; // SlideContainer로부터 주입받을 함수
 }
 
-/**
- * Main slide. All four layouts share the same outer wrapper that vertically
- * centers ONE tight content stack (header → visual → names → date → greeting
- * → buttons). Keeping the buttons inside the same flex group prevents the
- * "half empty bottom" effect that appears when buttons are pinned to the
- * bottom of a tall section.
- */
-export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
+export function MainSlide({ groomName, brideName, weddingDate, main, onNext }: Props) {
   const [confettiTrigger, setConfettiTrigger] = useState<number | null>(null);
 
   const handleEnter = () => {
+    // 1. 다음 페이지로 슬라이드 이동
+    onNext?.();
+    // 2. 필요 시 시그니처 게이트 오픈
     openSignatureGate();
   };
+  
   const handleCelebrate = () => setConfettiTrigger(Date.now());
 
   const layout = main.layout ?? 'poster';
@@ -35,7 +33,6 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
     <section className="relative flex h-[100dvh] items-center justify-center px-6 py-10 text-center">
       {overlay && (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={main.heroImage!}
             alt=""
@@ -45,10 +42,11 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
         </>
       )}
 
+      {/* 메인 콘텐츠 영역 (이름, 날짜 등) */}
       <div
         className={`relative z-10 flex w-full max-w-md flex-col items-center gap-4 ${
           overlay ? 'text-white' : ''
-        }`}
+        } mb-24`} 
       >
         {layout === 'poster' && (
           <p className={`text-xs tracking-[0.3em] ${overlay ? 'text-white/85' : 'opacity-70'}`}>
@@ -68,10 +66,9 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
         {layout === 'polaroid' && (
           <div className="relative rotate-[-3deg] rounded-sm bg-white p-3 pb-10 shadow-xl">
             {hasImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img src={main.heroImage!} alt="" className="h-56 w-48 object-cover" />
             ) : (
-              <div className="grid h-56 w-48 place-items-center bg-gradient-to-br from-stone-200 to-stone-300 text-3xl text-stone-400">
+              <div className="grid h-56 w-48 place-items-center bg-gradient-br from-stone-200 to-stone-300 text-3xl text-stone-400">
                 📷
               </div>
             )}
@@ -105,7 +102,7 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
             <span className={`text-base ${overlay ? 'text-white/80' : 'opacity-60'}`}>·</span>
             <span>{brideName}</span>
           </h1>
-        ) : null /* polaroid puts names in the frame caption */}
+        ) : null}
 
         {weddingDate && (
           <p className={`text-sm tracking-widest ${overlay ? 'text-white/90' : 'opacity-80'}`}>
@@ -122,23 +119,25 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
             {main.greeting}
           </p>
         )}
+      </div>
 
-        <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-          <button
-            type="button"
-            onClick={handleEnter}
-            className="rounded-full bg-white/85 px-5 py-2 text-xs font-medium text-[#3D2E1F] shadow-sm backdrop-blur-sm transition-colors hover:bg-white"
-          >
-            입장하기
-          </button>
-          <button
-            type="button"
-            onClick={handleCelebrate}
-            className="rounded-full border border-current/40 bg-transparent px-5 py-2 text-xs font-medium text-current backdrop-blur-sm transition-colors hover:bg-current/10"
-          >
-            축하하기 🎉
-          </button>
-        </div>
+      {/* 하단 버튼 레이아웃: 화면 하단 중앙에 고정 */}
+      <div className="absolute bottom-20 left-1/2 z-20 flex w-full -translate-x-1/2 flex-col items-center gap-4 px-10">
+        <button
+          type="button"
+          onClick={handleEnter}
+          className="w-full max-w-[240px] rounded-full bg-white/90 py-4 text-sm font-bold text-[#3D2E1F] shadow-xl backdrop-blur-md transition-transform active:scale-95"
+        >
+          입장하기
+        </button>
+        <button
+          type="button"
+          onClick={handleCelebrate}
+          className="text-xs font-medium opacity-60 underline underline-offset-4 transition-opacity hover:opacity-100"
+          style={{ color: overlay ? 'white' : 'inherit' }}
+        >
+          신랑 신부에게 축하의 마음 전하기 🎉
+        </button>
       </div>
 
       <Confetti trigger={confettiTrigger} />
@@ -148,13 +147,7 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
 
 function CoupleIllustration() {
   return (
-    <svg
-      viewBox="0 0 160 140"
-      width="140"
-      height="120"
-      aria-hidden
-      className="opacity-90"
-    >
+    <svg viewBox="0 0 160 140" width="140" height="120" aria-hidden className="opacity-90">
       <g fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="55" cy="42" r="14" />
         <path d="M55 56 L55 98 M55 70 L40 88 M55 70 L70 88 M55 98 L46 130 M55 98 L64 130" />
