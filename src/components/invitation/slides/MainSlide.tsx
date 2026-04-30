@@ -3,26 +3,18 @@
 import { useState } from 'react';
 import type { InvitationContent } from '@/types/invitation';
 import { Confetti } from '@/components/shared/Confetti';
-import { openSignatureGate } from '../SignatureGate';
 
 interface Props {
   groomName: string;
   brideName: string;
   weddingDate: string | null;
   main: InvitationContent['main'];
-  onNext?: () => void; // SlideContainer로부터 주입받을 함수
+  onNext?: () => void; // SlideContainer로부터 주입받을 함수 (현재 미사용)
 }
 
-export function MainSlide({ groomName, brideName, weddingDate, main, onNext }: Props) {
+export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
   const [confettiTrigger, setConfettiTrigger] = useState<number | null>(null);
 
-  const handleEnter = () => {
-    // 1. 다음 페이지로 슬라이드 이동
-    onNext?.();
-    // 2. 필요 시 시그니처 게이트 오픈
-    openSignatureGate();
-  };
-  
   const handleCelebrate = () => setConfettiTrigger(Date.now());
 
   const layout = main.layout ?? 'poster';
@@ -125,18 +117,11 @@ export function MainSlide({ groomName, brideName, weddingDate, main, onNext }: P
       <div className="absolute bottom-20 left-1/2 z-20 flex w-full -translate-x-1/2 flex-col items-center gap-4 px-10">
         <button
           type="button"
-          onClick={handleEnter}
-          className="w-full max-w-[240px] rounded-full bg-white/90 py-4 text-sm font-bold text-[#3D2E1F] shadow-xl backdrop-blur-md transition-transform active:scale-95"
-        >
-          입장하기
-        </button>
-        <button
-          type="button"
           onClick={handleCelebrate}
           className="text-xs font-medium opacity-60 underline underline-offset-4 transition-opacity hover:opacity-100"
           style={{ color: overlay ? 'white' : 'inherit' }}
         >
-          신랑 신부에게 축하의 마음 전하기 🎉
+          축하하기
         </button>
       </div>
 

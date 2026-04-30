@@ -10,14 +10,17 @@ import {
   FONT_KEYS,
   FONT_OPTIONS,
   PETAL_GLYPHS,
+  PETAL_IS_TEXTURE,
   PETAL_LABELS,
   PETAL_TYPES,
   SECTION_LABELS,
   THEME_PALETTES,
   reconcilePageOrder,
   type ColorTheme,
+  type PetalType,
   type SectionKey,
 } from '@/lib/theme';
+import { PetalShape } from '@/components/shared/FallingPetals';
 import { Button } from '@/components/ui/button';
 import { SectionEditor } from '../SectionEditor';
 import { TextField } from '../form-fields';
@@ -65,7 +68,7 @@ export function ThemeEditor() {
         </Field>
 
         {/* 떨어지는 효과 */}
-        <Field label="배경 효과">
+        <Field label="배경 효과" hint="2D 글리프 또는 질감(텍스처) 효과를 고르세요">
           <div className="flex flex-wrap gap-2">
             {PETAL_TYPES.map((t) => (
               <Choice
@@ -73,7 +76,7 @@ export function ThemeEditor() {
                 selected={theme.petalType === t}
                 onClick={() => setTheme({ ...theme, petalType: t })}
               >
-                <span className="text-base">{PETAL_GLYPHS[t] || '∅'}</span>
+                <PetalIcon type={t} accent={THEME_PALETTES[theme.colorTheme].accent} />
                 <span>{PETAL_LABELS[t]}</span>
               </Choice>
             ))}
@@ -301,23 +304,48 @@ function ColorSwatch({
   onClick: () => void;
 }) {
   const palette = THEME_PALETTES[value];
+  const hasPattern = !!palette.bgPattern;
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={selected}
       aria-label={COLOR_THEME_LABELS[value]}
+      title={COLOR_THEME_LABELS[value]}
       className={`relative h-12 w-12 overflow-hidden rounded-full border-2 transition-all ${
         selected ? 'border-foreground scale-110' : 'border-transparent'
       }`}
-      style={{ backgroundColor: palette.bg }}
+      style={{
+        backgroundColor: palette.bg,
+        backgroundImage: palette.bgPattern,
+        backgroundRepeat: hasPattern ? 'repeat' : undefined,
+      }}
     >
       <span
         className="absolute bottom-0 left-0 h-1/2 w-full"
-        style={{ backgroundColor: palette.accent }}
+        style={{ backgroundColor: palette.accent, opacity: hasPattern ? 0.85 : 1 }}
       />
     </button>
   );
+}
+
+/**
+ * Inline preview for the petal-effect picker. Glyph types render the unicode
+ * glyph; texture types render the same SVG used by the falling animation so
+ * the picker matches what guests will actually see.
+ */
+function PetalIcon({ type, accent }: { type: PetalType; accent: string }) {
+  if (type === 'none') {
+    return <span className="text-base text-muted-foreground">∅</span>;
+  }
+  if (PETAL_IS_TEXTURE[type]) {
+    return (
+      <span className="inline-block h-5 w-5 align-middle">
+        <PetalShape type={type} color={accent} />
+      </span>
+    );
+  }
+  return <span className="text-base">{PETAL_GLYPHS[type]}</span>;
 }
 
 function Choice({

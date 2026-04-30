@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { InvitationContent } from '@/types/invitation';
+import { SignaturePad, type SignaturePadHandle } from '@/components/shared/SignaturePad';
+import { persistGuestIdentity } from '../SignatureGate';
 
 export interface GuestbookMessage {
   id: string;
@@ -25,16 +27,22 @@ interface Props {
 
 export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
   const [name, setName] = useState('');
+  const [side, setSide] = useState<'groom' | 'bride' | ''>('');
   const [message, setMessage] = useState('');
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const padRef = useRef<SignaturePadHandle>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!consent) {
       setErrorMsg('개인정보 수집에 동의해주세요.');
+      return;
+    }
+    if (!name.trim()) {
+      setErrorMsg('이름을 입력해주세요.');
       return;
     }
     setErrorMsg(null);
@@ -45,7 +53,27 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
     }
 
     setSubmitting(true);
+    const sig = padRef.current?.toDataURL() ?? null;
+
     try {
+      // 1) Signature first — gives the couple the visitor's name + side + signature
+      const sigRes = await fetch('/api/guest/signature', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          invitationId,
+          visitorName: name.trim(),
+          visitorSide: side || undefined,
+          signatureData: sig,
+          consentPersonalInfo: consent,
+        }),
+      });
+      if (!sigRes.ok) {
+        const data = await sigRes.json().catch(() => ({}));
+        throw new Error(data.error ?? `HTTP ${sigRes.status}`);
+      }
+
+      // 2) Then the actual guestbook message
       const res = await fetch('/api/guest/guestbook', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -58,6 +86,11 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+
+      persistGuestIdentity(invitationId, {
+        name: name.trim(),
+        side: side || null,
+      });
       setSubmitted(true);
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : '제출 실패');
@@ -90,7 +123,7 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
             : '메시지를 남겨주셔서 감사합니다 🙏'}
         </p>
       ) : (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3" data-noswipe>
           <input
             type="text"
             value={name}
@@ -100,6 +133,28 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
             placeholder="이름"
             className="h-11 rounded-md border border-[#D4C5B0] bg-white px-3 text-sm outline-none focus:border-[#8B7355]"
           />
+
+          <div className="flex gap-1.5">
+            {[
+              { v: 'groom', label: '신랑 측' },
+              { v: 'bride', label: '신부 측' },
+              { v: '', label: '선택 안 함' },
+            ].map((opt) => (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => setSide(opt.v as 'groom' | 'bride' | '')}
+                className={`flex-1 rounded-md border px-2 py-2 text-xs ${
+                  side === opt.v
+                    ? 'border-[#8B7355] bg-[#8B7355] text-white'
+                    : 'border-[#D4C5B0] bg-white text-[#3D2E1F]'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
@@ -109,6 +164,19 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
             placeholder="축하 메시지를 남겨주세요"
             className="resize-none rounded-md border border-[#D4C5B0] bg-white px-3 py-2 text-sm outline-none focus:border-[#8B7355]"
           />
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs text-[#8B7355]">서명 (선택)</span>
+            <SignaturePad ref={padRef} width={304} height={120} />
+            <button
+              type="button"
+              onClick={() => padRef.current?.clear()}
+              className="self-end text-xs text-[#8B7355] hover:underline"
+            >
+              지우기
+            </button>
+          </div>
+
           <label className="flex items-start gap-2 text-xs text-[#5C4633]">
             <input
               type="checkbox"
@@ -116,7 +184,9 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
               onChange={(e) => setConsent(e.target.checked)}
               className="mt-0.5"
             />
-            <span>개인정보(이름·메시지) 수집에 동의합니다.</span>
+            <span>
+              개인정보(이름·메시지·서명) 수집에 동의합니다. 결혼식 후 30일간 보관됩니다.
+            </span>
           </label>
 
           {errorMsg && (
