@@ -32,7 +32,7 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
   const overlay = layout === 'poster' && hasImage;
 
   return (
-    <section className="relative flex h-full items-center justify-center px-6 py-10 text-center">
+    <section className="relative flex h-[100dvh] items-center justify-center px-6 py-10 text-center">
       {overlay && (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
