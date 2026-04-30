@@ -9,7 +9,6 @@ interface Props {
   brideName: string;
   weddingDate: string | null;
   main: InvitationContent['main'];
-  onNext?: () => void; // SlideContainer로부터 주입받을 함수 (현재 미사용)
 }
 
 export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
