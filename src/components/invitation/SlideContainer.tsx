@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, type ReactNode, isValidElement, cloneElement } from 'react';
+import React, { useRef, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { FallingPetals } from '@/components/shared/FallingPetals';
 import { BgmPlayer } from './BgmPlayer';
@@ -96,7 +96,18 @@ export function SlideContainer({
   return (
     <div
       className="relative h-[100dvh] w-screen overflow-hidden"
-      style={{ backgroundColor: palette.bg, color: palette.fg, fontFamily }}
+      style={{
+        backgroundColor: palette.bg,
+        color: palette.fg,
+        fontFamily,
+        // bgPattern은 background-image로 베이스 컬러 위에 얹는다.
+        ...(palette.bgPattern
+          ? {
+              backgroundImage: palette.bgPattern,
+              backgroundRepeat: 'repeat',
+            }
+          : {}),
+      }}
     >
       <FallingPetals type={petalType} colors={palette.petals} />
       {bgmUrl && <BgmPlayer url={bgmUrl} color={palette.accent} />}
@@ -117,10 +128,7 @@ export function SlideContainer({
             key={i}
             className="relative h-full w-screen flex-shrink-0 touch-pan-y overflow-y-auto"
           >
-            {/* 첫 번째 슬라이드(메인)에만 다음 페이지로 가는 함수(onNext)를 주입 */}
-            {i === 0 && isValidElement(slide) 
-              ? cloneElement(slide as React.ReactElement<any>, { onNext: goNext }) 
-              : slide}
+            {slide}
           </div>
         ))}
       </motion.div>
@@ -150,8 +158,8 @@ export function SlideContainer({
             onClick={goPrev}
             disabled={index === 0}
             aria-label="이전"
-            className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-transparent text-lg transition-colors hover:bg-black/5 disabled:opacity-0 md:h-10 md:w-10"
-            style={{ color: palette.accent }}
+            className="pointer-events-auto grid h-9 w-9 place-items-center bg-transparent text-lg disabled:opacity-0 md:h-10 md:w-10"
+            style={{ color: palette.accent, background: 'transparent' }}
           >
             ‹
           </button>
@@ -160,8 +168,8 @@ export function SlideContainer({
             onClick={goNext}
             disabled={index === slides.length - 1}
             aria-label="다음"
-            className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-transparent text-lg transition-colors hover:bg-black/5 disabled:opacity-0 md:h-10 md:w-10"
-            style={{ color: palette.accent }}
+            className="pointer-events-auto grid h-9 w-9 place-items-center bg-transparent text-lg disabled:opacity-0 md:h-10 md:w-10"
+            style={{ color: palette.accent, background: 'transparent' }}
           >
             ›
           </button>

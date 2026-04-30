@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import type { InvitationContent } from '@/types/invitation';
 import { reconcilePageOrder, type SectionKey } from '@/lib/theme';
 import { SlideContainer } from './SlideContainer';
-import { SignatureGate } from './SignatureGate';
 import { VisitTracker } from './VisitTracker';
 import { MainSlide } from './slides/MainSlide';
 import { BasicInfoSlide } from './slides/BasicInfoSlide';
@@ -99,7 +98,7 @@ export function InvitationSlides({
     .filter(Boolean) as ReactNode[];
 
   return (
-    <SignatureGate invitationId={invitationId} disabled={isPreview}>
+    <>
       <VisitTracker invitationId={invitationId} disabled={isPreview} />
       <SlideContainer
         colorTheme={content.theme.colorTheme}
@@ -109,6 +108,6 @@ export function InvitationSlides({
       >
         {slides}
       </SlideContainer>
-    </SignatureGate>
+    </>
   );
 }
