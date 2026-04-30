@@ -142,7 +142,6 @@ function PartyEditor({
             value={acct.number}
             maxLength={30}
             placeholder="000-0000-0000"
-            inputMode="numeric"
             onChange={(e) => updateAt(i, { ...acct, number: e.target.value })}
           />
 
