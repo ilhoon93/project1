@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, type ReactNode } from 'react';
+import React, { useRef, useState, type ReactNode, isValidElement, cloneElement } from 'react';
 import { motion } from 'framer-motion';
 import { FallingPetals } from '@/components/shared/FallingPetals';
 import { BgmPlayer } from './BgmPlayer';
@@ -23,16 +23,6 @@ interface Props {
   bgmUrl?: string | null;
 }
 
-/**
- * Insta-style horizontal slide deck.
- *
- * Why this is implemented with raw touch+mouse events instead of
- * framer-motion's `drag`: dragConstraints + an animated `x` competed badly on
- * touch inside `overflow-y-auto`, and pointer events would sometimes never
- * fire `pointerup` once the browser claimed the gesture for scroll. Raw
- * touchstart/touchend always fires, even after a scroll, and the threshold +
- * vertical-bias check filters out scroll-only gestures.
- */
 export function SlideContainer({
   children,
   colorTheme = 'cream',
@@ -48,11 +38,16 @@ export function SlideContainer({
   const slidesLen = slides.length;
   const startRef = useRef<{ x: number; y: number } | null>(null);
 
+  // 현재 슬라이드가 메인(첫 번째)인지 확인
+  const isMainSlide = index === 0;
+
   const commitSwipe = (dx: number, dy: number) => {
+    // 메인 슬라이드에서는 스와이프 기능을 완전히 막음
+    if (isMainSlide) return;
+    
     if (Math.abs(dy) > Math.abs(dx) * VERTICAL_BIAS) return;
     if (Math.abs(dx) < SWIPE_THRESHOLD) return;
-    // Standard mobile / Instagram convention: swipe LEFT (finger moves right→left,
-    // dx < 0) advances to the next slide; swipe RIGHT goes back.
+    
     if (dx < 0) {
       setIndex((i) => Math.min(i + 1, slidesLen - 1));
     } else {
@@ -63,14 +58,11 @@ export function SlideContainer({
   const goPrev = () => setIndex((i) => Math.max(i - 1, 0));
   const goNext = () => setIndex((i) => Math.min(i + 1, slidesLen - 1));
 
-  // Skip swipe detection when the gesture starts inside something that owns
-  // its own horizontal pan (e.g. the gallery's slide layout).
   const isInsideNoSwipe = (target: EventTarget | null) =>
     target instanceof Element && !!target.closest('[data-noswipe]');
 
-  // ── touch handlers ─────────────────────────────────────────
   const onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (isInsideNoSwipe(e.target)) {
+    if (isMainSlide || isInsideNoSwipe(e.target)) {
       startRef.current = null;
       return;
     }
@@ -78,6 +70,7 @@ export function SlideContainer({
     if (!t) return;
     startRef.current = { x: t.clientX, y: t.clientY };
   };
+
   const onTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
     const start = startRef.current;
     startRef.current = null;
@@ -87,12 +80,8 @@ export function SlideContainer({
     commitSwipe(t.clientX - start.x, t.clientY - start.y);
   };
 
-  // ── mouse handlers (desktop) ──────────────────────────────
-  // We attach the up handler to window so a release outside the slide row
-  // still gets caught.
   const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return;
-    if (isInsideNoSwipe(e.target)) return;
+    if (isMainSlide || e.button !== 0 || isInsideNoSwipe(e.target)) return;
     startRef.current = { x: e.clientX, y: e.clientY };
     const onUp = (evt: MouseEvent) => {
       const start = startRef.current;
@@ -126,16 +115,17 @@ export function SlideContainer({
         {slides.map((slide, i) => (
           <div
             key={i}
-            // touch-pan-y lets the browser handle vertical scroll natively
-            // while horizontal swipes bubble up to the touch handlers above.
             className="relative h-full w-screen flex-shrink-0 touch-pan-y overflow-y-auto"
           >
-            {slide}
+            {/* 첫 번째 슬라이드(메인)에만 다음 페이지로 가는 함수(onNext)를 주입 */}
+            {i === 0 && isValidElement(slide) 
+              ? cloneElement(slide as React.ReactElement<any>, { onNext: goNext }) 
+              : slide}
           </div>
         ))}
       </motion.div>
 
-      {/* dot indicator */}
+      {/* 하단 점 표시 (인디케이터) */}
       <div className="pointer-events-none absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 gap-1.5">
         {slides.map((_, i) => (
           <button
@@ -152,29 +142,31 @@ export function SlideContainer({
         ))}
       </div>
 
-      {/* prev/next chevrons */}
-      <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-between px-2 md:px-4">
-        <button
-          type="button"
-          onClick={goPrev}
-          disabled={index === 0}
-          aria-label="이전"
-          className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-white/15 text-lg backdrop-blur-sm transition-colors hover:bg-white/35 disabled:opacity-15 md:h-10 md:w-10"
-          style={{ color: palette.accent }}
-        >
-          ‹
-        </button>
-        <button
-          type="button"
-          onClick={goNext}
-          disabled={index === slides.length - 1}
-          aria-label="다음"
-          className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-white/15 text-lg backdrop-blur-sm transition-colors hover:bg-white/35 disabled:opacity-15 md:h-10 md:w-10"
-          style={{ color: palette.accent }}
-        >
-          ›
-        </button>
-      </div>
+      {/* 좌우 화살표: 메인 슬라이드가 아닐 때만 표시 및 배경 투명화 */}
+      {!isMainSlide && (
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-between px-2 md:px-4">
+          <button
+            type="button"
+            onClick={goPrev}
+            disabled={index === 0}
+            aria-label="이전"
+            className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-transparent text-lg transition-colors hover:bg-black/5 disabled:opacity-0 md:h-10 md:w-10"
+            style={{ color: palette.accent }}
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={index === slides.length - 1}
+            aria-label="다음"
+            className="pointer-events-auto grid h-9 w-9 place-items-center rounded-full bg-transparent text-lg transition-colors hover:bg-black/5 disabled:opacity-0 md:h-10 md:w-10"
+            style={{ color: palette.accent }}
+          >
+            ›
+          </button>
+        </div>
+      )}
     </div>
   );
 }
