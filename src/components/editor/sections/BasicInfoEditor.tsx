@@ -10,15 +10,17 @@ type Parent = BasicInfo['family']['groomFather'];
 
 export function BasicInfoEditor() {
   const basic = useEditorStore((s) => s.content?.basic);
+  const meta = useEditorStore((s) => s.meta);
   const patch = useEditorStore((s) => s.patchSection);
-  if (!basic) return null;
+  const setMeta = useEditorStore((s) => s.setMeta);
+  if (!basic || !meta) return null;
 
   const set = (next: BasicInfo) => patch('basic', next);
 
   return (
     <SectionEditor
       title="기본 정보"
-      description="글귀 · 인사말 · 가족 · 날짜"
+      description="글귀 · 인사말 · 신랑·신부와 가족 · 날짜"
       toggle={{
         enabled: basic.enabled,
         onChange: (v) => set({ ...basic, enabled: v }),
@@ -63,46 +65,75 @@ export function BasicInfoEditor() {
           />
         </SubSection>
 
-        {/* 가족 정보 */}
-        <SubSection
-          title="가족 정보"
-          enabled={basic.family.enabled}
-          onToggle={(v) => set({ ...basic, family: { ...basic.family, enabled: v } })}
-        >
-          <div className="grid grid-cols-2 gap-3">
-            <ParentField
-              label="신랑 아버지"
-              value={basic.family.groomFather}
-              onChange={(p) =>
-                set({ ...basic, family: { ...basic.family, groomFather: p } })
-              }
-            />
-            <ParentField
-              label="신랑 어머니"
-              value={basic.family.groomMother}
-              onChange={(p) =>
-                set({ ...basic, family: { ...basic.family, groomMother: p } })
-              }
-            />
-            <ParentField
-              label="신부 아버지"
-              value={basic.family.brideFather}
-              onChange={(p) =>
-                set({ ...basic, family: { ...basic.family, brideFather: p } })
-              }
-            />
-            <ParentField
-              label="신부 어머니"
-              value={basic.family.brideMother}
-              onChange={(p) =>
-                set({ ...basic, family: { ...basic.family, brideMother: p } })
-              }
-            />
-          </div>
+        {/* 신랑·신부와 가족 정보 — 토글 없이 항상 입력 */}
+        <PlainSubSection title="신랑·신부와 가족">
           <p className="text-xs text-muted-foreground">
             ※ 故 표시는 이름 앞에 자동으로 붙습니다.
           </p>
-        </SubSection>
+          <SideBlock title="신랑측">
+            <TextField
+              label="신랑 이름"
+              value={meta.groomName}
+              maxLength={20}
+              placeholder="홍길동"
+              onChange={(e) => setMeta({ groomName: e.target.value })}
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <ParentField
+                label="신랑 아버지"
+                value={basic.family.groomFather}
+                onChange={(p) =>
+                  set({
+                    ...basic,
+                    family: { ...basic.family, enabled: true, groomFather: p },
+                  })
+                }
+              />
+              <ParentField
+                label="신랑 어머니"
+                value={basic.family.groomMother}
+                onChange={(p) =>
+                  set({
+                    ...basic,
+                    family: { ...basic.family, enabled: true, groomMother: p },
+                  })
+                }
+              />
+            </div>
+          </SideBlock>
+
+          <SideBlock title="신부측">
+            <TextField
+              label="신부 이름"
+              value={meta.brideName}
+              maxLength={20}
+              placeholder="김영희"
+              onChange={(e) => setMeta({ brideName: e.target.value })}
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <ParentField
+                label="신부 아버지"
+                value={basic.family.brideFather}
+                onChange={(p) =>
+                  set({
+                    ...basic,
+                    family: { ...basic.family, enabled: true, brideFather: p },
+                  })
+                }
+              />
+              <ParentField
+                label="신부 어머니"
+                value={basic.family.brideMother}
+                onChange={(p) =>
+                  set({
+                    ...basic,
+                    family: { ...basic.family, enabled: true, brideMother: p },
+                  })
+                }
+              />
+            </div>
+          </SideBlock>
+        </PlainSubSection>
 
         {/* 날짜 */}
         <SubSection
@@ -110,9 +141,13 @@ export function BasicInfoEditor() {
           enabled={basic.showDate}
           onToggle={(v) => set({ ...basic, showDate: v })}
         >
-          <p className="text-xs text-muted-foreground">
-            결혼식 날짜는 위 &quot;기본 정보&quot;에서 입력한 값이 사용됩니다.
-          </p>
+          <TextField
+            label="결혼식 날짜"
+            type="date"
+            value={meta.weddingDate ?? ''}
+            onChange={(e) => setMeta({ weddingDate: e.target.value || null })}
+            hint="발행 후 30일이 만료일이 됩니다"
+          />
         </SubSection>
       </div>
     </SectionEditor>
@@ -152,6 +187,39 @@ function SubSection({
         </button>
       </div>
       {enabled && <div className="flex flex-col gap-2">{children}</div>}
+    </div>
+  );
+}
+
+/** 토글 없이 항상 펼쳐져 있는 하위 섹션. */
+function PlainSubSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-3 rounded-md border bg-background p-3">
+      <h3 className="text-sm font-medium">{title}</h3>
+      <div className="flex flex-col gap-3">{children}</div>
+    </div>
+  );
+}
+
+function SideBlock({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2 rounded-md border border-dashed border-muted-foreground/30 p-3">
+      <h4 className="text-xs font-semibold tracking-wide text-muted-foreground">
+        {title}
+      </h4>
+      <div className="flex flex-col gap-2">{children}</div>
     </div>
   );
 }
