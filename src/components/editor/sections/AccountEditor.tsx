@@ -26,6 +26,10 @@ export function AccountEditor() {
   const setParty = (party: AccountPartyKey, list: BankAccount[]) =>
     patch('account', { ...account, [party]: list });
 
+  // 👇 신랑 / 신부 분리
+  const groomKeys: AccountPartyKey[] = ['groom', 'groomFather', 'groomMother'];
+  const brideKeys: AccountPartyKey[] = ['bride', 'brideFather', 'brideMother'];
+
   return (
     <SectionEditor
       title="축의금 계좌"
@@ -35,7 +39,7 @@ export function AccountEditor() {
         onChange: (next) => patch('account', { ...account, enabled: next }),
       }}
     >
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-6">
         <TextAreaField
           label="안내문구"
           value={account.guide}
@@ -45,14 +49,31 @@ export function AccountEditor() {
           onChange={(e) => patch('account', { ...account, guide: e.target.value })}
         />
 
-        {ACCOUNT_PARTY_KEYS.map((party) => (
-          <PartyEditor
-            key={party}
-            label={PARTY_LABELS[party]}
-            list={account[party]}
-            onChange={(l) => setParty(party, l)}
-          />
-        ))}
+        {/* 👇 신랑 측 */}
+        <div className="flex flex-col gap-4">
+          <h3 className="text-sm font-semibold">신랑 측</h3>
+          {groomKeys.map((party) => (
+            <PartyEditor
+              key={party}
+              label={PARTY_LABELS[party]}
+              list={account[party]}
+              onChange={(l) => setParty(party, l)}
+            />
+          ))}
+        </div>
+
+        {/* 👇 신부 측 */}
+        <div className="flex flex-col gap-4">
+          <h3 className="text-sm font-semibold">신부 측</h3>
+          {brideKeys.map((party) => (
+            <PartyEditor
+              key={party}
+              label={PARTY_LABELS[party]}
+              list={account[party]}
+              onChange={(l) => setParty(party, l)}
+            />
+          ))}
+        </div>
       </div>
     </SectionEditor>
   );
@@ -72,16 +93,19 @@ function PartyEditor({
     copy[i] = next;
     onChange(copy);
   };
+
   const addRow = () => {
     if (list.length >= 3) return;
     onChange([...list, EMPTY]);
   };
+
   const removeAt = (i: number) => onChange(list.filter((_, idx) => idx !== i));
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border bg-muted/20 p-3">
+    <div className="flex flex-col gap-3 rounded-lg border bg-muted/20 p-4">
+      {/* 헤더 */}
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold text-muted-foreground">{label}</h3>
+        <h4 className="text-sm font-medium text-muted-foreground">{label}</h4>
         <Button
           type="button"
           variant="outline"
@@ -89,18 +113,21 @@ function PartyEditor({
           onClick={addRow}
           disabled={list.length >= 3}
         >
-          계좌 추가
+          + 계좌 추가
         </Button>
       </div>
+
       {list.length === 0 && (
         <p className="text-xs text-muted-foreground">
           계좌를 추가하지 않으면 이 항목은 표시되지 않습니다.
         </p>
       )}
+
+      {/* 👇 핵심: 세로 입력 구조 */}
       {list.map((acct, i) => (
         <div
           key={i}
-          className="grid grid-cols-[1fr_2fr_1fr_auto] items-end gap-2"
+          className="flex flex-col gap-2 rounded-md border bg-white p-3"
         >
           <TextField
             label="은행"
@@ -109,13 +136,16 @@ function PartyEditor({
             placeholder="국민"
             onChange={(e) => updateAt(i, { ...acct, bank: e.target.value })}
           />
+
           <TextField
             label="계좌번호"
             value={acct.number}
             maxLength={30}
             placeholder="000-0000-0000"
+            inputMode="numeric"
             onChange={(e) => updateAt(i, { ...acct, number: e.target.value })}
           />
+
           <TextField
             label="예금주"
             value={acct.holder}
@@ -123,13 +153,13 @@ function PartyEditor({
             placeholder="홍길동"
             onChange={(e) => updateAt(i, { ...acct, holder: e.target.value })}
           />
+
           <button
             type="button"
             onClick={() => removeAt(i)}
-            aria-label="계좌 삭제"
-            className="h-10 px-2 text-sm text-destructive hover:underline"
+            className="self-end text-xs text-destructive hover:underline"
           >
-            ×
+            삭제
           </button>
         </div>
       ))}
