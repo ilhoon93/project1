@@ -1,8 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+
+const ERROR_MESSAGES: Record<string, string> = {
+  naver_not_configured:
+    '네이버 로그인 설정이 완료되지 않았습니다. 잠시 후 다시 시도해주세요.',
+  supabase_not_configured: '서버 설정 오류로 로그인할 수 없습니다.',
+  state_mismatch: '보안 검증에 실패했습니다. 처음부터 다시 시도해주세요.',
+  missing_code_or_state: '로그인 응답이 올바르지 않습니다. 다시 시도해주세요.',
+  missing_naver_id: '네이버에서 사용자 정보를 받지 못했습니다.',
+  user_create_failed: '계정 생성에 실패했습니다. 잠시 후 다시 시도해주세요.',
+  no_email_for_session: '세션을 만들 이메일 정보를 찾을 수 없습니다.',
+  generate_link_failed: '세션 생성에 실패했습니다. 잠시 후 다시 시도해주세요.',
+  verify_otp_failed: '세션 인증에 실패했습니다. 잠시 후 다시 시도해주세요.',
+  naver_unexpected: '네이버 로그인 중 알 수 없는 오류가 발생했습니다.',
+  naver_start_failed: '네이버 로그인 시작에 실패했습니다.',
+  no_user: '사용자 정보를 확인할 수 없습니다.',
+};
+
+const errorMessageFor = (code: string | null) => {
+  if (!code) return null;
+  if (ERROR_MESSAGES[code]) return ERROR_MESSAGES[code];
+  if (code.startsWith('naver_')) return ERROR_MESSAGES.naver_unexpected;
+  return '로그인에 실패했습니다. 다시 시도해주세요.';
+};
 
 export function LoginForm() {
   const searchParams = useSearchParams();
@@ -16,9 +39,18 @@ export function LoginForm() {
       : reason === 'idle_timeout'
         ? '오랫동안 활동이 없어 자동으로 로그아웃되었습니다. 다시 로그인해주세요.'
         : null;
-  const [error, setError] = useState<string | null>(
-    callbackError ? '로그인에 실패했습니다. 다시 시도해주세요.' : null,
-  );
+  const [error, setError] = useState<string | null>(errorMessageFor(callbackError));
+
+  // bfcache 가드: 외부 OAuth 페이지로 이동했다 뒤로가기로 돌아오면
+  // 브라우저가 페이지를 메모리에서 그대로 복원해 loading 상태가
+  // '연결 중...'으로 멈춘 채 남는다. pageshow.persisted=true 때 리셋.
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) setLoading(null);
+    };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, []);
 
   const handleKakaoLogin = async () => {
     setLoading('kakao');

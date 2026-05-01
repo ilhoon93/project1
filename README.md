@@ -39,27 +39,28 @@ npm install
 
 ### 2. 환경 변수
 
-`.env.local.example`을 복사:
-
 ```bash
 cp .env.local.example .env.local
 ```
 
-채워야 할 값:
+`.env.local`에 본인의 키들을 채워 넣으세요. 이 파일은 `.gitignore`에 등록되어
+있어 커밋되지 않습니다. **절대 `.env.local.example`에 실제 키를 넣지 마세요**
+— 이 파일은 Git에 추적됩니다.
 
-```
-NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
-SUPABASE_SERVICE_ROLE_KEY=<service role key>
+**키 보안 원칙**
 
-FAL_KEY=<fal.ai API key>
+| 영역 | 저장 위치 | 보안 |
+| --- | --- | --- |
+| 로컬 개발 | `.env.local` (gitignore) | 개인 머신에만 존재 |
+| CI (GitHub Actions) | 비밀키 사용하지 않음 — [.github/workflows/ci.yml](.github/workflows/ci.yml)이 dummy 값만 주입 | 빌드/타입체크/린트만 검증 |
+| 운영 (Vercel) | Vercel Dashboard → Settings → Environment Variables | Vercel 측에서 암호화 보관 |
 
-NEXT_PUBLIC_PORTONE_STORE_ID=<store-...>
-NEXT_PUBLIC_PORTONE_CHANNEL_KEY=<channel-key-...>
-PORTONE_API_SECRET=<server secret>
+코드의 모든 Supabase 클라이언트는 [src/lib/env.ts](src/lib/env.ts)의 `requireEnv()`로 lazy-evaluated 환경변수를 읽습니다 — 빌드 시점에는 검사하지 않고
+런타임 호출 시점에만 누락을 감지해 사람-읽기 좋은 에러를 던집니다. 따라서
+키 없이도 `next build` 가 깨끗하게 통과하며, 운영 배포 시 Vercel이 키를
+주입하는 시점부터 정상 동작합니다.
 
-NEXT_PUBLIC_BASE_URL=http://localhost:3000
-```
+> 만약 과거에 `.env.local.example`이나 다른 파일에 실제 Supabase / Kakao 등의 키가 노출된 적이 있다면 각 대시보드에서 **반드시 재발급(rotate)** 한 뒤 새 키를 `.env.local` / Vercel 환경변수에만 넣어주세요.
 
 > Kakao OAuth는 Supabase Dashboard → Authentication → Providers에 직접 등록합니다. `KAKAO_CLIENT_ID`/`KAKAO_CLIENT_SECRET`는 `.env`에 있어도 코드는 사용 안 함 (백업 용도). 자세한 절차는 [docs/kakao-oauth-setup.md](docs/kakao-oauth-setup.md).
 
