@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# 비밀키를 모르는 외부 컨트리뷰터의 PR에서도 동일하게 통과하도록,
+# 이 워크플로우는 실제 키를 일절 사용하지 않습니다.
+# - typecheck/lint: 환경변수 불필요
+# - build: src/lib/env.ts 가 lazy-evaluated 라 비어 있어도 next build 가능
+#         (런타임 호출 시점에만 누락 에러를 던짐)
+#
+# 운영 배포(Vercel)에서는 별도로 대시보드 → Settings → Environment Variables
+# 에 실제 값들을 등록해두면 됩니다.
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Format check
+        run: npm run format:check
+        continue-on-error: true
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build (no secrets)
+        run: npm run build
+        env:
+          # next build 는 secret 없이도 통과해야 한다.
+          # 만약 어떤 라우트가 build 시점에 실제 외부 호출을 시도한다면
+          # 그 라우트는 force-dynamic 으로 표기되어야 함.
+          NEXT_PUBLIC_BASE_URL: http://localhost:3000
