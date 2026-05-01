@@ -58,7 +58,9 @@ export function FallingPetals({
       Array.from({ length: count }, (_, i) => ({
         id: i,
         left: Math.random() * 100,
-        size: 14 + Math.random() * 16,
+        // 전반적으로 약 30% 정도 작아진 사이즈 — 이전 14~30px → 10~22px.
+        // 글리프(❀ ♥ ★) 와 텍스처(꽃잎/단풍잎) 모두 동일하게 적용된다.
+        size: 10 + Math.random() * 12,
         delay: Math.random() * 12,
         duration: 9 + Math.random() * 7,
         drift: -40 + Math.random() * 80,
