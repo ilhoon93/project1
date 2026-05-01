@@ -200,12 +200,181 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['guestbook_messages']['Insert']>;
         Relationships: [];
       };
+      addon_packages: {
+        Row: {
+          code: string;
+          name: string;
+          description: string | null;
+          price: number;
+          publish_credits_grant: number;
+          naver_smartstore_product_no: string | null;
+          active: boolean;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          code: string;
+          name: string;
+          description?: string | null;
+          price: number;
+          publish_credits_grant?: number;
+          naver_smartstore_product_no?: string | null;
+          active?: boolean;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['addon_packages']['Insert']>;
+        Relationships: [];
+      };
+      purchase_orders: {
+        Row: {
+          id: string;
+          user_id: string;
+          source: 'portone' | 'naver_smartstore' | 'manual';
+          package_code: string | null;
+          portone_payment_id: string | null;
+          naver_order_no: string | null;
+          naver_product_order_no: string | null;
+          amount: number;
+          granted_credits: number;
+          raw_data: Json;
+          status: 'pending' | 'completed' | 'failed' | 'refunded';
+          created_at: string;
+          processed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          source: 'portone' | 'naver_smartstore' | 'manual';
+          package_code?: string | null;
+          portone_payment_id?: string | null;
+          naver_order_no?: string | null;
+          naver_product_order_no?: string | null;
+          amount?: number;
+          granted_credits?: number;
+          raw_data?: Json;
+          status?: 'pending' | 'completed' | 'failed' | 'refunded';
+          created_at?: string;
+          processed_at?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['purchase_orders']['Insert']>;
+        Relationships: [];
+      };
+      publish_credits_ledger: {
+        Row: {
+          id: string;
+          user_id: string;
+          delta: number;
+          reason: 'purchase' | 'publish' | 'admin_grant' | 'admin_revoke' | 'refund';
+          ref_table: string | null;
+          ref_id: string | null;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          delta: number;
+          reason: 'purchase' | 'publish' | 'admin_grant' | 'admin_revoke' | 'refund';
+          ref_table?: string | null;
+          ref_id?: string | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['publish_credits_ledger']['Insert']>;
+        Relationships: [];
+      };
+      publications: {
+        Row: {
+          id: string;
+          invitation_id: string;
+          user_id: string;
+          slug: string;
+          groom_name: string;
+          bride_name: string;
+          wedding_date: string | null;
+          content: Json;
+          published_at: string;
+          expires_at: string;
+          revoked_at: string | null;
+          credit_ledger_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          invitation_id: string;
+          user_id: string;
+          slug: string;
+          groom_name: string;
+          bride_name: string;
+          wedding_date?: string | null;
+          content?: Json;
+          published_at?: string;
+          expires_at: string;
+          revoked_at?: string | null;
+          credit_ledger_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['publications']['Insert']>;
+        Relationships: [];
+      };
+      naver_accounts: {
+        Row: {
+          user_id: string;
+          naver_id: string;
+          email: string | null;
+          nickname: string | null;
+          access_token: string | null;
+          refresh_token: string | null;
+          token_expires_at: string | null;
+          scope: string | null;
+          raw_profile: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          naver_id: string;
+          email?: string | null;
+          nickname?: string | null;
+          access_token?: string | null;
+          refresh_token?: string | null;
+          token_expires_at?: string | null;
+          scope?: string | null;
+          raw_profile?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['naver_accounts']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
       publish_invitation: {
         Args: { inv_id: string };
         Returns: boolean;
+      };
+      publish_invitation_v2: {
+        Args: { inv_id: string; new_slug: string };
+        Returns: Json;
+      };
+      publish_credits_balance: {
+        Args: { uid: string };
+        Returns: number;
+      };
+      grant_purchase_credits: {
+        Args: {
+          p_user_id: string;
+          p_source: string;
+          p_package_code: string;
+          p_amount: number;
+          p_portone_payment?: string | null;
+          p_naver_order_no?: string | null;
+          p_naver_product_no?: string | null;
+          p_raw?: Json;
+        };
+        Returns: Json;
       };
       invitation_is_active: {
         Args: { inv_id: string };

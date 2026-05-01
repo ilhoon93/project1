@@ -10,7 +10,11 @@
       "Bash(npx --yes shadcn@latest init -d -y --base-color stone)",
       "Bash(npx --yes shadcn@latest init --help)",
       "Bash(npx --yes shadcn@latest init -d -y -f)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(npx next *)",
+      "Bash(git add *)"
     ]
   }
 }

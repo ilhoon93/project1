@@ -48,9 +48,9 @@ export function EditorToolbar({ invitationId }: { invitationId: string }) {
     <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b bg-background/80 px-4 py-3 backdrop-blur">
       <div className="flex items-center gap-3">
         <Link
-          href="/new"
+          href="/mypage"
           className="text-sm text-muted-foreground hover:text-foreground"
-          aria-label="홈으로"
+          aria-label="저장 내역으로"
         >
           ←
         </Link>

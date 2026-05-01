@@ -1,4 +1,4 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { InvitationContentSchema } from '@/types/invitation';
 import { EditorClient } from './editor-client';
@@ -13,9 +13,9 @@ export default async function EditPage({ params }: { params: { id: string } }) {
 
   if (error || !data) notFound();
 
-  if (data.is_published) {
-    redirect(`/preview/${data.id}`);
-  }
+  // With the credit + publications model, drafts can be edited freely;
+  // each publish creates a new URL while previously shared links stay
+  // valid until they expire (snapshot is captured at publish time).
 
   // Coerce stored JSONB through Zod so missing/legacy fields get defaults.
   const content = InvitationContentSchema.parse(data.content ?? {});

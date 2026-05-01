@@ -11,7 +11,7 @@ export default function LoginPage() {
       <div className="flex flex-col items-center gap-2 text-center">
         <h1 className="text-2xl font-semibold tracking-tight">미니멈 웨딩 스튜디오</h1>
         <p className="text-sm text-muted-foreground">
-          카카오로 로그인하고 우리만의 알림장을 만들어보세요
+          카카오 또는 네이버로 로그인하고 우리만의 알림장을 만들어보세요
         </p>
       </div>
 
