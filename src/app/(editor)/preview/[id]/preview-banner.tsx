@@ -18,15 +18,13 @@ export function PreviewBanner({ invitationId, publishedSlug }: Props) {
     <div className="fixed left-1/2 top-3 z-30 flex -translate-x-1/2 flex-col items-center gap-1">
       <div className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-black/80 px-3 py-1.5 text-[11px] text-white shadow-lg backdrop-blur">
         <span className="font-medium">미리보기</span>
-        <span className="text-white/40">|</span>
-        {publishedSlug ? (
-          <Link href={`/${publishedSlug}`} className="underline">
-            공개 링크 열기
-          </Link>
-        ) : (
-          <Link href="/mypage" className="underline">
-            마이페이지에서 발행
-          </Link>
+        {publishedSlug && (
+          <>
+            <span className="text-white/40">|</span>
+            <Link href={`/${publishedSlug}`} className="underline">
+              공개 링크 열기
+            </Link>
+          </>
         )}
         <span className="text-white/40">|</span>
         <Link href={`/edit/${invitationId}`} className="underline">

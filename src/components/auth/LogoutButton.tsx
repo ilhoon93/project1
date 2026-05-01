@@ -1,16 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 export function LogoutButton() {
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
 
-  // bfcache 가드: 로그아웃 후 router.push('/')로 이동했다 뒤로가기로
-  // 돌아오면 브라우저가 이 컴포넌트를 메모리에서 복원해 busy=true가 남아
-  // '로그아웃 중...'으로 멈춘다. pageshow.persisted=true일 때 리셋.
+  // bfcache 가드: 로그아웃 후 '/'로 이동했다 뒤로가기로 돌아오면 브라우저가
+  // 이 컴포넌트를 메모리에서 복원해 busy=true가 남아 '로그아웃 중...'으로
+  // 멈춘다. pageshow.persisted=true일 때 리셋.
   useEffect(() => {
     const onPageShow = (e: PageTransitionEvent) => {
       if (e.persisted) setBusy(false);
@@ -32,11 +30,10 @@ export function LogoutButton() {
         // storage unavailable — ignore
       }
     } finally {
-      router.refresh();
-      router.push('/');
-      // 네비게이션 시작과 함께 즉시 idle 상태로 — 새 페이지 마운트 후
-      // 다시 사용 가능한 버튼이 되도록 한다. (위 pageshow 가드와는 별도)
-      setBusy(false);
+      // Full reload to '/' so server components re-render with the
+      // signed-out session — also satisfies the "refresh once on logout"
+      // requirement.
+      window.location.href = '/';
     }
   };
 
