@@ -2,9 +2,9 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: '미니멈 웨딩 스튜디오 — 결혼식 알림장과 AI 화보',
+  title: '우리다운 — 우리 다운 결혼 알림장',
   description:
-    '8개의 슬라이드, AI 메인 사진, 하객 데이터까지. 9,900원으로 만드는 우리만의 결혼식 알림장.',
+    '8개의 슬라이드, AI 메인 사진, 하객 데이터까지. 9,900원으로 만드는 우리 다운 결혼 알림장.',
 };
 
 export default function LandingPage() {
@@ -21,11 +21,11 @@ export default function LandingPage() {
 function Hero() {
   return (
     <section className="mx-auto flex max-w-3xl flex-col items-center px-6 pb-16 pt-24 text-center">
-      <p className="text-xs tracking-[0.4em] text-[#8B7355]">MINIMUM WEDDING STUDIO</p>
+      <p className="text-xs tracking-[0.4em] text-[#8B7355]">WOORIDAUN · 우리 다운 결혼 알림장</p>
       <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight md:text-5xl">
         9,900원으로 만드는
         <br />
-        우리만의 결혼식 알림장
+        우리 다운 결혼 알림장
       </h1>
       <p className="mt-6 max-w-xl text-sm leading-relaxed text-[#5C4633] md:text-base">
         8개의 슬라이드와 AI 메인 사진, 하객 서명·퀴즈·방명록까지.
@@ -110,7 +110,7 @@ function Footer() {
   return (
     <footer className="mx-auto max-w-3xl px-6 pb-12 pt-8 text-center">
       <p className="text-xs text-[#8B7355]">
-        © {new Date().getFullYear()} 미니멈 웨딩 스튜디오 · 문의: hello@example.com
+        © {new Date().getFullYear()} 우리다운 · 문의: hello@example.com
       </p>
     </footer>
   );

@@ -137,7 +137,7 @@ export function PurchaseClient({
 
       <section className="rounded-lg border bg-card p-5 shadow-sm">
         <h2 className="text-sm font-medium text-muted-foreground">상품</h2>
-        <p className="mt-1 text-base">미니멈 웨딩 스튜디오 — 알림장</p>
+        <p className="mt-1 text-base">우리다운 — 우리 다운 결혼 알림장</p>
 
         <ul className="mt-4 flex flex-col gap-1.5 text-sm text-muted-foreground">
           <li>· 8개 슬라이드 알림장 발행 (모바일 가로 스와이프)</li>

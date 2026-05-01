@@ -128,10 +128,10 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
       ) : (
         <form
           onSubmit={handleSubmit}
-          // Wrap the entire input area in a soft frame so it visually reads
-          // as one self-contained "leave a message" card on top of the
-          // themed background.
-          className="flex flex-col gap-3 rounded-lg border border-[var(--mw-dot)] bg-white/60 p-4 shadow-sm"
+          // 흰색 배경으로 입력 영역을 시각적으로 구분하되, 별도 테두리는
+          // 두지 않는다 — 컨테이너 안의 각 인풋이 이미 자체 테두리를 갖고
+          // 있어 이중 프레임이 되는 것을 피한다.
+          className="flex flex-col gap-3 rounded-lg bg-white/70 p-4"
           data-noswipe
         >
           {/* 이름 + 신랑/신부 측을 한 줄에 배치해 입력부 높이를 줄인다 */}
@@ -176,7 +176,9 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
 
           <div className="flex flex-col gap-1.5">
             <span className="text-xs text-[var(--mw-accent)]">서명 (선택)</span>
-            <SignaturePad ref={padRef} width={304} height={120} />
+            {/* width 미지정 — 자체 wrapper가 폼 너비에 맞춰 늘어나서 다른
+                인풋들과 오른쪽 라인이 정렬된다. */}
+            <SignaturePad ref={padRef} height={120} />
             <button
               type="button"
               onClick={() => padRef.current?.clear()}

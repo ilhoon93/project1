@@ -11,13 +11,17 @@ import { MAX_INVITATIONS_PER_USER } from '@/lib/limits';
  * 사용자가 "새 알림장 만들기" 를 누르면 빈 값으로 즉시 invitation 을 생성하고
  * 편집기로 이동시킨다 — 이름/날짜는 편집기의 "기본 정보 → 신랑·신부와 가족"
  * 하위 섹션에서 입력.
+ *
+ * 로그아웃 상태에서 진입하면 next=/ 로 로그인 페이지로 보낸다 — 로그인이
+ * 끝나도 자동으로 알림장이 만들어지지 않고 홈으로 돌아오게 해, 사용자가
+ * 한번 더 "무료로 만들어보기" 를 눌렀을 때만 빈 알림장이 생성되도록 한다.
  */
 export default async function NewInvitationPage() {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect('/login?next=/new');
+  if (!user) redirect('/login?next=/');
 
   // 한도 초과: 마이페이지로 안내하는 안내 화면 렌더 (자동 생성 X)
   const { count } = await supabase

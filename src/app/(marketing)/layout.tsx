@@ -10,19 +10,24 @@ export default async function MarketingLayout({ children }: { children: React.Re
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] text-[#3D2E1F]">
-      <header className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4 text-sm">
-        <Link href="/" className="font-medium tracking-tight">
-          미니멈 웨딩 스튜디오
+      {/* 모바일에서 nav 버튼이 줄바꿈되지 않도록 whitespace-nowrap + flex-shrink-0
+          + 좁은 padding/gap. 360px 기준으로도 한 줄 안에 모든 항목이 들어간다. */}
+      <header className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-4 text-sm sm:px-6">
+        <Link href="/" className="whitespace-nowrap font-medium tracking-tight">
+          우리다운
         </Link>
-        <nav className="flex items-center gap-3">
+        <nav className="flex flex-shrink-0 items-center gap-2 sm:gap-3">
           {user ? (
             <>
-              <Link href="/mypage" className="text-[#5C4633] hover:text-[#3D2E1F]">
+              <Link
+                href="/mypage"
+                className="whitespace-nowrap text-[#5C4633] hover:text-[#3D2E1F]"
+              >
                 마이페이지
               </Link>
               <Link
                 href="/new"
-                className="rounded-md bg-[#8B7355] px-3 py-1.5 text-xs font-medium text-white"
+                className="whitespace-nowrap rounded-md bg-[#8B7355] px-3 py-1.5 text-xs font-medium text-white"
               >
                 새 알림장
               </Link>
@@ -31,7 +36,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
           ) : (
             <Link
               href="/login?next=/"
-              className="rounded-md border border-[#8B7355] px-3 py-1.5 text-xs font-medium text-[#5C4633]"
+              className="whitespace-nowrap rounded-md border border-[#8B7355] px-3 py-1.5 text-xs font-medium text-[#5C4633]"
             >
               로그인
             </Link>
