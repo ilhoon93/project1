@@ -30,7 +30,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
             </>
           ) : (
             <Link
-              href="/login"
+              href="/login?next=/"
               className="rounded-md border border-[#8B7355] px-3 py-1.5 text-xs font-medium text-[#5C4633]"
             >
               로그인
