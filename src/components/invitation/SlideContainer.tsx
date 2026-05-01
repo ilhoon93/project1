@@ -87,6 +87,16 @@ export function SlideContainer({
     window.addEventListener('mouseup', onUp);
   };
 
+  // CSS variables expose the active palette to nested slides — so they can
+  // pick theme-aware colors via `text-[var(--mw-accent)]` etc instead of
+  // hard-coding cream-only hexes.
+  const themeVars = {
+    ['--mw-bg' as string]: palette.bg,
+    ['--mw-fg' as string]: palette.fg,
+    ['--mw-accent' as string]: palette.accent,
+    ['--mw-dot' as string]: palette.dot,
+  } as React.CSSProperties;
+
   return (
     <div
       className="relative h-[100dvh] w-screen overflow-hidden"
@@ -94,6 +104,7 @@ export function SlideContainer({
         backgroundColor: palette.bg,
         color: palette.fg,
         fontFamily,
+        ...themeVars,
         // bgPattern은 background-image로 베이스 컬러 위에 얹는다.
         ...(palette.bgPattern
           ? {

@@ -101,8 +101,8 @@ function Tab({
       onClick={onClick}
       className={`rounded-full px-4 py-1.5 text-sm transition-colors ${
         active
-          ? 'bg-[#8B7355] text-white'
-          : 'bg-white text-[#8B7355] ring-1 ring-[#D4C5B0]'
+          ? 'bg-[var(--mw-accent)] text-white'
+          : 'bg-white text-[var(--mw-accent)] ring-1 ring-[var(--mw-dot)]'
       }`}
     >
       {children}
@@ -124,19 +124,19 @@ function AccountRow({ acct }: { acct: BankAccount }) {
   };
 
   return (
-    <li className="flex items-center justify-between rounded-md bg-white px-4 py-3 ring-1 ring-[#D4C5B0]">
+    <li className="flex items-center justify-between rounded-md bg-white px-4 py-3 ring-1 ring-[var(--mw-dot)]">
       <div className="flex flex-col">
-        <span className="text-xs text-[#8B7355]">
+        <span className="text-xs text-[var(--mw-accent)]">
           {acct.bank} · {acct.holder}
         </span>
-        <span className="text-sm font-medium tracking-wide text-[#3D2E1F]">
+        <span className="text-sm font-medium tracking-wide text-[var(--mw-fg)]">
           {acct.number}
         </span>
       </div>
       <button
         type="button"
         onClick={copy}
-        className="rounded-md bg-[#F4E5D6] px-3 py-1.5 text-xs font-medium text-[#5C4633] transition-colors hover:bg-[#E8D5C0]"
+        className="rounded-md bg-[var(--mw-accent)]/15 px-3 py-1.5 text-xs font-medium text-[var(--mw-accent)] transition-colors hover:bg-[var(--mw-accent)]/25"
       >
         {copied ? '복사됨' : '복사'}
       </button>
