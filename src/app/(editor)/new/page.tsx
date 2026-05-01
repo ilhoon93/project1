@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { defaultInvitationContent } from '@/types/invitation';
 import { generateSlug } from '@/lib/utils/nanoid';
 import { PG_UNIQUE_VIOLATION } from '@/lib/utils/validation';
+import { MAX_INVITATIONS_PER_USER } from '@/lib/limits';
 
 /**
  * 신랑·신부 이름과 날짜는 더 이상 별도의 사전 입력 페이지에서 받지 않는다.
@@ -16,6 +18,31 @@ export default async function NewInvitationPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/new');
+
+  // 한도 초과: 마이페이지로 안내하는 안내 화면 렌더 (자동 생성 X)
+  const { count } = await supabase
+    .from('invitations')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+  if ((count ?? 0) >= MAX_INVITATIONS_PER_USER) {
+    return (
+      <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 px-6 py-12 text-center">
+        <p className="text-xs tracking-[0.3em] text-[#8B7355]">LIMIT REACHED</p>
+        <h1 className="text-xl font-semibold tracking-tight">
+          알림장이 최대 {MAX_INVITATIONS_PER_USER}개까지 저장되어 있어요
+        </h1>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          새 알림장을 만들려면 마이페이지에서 사용하지 않는 알림장을 먼저 삭제해주세요.
+        </p>
+        <Link
+          href="/mypage"
+          className="inline-flex h-10 items-center justify-center rounded-md bg-[#8B7355] px-5 text-sm font-medium text-white"
+        >
+          마이페이지로 이동
+        </Link>
+      </main>
+    );
+  }
 
   const content = defaultInvitationContent();
 

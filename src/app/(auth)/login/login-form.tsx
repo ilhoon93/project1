@@ -8,7 +8,14 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get('next') ?? '/new';
   const callbackError = searchParams.get('error');
+  const reason = searchParams.get('reason');
   const [loading, setLoading] = useState<'kakao' | 'naver' | null>(null);
+  const reasonMessage =
+    reason === 'browser_closed'
+      ? '브라우저를 닫으면 자동으로 로그아웃됩니다. 다시 로그인해주세요.'
+      : reason === 'idle_timeout'
+        ? '오랫동안 활동이 없어 자동으로 로그아웃되었습니다. 다시 로그인해주세요.'
+        : null;
   const [error, setError] = useState<string | null>(
     callbackError ? '로그인에 실패했습니다. 다시 시도해주세요.' : null,
   );
@@ -56,6 +63,12 @@ export function LoginForm() {
         <NaverIcon />
         {loading === 'naver' ? '연결 중...' : '네이버로 시작하기'}
       </button>
+
+      {reasonMessage && (
+        <p className="text-center text-xs text-muted-foreground">
+          {reasonMessage}
+        </p>
+      )}
 
       {error && (
         <p role="alert" className="text-center text-sm text-destructive">

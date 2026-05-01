@@ -20,53 +20,17 @@ export function BasicInfoEditor() {
   return (
     <SectionEditor
       title="기본 정보"
-      description="글귀 · 인사말 · 신랑·신부와 가족 · 날짜"
-      toggle={{
-        enabled: basic.enabled,
-        onChange: (v) => set({ ...basic, enabled: v }),
-      }}
+      description="신랑·신부와 가족 · 날짜 · 인사말 · 글귀"
     >
       <div className="flex flex-col gap-5">
-        {/* 글귀 */}
+        {/* 1) 신랑·신부와 가족 — 토글 없이 항상 입력 */}
         <SubSection
-          title="글귀"
-          enabled={basic.quote.enabled}
-          onToggle={(v) => set({ ...basic, quote: { ...basic.quote, enabled: v } })}
-        >
-          <TextAreaField
-            label=""
-            value={basic.quote.text}
-            maxLength={200}
-            rows={2}
-            placeholder="짧은 한 줄 글귀를 적어주세요"
-            onChange={(e) =>
-              set({ ...basic, quote: { ...basic.quote, text: e.target.value } })
-            }
-          />
-        </SubSection>
-
-        {/* 인사말 */}
-        <SubSection
-          title="인사말"
-          enabled={basic.greeting.enabled}
+          title="신랑·신부와 가족"
+          enabled={basic.family.enabled}
           onToggle={(v) =>
-            set({ ...basic, greeting: { ...basic.greeting, enabled: v } })
+            set({ ...basic, family: { ...basic.family, enabled: v } })
           }
         >
-          <TextAreaField
-            label=""
-            value={basic.greeting.text}
-            maxLength={500}
-            rows={4}
-            placeholder="저희 결혼식에 함께해주세요. (결혼식이 따로 없을 경우 그 사실을 적어주셔도 됩니다)"
-            onChange={(e) =>
-              set({ ...basic, greeting: { ...basic.greeting, text: e.target.value } })
-            }
-          />
-        </SubSection>
-
-        {/* 신랑·신부와 가족 정보 — 토글 없이 항상 입력 */}
-        <PlainSubSection title="신랑·신부와 가족">
           <p className="text-xs text-muted-foreground">
             ※ 故 표시는 이름 앞에 자동으로 붙습니다.
           </p>
@@ -85,7 +49,7 @@ export function BasicInfoEditor() {
                 onChange={(p) =>
                   set({
                     ...basic,
-                    family: { ...basic.family, enabled: true, groomFather: p },
+                    family: { ...basic.family, groomFather: p },
                   })
                 }
               />
@@ -95,7 +59,7 @@ export function BasicInfoEditor() {
                 onChange={(p) =>
                   set({
                     ...basic,
-                    family: { ...basic.family, enabled: true, groomMother: p },
+                    family: { ...basic.family, groomMother: p },
                   })
                 }
               />
@@ -117,7 +81,7 @@ export function BasicInfoEditor() {
                 onChange={(p) =>
                   set({
                     ...basic,
-                    family: { ...basic.family, enabled: true, brideFather: p },
+                    family: { ...basic.family, brideFather: p },
                   })
                 }
               />
@@ -127,15 +91,15 @@ export function BasicInfoEditor() {
                 onChange={(p) =>
                   set({
                     ...basic,
-                    family: { ...basic.family, enabled: true, brideMother: p },
+                    family: { ...basic.family, brideMother: p },
                   })
                 }
               />
             </div>
           </SideBlock>
-        </PlainSubSection>
+        </SubSection>
 
-        {/* 날짜 */}
+        {/* 2) 날짜 표시 */}
         <SubSection
           title="날짜 표시"
           enabled={basic.showDate}
@@ -147,6 +111,44 @@ export function BasicInfoEditor() {
             value={meta.weddingDate ?? ''}
             onChange={(e) => setMeta({ weddingDate: e.target.value || null })}
             hint="발행 후 30일이 만료일이 됩니다"
+          />
+        </SubSection>
+
+        {/* 3) 인사말 */}
+        <SubSection
+          title="인사말"
+          enabled={basic.greeting.enabled}
+          onToggle={(v) =>
+            set({ ...basic, greeting: { ...basic.greeting, enabled: v } })
+          }
+        >
+          <TextAreaField
+            label=""
+            value={basic.greeting.text}
+            maxLength={500}
+            rows={4}
+            placeholder="저희 결혼식에 함께해주세요. (결혼식이 따로 없을 경우 그 사실을 적어주셔도 됩니다)"
+            onChange={(e) =>
+              set({ ...basic, greeting: { ...basic.greeting, text: e.target.value } })
+            }
+          />
+        </SubSection>
+
+        {/* 4) 글귀 */}
+        <SubSection
+          title="글귀"
+          enabled={basic.quote.enabled}
+          onToggle={(v) => set({ ...basic, quote: { ...basic.quote, enabled: v } })}
+        >
+          <TextAreaField
+            label=""
+            value={basic.quote.text}
+            maxLength={200}
+            rows={2}
+            placeholder="짧은 한 줄 글귀를 적어주세요"
+            onChange={(e) =>
+              set({ ...basic, quote: { ...basic.quote, text: e.target.value } })
+            }
           />
         </SubSection>
       </div>
@@ -187,22 +189,6 @@ function SubSection({
         </button>
       </div>
       {enabled && <div className="flex flex-col gap-2">{children}</div>}
-    </div>
-  );
-}
-
-/** 토글 없이 항상 펼쳐져 있는 하위 섹션. */
-function PlainSubSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-3 rounded-md border bg-background p-3">
-      <h3 className="text-sm font-medium">{title}</h3>
-      <div className="flex flex-col gap-3">{children}</div>
     </div>
   );
 }
