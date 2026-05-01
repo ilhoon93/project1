@@ -223,7 +223,7 @@ export function PurchaseClient({
       </section>
 
       <p className="mt-auto pt-8 text-center text-xs text-muted-foreground">
-        결제 후에는 알림장 내용을 수정할 수 없습니다. 미리보기로 충분히 확인해주세요.
+        결제 시 알림장 발행권 2개가 지급됩니다. 발행 후에도 편집 가능하며, 새 URL로 다시 발행할 수 있어요.
       </p>
     </main>
   );

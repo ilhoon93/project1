@@ -25,20 +25,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  // Ownership + must not be already paid/published
+  // Ownership only — under the credit model a user may purchase
+  // multiple times from the same invitation context to top up credits.
   const { data: inv } = await supabase
     .from('invitations')
-    .select('id, paid_at, is_published')
+    .select('id')
     .eq('id', body.invitationId)
     .eq('user_id', user.id)
     .maybeSingle();
   if (!inv) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  if (inv.is_published) {
-    return NextResponse.json({ error: '이미 발행된 알림장입니다' }, { status: 409 });
-  }
-  if (inv.paid_at) {
-    return NextResponse.json({ error: '이미 결제되었습니다' }, { status: 409 });
-  }
 
   const paymentId = `inv_${body.invitationId.replace(/-/g, '').slice(0, 16)}_${nanoid(8)}`;
 

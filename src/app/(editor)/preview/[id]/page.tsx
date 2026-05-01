@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { InvitationContentSchema } from '@/types/invitation';
-import { InvitationSlides } from '@/components/invitation/InvitationSlides';
 import { PreviewBanner } from './preview-banner';
+import { LivePreview } from './live-preview';
 
 interface PageProps {
   params: { id: string };
@@ -26,21 +26,29 @@ export default async function PreviewPage({ params }: PageProps) {
 
   const content = InvitationContentSchema.parse(data.content ?? {});
 
+  // Most recent active publication URL (for the "공개 링크 열기" hint)
+  const { data: pubs } = await supabase
+    .from('publications')
+    .select('slug, expires_at, revoked_at')
+    .eq('invitation_id', data.id)
+    .order('published_at', { ascending: false })
+    .limit(1);
+  const activePub =
+    pubs?.find((p) => !p.revoked_at && new Date(p.expires_at) > new Date()) ?? null;
+
   return (
     <div className="relative">
       <PreviewBanner
         invitationId={data.id}
-        slug={data.slug}
+        publishedSlug={activePub?.slug ?? null}
         isPublished={data.is_published}
-        paidAt={data.paid_at}
       />
-      <InvitationSlides
+      <LivePreview
         invitationId={data.id}
         groomName={data.groom_name}
         brideName={data.bride_name}
         weddingDate={data.wedding_date}
         content={content}
-        isPreview
       />
     </div>
   );

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
-const PROTECTED_PREFIXES = ['/new', '/edit', '/preview', '/purchase'];
+const PROTECTED_PREFIXES = ['/new', '/edit', '/preview', '/purchase', '/mypage'];
 const AUTH_ONLY_PREFIXES = ['/login'];
 
 export async function middleware(request: NextRequest) {

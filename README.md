@@ -5,9 +5,12 @@
 ## 핵심 흐름
 
 ```
-카카오 로그인 → 알림장 생성 → 8개 슬라이드 편집 → AI 메인 사진 1장 (무료)
-              → 미리보기 → 9,900원 결제 → 발행 → 카카오톡 공유
+카카오/네이버 로그인 → 알림장 생성 → 8개 슬라이드 편집 → AI 메인 사진 1장 (무료)
+              → 실시간 미리보기 → 9,900원 결제 (발행권 2개 지급)
+              → 발행 → 30일 한정 고유 URL → 카카오톡 공유
               → 하객 방문/서명/퀴즈/투표/방명록
+              → 마이페이지에서 저장 내역 / 발행권 / 주문 관리
+              → 네이버 스마트스토어 주문번호로 발행권 추가 가능
 ```
 
 ## 스택
@@ -17,7 +20,7 @@
 | 프론트엔드 | Next.js 14 (App Router) · TypeScript · Tailwind CSS v3 · shadcn/ui (classic) |
 | 상태 | Zustand (편집기) · TanStack Query (선택) |
 | 백엔드 | Supabase Postgres · RLS · Storage |
-| 인증 | Supabase Auth (Kakao OAuth) |
+| 인증 | Supabase Auth (Kakao OAuth) · Naver Login (custom OAuth bridge) |
 | AI | fal.ai · `nano-banana/edit` 모델 |
 | 결제 | PortOne V2 + Toss Payments 채널 |
 | 호스팅 | Vercel |
@@ -65,6 +68,8 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3000
 1. Supabase Dashboard → **SQL Editor** → **New query**
 2. [supabase/migrations/001_initial.sql](supabase/migrations/001_initial.sql) 복붙 후 Run
 3. 같은 방식으로 [supabase/migrations/002_storage.sql](supabase/migrations/002_storage.sql) 실행
+4. [supabase/migrations/003_guestbook_private.sql](supabase/migrations/003_guestbook_private.sql) 실행
+5. [supabase/migrations/004_credits_publications.sql](supabase/migrations/004_credits_publications.sql) 실행 (발행권/네이버 주문 테이블 + 새 publish RPC)
 
 **B. Supabase CLI**
 
@@ -95,6 +100,8 @@ npm run dev
 | --- | --- | --- |
 | **Supabase** | 프로젝트 + Auth Provider(Kakao) + Storage 버킷 자동 | 위 마이그레이션 |
 | **Kakao Developers** | REST API key + Redirect URI = `https://<ref>.supabase.co/auth/v1/callback` | [docs/kakao-oauth-setup.md](docs/kakao-oauth-setup.md) |
+| **Naver Developers** | 애플리케이션 등록 + Callback = `<BASE_URL>/api/auth/naver/callback` (이메일 권한 권장) | https://developers.naver.com |
+| **Naver Commerce API** | (선택) 스마트스토어 주문 자동 조회용. 별도 애플리케이션 등록 + 셀프 클라이언트 시크릿 발급 | https://apicenter.commerce.naver.com |
 | **fal.ai** | API 키 발급 | https://fal.ai/dashboard/keys |
 | **PortOne V2** | 가맹점 가입 + Toss 채널 연동 | https://admin.portone.io |
 
@@ -115,19 +122,23 @@ npm run format:check # 포맷팅 검사
 ```
 src/
 ├── app/
-│   ├── (marketing)/         # 랜딩 페이지
-│   ├── (auth)/              # 로그인 + OAuth 콜백
-│   ├── (editor)/            # 편집기 / 미리보기 / 결제 (인증 가드)
+│   ├── (marketing)/         # 랜딩 + 마이페이지 (저장 내역 / 발행권 / 주문)
+│   ├── (auth)/              # 카카오 로그인 + 콜백
+│   ├── (editor)/            # 편집기 / 실시간 미리보기 / 결제 (인증 가드)
 │   │   ├── new/
 │   │   ├── edit/[id]/
-│   │   ├── preview/[id]/
+│   │   ├── preview/[id]/      # LivePreview — Zustand store에서 실시간 hydration
 │   │   └── purchase/[id]/
-│   ├── [slug]/              # 발행된 공개 알림장
+│   ├── [slug]/              # 발행된 공개 알림장 — publications.slug 우선, invitations.slug 폴백
 │   ├── api/
 │   │   ├── ai/free-preview/    # 무료 AI 이미지 1장
 │   │   ├── invitations/        # 알림장 CRUD
-│   │   ├── payment/{prepare,verify}/
-│   │   ├── publish/[id]/       # publish_invitation RPC
+│   │   ├── payment/{prepare,verify}/   # PortOne → grant_purchase_credits
+│   │   ├── publish/[id]/       # publish_invitation_v2 (크레딧 -1, 새 슬러그)
+│   │   ├── auth/naver/{start,callback}/  # 네이버 로그인 OAuth 브릿지
+│   │   ├── orders/             # 주문 목록 + register (스마트스토어 주문번호)
+│   │   ├── credits/            # 발행권 잔액 + 원장
+│   │   ├── packages/           # addon_packages 카탈로그
 │   │   └── guest/{visit,signature,quiz,vote,guestbook}/
 │   ├── error.tsx · global-error.tsx · not-found.tsx
 │   └── layout.tsx · middleware.ts (auth refresh + 라우트 가드)
@@ -145,14 +156,17 @@ src/
 │   ├── supabase/{client,server,admin,middleware}.ts
 │   ├── fal/{client,prompts}.ts
 │   ├── payment/portone.ts
+│   ├── naver/{oauth,smartstore}.ts        # 네이버 로그인 + 커머스 API 클라이언트
 │   └── utils/{nanoid,validation}.ts
 ├── stores/editor.ts          # Zustand
 └── types/{database,invitation}.ts  # Supabase + Zod
 
 supabase/
 └── migrations/
-    ├── 001_initial.sql       # tables + RLS + RPC + triggers
-    └── 002_storage.sql       # buckets + storage RLS
+    ├── 001_initial.sql                # tables + RLS + RPC + triggers
+    ├── 002_storage.sql                # buckets + storage RLS
+    ├── 003_guestbook_private.sql      # guestbook 비공개화
+    └── 004_credits_publications.sql   # 발행권 원장, publications, naver_accounts, addon_packages, publish_invitation_v2
 
 docs/
 └── kakao-oauth-setup.md
