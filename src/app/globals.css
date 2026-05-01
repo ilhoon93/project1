@@ -1,4 +1,33 @@
-@import url('https://fonts.googleapis.com/css2?family=Dokdo&family=Gaegu&family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@400;500;700&display=swap');
+/*
+ * 폰트 임포트:
+ *   1) Google Fonts — 명조/고딕/고운바탕/Gaegu/Dokdo, 나눔고딕,
+ *      나눔펜, 나눔붓, 제주명조
+ *   2) 네이버 한글 CDN — 나눔스퀘어 네오
+ *   3) JSDelivr — 프리텐다드
+ *   4) webfontworld(github pages) / noonfonts CDN — G마켓 산스,
+ *      가비아 시리즈, 김정철손글씨, 교보 손글씨 2025 이유빈
+ *
+ * 4) 의 일부 URL 은 외부 무료 한글 웹폰트 호스팅에 의존한다 — 호스팅이
+ * 변경되면 폰트가 시스템 폰트로 폴백된다(렌더링은 깨지지 않음).
+ */
+@import url('https://fonts.googleapis.com/css2?family=Dokdo&family=Gaegu&family=Gowun+Batang:wght@400;700&family=Jeju+Myeongjo&family=Nanum+Brush+Script&family=Nanum+Gothic:wght@400;700;800&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@400;500;700&display=swap');
+
+@import url('https://hangeul.pstatic.net/hangeul_static/css/nanum-square-neo.css');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+
+/* G마켓 산스 (공식 무료 배포 — noonfonts 미러) */
+@import url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.2/GmarketSansMedium.css');
+
+/* 가비아 무료 폰트 시리즈 (webfontworld github pages) */
+@import url('https://webfontworld.github.io/gabia/Gabia_Mausreoumche.css');
+@import url('https://webfontworld.github.io/gabia/Gabia_Nulche.css');
+@import url('https://webfontworld.github.io/gabia/Gabia_Heuldotche.css');
+@import url('https://webfontworld.github.io/gabia/Gabia_Gosran.css');
+@import url('https://webfontworld.github.io/gabia/Gabia_Cheongyeon.css');
+
+/* 김정철 손글씨 / 교보 2025 이유빈 (webfontworld github pages) */
+@import url('https://webfontworld.github.io/kimjungchul/KimjungchulGothic.css');
+@import url('https://webfontworld.github.io/kyobo/KyoboHandwriting2024iyu.css');
 
 @tailwind base;
 @tailwind components;

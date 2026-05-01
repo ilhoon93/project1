@@ -6,6 +6,19 @@ import { PETAL_GLYPHS, PETAL_IS_TEXTURE, type PetalType } from '@/lib/theme';
 const PETAL_COUNT = 14;
 const DEFAULT_COLORS = ['#F4D9D0', '#E8C2B8', '#F1E0D6', '#D4B5A0'];
 
+// 세로로 길쭉한 꽃잎(흰 꽃잎, 단풍잎)은 텍스처 박스가 정사각형이지만 SVG
+// 자체가 세로 비율이 커서 화면에서 더 커 보인다. 타입별로 크기 보정 계수를
+// 둬 화면에서 일관되게 작은 비율로 보이도록 한다.
+const PETAL_SIZE_SCALE: Record<PetalType, number> = {
+  flower: 1,
+  heart: 1,
+  star: 1,
+  sakura: 1,
+  leaf: 0.75,
+  whitePetal: 0.7,
+  none: 1,
+};
+
 interface Petal {
   id: number;
   left: number;
@@ -15,6 +28,8 @@ interface Petal {
   drift: number;
   color: string;
   rotate: number;
+  /** sparkle 펄스 시점 — 조각마다 미세하게 다른 시작점을 줘서 한꺼번에 반짝거리지 않게 */
+  sparkleDelay: number;
 }
 
 interface Props {
@@ -49,6 +64,7 @@ export function FallingPetals({
         drift: -40 + Math.random() * 80,
         color: palette[Math.floor(Math.random() * palette.length)],
         rotate: Math.random() * 360,
+        sparkleDelay: Math.random() * 2.4,
       })),
     [count, palette],
   );
@@ -56,32 +72,54 @@ export function FallingPetals({
   if (type === 'none') return null;
   const isTexture = PETAL_IS_TEXTURE[type];
   const glyph = PETAL_GLYPHS[type];
+  const sizeScale = PETAL_SIZE_SCALE[type];
 
   return (
     <div
       aria-hidden
       className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
     >
-      {petals.map((p) => (
-        <span
-          key={p.id}
-          className="petal"
-          style={{
-            left: `${p.left}%`,
-            // Texture mode uses width/height, glyph mode uses fontSize.
-            ...(isTexture
-              ? { width: `${p.size * 1.4}px`, height: `${p.size * 1.4}px` }
-              : { fontSize: `${p.size}px` }),
-            color: p.color,
-            animationDelay: `${p.delay}s`,
-            animationDuration: `${p.duration}s`,
-            ['--drift' as never]: `${p.drift}px`,
-            ['--rotate-start' as never]: `${p.rotate}deg`,
-          }}
-        >
-          {isTexture ? <PetalShape type={type} color={p.color} /> : glyph}
-        </span>
-      ))}
+      {petals.map((p) => {
+        const scaledSize = p.size * sizeScale;
+        return (
+          <span
+            key={p.id}
+            className="petal"
+            style={{
+              left: `${p.left}%`,
+              // Texture mode uses width/height, glyph mode uses fontSize.
+              // sizeScale 로 세로로 긴 타입(whitePetal/leaf)을 더 작게.
+              ...(isTexture
+                ? {
+                    width: `${scaledSize * 1.4}px`,
+                    height: `${scaledSize * 1.4}px`,
+                  }
+                : { fontSize: `${scaledSize}px` }),
+              color: p.color,
+              animationDelay: `${p.delay}s`,
+              animationDuration: `${p.duration}s`,
+              ['--drift' as never]: `${p.drift}px`,
+              ['--rotate-start' as never]: `${p.rotate}deg`,
+            }}
+          >
+            <span
+              className="petal-sparkle"
+              style={{
+                animationDelay: `${p.sparkleDelay}s`,
+                // 글리프 모드(이모지 문자)는 fontSize 가 부모에 있어 inner span
+                // 이 inline 으로 그대로 받아 렌더된다. 텍스처 모드에서도 SVG 가
+                // width/height 100% 로 채워진다.
+                display: 'inline-block',
+                width: '100%',
+                height: '100%',
+                lineHeight: 1,
+              }}
+            >
+              {isTexture ? <PetalShape type={type} color={p.color} /> : glyph}
+            </span>
+          </span>
+        );
+      })}
 
       <style jsx>{`
         .petal {
@@ -93,6 +131,14 @@ export function FallingPetals({
           animation-iteration-count: infinite;
           animation-timing-function: linear;
           will-change: transform;
+        }
+        /* 반짝임: 밝기 + 부드러운 글로우 펄스. 낙하 애니메이션과 별도로
+           돌아가서 떨어지면서 한번씩 깜빡이는 느낌. */
+        .petal-sparkle {
+          animation-name: petal-sparkle;
+          animation-duration: 2.4s;
+          animation-iteration-count: infinite;
+          animation-timing-function: ease-in-out;
         }
         @keyframes fall {
           0% {
@@ -106,6 +152,16 @@ export function FallingPetals({
             transform: translate3d(var(--drift), 110vh, 0)
               rotate(calc(var(--rotate-start) + 540deg));
             opacity: 0;
+          }
+        }
+        @keyframes petal-sparkle {
+          0%,
+          100% {
+            filter: brightness(1) drop-shadow(0 0 0 rgba(255, 255, 255, 0));
+          }
+          50% {
+            filter: brightness(1.25)
+              drop-shadow(0 0 5px rgba(255, 245, 220, 0.7));
           }
         }
       `}</style>
