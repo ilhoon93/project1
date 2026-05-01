@@ -17,8 +17,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: '미니멈 웨딩 스튜디오',
-  description: '결혼식 알림장과 AI 화보를 한 곳에서',
+  title: '우리다운 — 우리 다운 결혼 알림장',
+  description: '우리 다운 결혼 알림장과 AI 화보를 한 곳에서',
 };
 
 export default function RootLayout({

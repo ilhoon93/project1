@@ -82,7 +82,7 @@ async function fetchInvitation(slug: string): Promise<FetchResult> {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const result = await fetchInvitation(params.slug);
-  if (result.kind === 'missing') return { title: '미니멈 웨딩 스튜디오' };
+  if (result.kind === 'missing') return { title: '우리다운' };
   const { inv } = result;
   const title = `${inv.groom_name} ❤ ${inv.bride_name} 결혼합니다`;
   return {

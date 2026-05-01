@@ -2,14 +2,14 @@ import { Suspense } from 'react';
 import { LoginForm } from './login-form';
 
 export const metadata = {
-  title: '로그인 — 미니멈 웨딩 스튜디오',
+  title: '로그인 — 우리다운',
 };
 
 export default function LoginPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 px-6 py-12">
       <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">미니멈 웨딩 스튜디오</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">우리다운</h1>
         <p className="text-sm text-muted-foreground">
           카카오 또는 네이버로 로그인하고 우리만의 알림장을 만들어보세요
         </p>

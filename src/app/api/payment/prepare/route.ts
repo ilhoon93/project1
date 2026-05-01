@@ -6,7 +6,7 @@ import { nanoid } from '@/lib/utils/nanoid';
 const BodySchema = z.object({ invitationId: z.string().uuid() });
 
 const PRICE = 9_900;
-const PRODUCT_NAME = '미니멈 웨딩 스튜디오 — 알림장';
+const PRODUCT_NAME = '우리다운 — 우리 다운 결혼 알림장';
 
 export async function POST(req: Request) {
   const supabase = createClient();

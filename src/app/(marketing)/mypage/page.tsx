@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { MyPageClient, type MyPageInvitation, type MyPagePublication } from './mypage-client';
 
 export const metadata = {
-  title: '마이페이지 — 미니멈 웨딩 스튜디오',
+  title: '마이페이지 — 우리다운',
 };
 
 export const dynamic = 'force-dynamic';

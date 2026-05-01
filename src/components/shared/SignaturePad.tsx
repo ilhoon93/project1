@@ -15,39 +15,63 @@ export interface SignaturePadHandle {
 }
 
 interface Props {
-  width?: number;
+  /** Height in CSS pixels. Width is now derived from the parent container so
+   *  the pad can align with surrounding inputs. */
   height?: number;
   className?: string;
 }
 
 /**
- * Lightweight canvas signature pad. Uses pointer events so it works
- * for mouse, touch and pen with no extra branching.
+ * Lightweight canvas signature pad. Uses pointer events so it works for
+ * mouse, touch and pen with no extra branching.
+ *
+ * Width is intentionally responsive (`w-full`) — the bitmap is sized to the
+ * wrapper's measured client width on mount and on size changes, so the pad
+ * lines up with sibling inputs in flex/grid layouts. Stroke + border colors
+ * read from CSS theme vars (`--mw-fg` / `--mw-dot`) so they follow the
+ * selected palette instead of being locked to the cream theme.
  */
 export const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad(
-  { width = 320, height = 140, className },
+  { height = 140, className },
   ref,
 ) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawingRef = useRef(false);
   const lastRef = useRef<{ x: number; y: number } | null>(null);
   const [isEmpty, setIsEmpty] = useState(true);
 
   useEffect(() => {
+    const wrapper = wrapperRef.current;
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    // High-DPI: scale up bitmap, leave CSS size alone
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.scale(dpr, dpr);
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#3D2E1F';
-  }, [width, height]);
+    if (!wrapper || !canvas) return;
+
+    const setupCanvas = () => {
+      const cssWidth = wrapper.clientWidth;
+      if (cssWidth <= 0) return;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = cssWidth * dpr;
+      canvas.height = height * dpr;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.scale(dpr, dpr);
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      // Theme-aware stroke color — falls back to cream's fg if the CSS var
+      // hasn't been set (e.g. signature pad used outside SlideContainer).
+      const fg = getComputedStyle(wrapper).getPropertyValue('--mw-fg').trim();
+      ctx.strokeStyle = fg || '#3D2E1F';
+    };
+
+    setupCanvas();
+
+    // Re-init when the wrapper resizes. The canvas content is cleared on
+    // re-init — fine for a signature pad that's only sized once on mount.
+    const ro = new ResizeObserver(() => setupCanvas());
+    ro.observe(wrapper);
+    return () => ro.disconnect();
+  }, [height]);
 
   const getPos = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -94,15 +118,20 @@ export const SignaturePad = forwardRef<SignaturePadHandle, Props>(function Signa
   }));
 
   return (
-    <canvas
-      ref={canvasRef}
-      className={`touch-none rounded-md border border-[#D4C5B0] bg-white ${className ?? ''}`}
-      style={{ width, height }}
-      onPointerDown={start}
-      onPointerMove={draw}
-      onPointerUp={end}
-      onPointerCancel={end}
-      onPointerLeave={end}
-    />
+    <div
+      ref={wrapperRef}
+      className={`w-full overflow-hidden rounded-md border border-[var(--mw-dot)] bg-white ${className ?? ''}`}
+      style={{ height }}
+    >
+      <canvas
+        ref={canvasRef}
+        className="block h-full w-full touch-none"
+        onPointerDown={start}
+        onPointerMove={draw}
+        onPointerUp={end}
+        onPointerCancel={end}
+        onPointerLeave={end}
+      />
+    </div>
   );
 });

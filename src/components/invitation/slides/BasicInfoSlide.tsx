@@ -75,6 +75,10 @@ export function BasicInfoSlide({ basic, groomName, brideName, weddingDate }: Pro
  * Couple's names shown together in a single block. Family info, when enabled,
  * sits above each name as a small caption — but groom and bride sit
  * side-by-side so they read as one unit (per the "함께 보여지게" requirement).
+ *
+ * 부모 이름은 두 줄로 분리(부모 · 부모 / 의 아들·딸)해서 좁은 화면에서도
+ * 한글 단어가 어중간하게 끊어지는 일이 없게 한다. word-break:keep-all 도
+ * 같이 적용해 한글 단어가 글자 단위로 쪼개지지 않도록 한다.
  */
 function NamesSection({
   familyOn,
@@ -92,18 +96,21 @@ function NamesSection({
   const showFamilyCaption = familyOn && (groomFamily || brideFamily);
 
   return (
-    <div className="mx-auto flex max-w-md items-stretch justify-center gap-4 text-sm sm:gap-6">
+    <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-end justify-items-center gap-3 sm:gap-6">
       <PersonBlock
         familyCaption={showFamilyCaption ? groomFamily : ''}
-        roleLabel={showFamilyCaption && groomFamily ? '의 아들' : null}
+        roleLabel="의 아들"
         name={groomName}
       />
-      <span className="self-center px-1 text-base opacity-50" aria-hidden>
+      <span
+        className="self-center px-1 text-2xl font-light opacity-40"
+        aria-hidden
+      >
         ·
       </span>
       <PersonBlock
         familyCaption={showFamilyCaption ? brideFamily : ''}
-        roleLabel={showFamilyCaption && brideFamily ? '의 딸' : null}
+        roleLabel="의 딸"
         name={brideName}
       />
     </div>
@@ -116,18 +123,22 @@ function PersonBlock({
   name,
 }: {
   familyCaption: string;
-  roleLabel: string | null;
+  roleLabel: string;
   name: string;
 }) {
   return (
-    <div className="flex flex-1 flex-col items-center gap-1.5">
+    <div className="flex min-w-0 flex-col items-center gap-2">
       {familyCaption && (
-        <p className="text-xs leading-snug opacity-70">
-          {familyCaption}
-          {roleLabel}
+        <div className="flex flex-col items-center text-sm leading-snug opacity-70 [word-break:keep-all]">
+          <p>{familyCaption}</p>
+          <p>{roleLabel}</p>
+        </div>
+      )}
+      {name.trim() && (
+        <p className="text-2xl font-medium tracking-wide [word-break:keep-all]">
+          {name}
         </p>
       )}
-      {name.trim() && <p className="text-base font-medium tracking-wide">{name}</p>}
     </div>
   );
 }
