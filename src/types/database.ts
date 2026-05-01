@@ -380,6 +380,10 @@ export type Database = {
         Args: { inv_id: string };
         Returns: boolean;
       };
+      cleanup_stale_drafts: {
+        Args: { ttl_days?: number };
+        Returns: number;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

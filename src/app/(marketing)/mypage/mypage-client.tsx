@@ -126,10 +126,21 @@ function TabButton({
 
 // ── 저장 내역 ────────────────────────────────────────────────
 
+const MAX_INVITATIONS = 10;
+
+interface ConfirmModal {
+  kind: 'publish' | 'delete';
+  invitation: MyPageInvitation;
+  isRepublish: boolean;
+}
+
 function SavedTab({ invitations }: { invitations: MyPageInvitation[] }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [modal, setModal] = useState<ConfirmModal | null>(null);
+
+  const atLimit = invitations.length >= MAX_INVITATIONS;
 
   const handlePublish = async (id: string) => {
     if (busyId) return;
@@ -145,6 +156,24 @@ function SavedTab({ invitations }: { invitations: MyPageInvitation[] }) {
       setErrorMsg(e instanceof Error ? e.message : '발행 실패');
     } finally {
       setBusyId(null);
+      setModal(null);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (busyId) return;
+    setBusyId(id);
+    setErrorMsg(null);
+    try {
+      const res = await fetch(`/api/invitations/${id}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      router.refresh();
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : '삭제 실패');
+    } finally {
+      setBusyId(null);
+      setModal(null);
     }
   };
 
@@ -165,14 +194,27 @@ function SavedTab({ invitations }: { invitations: MyPageInvitation[] }) {
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium">저장된 알림장</h2>
-        <Link
-          href="/new"
-          className="text-xs text-[#8B7355] underline-offset-2 hover:underline"
-        >
-          + 새 알림장
-        </Link>
+        <h2 className="text-sm font-medium">
+          저장된 알림장{' '}
+          <span className="text-xs text-muted-foreground">
+            ({invitations.length} / {MAX_INVITATIONS})
+          </span>
+        </h2>
+        {atLimit ? (
+          <span className="text-xs text-destructive">한도 초과 — 삭제 후 추가 가능</span>
+        ) : (
+          <Link
+            href="/new"
+            className="text-xs text-[#8B7355] underline-offset-2 hover:underline"
+          >
+            + 새 알림장
+          </Link>
+        )}
       </div>
+
+      <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900 ring-1 ring-amber-200">
+        ⓘ 미발행 상태로 2주(14일) 동안 수정이 없으면 알림장이 자동으로 삭제됩니다.
+      </p>
 
       {errorMsg && (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
@@ -186,10 +228,50 @@ function SavedTab({ invitations }: { invitations: MyPageInvitation[] }) {
             key={inv.id}
             inv={inv}
             busy={busyId === inv.id}
-            onPublish={() => handlePublish(inv.id)}
+            onPublish={() => {
+              const isRepublish = inv.publications.some(
+                (p) => !p.revoked_at && new Date(p.expires_at) > new Date(),
+              );
+              setModal({ kind: 'publish', invitation: inv, isRepublish });
+            }}
+            onDelete={() =>
+              setModal({ kind: 'delete', invitation: inv, isRepublish: false })
+            }
           />
         ))}
       </ul>
+
+      {modal && modal.kind === 'publish' && (
+        <ConfirmDialog
+          title={modal.isRepublish ? '재발행할까요?' : '지금 발행할까요?'}
+          description={
+            modal.isRepublish
+              ? '발행권 1개가 차감되고 새로운 공개 URL이 생성됩니다. 이전 URL도 만료일까지 계속 동작합니다.'
+              : '발행권 1개가 차감되고 발행 후 30일간 유효한 고유 URL이 생성됩니다. 발행 후에도 알림장은 편집할 수 있어요.'
+          }
+          confirmLabel={busyId ? '발행 중...' : '발행하기'}
+          confirmVariant="default"
+          busy={busyId === modal.invitation.id}
+          onCancel={() => setModal(null)}
+          onConfirm={() => handlePublish(modal.invitation.id)}
+        />
+      )}
+
+      {modal && modal.kind === 'delete' && (
+        <ConfirmDialog
+          title="알림장을 삭제할까요?"
+          description={`"${
+            modal.invitation.groomName && modal.invitation.brideName
+              ? `${modal.invitation.groomName} · ${modal.invitation.brideName}`
+              : '제목 없는 알림장'
+          }"이(가) 영구 삭제됩니다. 발행된 공개 URL과 모인 하객 데이터(서명·방명록·퀴즈·투표)도 함께 사라지며 복구할 수 없어요.`}
+          confirmLabel={busyId ? '삭제 중...' : '삭제하기'}
+          confirmVariant="destructive"
+          busy={busyId === modal.invitation.id}
+          onCancel={() => setModal(null)}
+          onConfirm={() => handleDelete(modal.invitation.id)}
+        />
+      )}
     </section>
   );
 }
@@ -198,10 +280,12 @@ function SavedRow({
   inv,
   busy,
   onPublish,
+  onDelete,
 }: {
   inv: MyPageInvitation;
   busy: boolean;
   onPublish: () => void;
+  onDelete: () => void;
 }) {
   const activePublications = inv.publications.filter(
     (p) => !p.revoked_at && new Date(p.expires_at) > new Date(),
@@ -252,7 +336,7 @@ function SavedRow({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button asChild variant="outline" size="sm">
           <Link href={`/edit/${inv.id}`}>편집</Link>
         </Button>
@@ -266,6 +350,15 @@ function SavedRow({
           disabled={busy}
         >
           {busy ? '발행 중...' : latest ? '재발행' : '발행'}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onDelete}
+          disabled={busy}
+          className="ml-auto text-destructive hover:bg-destructive/10 hover:text-destructive"
+        >
+          삭제
         </Button>
       </div>
 
@@ -435,6 +528,60 @@ function OrdersTab({ orders }: { orders: MyPageOrder[] }) {
         ))}
       </ul>
     </section>
+  );
+}
+
+// ── 공통 Confirm 모달 ───────────────────────────────────────
+
+function ConfirmDialog({
+  title,
+  description,
+  confirmLabel,
+  confirmVariant = 'default',
+  busy,
+  onCancel,
+  onConfirm,
+}: {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  confirmVariant?: 'default' | 'destructive';
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-dialog-title"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !busy) onCancel();
+      }}
+    >
+      <div className="flex w-full max-w-sm flex-col gap-4 rounded-lg bg-white p-5 shadow-lg ring-1 ring-[#D4C5B0]">
+        <div className="flex flex-col gap-2">
+          <h3 id="confirm-dialog-title" className="text-base font-semibold text-[#3D2E1F]">
+            {title}
+          </h3>
+          <p className="text-sm leading-relaxed text-[#5C4633]">{description}</p>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={onCancel} disabled={busy}>
+            취소
+          </Button>
+          <Button
+            variant={confirmVariant}
+            size="sm"
+            onClick={onConfirm}
+            disabled={busy}
+          >
+            {confirmLabel}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -5,12 +5,16 @@
 ## 핵심 흐름
 
 ```
-카카오/네이버 로그인 → 알림장 생성 → 8개 슬라이드 편집 → AI 메인 사진 1장 (무료)
-              → 실시간 미리보기 → 9,900원 결제 (발행권 2개 지급)
-              → 발행 → 30일 한정 고유 URL → 카카오톡 공유
+카카오/네이버 로그인 → 알림장 생성(계정당 최대 10개) → 8개 슬라이드 편집
+              → AI 메인 사진 1장 (무료) → 실시간 미리보기
+              → 9,900원 결제 (발행권 2개 지급)
+              → 마이페이지에서 발행 확인 → 30일 한정 고유 URL → 카카오톡 공유
               → 하객 방문/서명/퀴즈/투표/방명록
-              → 마이페이지에서 저장 내역 / 발행권 / 주문 관리
+              → 마이페이지에서 저장 내역 / 발행권 / 주문 / 삭제 관리
               → 네이버 스마트스토어 주문번호로 발행권 추가 가능
+
+* 미발행 상태로 14일간 수정이 없는 알림장은 자동 삭제 (cron)
+* 브라우저 종료 / 30분 유휴 시 자동 로그아웃
 ```
 
 ## 스택
@@ -70,6 +74,7 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3000
 3. 같은 방식으로 [supabase/migrations/002_storage.sql](supabase/migrations/002_storage.sql) 실행
 4. [supabase/migrations/003_guestbook_private.sql](supabase/migrations/003_guestbook_private.sql) 실행
 5. [supabase/migrations/004_credits_publications.sql](supabase/migrations/004_credits_publications.sql) 실행 (발행권/네이버 주문 테이블 + 새 publish RPC)
+6. [supabase/migrations/005_retention.sql](supabase/migrations/005_retention.sql) 실행 (14일 미발행 자동 삭제 함수)
 
 **B. Supabase CLI**
 
@@ -139,6 +144,7 @@ src/
 │   │   ├── orders/             # 주문 목록 + register (스마트스토어 주문번호)
 │   │   ├── credits/            # 발행권 잔액 + 원장
 │   │   ├── packages/           # addon_packages 카탈로그
+│   │   ├── cron/cleanup-drafts/ # 14일 미발행 자동 삭제 (CRON_SECRET 헤더)
 │   │   └── guest/{visit,signature,quiz,vote,guestbook}/
 │   ├── error.tsx · global-error.tsx · not-found.tsx
 │   └── layout.tsx · middleware.ts (auth refresh + 라우트 가드)
@@ -166,7 +172,8 @@ supabase/
     ├── 001_initial.sql                # tables + RLS + RPC + triggers
     ├── 002_storage.sql                # buckets + storage RLS
     ├── 003_guestbook_private.sql      # guestbook 비공개화
-    └── 004_credits_publications.sql   # 발행권 원장, publications, naver_accounts, addon_packages, publish_invitation_v2
+    ├── 004_credits_publications.sql   # 발행권 원장, publications, naver_accounts, addon_packages, publish_invitation_v2
+    └── 005_retention.sql              # cleanup_stale_drafts (14일 미발행 자동 삭제)
 
 docs/
 └── kakao-oauth-setup.md
@@ -175,10 +182,11 @@ docs/
 ## 배포 (Vercel)
 
 1. Vercel 프로젝트 연결 (이 리포 가져오기)
-2. 환경 변수 동일하게 등록
+2. 환경 변수 동일하게 등록 — 특히 `CRON_SECRET`을 임의의 긴 문자열로 발급 (cron 인증)
 3. `NEXT_PUBLIC_BASE_URL`을 운영 도메인으로 변경
 4. Supabase Dashboard → Authentication → URL Configuration에 운영 도메인의 `/auth/callback` redirect URL 추가
 5. PortOne 가맹점 측에서 운영 도메인을 허용 도메인에 추가
+6. [vercel.json](vercel.json)이 매일 04:00 KST에 `/api/cron/cleanup-drafts`를 호출 — 별도 설정 불필요. 비-Vercel 환경에서는 외부 스케줄러로 같은 헤더(`Authorization: Bearer $CRON_SECRET`)를 붙여 호출하면 된다.
 
 ## Phase 1에 포함되지 않음
 

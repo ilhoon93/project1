@@ -14,7 +14,9 @@
       "Bash(npx tsc *)",
       "Bash(echo \"exit=$?\")",
       "Bash(npx next *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(gh auth *)"
     ]
   }
 }

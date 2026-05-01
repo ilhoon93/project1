@@ -23,7 +23,7 @@ interface Props {
   portoneChannelKey: string;
 }
 
-type Stage = 'idle' | 'preparing' | 'paying' | 'verifying' | 'paid' | 'publishing' | 'error';
+type Stage = 'idle' | 'preparing' | 'paying' | 'verifying' | 'paid' | 'error';
 
 export function PurchaseClient({
   invitation,
@@ -122,20 +122,6 @@ export function PurchaseClient({
     setStage('paid');
   };
 
-  const handlePublish = async () => {
-    setErrorMsg(null);
-    setStage('publishing');
-    try {
-      const res = await fetch(`/api/publish/${invitation.id}`, { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
-      router.push(`/${data.slug}`);
-    } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : '발행 실패');
-      setStage('error');
-    }
-  };
-
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col px-6 py-12">
       <header className="mb-8">
@@ -169,19 +155,22 @@ export function PurchaseClient({
       </section>
 
       <section className="mt-6 flex flex-col gap-3">
-        {stage === 'paid' && !invitation.paidAt && (
-          // We just paid in this session
-          <p className="text-center text-sm text-emerald-600">
-            ✓ 결제가 완료되었습니다. 발행 버튼을 눌러 공개해주세요.
-          </p>
-        )}
-        {stage === 'paid' && invitation.paidAt && (
-          <p className="text-center text-sm text-muted-foreground">
-            결제가 완료된 알림장입니다. 발행 버튼을 눌러 공개해주세요.
-          </p>
+        {stage === 'paid' && (
+          <div className="flex flex-col gap-3">
+            <p className="text-center text-sm text-emerald-600">
+              ✓ 결제가 완료되어 발행권 2개가 지급되었습니다.
+            </p>
+            <Button
+              type="button"
+              onClick={() => router.push('/mypage')}
+              className="h-12"
+            >
+              마이페이지로 이동해 발행하기
+            </Button>
+          </div>
         )}
 
-        {stage !== 'paid' && stage !== 'publishing' && (
+        {stage !== 'paid' && (
           <Button
             type="button"
             onClick={handlePay}
@@ -195,17 +184,6 @@ export function PurchaseClient({
                 : stage === 'paying'
                   ? '결제 진행 중...'
                   : '결제 검증 중...'}
-          </Button>
-        )}
-
-        {(stage === 'paid' || stage === 'publishing') && (
-          <Button
-            type="button"
-            onClick={handlePublish}
-            disabled={stage === 'publishing'}
-            className="h-12"
-          >
-            {stage === 'publishing' ? '발행 중...' : '발행하기'}
           </Button>
         )}
 
@@ -223,7 +201,7 @@ export function PurchaseClient({
       </section>
 
       <p className="mt-auto pt-8 text-center text-xs text-muted-foreground">
-        결제 시 알림장 발행권 2개가 지급됩니다. 발행 후에도 편집 가능하며, 새 URL로 다시 발행할 수 있어요.
+        결제 시 알림장 발행권 2개가 지급됩니다. 발행은 마이페이지에서 직접 진행해주세요.
       </p>
     </main>
   );

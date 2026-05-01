@@ -64,7 +64,6 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
     return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
   }
 
-  // RLS: blocks update if is_published = true
   const { data, error } = await supabase
     .from('invitations')
     .update(update)
@@ -75,10 +74,33 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) {
-    return NextResponse.json(
-      { error: 'Not found or already published (locked)' },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
   return NextResponse.json({ invitation: data });
+}
+
+/**
+ * DELETE /api/invitations/[id]
+ *
+ * Hard-deletes the invitation. Cascades remove guest data and any
+ * publications (so previously shared URLs go 404 immediately) — the
+ * user explicitly chose to wipe this invitation from their account.
+ */
+export async function DELETE(_req: Request, { params }: RouteCtx) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { error, count } = await supabase
+    .from('invitations')
+    .delete({ count: 'exact' })
+    .eq('id', params.id)
+    .eq('user_id', user.id);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!count) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  return NextResponse.json({ success: true });
 }

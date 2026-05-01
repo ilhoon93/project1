@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import { cn } from '@/lib/utils';
+import { AutoLogout } from '@/components/auth/AutoLogout';
 import './globals.css';
 
 const geistSans = localFont({
@@ -26,6 +27,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={cn(geistSans.variable, geistMono.variable, 'antialiased')}>
+        <AutoLogout />
         {children}
       </body>
     </html>

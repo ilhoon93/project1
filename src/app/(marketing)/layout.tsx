@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { LogoutButton } from '@/components/auth/LogoutButton';
 
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -25,6 +26,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
               >
                 새 알림장
               </Link>
+              <LogoutButton />
             </>
           ) : (
             <Link

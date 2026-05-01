@@ -28,10 +28,13 @@ export function BasicInfoSlide({ basic, weddingDate }: Props) {
         <h2 className="text-xl font-light">기본 정보</h2>
       </header>
 
-      {hasQuote && (
-        <blockquote className="mx-auto max-w-md text-sm italic leading-relaxed opacity-90">
-          “{basic.quote.text}”
-        </blockquote>
+      {familyOn && <FamilyTable family={basic.family} />}
+
+      {showDate && weddingDate && (
+        <div className="flex flex-col items-center gap-1">
+          <p className="text-xs tracking-[0.3em] opacity-70">WEDDING DAY</p>
+          <p className="text-base tracking-widest">{formatDate(weddingDate)}</p>
+        </div>
       )}
 
       {hasGreeting && (
@@ -40,13 +43,10 @@ export function BasicInfoSlide({ basic, weddingDate }: Props) {
         </p>
       )}
 
-      {familyOn && <FamilyTable family={basic.family} />}
-
-      {showDate && weddingDate && (
-        <div className="flex flex-col items-center gap-1">
-          <p className="text-xs tracking-[0.3em] opacity-70">WEDDING DAY</p>
-          <p className="text-base tracking-widest">{formatDate(weddingDate)}</p>
-        </div>
+      {hasQuote && (
+        <blockquote className="mx-auto max-w-md text-sm italic leading-relaxed opacity-90">
+          “{basic.quote.text}”
+        </blockquote>
       )}
     </section>
   );

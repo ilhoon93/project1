@@ -7,6 +7,7 @@ import {
 } from '@/types/invitation';
 import { generateSlug } from '@/lib/utils/nanoid';
 import { PG_UNIQUE_VIOLATION } from '@/lib/utils/validation';
+import { MAX_INVITATIONS_PER_USER } from '@/lib/limits';
 
 export async function GET() {
   const supabase = createClient();
@@ -47,6 +48,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Validation failed', issues: e.issues }, { status: 400 });
     }
     throw e;
+  }
+
+  // Enforce per-user invitation cap.
+  const { count, error: countErr } = await supabase
+    .from('invitations')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+  if (countErr) {
+    return NextResponse.json({ error: countErr.message }, { status: 500 });
+  }
+  if ((count ?? 0) >= MAX_INVITATIONS_PER_USER) {
+    return NextResponse.json(
+      {
+        error: `알림장은 계정당 최대 ${MAX_INVITATIONS_PER_USER}개까지만 만들 수 있어요. 마이페이지에서 사용하지 않는 알림장을 삭제한 뒤 다시 시도해주세요.`,
+      },
+      { status: 409 },
+    );
   }
 
   const content = defaultInvitationContent();
