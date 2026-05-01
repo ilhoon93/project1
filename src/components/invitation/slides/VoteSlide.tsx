@@ -28,7 +28,7 @@ export function VoteSlide({ vote, invitationId, isPreview }: Props) {
     <section className="flex min-h-full flex-col gap-8 px-6 py-16">
       <header className="text-center">
         <p className="text-xs tracking-[0.3em] opacity-70">VOTE</p>
-        <h2 className="mt-2 text-xl font-light">신랑 vs 신부</h2>
+        <h2 className="mt-2 text-xl font-light">함께 골라보기</h2>
       </header>
 
       <div className="flex flex-col gap-8">
@@ -79,7 +79,7 @@ function Question({
 
   return (
     <article className="flex flex-col gap-3">
-      <h3 className="text-center text-sm font-medium text-[#3D2E1F]">
+      <h3 className="text-center text-sm font-medium">
         Q{qi + 1}. {question.q}
       </h3>
       <div className="grid grid-cols-2 gap-3">
@@ -93,8 +93,8 @@ function Question({
               onClick={() => void handlePick(oi)}
               className={`rounded-md border px-3 py-6 text-center text-sm font-medium transition-colors ${
                 isPicked
-                  ? 'border-[#8B7355] bg-[#8B7355] text-white'
-                  : 'border-[#D4C5B0] bg-white text-[#3D2E1F] hover:bg-[#F4E5D6]/40'
+                  ? 'border-[var(--mw-accent)] bg-[var(--mw-accent)] text-white'
+                  : 'border-[var(--mw-dot)] bg-white/80 text-[var(--mw-fg)] hover:bg-white'
               } disabled:opacity-60`}
             >
               {opt}

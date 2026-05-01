@@ -51,7 +51,12 @@ export function InvitationSlides({
       />
     ),
     basic: content.basic.enabled ? (
-      <BasicInfoSlide basic={content.basic} weddingDate={weddingDate} />
+      <BasicInfoSlide
+        basic={content.basic}
+        groomName={groomName}
+        brideName={brideName}
+        weddingDate={weddingDate}
+      />
     ) : null,
     story:
       content.story.enabled && storyHasContent ? (

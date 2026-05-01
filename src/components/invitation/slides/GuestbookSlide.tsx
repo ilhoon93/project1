@@ -27,7 +27,10 @@ interface Props {
 
 export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
   const [name, setName] = useState('');
-  const [side, setSide] = useState<'groom' | 'bride' | ''>('');
+  // Default to '신랑' (groom) — the "선택 안 함" option was dropped per the
+  // design pass; if a guest doesn't want to pick, they can still leave a
+  // message and the side just defaults.
+  const [side, setSide] = useState<'groom' | 'bride'>('groom');
   const [message, setMessage] = useState('');
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -63,7 +66,7 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
         body: JSON.stringify({
           invitationId,
           visitorName: name.trim(),
-          visitorSide: side || undefined,
+          visitorSide: side,
           signatureData: sig,
           consentPersonalInfo: consent,
         }),
@@ -89,7 +92,7 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
 
       persistGuestIdentity(invitationId, {
         name: name.trim(),
-        side: side || null,
+        side,
       });
       setSubmitted(true);
     } catch (e) {
@@ -107,7 +110,7 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
       </header>
 
       {guestbook.coupleMessage && (
-        <p className="whitespace-pre-line rounded-md bg-white/60 p-4 text-center text-sm leading-relaxed text-[#5C4633]">
+        <p className="whitespace-pre-line rounded-md bg-white/60 p-4 text-center text-sm leading-relaxed">
           {guestbook.coupleMessage}
         </p>
       )}
@@ -123,31 +126,37 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
             : '메시지를 남겨주셔서 감사합니다 🙏'}
         </p>
       ) : (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3" data-noswipe>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={20}
-            required
-            placeholder="이름"
-            className="h-11 rounded-md border border-[#D4C5B0] bg-white px-3 text-sm outline-none focus:border-[#8B7355]"
-          />
-
+        <form
+          onSubmit={handleSubmit}
+          // Wrap the entire input area in a soft frame so it visually reads
+          // as one self-contained "leave a message" card on top of the
+          // themed background.
+          className="flex flex-col gap-3 rounded-lg border border-[var(--mw-dot)] bg-white/60 p-4 shadow-sm"
+          data-noswipe
+        >
+          {/* 이름 + 신랑/신부 측을 한 줄에 배치해 입력부 높이를 줄인다 */}
           <div className="flex gap-1.5">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={20}
+              required
+              placeholder="이름"
+              className="h-10 w-28 flex-shrink-0 rounded-md border border-[var(--mw-dot)] bg-white px-2.5 text-sm text-[var(--mw-fg)] outline-none focus:border-[var(--mw-accent)]"
+            />
             {[
-              { v: 'groom', label: '신랑 측' },
-              { v: 'bride', label: '신부 측' },
-              { v: '', label: '선택 안 함' },
+              { v: 'groom', label: '신랑측' },
+              { v: 'bride', label: '신부측' },
             ].map((opt) => (
               <button
                 key={opt.v}
                 type="button"
-                onClick={() => setSide(opt.v as 'groom' | 'bride' | '')}
-                className={`flex-1 rounded-md border px-2 py-2 text-xs ${
+                onClick={() => setSide(opt.v as 'groom' | 'bride')}
+                className={`h-10 flex-1 rounded-md border text-xs transition-colors ${
                   side === opt.v
-                    ? 'border-[#8B7355] bg-[#8B7355] text-white'
-                    : 'border-[#D4C5B0] bg-white text-[#3D2E1F]'
+                    ? 'border-[var(--mw-accent)] bg-[var(--mw-accent)] text-white'
+                    : 'border-[var(--mw-dot)] bg-white text-[var(--mw-fg)]'
                 }`}
               >
                 {opt.label}
@@ -162,22 +171,22 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
             required
             rows={3}
             placeholder="축하 메시지를 남겨주세요"
-            className="resize-none rounded-md border border-[#D4C5B0] bg-white px-3 py-2 text-sm outline-none focus:border-[#8B7355]"
+            className="resize-none rounded-md border border-[var(--mw-dot)] bg-white px-3 py-2 text-sm text-[var(--mw-fg)] outline-none focus:border-[var(--mw-accent)]"
           />
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-[#8B7355]">서명 (선택)</span>
+            <span className="text-xs text-[var(--mw-accent)]">서명 (선택)</span>
             <SignaturePad ref={padRef} width={304} height={120} />
             <button
               type="button"
               onClick={() => padRef.current?.clear()}
-              className="self-end text-xs text-[#8B7355] hover:underline"
+              className="self-end text-xs text-[var(--mw-accent)] hover:underline"
             >
               지우기
             </button>
           </div>
 
-          <label className="flex items-start gap-2 text-xs text-[#5C4633]">
+          <label className="flex items-start gap-2 text-xs opacity-80">
             <input
               type="checkbox"
               checked={consent}
@@ -198,7 +207,7 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
           <button
             type="submit"
             disabled={submitting}
-            className="h-11 rounded-md bg-[#8B7355] text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+            className="h-11 rounded-md bg-[var(--mw-accent)] text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             {submitting ? '저장 중...' : '메시지 남기기'}
           </button>

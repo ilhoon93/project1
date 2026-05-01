@@ -79,7 +79,7 @@ function Question({
 
   return (
     <article className="flex flex-col gap-3">
-      <h3 className="text-sm font-medium text-[#3D2E1F]">
+      <h3 className="text-sm font-medium">
         Q{qi + 1}. {question.q}
       </h3>
       <ul className="flex flex-col gap-2">
@@ -98,7 +98,7 @@ function Question({
                     ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
                     : showState && isPicked && !isCorrect
                       ? 'border-rose-400 bg-rose-50 text-rose-700'
-                      : 'border-[#D4C5B0] bg-white hover:bg-[#F4E5D6]/40'
+                      : 'border-[var(--mw-dot)] bg-white/80 text-[var(--mw-fg)] hover:bg-white'
                 } disabled:cursor-default`}
               >
                 {opt}
@@ -108,7 +108,7 @@ function Question({
         })}
       </ul>
       {isAnswered && (
-        <p className="text-xs text-[#8B7355]">
+        <p className="text-xs text-[var(--mw-accent)]">
           {selected === question.answer ? '정답입니다 🎉' : `정답은 "${question.options[question.answer]}" 였어요`}
         </p>
       )}
@@ -120,7 +120,7 @@ function EmptyState({ message }: { message: string }) {
   return (
     <section className="flex min-h-full flex-col items-center justify-center gap-3 px-6 py-16">
       <h2 className="text-xl font-light">퀴즈</h2>
-      <p className="text-sm text-[#8B7355]">{message}</p>
+      <p className="text-sm opacity-70">{message}</p>
     </section>
   );
 }
