@@ -119,11 +119,29 @@ export const PETAL_IS_TEXTURE: Record<PetalType, boolean> = {
   none: false,
 };
 
+// 폰트 키 — 새 키를 끝에 추가만 하고 기존 키는 그대로 둬서 저장된
+// invitation 데이터의 호환성을 깨지 않는다.
 export const FONT_KEYS = [
+  // 명조 / 고딕 계열
   'serif',
   'sans',
+  'nanumGothic',
+  'nanumSquare',
+  'pretendard',
+  'gmarket',
   'gowun',
+  'jeju',
+  // 손글씨 / 캘리 계열
   'handwritten',
+  'nanumPen',
+  'nanumBrush',
+  'kyoboYubin',
+  'kimjungchul',
+  'gabiaMaeum',
+  'gabiaNul',
+  'gabiaHeuldot',
+  'gabiaGosran',
+  'gabiaCheongyeon',
   'dokdo',
 ] as const;
 export type FontKey = (typeof FONT_KEYS)[number];
@@ -133,11 +151,74 @@ export interface FontOption {
   family: string;
 }
 
+/**
+ * Font family 문자열은 항상 첫 후보(웹폰트) → 한글 폴백 → 일반 폴백 순서.
+ * 웹폰트가 로드되지 않아도 시스템 한글 폰트로 자연스럽게 폴백된다.
+ */
 export const FONT_OPTIONS: Record<FontKey, FontOption> = {
+  // ── 명조 / 고딕 ──────────────────────────────────────
   serif: { label: '명조', family: "'Noto Serif KR', serif" },
-  sans: { label: '고딕', family: "'Noto Sans KR', sans-serif" },
+  sans: { label: '본고딕', family: "'Noto Sans KR', sans-serif" },
+  nanumGothic: {
+    label: '나눔고딕',
+    family: "'Nanum Gothic', 'Noto Sans KR', sans-serif",
+  },
+  nanumSquare: {
+    label: '나눔스퀘어',
+    family: "'NanumSquareNeo', 'NanumSquare', 'Noto Sans KR', sans-serif",
+  },
+  pretendard: {
+    label: '프리텐다드',
+    family: "'Pretendard', 'Noto Sans KR', sans-serif",
+  },
+  gmarket: {
+    label: 'G마켓 산스',
+    family: "'GmarketSansMedium', 'GmarketSans', 'Noto Sans KR', sans-serif",
+  },
   gowun: { label: '고운바탕', family: "'Gowun Batang', serif" },
+  jeju: {
+    label: '제주명조',
+    family: "'Jeju Myeongjo', 'Noto Serif KR', serif",
+  },
+
+  // ── 손글씨 / 캘리 ────────────────────────────────────
   handwritten: { label: '손글씨', family: "'Gaegu', cursive" },
+  nanumPen: {
+    label: '나눔손글씨 펜',
+    family: "'Nanum Pen Script', cursive",
+  },
+  nanumBrush: {
+    label: '나눔손글씨 붓',
+    family: "'Nanum Brush Script', cursive",
+  },
+  kyoboYubin: {
+    label: '교보 이유빈',
+    family: "'KyoboHandwriting2024iyu', 'KyoboHandwriting2025A', cursive",
+  },
+  kimjungchul: {
+    label: '김정철 손글씨',
+    family: "'KimjungchulGothic-Bold', 'KimjungchulGothic', cursive",
+  },
+  gabiaMaeum: {
+    label: '가비아 마음결',
+    family: "'Gabia Mausreoumche', 'Gabia Maeumgyeol', serif",
+  },
+  gabiaNul: {
+    label: '가비아 눌체',
+    family: "'Gabia Nulche', serif",
+  },
+  gabiaHeuldot: {
+    label: '가비아 흘돋체',
+    family: "'Gabia Heuldotche', serif",
+  },
+  gabiaGosran: {
+    label: '가비아 고스란체',
+    family: "'Gabia Gosran', serif",
+  },
+  gabiaCheongyeon: {
+    label: '가비아 청연',
+    family: "'Gabia Cheongyeon', serif",
+  },
   // 붓펜 느낌의 한글 필기체 — 손글씨(Gaegu)와는 결이 다름.
   dokdo: { label: '캘리', family: "'Dokdo', cursive" },
 };

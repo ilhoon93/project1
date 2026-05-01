@@ -117,10 +117,11 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
         <button
           type="button"
           onClick={handleCelebrate}
-          className="text-xs font-medium opacity-60 underline underline-offset-4 transition-opacity hover:opacity-100"
+          className="inline-flex items-center gap-1.5 text-xs font-medium opacity-60 transition-opacity hover:opacity-100"
           style={{ color: overlay ? 'white' : 'inherit' }}
         >
-          축하하기
+          <span className="underline underline-offset-4">축하하기</span>
+          <span aria-hidden className="text-base leading-none">🎉</span>
         </button>
       </div>
 
