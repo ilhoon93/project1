@@ -131,6 +131,7 @@ export const FONT_KEYS = [
   'gmarket',
   'gowun',
   'jeju',
+  'songMyung',
   // 손글씨 / 캘리 계열
   'handwritten',
   'nanumPen',
@@ -152,76 +153,131 @@ export interface FontOption {
 }
 
 /**
- * Font family 문자열은 항상 첫 후보(웹폰트) → 한글 폴백 → 일반 폴백 순서.
- * 웹폰트가 로드되지 않아도 시스템 한글 폰트로 자연스럽게 폴백된다.
+ * Font family 문자열.
+ *
+ * Google Fonts 계열은 모두 next/font/google 가 layout.tsx 에서 자동 로드
+ * + 자체 호스팅하며, 각 폰트가 노출하는 CSS 변수를 family 첫 후보로 둔다.
+ * (예: --font-noto-sans-kr → 빌드 타임에 Next.js 가 발급한 실제 폰트 패밀리
+ *  이름으로 치환된다.) 변수 미설정/폰트 로드 실패 시 뒤따르는 한글 폴백
+ *  → 일반 폴백 순으로 자연스럽게 내려간다.
+ *
+ * Pretendard 만 globals.css 의 JSDelivr @import 로 로드한다.
+ *
+ * HIDDEN_FONT_KEYS 의 폰트는 안정적인 무료 호스팅이 없어 picker 에 노출되지
+ * 않는다 — family 는 의미상 가장 가까운 Google Font 의 변수로 폴백시켜
+ * 기존 저장 데이터가 있어도 깨지지 않게 한다.
  */
 export const FONT_OPTIONS: Record<FontKey, FontOption> = {
   // ── 명조 / 고딕 ──────────────────────────────────────
-  serif: { label: '명조', family: "'Noto Serif KR', serif" },
-  sans: { label: '본고딕', family: "'Noto Sans KR', sans-serif" },
+  serif: { label: '명조', family: "var(--font-noto-serif-kr), serif" },
+  sans: { label: '본고딕', family: "var(--font-noto-sans-kr), sans-serif" },
   nanumGothic: {
     label: '나눔고딕',
-    family: "'Nanum Gothic', 'Noto Sans KR', sans-serif",
+    family: "var(--font-nanum-gothic), var(--font-noto-sans-kr), sans-serif",
   },
   nanumSquare: {
+    // HIDDEN — 로컬 파일 활성화 시 family 를 아래로 교체:
+    //   "var(--font-nanum-square), var(--font-noto-sans-kr), sans-serif"
     label: '나눔스퀘어',
-    family: "'NanumSquareNeo', 'NanumSquare', 'Noto Sans KR', sans-serif",
+    family: "var(--font-noto-sans-kr), sans-serif",
   },
   pretendard: {
     label: '프리텐다드',
-    family: "'Pretendard', 'Noto Sans KR', sans-serif",
+    family: "'Pretendard', var(--font-noto-sans-kr), sans-serif",
   },
   gmarket: {
+    // HIDDEN — 로컬 파일 활성화 시 family 를 아래로 교체:
+    //   "var(--font-gmarket), var(--font-noto-sans-kr), sans-serif"
     label: 'G마켓 산스',
-    family: "'GmarketSansMedium', 'GmarketSans', 'Noto Sans KR', sans-serif",
+    family: "var(--font-noto-sans-kr), sans-serif",
   },
-  gowun: { label: '고운바탕', family: "'Gowun Batang', serif" },
+  gowun: { label: '고운바탕', family: "var(--font-gowun-batang), serif" },
   jeju: {
+    // Google Fonts CSS @import 로 로드 (next/font/google 14.2 미지원)
     label: '제주명조',
-    family: "'Jeju Myeongjo', 'Noto Serif KR', serif",
+    family: "'Jeju Myeongjo', var(--font-noto-serif-kr), serif",
+  },
+  songMyung: {
+    label: '송명',
+    family: "var(--font-song-myung), var(--font-noto-serif-kr), serif",
   },
 
   // ── 손글씨 / 캘리 ────────────────────────────────────
-  handwritten: { label: '손글씨', family: "'Gaegu', cursive" },
+  handwritten: { label: '손글씨', family: "var(--font-gaegu), cursive" },
   nanumPen: {
     label: '나눔손글씨 펜',
-    family: "'Nanum Pen Script', cursive",
+    family: "var(--font-nanum-pen), cursive",
   },
   nanumBrush: {
     label: '나눔손글씨 붓',
-    family: "'Nanum Brush Script', cursive",
+    family: "var(--font-nanum-brush), cursive",
   },
   kyoboYubin: {
+    // HIDDEN — 활성화 시 family: "var(--font-kyobo-yubin), cursive"
     label: '교보 이유빈',
-    family: "'KyoboHandwriting2024iyu', 'KyoboHandwriting2025A', cursive",
+    family: "var(--font-gaegu), cursive",
   },
   kimjungchul: {
+    // HIDDEN — 활성화 시 family: "var(--font-kimjungchul), serif"
     label: '김정철 손글씨',
-    family: "'KimjungchulGothic-Bold', 'KimjungchulGothic', cursive",
+    family: "var(--font-noto-sans-kr), sans-serif",
   },
   gabiaMaeum: {
+    // HIDDEN — 활성화 시 family: "var(--font-gabia-maeum), serif"
     label: '가비아 마음결',
-    family: "'Gabia Mausreoumche', 'Gabia Maeumgyeol', serif",
+    family: "var(--font-gowun-batang), serif",
   },
   gabiaNul: {
+    // HIDDEN — 활성화 시 family: "var(--font-gabia-nul), serif"
     label: '가비아 눌체',
-    family: "'Gabia Nulche', serif",
+    family: "var(--font-gowun-batang), serif",
   },
   gabiaHeuldot: {
+    // HIDDEN — 활성화 시 family: "var(--font-gabia-heuldot), serif"
     label: '가비아 흘돋체',
-    family: "'Gabia Heuldotche', serif",
+    family: "var(--font-gowun-batang), serif",
   },
   gabiaGosran: {
+    // HIDDEN — 활성화 시 family: "var(--font-gabia-gosran), serif"
     label: '가비아 고스란체',
-    family: "'Gabia Gosran', serif",
+    family: "var(--font-gowun-batang), serif",
   },
   gabiaCheongyeon: {
+    // HIDDEN — 활성화 시 family: "var(--font-gabia-cheongyeon), serif"
     label: '가비아 청연',
-    family: "'Gabia Cheongyeon', serif",
+    family: "var(--font-gowun-batang), serif",
   },
   // 붓펜 느낌의 한글 필기체 — 손글씨(Gaegu)와는 결이 다름.
-  dokdo: { label: '캘리', family: "'Dokdo', cursive" },
+  dokdo: { label: '캘리', family: "var(--font-dokdo), cursive" },
 };
+
+/**
+ * picker 에 노출하지 않는 폰트 키.
+ * 안정적인 무료 호스팅 URL 이 없어 임시로 숨김 — `docs/local-fonts-guide.md`
+ * 의 절차대로 .woff2 파일을 `src/app/fonts/korean/` 에 두고
+ * `src/app/layout.tsx` 의 LOCAL KOREAN FONTS 블록을 활성화한 뒤,
+ * 해당 키를 이 Set 에서 제거하면 picker 에 노출된다.
+ *
+ * 키 자체는 FONT_KEYS 에 남겨두기 때문에 기존에 저장된 invitation 의
+ * font 값(예: 'gabiaMaeum')은 Zod 검증을 통과하고, 위 FONT_OPTIONS 에
+ * 정의한 폴백 폰트로 렌더된다.
+ */
+export const HIDDEN_FONT_KEYS = new Set<FontKey>([
+  'nanumSquare',
+  'gmarket',
+  'kyoboYubin',
+  'kimjungchul',
+  'gabiaMaeum',
+  'gabiaNul',
+  'gabiaHeuldot',
+  'gabiaGosran',
+  'gabiaCheongyeon',
+]);
+
+/** picker 에 노출되는 키만 모아둔 배열 — 편집기는 이 목록만 보여준다. */
+export const AVAILABLE_FONT_KEYS: readonly FontKey[] = FONT_KEYS.filter(
+  (k) => !HIDDEN_FONT_KEYS.has(k),
+);
 
 export const SECTION_KEYS = [
   'main',
