@@ -240,7 +240,7 @@ export const FONT_OPTIONS: Record<FontKey, FontOption> = {
   kimjungchul: {
     // HIDDEN — 활성화 시 family: "var(--font-kimjungchul), serif"
     label: '김정철 손글씨',
-    family: "var(--font-noto-sans-kr), sans-serif",
+    family: "var(--font-kimjungchul), sans-serif",
   },
   gabiaMaeum: {
     family: "var(--font-gabia-maeum), serif",
