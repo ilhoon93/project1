@@ -5,9 +5,9 @@ import { useEditorStore } from '@/stores/editor';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from '@/lib/utils/nanoid';
 import {
+  AVAILABLE_FONT_KEYS,
   COLOR_THEMES,
   COLOR_THEME_LABELS,
-  FONT_KEYS,
   FONT_OPTIONS,
   PETAL_GLYPHS,
   PETAL_IS_TEXTURE,
@@ -83,10 +83,10 @@ export function ThemeEditor() {
           </div>
         </Field>
 
-        {/* 폰트 */}
+        {/* 폰트 — 안정적으로 로드되는 폰트만 picker 에 노출 */}
         <Field label="폰트">
           <div className="flex flex-wrap gap-2">
-            {FONT_KEYS.map((f) => (
+            {AVAILABLE_FONT_KEYS.map((f) => (
               <Choice
                 key={f}
                 selected={theme.font === f}
