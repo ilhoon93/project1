@@ -136,7 +136,6 @@ export const FONT_KEYS = [
   'handwritten',
   'nanumPen',
   'nanumBrush',
-  'kyoboYubin',
   'kimjungchul',
   'gabiaMaeum',
   'gabiaNul',
@@ -146,6 +145,10 @@ export const FONT_KEYS = [
   'dokdo',
   'gabiaBombaram',
   'gabiaDunn',
+  'kyobo2025lyb',
+  'kyobo2023wsa',
+  'kyobo2022khn',
+  'kyobo2020pdy',
 ] as const;
 export type FontKey = (typeof FONT_KEYS)[number];
 
@@ -181,7 +184,7 @@ export const FONT_OPTIONS: Record<FontKey, FontOption> = {
     // HIDDEN — 로컬 파일 활성화 시 family 를 아래로 교체:
     //   "var(--font-nanum-square), var(--font-noto-sans-kr), sans-serif"
     label: '나눔스퀘어',
-    family: "var(--font-noto-sans-kr), sans-serif",
+    family: "var(--font-nanum-square), var(--font-noto-sans-kr), sans-serif",
   },
   pretendard: {
     label: '프리텐다드',
@@ -191,7 +194,7 @@ export const FONT_OPTIONS: Record<FontKey, FontOption> = {
     // HIDDEN — 로컬 파일 활성화 시 family 를 아래로 교체:
     //   "var(--font-gmarket), var(--font-noto-sans-kr), sans-serif"
     label: 'G마켓 산스',
-    family: "var(--font-noto-sans-kr), sans-serif",
+    family: "var(--font-gmarket), var(--font-noto-sans-kr), sans-serif",
   },
   gowun: { label: '고운바탕', family: "var(--font-gowun-batang), serif" },
   jeju: {
@@ -214,10 +217,25 @@ export const FONT_OPTIONS: Record<FontKey, FontOption> = {
     label: '나눔손글씨 붓',
     family: "var(--font-nanum-brush), cursive",
   },
-  kyoboYubin: {
-    // HIDDEN — 활성화 시 family: "var(--font-kyobo-yubin), cursive"
-    label: '교보 이유빈',
-    family: "var(--font-gaegu), cursive",
+  kyobo2025lyb: {
+    // HIDDEN — 활성화 시 family: "var(--font-kyobo-2025lyb), cursive"
+    label: '교보 2025lyb',
+    family: "var(--font-kyobo-2025lyb), cursive",
+  },
+  kyobo2023wsa: {
+    // HIDDEN — 활성화 시 family: "var(--font-kyobo-2023wsa), cursive"
+    label: '교보 2023wsa',
+    family: "var(--font-kyobo-2023wsa), cursive",
+  },
+  kyobo2022khn: {
+    // HIDDEN — 활성화 시 family: "var(--font-kyobo-2022khn), cursive"
+    label: '교보 2022khn',
+    family: "var(--font-kyobo-2022khn), cursive",
+  },
+  kyobo2020pdy: {
+    // HIDDEN — 활성화 시 family: "var(--font-kyobo-2020pdy), cursive"
+    label: '교보 2020pdy',
+    family: "var(--font-kyobo-2020pdy), cursive",
   },
   kimjungchul: {
     // HIDDEN — 활성화 시 family: "var(--font-kimjungchul), serif"
@@ -275,10 +293,7 @@ export const FONT_OPTIONS: Record<FontKey, FontOption> = {
  * 정의한 폴백 폰트로 렌더된다.
  */
 export const HIDDEN_FONT_KEYS = new Set<FontKey>([
-  'nanumSquare',
-  'gmarket',
-  'kyoboYubin',
-  'kimjungchul',
+  'dokdo'
 
 ]);
 

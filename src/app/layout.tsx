@@ -119,26 +119,41 @@ const songMyung = Song_Myung({
  * 자세한 다운로드 URL · 파일명 · 활성화 절차는 docs/local-fonts-guide.md
  * 를 참고.
  * ───────────────────────────────────────────────────────────────────── */
-// const nanumSquare = localFont({
-//   src: './fonts/korean/NanumSquareNeo-Variable.woff2',
-//   variable: '--font-nanum-square',
-//   display: 'swap',
-// });
-// const gmarket = localFont({
-//   src: './fonts/korean/GmarketSansTTFMedium.woff2',
-//   variable: '--font-gmarket',
-//   display: 'swap',
-// });
-// const kyoboYubin = localFont({
-//   src: './fonts/korean/KyoboHandwriting2024iyu.woff2',
-//   variable: '--font-kyobo-yubin',
-//   display: 'swap',
-// });
-// const kimjungchul = localFont({
-//   src: './fonts/korean/KimjungchulMyungjo-Bold.woff2',
-//   variable: '--font-kimjungchul',
-//   display: 'swap',
-// });
+const nanumSquare = localFont({
+  src: './fonts/korean/NanumSquareNeo-Variable.woff2',
+  variable: '--font-nanum-square',
+  display: 'swap',
+});
+const gmarket = localFont({
+  src: './fonts/korean/GmarketSansTTFMedium.woff2',
+  variable: '--font-gmarket',
+  display: 'swap',
+});
+const kyobo2025lyb = localFont({
+  src: './fonts/korean/KyoboHandwriting2025lyb.woff2',
+  variable: '--font-kyobo-2025lyb',
+  display: 'swap',
+});
+const kyobo2023wsa = localFont({
+  src: './fonts/korean/KyoboHandwriting2023wsa.woff2',
+  variable: '--font-kyobo-2023wsa',
+  display: 'swap',
+});
+const kyobo2022khn = localFont({
+  src: './fonts/korean/KyoboHandwriting2022khn.woff2',
+  variable: '--font-kyobo-2022khn',
+  display: 'swap',
+});
+const kyobo2020pdy = localFont({
+  src: './fonts/korean/KyoboHandwriting2020pdy.woff2',
+  variable: '--font-kyobo-2020pdy',
+  display: 'swap',
+});
+const kimjungchul = localFont({
+  src: './fonts/korean/KimjungchulMyungjo-Regular.woff2',
+  variable: '--font-kimjungchul',
+  display: 'swap',
+});
 const gabiaMaeum = localFont({
   src: './fonts/korean/GabiaMaeumgyeol.woff2',
   variable: '--font-gabia-maeum',
@@ -186,10 +201,13 @@ const koreanFontVariables = [
   nanumPenScript.variable,
   songMyung.variable,
   // 위 LOCAL KOREAN FONTS 블록 활성화 시 같이 추가:
-  // nanumSquare.variable,
-  // gmarket.variable,
-  // kyoboYubin.variable,
-  // kimjungchul.variable,
+  nanumSquare.variable,
+  gmarket.variable,
+  kyobo2025lyb.variable,
+  kyobo2023wsa.variable,
+  kyobo2022khn.variable,
+  kyobo2020pdy.variable,
+  kimjungchul.variable,
   gabiaMaeum.variable,
   gabiaNul.variable,
   gabiaHeuldot.variable,
