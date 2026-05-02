@@ -16,6 +16,7 @@ import {
 // Google 의 안정적인 endpoint 라 외부 의존성 중에서도 안전한 편.
 import { cn } from '@/lib/utils';
 import { AutoLogout } from '@/components/auth/AutoLogout';
+// @ts-ignore: side-effect import for global CSS module declaration
 import './globals.css';
 
 const geistSans = localFont({
@@ -139,31 +140,41 @@ const songMyung = Song_Myung({
 //   variable: '--font-kimjungchul',
 //   display: 'swap',
 // });
-// const gabiaMaeum = localFont({
-//   src: './fonts/korean/Gabia-Maeumgyeol.woff2',
-//   variable: '--font-gabia-maeum',
-//   display: 'swap',
-// });
-// const gabiaNul = localFont({
-//   src: './fonts/korean/Gabia-Nul.woff2',
-//   variable: '--font-gabia-nul',
-//   display: 'swap',
-// });
-// const gabiaHeuldot = localFont({
-//   src: './fonts/korean/Gabia-Heuldot.woff2',
-//   variable: '--font-gabia-heuldot',
-//   display: 'swap',
-// });
-// const gabiaGosran = localFont({
-//   src: './fonts/korean/Gabia-Gosran.woff2',
-//   variable: '--font-gabia-gosran',
-//   display: 'swap',
-// });
-// const gabiaCheongyeon = localFont({
-//   src: './fonts/korean/Gabia-Cheongyeon.woff2',
-//   variable: '--font-gabia-cheongyeon',
-//   display: 'swap',
-// });
+const gabiaMaeum = localFont({
+  src: './fonts/korean/GabiaMaeumgyeol.woff2',
+  variable: '--font-gabia-maeum',
+  display: 'swap',
+});
+const gabiaNul = localFont({
+  src: './fonts/korean/GabiaNull.woff2',
+  variable: '--font-gabia-nul',
+  display: 'swap',
+});
+const gabiaHeuldot = localFont({
+  src: './fonts/korean/GabiaHeuldot.woff2',
+  variable: '--font-gabia-heuldot',
+  display: 'swap',
+});
+const gabiaGosran = localFont({
+  src: './fonts/korean/GabiaGosran.woff2',
+  variable: '--font-gabia-gosran',
+  display: 'swap',
+});
+const gabiaCheongyeon = localFont({
+  src: './fonts/korean/GabiaCheongyeon.woff2',
+  variable: '--font-gabia-cheongyeon',
+  display: 'swap',
+});
+const gabiaBombaram = localFont({
+  src: './fonts/korean/gabia_bombaram.woff2',
+  variable: '--font-gabia-bombaram',
+  display: 'swap',
+});
+const gabiaDunn = localFont({
+  src: './fonts/korean/GabiaDunn.woff2',
+  variable: '--font-gabia-dunn',
+  display: 'swap',
+});
 
 const koreanFontVariables = [
   notoSansKr.variable,
@@ -180,11 +191,13 @@ const koreanFontVariables = [
   // gmarket.variable,
   // kyoboYubin.variable,
   // kimjungchul.variable,
-  // gabiaMaeum.variable,
-  // gabiaNul.variable,
-  // gabiaHeuldot.variable,
-  // gabiaGosran.variable,
-  // gabiaCheongyeon.variable,
+  gabiaMaeum.variable,
+  gabiaNul.variable,
+  gabiaHeuldot.variable,
+  gabiaGosran.variable,
+  gabiaCheongyeon.variable,
+  gabiaBombaram.variable,
+  gabiaDunn.variable,
 ];
 
 export const metadata: Metadata = {

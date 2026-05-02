@@ -144,6 +144,8 @@ export const FONT_KEYS = [
   'gabiaGosran',
   'gabiaCheongyeon',
   'dokdo',
+  'gabiaBombaram',
+  'gabiaDunn',
 ] as const;
 export type FontKey = (typeof FONT_KEYS)[number];
 
@@ -223,29 +225,39 @@ export const FONT_OPTIONS: Record<FontKey, FontOption> = {
     family: "var(--font-noto-sans-kr), sans-serif",
   },
   gabiaMaeum: {
-    // HIDDEN — 활성화 시 family: "var(--font-gabia-maeum), serif"
+    family: "var(--font-gabia-maeum), serif",
     label: '가비아 마음결',
-    family: "var(--font-gowun-batang), serif",
+    //family: "var(--font-gowun-batang), serif",
   },
   gabiaNul: {
-    // HIDDEN — 활성화 시 family: "var(--font-gabia-nul), serif"
+    family: "var(--font-gabia-nul), serif",
     label: '가비아 눌체',
-    family: "var(--font-gowun-batang), serif",
+    //family: "var(--font-gowun-batang), serif",
   },
   gabiaHeuldot: {
-    // HIDDEN — 활성화 시 family: "var(--font-gabia-heuldot), serif"
+    family: "var(--font-gabia-heuldot), serif",
     label: '가비아 흘돋체',
-    family: "var(--font-gowun-batang), serif",
+    //family: "var(--font-gowun-batang), serif",
   },
   gabiaGosran: {
-    // HIDDEN — 활성화 시 family: "var(--font-gabia-gosran), serif"
+    family: "var(--font-gabia-gosran), serif",
     label: '가비아 고스란체',
-    family: "var(--font-gowun-batang), serif",
+    //family: "var(--font-gowun-batang), serif",
   },
   gabiaCheongyeon: {
-    // HIDDEN — 활성화 시 family: "var(--font-gabia-cheongyeon), serif"
+    family: "var(--font-gabia-cheongyeon), serif",
     label: '가비아 청연',
-    family: "var(--font-gowun-batang), serif",
+    //family: "var(--font-gowun-batang), serif",
+  },
+  gabiaBombaram: {
+    family: "var(--font-gabia-bombaram), serif",
+    label: '가비아 봄바람체',
+    //family: "var(--font-gowun-batang), serif",
+  },
+  gabiaDunn: {
+    family: "var(--font-gabia-dunn), serif",
+    label: '가비아 던체',
+    //family: "var(--font-gowun-batang), serif",
   },
   // 붓펜 느낌의 한글 필기체 — 손글씨(Gaegu)와는 결이 다름.
   dokdo: { label: '캘리', family: "var(--font-dokdo), cursive" },
@@ -267,11 +279,7 @@ export const HIDDEN_FONT_KEYS = new Set<FontKey>([
   'gmarket',
   'kyoboYubin',
   'kimjungchul',
-  'gabiaMaeum',
-  'gabiaNul',
-  'gabiaHeuldot',
-  'gabiaGosran',
-  'gabiaCheongyeon',
+
 ]);
 
 /** picker 에 노출되는 키만 모아둔 배열 — 편집기는 이 목록만 보여준다. */
