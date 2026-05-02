@@ -16,7 +16,6 @@ import {
 // Google 의 안정적인 endpoint 라 외부 의존성 중에서도 안전한 편.
 import { cn } from '@/lib/utils';
 import { AutoLogout } from '@/components/auth/AutoLogout';
-// @ts-expect-error: side-effect import for global CSS module declaration
 import './globals.css';
 
 const geistSans = localFont({
