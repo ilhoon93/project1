@@ -52,21 +52,22 @@ export function LoginForm() {
     return () => window.removeEventListener('pageshow', onPageShow);
   }, []);
 
-  const handleKakaoLogin = async () => {
-    setLoading('kakao');
-    setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'kakao',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-      },
-    });
-    if (error) {
-      setError('카카오 로그인 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
-      setLoading(null);
-    }
-  };
+  
+  // const handleKakaoLogin = async () => {
+  //   setLoading('kakao');
+  //   setError(null);
+  //   const supabase = createClient();
+  //   const { error } = await supabase.auth.signInWithOAuth({
+  //     provider: 'kakao',
+  //     options: {
+  //       redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+  //     },
+  //   });
+  //   if (error) {
+  //     setError('카카오 로그인 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
+  //     setLoading(null);
+  //   }
+  // };
 
   const handleNaverLogin = () => {
     setLoading('naver');
@@ -76,7 +77,8 @@ export function LoginForm() {
 
   return (
     <div className="flex w-full max-w-xs flex-col gap-3">
-      <button
+    
+      {/* <button
         type="button"
         onClick={handleKakaoLogin}
         disabled={loading !== null}
@@ -84,7 +86,7 @@ export function LoginForm() {
       >
         <KakaoIcon />
         {loading === 'kakao' ? '연결 중...' : '카카오로 시작하기'}
-      </button>
+      </button> */}
 
       <button
         type="button"
@@ -111,19 +113,19 @@ export function LoginForm() {
   );
 }
 
-function KakaoIcon() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 18 18"
-      aria-hidden
-      fill="currentColor"
-    >
-      <path d="M9 1.5C4.86 1.5 1.5 4.16 1.5 7.45c0 2.13 1.39 3.99 3.49 5.05l-.88 3.22c-.08.29.24.52.49.36L8.46 14c.18.02.36.03.54.03 4.14 0 7.5-2.66 7.5-5.95S13.14 1.5 9 1.5z" />
-    </svg>
-  );
-}
+// function KakaoIcon() {
+//   return (
+//     <svg
+//       width="18"
+//       height="18"
+//       viewBox="0 0 18 18"
+//       aria-hidden
+//       fill="currentColor"
+//     >
+//       <path d="M9 1.5C4.86 1.5 1.5 4.16 1.5 7.45c0 2.13 1.39 3.99 3.49 5.05l-.88 3.22c-.08.29.24.52.49.36L8.46 14c.18.02.36.03.54.03 4.14 0 7.5-2.66 7.5-5.95S13.14 1.5 9 1.5z" />
+//     </svg>
+//   );
+// }
 
 function NaverIcon() {
   return (
