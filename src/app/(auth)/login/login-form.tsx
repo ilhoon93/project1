@@ -29,7 +29,10 @@ const errorMessageFor = (code: string | null) => {
 
 export function LoginForm() {
   const searchParams = useSearchParams();
-  const next = searchParams.get('next') ?? '/new';
+  // 로그인 후 기본 이동지는 메인 홈(`/`). 자동으로 새 알림장이 만들어지지
+  // 않도록 의도적으로 `/new` 가 아닌 `/` 를 사용한다. 새 알림장 생성/편집은
+  // 사용자가 마이페이지 또는 메인 CTA 를 눌러 명시적으로 시작한다.
+  const next = searchParams.get('next') ?? '/';
   const callbackError = searchParams.get('error');
   const reason = searchParams.get('reason');
   const [loading, setLoading] = useState<'kakao' | 'naver' | null>(null);

@@ -21,6 +21,11 @@ interface Props {
   weddingDate: string | null;
   content: InvitationContent;
   isPreview?: boolean;
+  /**
+   * scoped: 부모 박스 안에서만 렌더(viewport 단위 미사용). 데스크톱 에디터의
+   * 좌측 미리보기 패널처럼 화면 일부에 띄울 때 사용.
+   */
+  scoped?: boolean;
 }
 
 export function InvitationSlides({
@@ -30,6 +35,7 @@ export function InvitationSlides({
   weddingDate,
   content,
   isPreview,
+  scoped,
 }: Props) {
   const storyHasContent = content.story.chapters.some(
     (c) => c.title.trim() || c.text.trim() || c.image,
@@ -110,6 +116,7 @@ export function InvitationSlides({
         petalType={content.theme.petalType}
         font={content.theme.font}
         bgmUrl={content.theme.bgm?.enabled ? content.theme.bgm.url : null}
+        scoped={scoped}
       >
         {slides}
       </SlideContainer>

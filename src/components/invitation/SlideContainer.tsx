@@ -21,6 +21,12 @@ interface Props {
   petalType?: PetalType;
   font?: FontKey;
   bgmUrl?: string | null;
+  /**
+   * scoped: 컨테이너의 부모 박스 안에서만 동작하도록 viewport 단위(`vw`/`dvh`)
+   * 대신 부모 상대 단위(`%`/`h-full`)를 사용한다. 에디터 좌측 미리보기 패널처럼
+   * 화면 일부에만 슬라이드를 보여줄 때 사용. 기본 false (= 풀스크린).
+   */
+  scoped?: boolean;
 }
 
 export function SlideContainer({
@@ -29,6 +35,7 @@ export function SlideContainer({
   petalType = 'flower',
   font = 'serif',
   bgmUrl = null,
+  scoped = false,
 }: Props) {
   const slides = children.filter(Boolean);
   const [index, setIndex] = useState(0);
@@ -99,7 +106,9 @@ export function SlideContainer({
 
   return (
     <div
-      className="relative h-[100dvh] w-screen overflow-hidden"
+      className={`relative overflow-hidden ${
+        scoped ? 'h-full w-full' : 'h-[100dvh] w-screen'
+      }`}
       style={{
         backgroundColor: palette.bg,
         color: palette.fg,
@@ -115,11 +124,11 @@ export function SlideContainer({
       }}
     >
       <FallingPetals type={petalType} colors={palette.petals} />
-      {bgmUrl && <BgmPlayer url={bgmUrl} color={palette.accent} />}
+      {bgmUrl && !scoped && <BgmPlayer url={bgmUrl} color={palette.accent} />}
 
       <motion.div
         className="flex h-full"
-        animate={{ x: `-${index * 100}vw` }}
+        animate={{ x: scoped ? `-${index * 100}%` : `-${index * 100}vw` }}
         transition={{ type: 'spring', stiffness: 300, damping: 32 }}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
@@ -131,7 +140,9 @@ export function SlideContainer({
         {slides.map((slide, i) => (
           <div
             key={i}
-            className="relative h-full w-screen flex-shrink-0 touch-pan-y overflow-y-auto"
+            className={`relative h-full flex-shrink-0 touch-pan-y overflow-y-auto ${
+              scoped ? 'w-full' : 'w-screen'
+            }`}
           >
             {slide}
           </div>

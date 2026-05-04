@@ -10,7 +10,8 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   const errorDesc = searchParams.get('error_description');
-  const next = searchParams.get('next') ?? '/new';
+  // 기본 도착지는 메인 홈. 자동 알림장 생성을 막기 위해 `/new` 가 아니다.
+  const next = searchParams.get('next') ?? '/';
 
   if (errorDesc) {
     const url = new URL('/login', origin);
@@ -34,6 +35,6 @@ export async function GET(request: NextRequest) {
   }
 
   // Only allow same-origin relative paths to prevent open-redirect.
-  const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/new';
+  const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/';
   return NextResponse.redirect(new URL(safeNext, origin));
 }
