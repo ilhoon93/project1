@@ -77,7 +77,7 @@ function PosterFullImageSlide({
   const titleFont = TITLE_FONT_OPTIONS[design.title.font].family;
 
   return (
-    <section className="relative h-[100dvh] w-full overflow-hidden text-white">
+    <section className="relative h-full min-h-full w-full overflow-hidden text-white">
       {/* 배경 이미지 */}
       <img
         src={main.heroImage!}
@@ -244,7 +244,7 @@ function LegacyMainSlide({
   const overlay = layout === 'poster' && hasImage;
 
   return (
-    <section className="relative flex h-[100dvh] items-center justify-center px-6 py-10 text-center">
+    <section className="relative flex h-full min-h-full items-center justify-center px-6 py-10 text-center">
       {overlay && (
         <>
           <img
