@@ -2,13 +2,19 @@ import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import {
   Dokdo,
+  EB_Garamond,
+  Fraunces,
   Gaegu,
   Gowun_Batang,
+  Great_Vibes,
+  Montserrat,
   Nanum_Brush_Script,
   Nanum_Gothic,
   Nanum_Pen_Script,
   Noto_Sans_KR,
   Noto_Serif_KR,
+  Pinyon_Script,
+  Playfair_Display,
   Song_Myung,
 } from 'next/font/google';
 // 참고: Jeju Myeongjo 는 next/font/google 14.2 에서 함수가 아직 노출되지
@@ -102,6 +108,53 @@ const songMyung = Song_Myung({
   subsets: ['latin'],
   weight: ['400'],
   variable: '--font-song-myung',
+  display: 'swap',
+});
+
+/* ─────────────────────────────────────────────────────────────────────
+ * 영문 장식 폰트 — 메인 슬라이드(풀이미지형) 제목 텍스트 전용 picker.
+ * Korean 폰트와는 별도 그룹으로, 한글 콘텐츠가 아닌 영문 카피
+ * ("We are getting married" 등) 에만 적용된다.
+ * ───────────────────────────────────────────────────────────────────── */
+const playfairDisplay = Playfair_Display({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-playfair-display',
+  display: 'swap',
+});
+
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '700'],
+  variable: '--font-montserrat',
+  display: 'swap',
+});
+
+const ebGaramond = EB_Garamond({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-eb-garamond',
+  display: 'swap',
+});
+
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-fraunces',
+  display: 'swap',
+});
+
+const greatVibes = Great_Vibes({
+  subsets: ['latin'],
+  weight: ['400'],
+  variable: '--font-great-vibes',
+  display: 'swap',
+});
+
+const pinyonScript = Pinyon_Script({
+  subsets: ['latin'],
+  weight: ['400'],
+  variable: '--font-pinyon-script',
   display: 'swap',
 });
 
@@ -215,6 +268,13 @@ const koreanFontVariables = [
   gabiaCheongyeon.variable,
   gabiaBombaram.variable,
   gabiaDunn.variable,
+  // 메인 슬라이드 풀이미지형 제목 전용 영문 폰트
+  playfairDisplay.variable,
+  montserrat.variable,
+  ebGaramond.variable,
+  fraunces.variable,
+  greatVibes.variable,
+  pinyonScript.variable,
 ];
 
 export const metadata: Metadata = {

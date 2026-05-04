@@ -1,7 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import type { InvitationContent } from '@/types/invitation';
+import {
+  PosterDesignSchema,
+  type InvitationContent,
+  type PosterDesign,
+} from '@/types/invitation';
+import { TITLE_FONT_OPTIONS } from '@/lib/theme';
 import { Confetti } from '@/components/shared/Confetti';
 
 interface Props {
@@ -16,6 +21,216 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
 
   const handleCelebrate = () => setConfettiTrigger(Date.now());
 
+  const layout = main.layout ?? 'poster';
+  const hasImage = !!main.heroImage;
+
+  if (layout === 'poster' && hasImage) {
+    return (
+      <PosterFullImageSlide
+        main={main}
+        groomName={groomName}
+        brideName={brideName}
+        weddingDate={weddingDate}
+        onCelebrate={handleCelebrate}
+        confettiTrigger={confettiTrigger}
+      />
+    );
+  }
+
+  // 풀이미지가 아닐 때 — 기존 레이아웃 그대로 유지.
+  return (
+    <LegacyMainSlide
+      main={main}
+      groomName={groomName}
+      brideName={brideName}
+      weddingDate={weddingDate}
+      onCelebrate={handleCelebrate}
+      confettiTrigger={confettiTrigger}
+    />
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 풀이미지형 (poster + heroImage) — 디자인 컨트롤 적용 슬라이드
+// ─────────────────────────────────────────────────────────────
+
+interface PosterProps {
+  main: InvitationContent['main'];
+  groomName: string;
+  brideName: string;
+  weddingDate: string | null;
+  onCelebrate: () => void;
+  confettiTrigger: number | null;
+}
+
+function PosterFullImageSlide({
+  main,
+  groomName,
+  brideName,
+  weddingDate,
+  onCelebrate,
+  confettiTrigger,
+}: PosterProps) {
+  // 구버전 데이터에 posterDesign 이 없을 수도 있어 안전하게 기본값 폴백.
+  const design: PosterDesign = main.posterDesign ?? PosterDesignSchema.parse(undefined);
+
+  const titleFont = TITLE_FONT_OPTIONS[design.title.font].family;
+
+  return (
+    <section className="relative h-[100dvh] w-full overflow-hidden text-white">
+      {/* 배경 이미지 */}
+      <img
+        src={main.heroImage!}
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+
+      {/* 가독성 확보용 살짝의 어두운 오버레이 */}
+      <div className="absolute inset-0 bg-black/25" />
+
+      {/* 1-a) 하단 그라데이션 — 테마 배경색에 맞춰 페이드 */}
+      {design.effects.gradient && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2"
+          style={{
+            backgroundImage:
+              'linear-gradient(to bottom, transparent 0%, var(--mw-bg, rgba(0,0,0,0.6)) 100%)',
+          }}
+        />
+      )}
+
+      {/* 1-b) 가장자리 테두리 — 모서리에서 띄운 간격 + 테마 배경색 라인 */}
+      {design.effects.border && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute"
+          style={{
+            top: 16,
+            right: 16,
+            bottom: 16,
+            left: 16,
+            border: '1px solid var(--mw-bg, rgba(255,255,255,0.6))',
+            borderRadius: 4,
+          }}
+        />
+      )}
+
+      {/* 2) 제목 텍스트 — 절대 위치 + 옵션 애니메이션 */}
+      <PositionedBox position={design.title.position}>
+        <h1
+          key={`${design.title.text}-${design.title.animate}`}
+          className={`whitespace-pre-wrap text-center text-3xl font-light leading-snug md:text-4xl ${
+            design.title.animate ? 'mw-title-reveal' : ''
+          }`}
+          style={{
+            fontFamily: titleFont,
+            color: design.title.color,
+            // 글자 크기는 고정 — 사용자가 조정하지 않는다.
+            fontSize: 'clamp(28px, 7vw, 44px)',
+          }}
+        >
+          {design.title.text}
+        </h1>
+      </PositionedBox>
+
+      {/* 4) 이름 박스 — 글로벌 테마 폰트·색 그대로 */}
+      {design.nameBox.enabled && (
+        <PositionedBox position={design.nameBox.position}>
+          <div className="flex items-baseline justify-center gap-3 text-center text-2xl font-light tracking-wide drop-shadow-sm">
+            <span>{groomName}</span>
+            <span className="text-base opacity-70">&</span>
+            <span>{brideName}</span>
+          </div>
+        </PositionedBox>
+      )}
+
+      {/* 3) 날짜 박스 — 글로벌 테마 폰트·색 그대로 */}
+      {design.dateBox.enabled && weddingDate && (
+        <PositionedBox position={design.dateBox.position}>
+          <p className="text-center text-sm tracking-[0.3em] drop-shadow-sm md:text-base">
+            {formatDate(weddingDate)}
+          </p>
+        </PositionedBox>
+      )}
+
+      {/* 5) 메시지 박스 — 인사말 */}
+      {main.greeting && (
+        <PositionedBox position={design.messageBox.position}>
+          <p className="max-w-md whitespace-pre-line text-center text-sm leading-relaxed drop-shadow-sm md:text-base">
+            {main.greeting}
+          </p>
+        </PositionedBox>
+      )}
+
+      {/* 하단 축하하기 버튼 */}
+      <div className="absolute bottom-20 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center">
+        <button
+          type="button"
+          onClick={onCelebrate}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-white opacity-80 transition-opacity hover:opacity-100"
+        >
+          <span className="underline underline-offset-4">축하하기</span>
+          <span aria-hidden className="text-base leading-none">🎉</span>
+        </button>
+      </div>
+
+      <Confetti trigger={confettiTrigger} />
+
+      <style jsx>{`
+        :global(.mw-title-reveal) {
+          animation: mw-title-reveal 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          clip-path: inset(0 100% 0 0);
+        }
+        @keyframes mw-title-reveal {
+          to {
+            clip-path: inset(0 0 0 0);
+          }
+        }
+      `}</style>
+    </section>
+  );
+}
+
+/**
+ * 0–100 % 좌표를 화면 절대 위치로 변환. 앵커는 박스 중앙.
+ * 양옆은 화면을 벗어나지 않도록 max-width 와 padding 으로 가둔다.
+ */
+function PositionedBox({
+  position,
+  children,
+}: {
+  position: { x: number; y: number };
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="absolute z-10 w-full px-6"
+      style={{
+        left: `${position.x}%`,
+        top: `${position.y}%`,
+        transform: 'translate(-50%, -50%)',
+        maxWidth: 'min(90vw, 32rem)',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Legacy 레이아웃 (polaroid / illustration / text / 이미지 없는 poster)
+// — 기존 동작 유지
+// ─────────────────────────────────────────────────────────────
+
+function LegacyMainSlide({
+  main,
+  groomName,
+  brideName,
+  weddingDate,
+  onCelebrate,
+  confettiTrigger,
+}: PosterProps) {
   const layout = main.layout ?? 'poster';
   const hasImage = !!main.heroImage;
   const overlay = layout === 'poster' && hasImage;
@@ -33,11 +248,10 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
         </>
       )}
 
-      {/* 메인 콘텐츠 영역 (이름, 날짜 등) */}
       <div
-        className={`relative z-10 flex w-full max-w-md flex-col items-center gap-4 ${
+        className={`relative z-10 mb-24 flex w-full max-w-md flex-col items-center gap-4 ${
           overlay ? 'text-white' : ''
-        } mb-24`} 
+        }`}
       >
         {layout === 'poster' && (
           <p className={`text-xs tracking-[0.3em] ${overlay ? 'text-white/85' : 'opacity-70'}`}>
@@ -112,11 +326,10 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
         )}
       </div>
 
-      {/* 하단 버튼 레이아웃: 화면 하단 중앙에 고정 */}
       <div className="absolute bottom-20 left-1/2 z-20 flex w-full -translate-x-1/2 flex-col items-center gap-4 px-10">
         <button
           type="button"
-          onClick={handleCelebrate}
+          onClick={onCelebrate}
           className="inline-flex items-center gap-1.5 text-xs font-medium opacity-60 transition-opacity hover:opacity-100"
           style={{ color: overlay ? 'white' : 'inherit' }}
         >
