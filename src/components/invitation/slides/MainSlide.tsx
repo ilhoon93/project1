@@ -100,7 +100,7 @@ function PosterFullImageSlide({
         />
       )}
 
-      {/* 1-b) 가장자리 테두리 — 모서리에서 띄운 간격 + 테마 배경색 라인 */}
+      {/* 1-b) 가장자리 테두리 — 모서리에서 띄운 간격, 직각 모서리 */}
       {design.effects.border && (
         <div
           aria-hidden
@@ -111,23 +111,22 @@ function PosterFullImageSlide({
             bottom: 16,
             left: 16,
             border: '1px solid var(--mw-bg, rgba(255,255,255,0.6))',
-            borderRadius: 4,
+            borderRadius: 0,
           }}
         />
       )}
 
-      {/* 2) 제목 텍스트 — 절대 위치 + 옵션 애니메이션 */}
+      {/* 2) 제목 텍스트 — 절대 위치 + 옵션 애니메이션, 슬라이더로 크기 조절 */}
       <PositionedBox position={design.title.position}>
         <h1
           key={`${design.title.text}-${design.title.animate}`}
-          className={`whitespace-pre-wrap text-center text-3xl font-light leading-snug md:text-4xl ${
+          className={`whitespace-pre-wrap text-center font-light leading-snug ${
             design.title.animate ? 'mw-title-reveal' : ''
           }`}
           style={{
             fontFamily: titleFont,
             color: design.title.color,
-            // 글자 크기는 고정 — 사용자가 조정하지 않는다.
-            fontSize: 'clamp(28px, 7vw, 44px)',
+            fontSize: `${design.title.fontSize}px`,
           }}
         >
           {design.title.text}
@@ -137,9 +136,12 @@ function PosterFullImageSlide({
       {/* 4) 이름 박스 — 글로벌 테마 폰트·색 그대로 */}
       {design.nameBox.enabled && (
         <PositionedBox position={design.nameBox.position}>
-          <div className="flex items-baseline justify-center gap-3 text-center text-2xl font-light tracking-wide drop-shadow-sm">
+          <div
+            className="flex items-baseline justify-center gap-3 text-center font-light tracking-wide drop-shadow-sm"
+            style={{ fontSize: `${design.nameBox.fontSize}px` }}
+          >
             <span>{groomName}</span>
-            <span className="text-base opacity-70">&</span>
+            <span className="opacity-70" style={{ fontSize: '0.7em' }}>&</span>
             <span>{brideName}</span>
           </div>
         </PositionedBox>
@@ -148,7 +150,10 @@ function PosterFullImageSlide({
       {/* 3) 날짜 박스 — 글로벌 테마 폰트·색 그대로 */}
       {design.dateBox.enabled && weddingDate && (
         <PositionedBox position={design.dateBox.position}>
-          <p className="text-center text-sm tracking-[0.3em] drop-shadow-sm md:text-base">
+          <p
+            className="text-center tracking-[0.3em] drop-shadow-sm"
+            style={{ fontSize: `${design.dateBox.fontSize}px` }}
+          >
             {formatDate(weddingDate)}
           </p>
         </PositionedBox>
@@ -157,7 +162,10 @@ function PosterFullImageSlide({
       {/* 5) 메시지 박스 — 인사말 */}
       {main.greeting && (
         <PositionedBox position={design.messageBox.position}>
-          <p className="max-w-md whitespace-pre-line text-center text-sm leading-relaxed drop-shadow-sm md:text-base">
+          <p
+            className="max-w-md whitespace-pre-line text-center leading-relaxed drop-shadow-sm"
+            style={{ fontSize: `${design.messageBox.fontSize}px` }}
+          >
             {main.greeting}
           </p>
         </PositionedBox>
@@ -179,7 +187,7 @@ function PosterFullImageSlide({
 
       <style jsx>{`
         :global(.mw-title-reveal) {
-          animation: mw-title-reveal 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          animation: mw-title-reveal 2.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
           clip-path: inset(0 100% 0 0);
         }
         @keyframes mw-title-reveal {

@@ -67,6 +67,8 @@ export const PosterDesignSchema = z
         color: z.string().max(32).default('#FFFFFF'),
         animate: z.boolean().default(true),
         position: PositionSchema.default({ x: 50, y: 12 }),
+        // px 단위 — 슬라이더로 24–72 사이에서 조정.
+        fontSize: z.number().min(24).max(72).default(40),
       })
       .default({
         text: TITLE_TEXT_PRESETS[0],
@@ -74,24 +76,28 @@ export const PosterDesignSchema = z
         color: '#FFFFFF',
         animate: true,
         position: { x: 50, y: 12 },
+        fontSize: 40,
       }),
     dateBox: z
       .object({
         enabled: z.boolean().default(true),
         position: PositionSchema.default({ x: 50, y: 88 }),
+        fontSize: z.number().min(12).max(40).default(14),
       })
-      .default({ enabled: true, position: { x: 50, y: 88 } }),
+      .default({ enabled: true, position: { x: 50, y: 88 }, fontSize: 14 }),
     nameBox: z
       .object({
         enabled: z.boolean().default(true),
         position: PositionSchema.default({ x: 50, y: 72 }),
+        fontSize: z.number().min(12).max(40).default(22),
       })
-      .default({ enabled: true, position: { x: 50, y: 72 } }),
+      .default({ enabled: true, position: { x: 50, y: 72 }, fontSize: 22 }),
     messageBox: z
       .object({
         position: PositionSchema.default({ x: 50, y: 80 }),
+        fontSize: z.number().min(12).max(40).default(14),
       })
-      .default({ position: { x: 50, y: 80 } }),
+      .default({ position: { x: 50, y: 80 }, fontSize: 14 }),
   })
   .default({
     effects: { gradient: true, border: false },
@@ -101,10 +107,11 @@ export const PosterDesignSchema = z
       color: '#FFFFFF',
       animate: true,
       position: { x: 50, y: 12 },
+      fontSize: 40,
     },
-    dateBox: { enabled: true, position: { x: 50, y: 88 } },
-    nameBox: { enabled: true, position: { x: 50, y: 72 } },
-    messageBox: { position: { x: 50, y: 80 } },
+    dateBox: { enabled: true, position: { x: 50, y: 88 }, fontSize: 14 },
+    nameBox: { enabled: true, position: { x: 50, y: 72 }, fontSize: 22 },
+    messageBox: { position: { x: 50, y: 80 }, fontSize: 14 },
   });
 
 export type PosterDesign = z.infer<typeof PosterDesignSchema>;

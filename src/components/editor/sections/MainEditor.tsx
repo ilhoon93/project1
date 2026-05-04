@@ -1,11 +1,14 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { MAIN_LAYOUTS, type PosterDesign } from '@/types/invitation';
 import { useEditorStore } from '@/stores/editor';
 import {
   TITLE_FONT_KEYS,
   TITLE_FONT_OPTIONS,
   TITLE_TEXT_PRESETS,
+  type TitleFontKey,
 } from '@/lib/theme';
 import { SectionEditor } from '../SectionEditor';
 import { TextAreaField } from '../form-fields';
@@ -18,7 +21,23 @@ const LAYOUT_LABELS: Record<(typeof MAIN_LAYOUTS)[number], { name: string; hint:
   text: { name: '텍스트', hint: '이미지 없이' },
 };
 
-const TITLE_COLOR_PRESETS = ['#FFFFFF', '#000000', '#3D2E1F', '#5C2A2E', '#2D4A33', '#1A2238'];
+// 결혼 청첩장에서 자주 쓰이는 색상 — 활용 빈도 순서로 앞쪽에 배치.
+// 흰/검정(고대비) → 따뜻한 세피아·골드 → 짙은 액센트(네이비·버건디·세이지)
+// → 연한 톤(블러쉬·로즈·아이보리) 순.
+const TITLE_COLOR_PRESETS = [
+  '#FFFFFF', // 화이트
+  '#000000', // 블랙
+  '#3D2E1F', // 다크 세피아
+  '#6B4423', // 브라운
+  '#C9A66B', // 웜 골드
+  '#1A2238', // 네이비
+  '#5C2A2E', // 버건디
+  '#2D4A33', // 세이지
+  '#8B7355', // 모카
+  '#C9748E', // 더스티 로즈
+  '#E8A0A0', // 블러쉬 핑크
+  '#F8F1E5', // 아이보리
+];
 
 export function MainEditor() {
   const main = useEditorStore((s) => s.content?.main);
@@ -132,7 +151,7 @@ function PosterDesignControls({ design, onChange }: DesignProps) {
         />
         <ToggleRow
           label="가장자리 테두리"
-          hint="이미지 가장자리에서 살짝 띄운 테두리"
+          hint="이미지 가장자리에서 살짝 띄운 직각 테두리"
           checked={design.effects.border}
           onChange={(v) =>
             onChange({ ...design, effects: { ...design.effects, border: v } })
@@ -142,54 +161,20 @@ function PosterDesignControls({ design, onChange }: DesignProps) {
 
       {/* 2. 제목 텍스트 */}
       <Group label="제목 텍스트">
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-medium text-foreground">문구</span>
-          <input
-            list="title-text-presets"
-            value={design.title.text}
-            maxLength={60}
-            onChange={(e) =>
-              onChange({ ...design, title: { ...design.title, text: e.target.value } })
-            }
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/30"
-            placeholder="문구를 선택하거나 직접 입력"
-          />
-          <datalist id="title-text-presets">
-            {TITLE_TEXT_PRESETS.map((preset) => (
-              <option key={preset} value={preset} />
-            ))}
-          </datalist>
-        </label>
+        <TitleTextCombobox
+          value={design.title.text}
+          onChange={(text) =>
+            onChange({ ...design, title: { ...design.title, text } })
+          }
+        />
 
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-medium text-foreground">폰트</span>
-          <select
-            value={design.title.font}
-            onChange={(e) =>
-              onChange({
-                ...design,
-                title: { ...design.title, font: e.target.value as PosterDesign['title']['font'] },
-              })
-            }
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/30"
-          >
-            {TITLE_FONT_KEYS.map((key) => (
-              <option
-                key={key}
-                value={key}
-                style={{ fontFamily: TITLE_FONT_OPTIONS[key].family }}
-              >
-                {TITLE_FONT_OPTIONS[key].label}
-              </option>
-            ))}
-          </select>
-          <span
-            className="mt-1 truncate rounded bg-background px-2 py-2 text-base"
-            style={{ fontFamily: TITLE_FONT_OPTIONS[design.title.font].family }}
-          >
-            {design.title.text || 'Preview'}
-          </span>
-        </label>
+        <FontPicker
+          value={design.title.font}
+          onChange={(font) =>
+            onChange({ ...design, title: { ...design.title, font } })
+          }
+          previewText={design.title.text || 'Preview'}
+        />
 
         <ColorPicker
           label="색상"
@@ -200,9 +185,20 @@ function PosterDesignControls({ design, onChange }: DesignProps) {
           presets={TITLE_COLOR_PRESETS}
         />
 
+        <SliderRow
+          label="글자 크기"
+          value={design.title.fontSize}
+          min={24}
+          max={72}
+          unit="px"
+          onChange={(fontSize) =>
+            onChange({ ...design, title: { ...design.title, fontSize } })
+          }
+        />
+
         <ToggleRow
           label="애니메이션 효과"
-          hint="왼쪽에서 오른쪽으로 써지는 느낌"
+          hint="왼쪽에서 오른쪽으로 천천히 써지는 느낌"
           checked={design.title.animate}
           onChange={(v) =>
             onChange({ ...design, title: { ...design.title, animate: v } })
@@ -230,12 +226,24 @@ function PosterDesignControls({ design, onChange }: DesignProps) {
           전체 디자인의 폰트와 색상을 그대로 사용합니다.
         </p>
         {design.dateBox.enabled && (
-          <PositionSliders
-            position={design.dateBox.position}
-            onChange={(position) =>
-              onChange({ ...design, dateBox: { ...design.dateBox, position } })
-            }
-          />
+          <>
+            <SliderRow
+              label="글자 크기"
+              value={design.dateBox.fontSize}
+              min={12}
+              max={40}
+              unit="px"
+              onChange={(fontSize) =>
+                onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
+              }
+            />
+            <PositionSliders
+              position={design.dateBox.position}
+              onChange={(position) =>
+                onChange({ ...design, dateBox: { ...design.dateBox, position } })
+              }
+            />
+          </>
         )}
       </Group>
 
@@ -252,12 +260,24 @@ function PosterDesignControls({ design, onChange }: DesignProps) {
           신랑·신부 이름만 표시됩니다. 폰트와 색상은 전체 디자인을 따릅니다.
         </p>
         {design.nameBox.enabled && (
-          <PositionSliders
-            position={design.nameBox.position}
-            onChange={(position) =>
-              onChange({ ...design, nameBox: { ...design.nameBox, position } })
-            }
-          />
+          <>
+            <SliderRow
+              label="글자 크기"
+              value={design.nameBox.fontSize}
+              min={12}
+              max={40}
+              unit="px"
+              onChange={(fontSize) =>
+                onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
+              }
+            />
+            <PositionSliders
+              position={design.nameBox.position}
+              onChange={(position) =>
+                onChange({ ...design, nameBox: { ...design.nameBox, position } })
+              }
+            />
+          </>
         )}
       </Group>
 
@@ -266,6 +286,16 @@ function PosterDesignControls({ design, onChange }: DesignProps) {
         <p className="text-xs text-muted-foreground">
           인사말이 표시됩니다. 폰트와 색상은 전체 디자인을 따릅니다.
         </p>
+        <SliderRow
+          label="글자 크기"
+          value={design.messageBox.fontSize}
+          min={12}
+          max={40}
+          unit="px"
+          onChange={(fontSize) =>
+            onChange({ ...design, messageBox: { ...design.messageBox, fontSize } })
+          }
+        />
         <PositionSliders
           position={design.messageBox.position}
           onChange={(position) =>
@@ -275,6 +305,197 @@ function PosterDesignControls({ design, onChange }: DesignProps) {
       </Group>
     </div>
   );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 제목 문구 — 자유 입력 가능 + 화살표로 9개 프리셋 전체 펼침
+// 모바일/웹 모두 같은 커스텀 패널이라 폰트·UX 일관.
+// ─────────────────────────────────────────────────────────────
+
+function TitleTextCombobox({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  useClickOutside(wrapRef, () => setOpen(false));
+
+  return (
+    <div className="flex flex-col gap-1.5 text-sm">
+      <span className="font-medium text-foreground">문구</span>
+      <div ref={wrapRef} className="relative">
+        <div className="flex items-stretch overflow-hidden rounded-md border border-input bg-background transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30">
+          <input
+            value={value}
+            maxLength={60}
+            onChange={(e) => onChange(e.target.value)}
+            onFocus={() => setOpen(false)}
+            placeholder="문구를 직접 입력하거나 우측 화살표로 선택"
+            className="h-10 flex-1 bg-transparent px-3 text-sm outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-label="문구 프리셋 펼치기"
+            aria-expanded={open}
+            className="grid w-9 shrink-0 place-items-center border-l border-input text-muted-foreground hover:bg-muted"
+          >
+            <ChevronDown
+              size={16}
+              className={`transition-transform ${open ? 'rotate-180' : ''}`}
+            />
+          </button>
+        </div>
+        {open && (
+          <ul
+            role="listbox"
+            className="absolute left-0 right-0 top-full z-30 mt-1 max-h-none overflow-hidden rounded-md border border-input bg-background shadow-lg"
+          >
+            {TITLE_TEXT_PRESETS.map((preset) => {
+              const selected = preset === value;
+              return (
+                <li key={preset}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    onClick={() => {
+                      onChange(preset);
+                      setOpen(false);
+                    }}
+                    className={`flex w-full items-center px-3 py-2 text-left text-sm transition-colors ${
+                      selected
+                        ? 'bg-foreground text-background'
+                        : 'text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {preset}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 폰트 선택 — 각 옵션을 해당 폰트로 렌더해 모바일/웹 모두에서
+// 실제 글씨체를 보고 고를 수 있게 한다.
+// ─────────────────────────────────────────────────────────────
+
+function FontPicker({
+  value,
+  onChange,
+  previewText,
+}: {
+  value: TitleFontKey;
+  onChange: (next: TitleFontKey) => void;
+  previewText: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  useClickOutside(wrapRef, () => setOpen(false));
+
+  const current = TITLE_FONT_OPTIONS[value];
+
+  return (
+    <div className="flex flex-col gap-1.5 text-sm">
+      <span className="font-medium text-foreground">폰트</span>
+      <div ref={wrapRef} className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          className="flex h-10 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 text-sm transition-colors hover:bg-muted focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30"
+        >
+          <span className="truncate" style={{ fontFamily: current.family }}>
+            {current.label}
+          </span>
+          <ChevronDown
+            size={16}
+            className={`shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
+          />
+        </button>
+        {open && (
+          <ul
+            role="listbox"
+            className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-md border border-input bg-background shadow-lg"
+          >
+            {TITLE_FONT_KEYS.map((key) => {
+              const opt = TITLE_FONT_OPTIONS[key];
+              const selected = key === value;
+              return (
+                <li key={key}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    onClick={() => {
+                      onChange(key);
+                      setOpen(false);
+                    }}
+                    className={`flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left transition-colors ${
+                      selected
+                        ? 'bg-foreground text-background'
+                        : 'text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <span
+                      className="truncate text-base leading-tight"
+                      style={{ fontFamily: opt.family }}
+                    >
+                      {previewText || opt.label}
+                    </span>
+                    <span
+                      className={`text-[11px] ${
+                        selected ? 'text-background/70' : 'text-muted-foreground'
+                      }`}
+                    >
+                      {opt.label}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+      {/* 콤보박스 아래 큰 폰트 미리보기 — 그대로 유지. */}
+      <span
+        className="mt-1 truncate rounded bg-background px-2 py-2 text-base"
+        style={{ fontFamily: current.family }}
+      >
+        {previewText || 'Preview'}
+      </span>
+    </div>
+  );
+}
+
+function useClickOutside(
+  ref: React.RefObject<HTMLElement>,
+  handler: () => void,
+) {
+  useEffect(() => {
+    const onDown = (e: MouseEvent | TouchEvent) => {
+      const node = ref.current;
+      if (!node) return;
+      if (e.target instanceof Node && node.contains(e.target)) return;
+      handler();
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('touchstart', onDown);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('touchstart', onDown);
+    };
+  }, [ref, handler]);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -366,16 +587,20 @@ function PositionSliders({
       <SliderRow
         label="좌우"
         value={position.x}
-        onChange={(x) => onChange({ ...position, x })}
+        min={0}
+        max={100}
         leftHint="좌"
         rightHint="우"
+        onChange={(x) => onChange({ ...position, x })}
       />
       <SliderRow
         label="상하"
         value={position.y}
-        onChange={(y) => onChange({ ...position, y })}
+        min={0}
+        max={100}
         leftHint="상"
         rightHint="하"
+        onChange={(y) => onChange({ ...position, y })}
       />
     </div>
   );
@@ -384,32 +609,39 @@ function PositionSliders({
 function SliderRow({
   label,
   value,
-  onChange,
+  min,
+  max,
   leftHint,
   rightHint,
+  unit,
+  onChange,
 }: {
   label: string;
   value: number;
+  min: number;
+  max: number;
+  leftHint?: string;
+  rightHint?: string;
+  unit?: string;
   onChange: (v: number) => void;
-  leftHint: string;
-  rightHint: string;
 }) {
   return (
     <label className="flex items-center gap-3 text-xs">
-      <span className="w-8 shrink-0 text-muted-foreground">{label}</span>
-      <span className="text-muted-foreground">{leftHint}</span>
+      <span className="w-16 shrink-0 text-muted-foreground">{label}</span>
+      {leftHint && <span className="text-muted-foreground">{leftHint}</span>}
       <input
         type="range"
-        min={0}
-        max={100}
+        min={min}
+        max={max}
         step={1}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="flex-1 accent-foreground"
       />
-      <span className="text-muted-foreground">{rightHint}</span>
-      <span className="w-8 shrink-0 text-right tabular-nums text-muted-foreground">
+      {rightHint && <span className="text-muted-foreground">{rightHint}</span>}
+      <span className="w-12 shrink-0 text-right tabular-nums text-muted-foreground">
         {Math.round(value)}
+        {unit ?? ''}
       </span>
     </label>
   );
