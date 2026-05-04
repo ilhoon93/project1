@@ -281,6 +281,60 @@ export const FONT_OPTIONS: Record<FontKey, FontOption> = {
   dokdo: { label: '캘리', family: "var(--font-dokdo), cursive" },
 };
 
+// ── 영문 장식 폰트 (메인 풀이미지형 제목 전용) ──────────────
+// Title-only picker. 글로벌 테마 폰트(FONT_KEYS)와는 별도 도메인이라
+// FontKey에 섞지 않고 별도 enum으로 둔다 — 데이터 호환성 + UI 분리.
+
+export const TITLE_FONT_KEYS = [
+  'playfairDisplay',
+  'montserrat',
+  'ebGaramond',
+  'fraunces',
+  'greatVibes',
+  'pinyonScript',
+] as const;
+export type TitleFontKey = (typeof TITLE_FONT_KEYS)[number];
+
+export const TITLE_FONT_OPTIONS: Record<TitleFontKey, FontOption> = {
+  playfairDisplay: {
+    label: 'Playfair Display',
+    family: "var(--font-playfair-display), serif",
+  },
+  montserrat: {
+    label: 'Montserrat',
+    family: "var(--font-montserrat), sans-serif",
+  },
+  ebGaramond: {
+    label: 'EB Garamond',
+    family: "var(--font-eb-garamond), serif",
+  },
+  fraunces: {
+    label: 'Fraunces',
+    family: "var(--font-fraunces), serif",
+  },
+  greatVibes: {
+    label: 'Great Vibes',
+    family: "var(--font-great-vibes), cursive",
+  },
+  pinyonScript: {
+    label: 'Pinyon Script',
+    family: "var(--font-pinyon-script), cursive",
+  },
+};
+
+// 콤보박스 프리셋 — 사용자는 이 중 선택하거나 직접 입력 가능.
+export const TITLE_TEXT_PRESETS = [
+  'We are getting married',
+  'our wedding day',
+  'Our Story Begins Here',
+  'The Beginning of Us',
+  'A day, our way',
+  'You & Me',
+  'Save the Date',
+  'Love, always',
+  'Love, Laughter, Forever',
+] as const;
+
 /**
  * picker 에 노출하지 않는 폰트 키.
  * 안정적인 무료 호스팅 URL 이 없어 임시로 숨김 — `docs/local-fonts-guide.md`

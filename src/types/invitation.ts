@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import { COLOR_THEMES, FONT_KEYS, PETAL_TYPES, SECTION_KEYS } from '@/lib/theme';
+import {
+  COLOR_THEMES,
+  FONT_KEYS,
+  PETAL_TYPES,
+  SECTION_KEYS,
+  TITLE_FONT_KEYS,
+  TITLE_TEXT_PRESETS,
+} from '@/lib/theme';
 
 // ── theme (global look & feel + page ordering) ────────────
 
@@ -32,6 +39,76 @@ export const ThemeSchema = z
 
 export const MAIN_LAYOUTS = ['poster', 'polaroid', 'illustration', 'text'] as const;
 
+// 풀이미지형(=poster) 디자인 구성. 다른 레이아웃에서는 무시되지만
+// 사용자가 레이아웃을 다시 poster 로 바꿨을 때 직전 설정이 보존되도록
+// MainSectionSchema 상에서는 항상 보관한다.
+
+const PositionSchema = z
+  .object({
+    x: z.number().min(0).max(100).default(50),
+    y: z.number().min(0).max(100).default(50),
+  })
+  .default({ x: 50, y: 50 });
+
+export const PosterDesignSchema = z
+  .object({
+    effects: z
+      .object({
+        gradient: z.boolean().default(true),
+        border: z.boolean().default(false),
+      })
+      .default({ gradient: true, border: false }),
+    title: z
+      .object({
+        // 콤보박스 프리셋(TITLE_TEXT_PRESETS) 또는 직접 입력 — 자유 문자열.
+        text: z.string().max(60).default(TITLE_TEXT_PRESETS[0]),
+        font: z.enum(TITLE_FONT_KEYS).default('playfairDisplay'),
+        // CSS 색상 문자열(hex / rgb / 명명색). 기본은 흰색 — 풀이미지 위.
+        color: z.string().max(32).default('#FFFFFF'),
+        animate: z.boolean().default(true),
+        position: PositionSchema.default({ x: 50, y: 12 }),
+      })
+      .default({
+        text: TITLE_TEXT_PRESETS[0],
+        font: 'playfairDisplay',
+        color: '#FFFFFF',
+        animate: true,
+        position: { x: 50, y: 12 },
+      }),
+    dateBox: z
+      .object({
+        enabled: z.boolean().default(true),
+        position: PositionSchema.default({ x: 50, y: 88 }),
+      })
+      .default({ enabled: true, position: { x: 50, y: 88 } }),
+    nameBox: z
+      .object({
+        enabled: z.boolean().default(true),
+        position: PositionSchema.default({ x: 50, y: 72 }),
+      })
+      .default({ enabled: true, position: { x: 50, y: 72 } }),
+    messageBox: z
+      .object({
+        position: PositionSchema.default({ x: 50, y: 80 }),
+      })
+      .default({ position: { x: 50, y: 80 } }),
+  })
+  .default({
+    effects: { gradient: true, border: false },
+    title: {
+      text: TITLE_TEXT_PRESETS[0],
+      font: 'playfairDisplay',
+      color: '#FFFFFF',
+      animate: true,
+      position: { x: 50, y: 12 },
+    },
+    dateBox: { enabled: true, position: { x: 50, y: 88 } },
+    nameBox: { enabled: true, position: { x: 50, y: 72 } },
+    messageBox: { position: { x: 50, y: 80 } },
+  });
+
+export type PosterDesign = z.infer<typeof PosterDesignSchema>;
+
 export const MainSectionSchema = z
   .object({
     layout: z.enum(MAIN_LAYOUTS).default('poster'),
@@ -39,8 +116,14 @@ export const MainSectionSchema = z
     greeting: z.string().max(500).default(''),
     /** Free AI generation is one-shot; flips true after a successful run. */
     aiUsed: z.boolean().default(false),
+    posterDesign: PosterDesignSchema,
   })
-  .default({ layout: 'poster', greeting: '', aiUsed: false });
+  .default({
+    layout: 'poster',
+    greeting: '',
+    aiUsed: false,
+    posterDesign: PosterDesignSchema.parse(undefined),
+  });
 
 // ── basic info slide (글귀 / 인사말 / 가족 / 날짜) ──────────
 
