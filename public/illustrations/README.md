@@ -10,36 +10,54 @@
 | `illust-arch.png` | `arch` | 꽃 아치 + 손잡고 걷는 신랑·신부 |
 | `illust-dance.png` | `dance` | 댄스 포즈 + 골드 스파클·하트 |
 
-> 두 파일 모두 **투명 배경 PNG** 를 권장합니다. 다크 테마(미드나잇·더스크)에서
-> 라인 아트가 `filter: invert(...)` 로 반전되어 잘 보이도록 설계되어
-> 있는데, 불투명 배경 PNG 를 쓰면 다크 모드에서 사각형 잔상이 보일 수 있습니다.
+## ⚠️ 반드시 투명 배경 PNG
+
+두 파일 모두 **반드시 알파 채널(투명 배경) PNG** 로 저장해주세요.
+
+### 왜?
+
+- 청첩장은 8가지 색상 테마(크림·블러쉬·세이지·펄·편지지·샴페인·더스크·미드나잇)를
+  지원합니다. 사용자가 어느 테마를 골라도 일러스트의 *배경만* 그 테마 색을
+  따라가야 자연스러워 보입니다.
+- 신랑·신부의 흰 드레스, 피부, 연한 꽃 같은 **밝은 톤 요소들과 PNG 배경(흰/크림)
+  은 색상 정보만으로 구별이 불가능**합니다. CSS 필터는 픽셀 단위로 동작하므로
+  공간적으로 분리된 영역을 가려낼 수 없습니다.
+- 따라서 PNG 자체에서 배경을 알파 채널로 도려내야 합니다.
+
+### 작업 방법
+
+- **Photoshop**: 마법봉으로 배경 영역 선택 → Delete 키 → "PNG (알파 채널 포함)" 으로 저장
+- **GIMP**: Layer → Transparency → Color to Alpha (흰색 선택)
+- **온라인**: [remove.bg](https://www.remove.bg/), [Photoroom](https://www.photoroom.com/) 등
+- **Figma**: 배경 사각형 삭제 → "Export → PNG" (Background = transparent)
+
+저장 후 Photoshop/GIMP 에서 한 번 더 확인하면 좋습니다 — 캔버스가 체크무늬로
+보이면 알파 채널이 살아있는 것입니다.
 
 ## 권장 사양
 
 - 비율: 세로형 (예: `1080 × 1350` 4:5, `1080 × 1920` 9:16 모두 OK)
 - 폭: 가로 1080px 이상
-- 형식: PNG, 알파 채널 포함
+- 형식: **PNG, 알파 채널 필수**
 - 최대 용량: 2MB 이하 권장 (모바일 로딩 속도)
 
-## 다크 모드 처리 원리
+## 다크 테마(더스크·미드나잇) 처리
 
-[`src/lib/theme.ts`](../../src/lib/theme.ts) 의 각 테마 팔레트가
-`illustFilter` / `illustBlend` 값을 가집니다:
+투명 배경 PNG 라면 라이트/다크 어떤 테마에서도 자연스럽게 동작합니다 —
+배경이 비어있어 테마 색상이 그대로 비춰 보이기 때문입니다.
+
+다크 테마에서는 짙은 라인이 어두운 바탕에 묻히지 않도록 **흰색 글로우**
+(drop-shadow) 가 자동으로 라인 외곽에 깔립니다. 색 반전(invert) 은 적용되지
+않으므로 일러스트의 원본 색상은 그대로 보존됩니다.
+
+이 동작은 [`src/lib/theme.ts`](../../src/lib/theme.ts) 의 `DARK_ILLUST_FILTER`
+상수로 정의되어 있습니다. 글로우 강도를 조정하고 싶다면 그 값만 바꾸면 됩니다:
 
 ```ts
-midnight: {
-  // ...
-  illustFilter: 'invert(0.95) hue-rotate(180deg)',
-}
+const DARK_ILLUST_FILTER =
+  'drop-shadow(0 0 1.5px rgba(255,255,255,0.55)) ' +
+  'drop-shadow(0 0 4px rgba(255,255,255,0.18))';
 ```
-
-이 값이 `--mw-illust-filter` CSS 변수로 흘러들어가
-[`src/components/invitation/slides/MainSlide.tsx`](../../src/components/invitation/slides/MainSlide.tsx)
-의 `<img>` 에 적용됩니다.
-
-테마별로 보이는 모습을 더 미세하게 조정하고 싶으면 `illustFilter` 값만
-바꾸면 됩니다 (예: `invert(0.85)` 으로 살짝 회색 톤, 또는
-`brightness(1.1) contrast(0.9)` 같은 미세 조정).
 
 ## 파일이 없을 때
 
@@ -48,10 +66,10 @@ midnight: {
 
 ```
 ┌──────────────────────────────────┐
-│   일러스트 이미지 추가 필요        │
-│                                  │
-│   public/illustrations/...png    │
-│                                  │
-│   투명 배경 PNG 를 위 경로에 저장  │
+│   일러스트 이미지 추가 필요         │
+│                                   │
+│   public/illustrations/...png     │
+│                                   │
+│   투명 배경 PNG 를 위 경로에 저장   │
 └──────────────────────────────────┘
 ```

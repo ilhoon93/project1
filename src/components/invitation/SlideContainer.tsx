@@ -129,32 +129,6 @@ export function SlideContainer({
       <FallingPetals type={petalType} colors={palette.petals} />
       {bgmUrl && !scoped && <BgmPlayer url={bgmUrl} color={palette.accent} />}
 
-      {/*
-        일러스트 PNG 의 흰/크림 배경을 알파 0 으로 깎아내는 SVG 필터 정의.
-        feColorMatrix 의 마지막 행 (-3 -3 -3 8 0) 이 새 알파를
-        A' = -3R - 3G - 3B + 8A 로 계산 — 흰색(R=G=B=1) 픽셀은 음수가 되어
-        clamp 0 으로 투명, 짙은 라인은 양수 그대로 불투명.
-        url(#mw-key-out-light) 로 모든 일러스트형 슬라이드에서 참조 가능.
-      */}
-      <svg
-        aria-hidden
-        width="0"
-        height="0"
-        style={{ position: 'absolute', overflow: 'hidden' }}
-      >
-        <defs>
-          <filter id="mw-key-out-light" colorInterpolationFilters="sRGB">
-            <feColorMatrix
-              type="matrix"
-              values="1 0 0 0 0
-                      0 1 0 0 0
-                      0 0 1 0 0
-                      -3 -3 -3 8 0"
-            />
-          </filter>
-        </defs>
-      </svg>
-
       <motion.div
         className="flex h-full"
         animate={{ x: scoped ? `-${index * 100}%` : `-${index * 100}vw` }}
