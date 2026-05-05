@@ -35,13 +35,6 @@ export interface Palette {
    * 조정할 수도 있다.
    */
   illustFilter?: string;
-  /**
-   * 일러스트 PNG 의 mix-blend-mode. 사용자가 투명 배경 PNG 를 쓰면 'normal'
-   * 이면 충분하지만, 흰/크림 배경 PNG 를 그대로 쓸 경우 라이트 테마에서
-   * 'multiply' 가 자연스럽게 배경을 녹여낸다.
-   * --mw-illust-blend 변수로 노출.
-   */
-  illustBlend?: string;
 }
 
 // 펄 — 부드러운 라디얼 그라디언트로 진주빛 광택. 어디에나 무난.
@@ -62,17 +55,19 @@ const CHAMPAGNE_PATTERN =
   'radial-gradient(circle at 25% 25%, rgba(212,165,116,0.22) 0%, rgba(255,248,235,0) 42%), ' +
   'radial-gradient(circle at 80% 70%, rgba(232,200,160,0.18) 0%, rgba(255,248,235,0) 45%)';
 
-// 일러스트 PNG 의 테마별 처리 전략:
-//   - 라이트 테마: mix-blend-mode 'multiply' — 흰/크림 배경이 곱해져 테마 bg
-//     에 자연스럽게 동화되고, 짙은 라인 아트만 남는다.
-//   - 다크 테마: 색을 반전하지 않고 원본 색상을 유지 (사용자 요청). 다크
-//     배경에서도 짙은 라인이 보이도록 drop-shadow 로 살짝 흰빛 글로우를
-//     입혀 가독성을 살린다. 투명 배경 PNG 를 가정 — 잔존하는 이미지 배경이
-//     보이지 않도록 mix-blend-mode 'normal' 로 둔다.
-const LIGHT_ILLUST_BLEND = 'multiply';
-const DARK_ILLUST_FILTER =
+// 일러스트 PNG 처리 전략 — SVG feColorMatrix 로 흰/크림 픽셀을 알파 0 으로
+// 깎아내는 "크로마키" 방식. mix-blend-mode 와 달리 GPU 합성 단계가 아니라
+// 픽셀 단계 필터라 슬라이드 전환 같은 transform 애니메이션 중에도 안정적
+// 으로 적용 → 흰 배경이 깜빡 보이는 현상 없음.
+//
+// 필터 정의 자체는 SlideContainer 가 한 번 렌더(SVG <defs>)하고, 각 테마는
+// 그 url(#…) 을 자기 illustFilter 체인 맨 앞에 둔다. 다크 테마에는 추가로
+// drop-shadow 두 겹 글로우를 더해 짙은 라인이 어두운 바탕에서도 보이게.
+const KEY_OUT_LIGHT = 'url(#mw-key-out-light)';
+const DARK_ILLUST_GLOW =
   'drop-shadow(0 0 1.5px rgba(255,255,255,0.55)) drop-shadow(0 0 4px rgba(255,255,255,0.18))';
-const DARK_ILLUST_BLEND = 'normal';
+const LIGHT_ILLUST_FILTER = KEY_OUT_LIGHT;
+const DARK_ILLUST_FILTER = `${KEY_OUT_LIGHT} ${DARK_ILLUST_GLOW}`;
 
 export const THEME_PALETTES: Record<ColorTheme, Palette> = {
   cream: {
@@ -81,7 +76,7 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     accent: '#8B7355',
     dot: '#D4C5B0',
     petals: ['#F4D9D0', '#E8C2B8', '#F1E0D6', '#D4B5A0'],
-    illustBlend: LIGHT_ILLUST_BLEND,
+    illustFilter: LIGHT_ILLUST_FILTER,
   },
   blush: {
     bg: '#FFF4F1',
@@ -89,7 +84,7 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     accent: '#C9748E',
     dot: '#E5B8BD',
     petals: ['#FFD1D9', '#FFB6C1', '#FFC0CB', '#FFE4E1'],
-    illustBlend: LIGHT_ILLUST_BLEND,
+    illustFilter: LIGHT_ILLUST_FILTER,
   },
   sage: {
     bg: '#F1F5EE',
@@ -97,7 +92,7 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     accent: '#658067',
     dot: '#C8D5C0',
     petals: ['#C4D9C0', '#A8C5A1', '#D5E5CD', '#B3CFA8'],
-    illustBlend: LIGHT_ILLUST_BLEND,
+    illustFilter: LIGHT_ILLUST_FILTER,
   },
   dusk: {
     bg: '#221C2E',
@@ -106,7 +101,6 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     dot: '#5C4F75',
     petals: ['#B8A6D6', '#D4A5DC', '#DDD0EB', '#E8D5F2'],
     illustFilter: DARK_ILLUST_FILTER,
-    illustBlend: DARK_ILLUST_BLEND,
   },
   // 펄 — 진주빛 배경 위에 남색 계열 글씨로 정갈한 톤.
   pearl: {
@@ -116,7 +110,7 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     dot: '#B5BCC9',
     petals: ['#F5E1DA', '#E8D0C8', '#FFFFFF', '#EFD9D2'],
     bgPattern: PEARL_PATTERN,
-    illustBlend: LIGHT_ILLUST_BLEND,
+    illustFilter: LIGHT_ILLUST_FILTER,
   },
   // 편지지 — 순백 바탕 + 잉크 검정 글자. 결혼 청첩장 클래식 톤.
   // 종이 결 패턴은 유지해 완전 평면 디자인을 피함.
@@ -127,7 +121,7 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     dot: '#D4D4D4',
     petals: ['#F5F5F5', '#EAEAEA', '#FFFFFF', '#FAFAFA'],
     bgPattern: LETTER_PAPER_PATTERN,
-    illustBlend: LIGHT_ILLUST_BLEND,
+    illustFilter: LIGHT_ILLUST_FILTER,
   },
   // 미드나잇 — 검정 배경 + 밝은 샴페인 글자. 모던/세련.
   midnight: {
@@ -137,7 +131,6 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     dot: '#3A3A42',
     petals: ['#E8D5A8', '#D4AF7F', '#F5E9C8', '#C9A66B'],
     illustFilter: DARK_ILLUST_FILTER,
-    illustBlend: DARK_ILLUST_BLEND,
   },
   // 샴페인 — 웜 아이보리 + 딥 와인 글자 + 골드 액센트.
   // 결혼 분위기 풀로 살리고 글자 가독성도 강한 조합.
@@ -148,7 +141,7 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     dot: '#E5CDA8',
     petals: ['#F5DCC4', '#E8C8A8', '#FFEFD8', '#D4B58F'],
     bgPattern: CHAMPAGNE_PATTERN,
-    illustBlend: LIGHT_ILLUST_BLEND,
+    illustFilter: LIGHT_ILLUST_FILTER,
   },
 };
 

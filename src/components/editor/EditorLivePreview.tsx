@@ -44,17 +44,12 @@ export function EditorLivePreview({ invitationId }: Props) {
   }
 
   return (
-    <div className="flex h-full max-h-[800px] w-full max-w-[380px] flex-col gap-2">
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>실시간 미리보기</span>
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wider">
-          Live
-        </span>
-      </div>
-      {/* 모바일 프레임 — 9:19 비율의 폰 외관 */}
+    // 헤더(실시간 미리보기/Live 배지) 제거 — 폰 프레임이 가용 공간을 모두 차지.
+    // aspect 9 : 20 으로 살짝 더 길쭉한 폰 비율로 세로 길이 확보.
+    <div className="flex h-full max-h-[920px] w-full max-w-[380px] flex-col">
       <div
         className="relative mx-auto flex w-full overflow-hidden rounded-[2.25rem] border-[10px] border-foreground/85 bg-background shadow-xl"
-        style={{ aspectRatio: '9 / 19', maxHeight: '100%' }}
+        style={{ aspectRatio: '9 / 20', maxHeight: '100%' }}
       >
         {ready ? (
           <InvitationSlides

@@ -396,18 +396,23 @@ function IllustrationImage({
   }
 
   return (
-    /* eslint-disable-next-line @next/next/no-img-element */
-    <img
-      src={src}
-      alt=""
-      className="mx-auto block h-auto w-full select-none"
-      style={{
-        filter: 'var(--mw-illust-filter, none)',
-        mixBlendMode: 'var(--mw-illust-blend, normal)' as React.CSSProperties['mixBlendMode'],
-      }}
-      onError={() => setErrored(true)}
-      draggable={false}
-    />
+    // isolation: isolate — 슬라이드 전환 같은 transform 애니메이션 중에도
+    // 필터 합성 결과가 안정되도록 자체 stacking context 를 만든다.
+    // mix-blend-mode 는 사용하지 않고 SVG feColorMatrix 필터로 흰/크림 배경을
+    // 알파 0 으로 깎아내므로 화면 전환 시 흰 배경이 깜빡 보이는 현상이 없다.
+    <div className="mx-auto w-full" style={{ isolation: 'isolate' }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt=""
+        className="block h-auto w-full select-none"
+        style={{
+          filter: 'var(--mw-illust-filter, none)',
+        }}
+        onError={() => setErrored(true)}
+        draggable={false}
+      />
+    </div>
   );
 }
 
@@ -465,20 +470,16 @@ function LegacyMainSlide({
         )}
 
         {layout === 'polaroid' && (
-          <div className="relative rotate-[-3deg] rounded-sm bg-white p-3 pb-10 shadow-xl">
+          // 직각 모서리(rounded-none), 사진 크기 확대(h-80 w-64),
+          // 하단 신랑·신부 이름은 사용자 요청으로 제거.
+          <div className="relative rotate-[-3deg] rounded-none bg-white p-3 pb-3 shadow-xl">
             {hasImage ? (
-              <img src={main.heroImage!} alt="" className="h-56 w-48 object-cover" />
+              <img src={main.heroImage!} alt="" className="h-80 w-64 object-cover" />
             ) : (
-              <div className="grid h-56 w-48 place-items-center bg-gradient-br from-stone-200 to-stone-300 text-3xl text-stone-400">
+              <div className="grid h-80 w-64 place-items-center bg-gradient-br from-stone-200 to-stone-300 text-3xl text-stone-400">
                 📷
               </div>
             )}
-            <p
-              className="absolute bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap text-sm text-stone-700"
-              style={{ fontFamily: "'Gaegu', cursive" }}
-            >
-              {groomName} ♥ {brideName}
-            </p>
           </div>
         )}
         {layout === 'illustration' && <CoupleIllustration />}
