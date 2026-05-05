@@ -9,6 +9,10 @@ export const COLOR_THEMES = [
   'sage',
   'dusk',
   'pearl',
+  // 새로 추가된 결혼식 친화 팔레트.
+  'letterPaper', // 편지지 — 박엽지/캔버스 질감 흰 바탕 + 검정 글자
+  'midnight',    // 미드나잇 — 검정 배경 + 밝은 샴페인 글자
+  'champagne',   // 샴페인 — 웜 아이보리 + 와인 글자, 분위기·가독성 강화
 ] as const;
 export type ColorTheme = (typeof COLOR_THEMES)[number];
 
@@ -25,6 +29,20 @@ export interface Palette {
 // 펄 — 부드러운 라디얼 그라디언트로 진주빛 광택. 어디에나 무난.
 const PEARL_PATTERN =
   'radial-gradient(circle at 30% 20%, rgba(255,230,235,0.55) 0%, rgba(255,255,255,0) 38%), radial-gradient(circle at 75% 70%, rgba(220,235,255,0.5) 0%, rgba(255,255,255,0) 40%), radial-gradient(circle at 50% 50%, rgba(255,250,240,0.35) 0%, rgba(255,255,255,0) 60%)';
+
+// 편지지 — 박엽지·캔버스 같은 따뜻한 흰 바탕에 미세한 섬유결과 얼룩.
+// 라디얼로 자연스러운 변색, 반복 라인으로 종이 결을 더한다.
+const LETTER_PAPER_PATTERN =
+  'radial-gradient(circle at 18% 22%, rgba(214,193,160,0.18) 0%, rgba(255,255,255,0) 28%), ' +
+  'radial-gradient(circle at 78% 65%, rgba(196,176,148,0.16) 0%, rgba(255,255,255,0) 32%), ' +
+  'radial-gradient(circle at 45% 85%, rgba(220,200,170,0.12) 0%, rgba(255,255,255,0) 36%), ' +
+  'repeating-linear-gradient(118deg, rgba(165,135,95,0.045) 0px, rgba(165,135,95,0.045) 1px, rgba(255,255,255,0) 1px, rgba(255,255,255,0) 5px), ' +
+  'repeating-linear-gradient(32deg, rgba(165,135,95,0.03) 0px, rgba(165,135,95,0.03) 1px, rgba(255,255,255,0) 1px, rgba(255,255,255,0) 7px)';
+
+// 샴페인 — 웜 아이보리 위에 옅은 골드 광택의 부드러운 라디얼.
+const CHAMPAGNE_PATTERN =
+  'radial-gradient(circle at 25% 25%, rgba(212,165,116,0.22) 0%, rgba(255,248,235,0) 42%), ' +
+  'radial-gradient(circle at 80% 70%, rgba(232,200,160,0.18) 0%, rgba(255,248,235,0) 45%)';
 
 export const THEME_PALETTES: Record<ColorTheme, Palette> = {
   cream: {
@@ -64,6 +82,34 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     petals: ['#F5E1DA', '#E8D0C8', '#FFFFFF', '#EFD9D2'],
     bgPattern: PEARL_PATTERN,
   },
+  // 편지지 — 박엽지/캔버스 질감의 따뜻한 흰 바탕에 검정 글자.
+  // 결혼 청첩장 정통 톤. 글자는 또렷한 잉크 검정.
+  letterPaper: {
+    bg: '#F7F2E8',
+    fg: '#1A1A1A',
+    accent: '#5A4632',
+    dot: '#C9B59A',
+    petals: ['#F0E2C8', '#E5D5B8', '#FFFFFF', '#F5EBD8'],
+    bgPattern: LETTER_PAPER_PATTERN,
+  },
+  // 미드나잇 — 검정 배경 + 밝은 샴페인 글자. 모던/세련.
+  midnight: {
+    bg: '#0F0F12',
+    fg: '#F2E8D5',
+    accent: '#D4AF7F',
+    dot: '#3A3A42',
+    petals: ['#E8D5A8', '#D4AF7F', '#F5E9C8', '#C9A66B'],
+  },
+  // 샴페인 — 웜 아이보리 + 딥 와인 글자 + 골드 액센트.
+  // 결혼 분위기 풀로 살리고 글자 가독성도 강한 조합.
+  champagne: {
+    bg: '#FFF8EE',
+    fg: '#3D1F22',
+    accent: '#B8915A',
+    dot: '#E5CDA8',
+    petals: ['#F5DCC4', '#E8C8A8', '#FFEFD8', '#D4B58F'],
+    bgPattern: CHAMPAGNE_PATTERN,
+  },
 };
 
 export const COLOR_THEME_LABELS: Record<ColorTheme, string> = {
@@ -72,6 +118,9 @@ export const COLOR_THEME_LABELS: Record<ColorTheme, string> = {
   sage: '세이지',
   dusk: '더스크',
   pearl: '펄',
+  letterPaper: '편지지',
+  midnight: '미드나잇',
+  champagne: '샴페인',
 };
 
 // 'flower'/'heart'/'star' 는 글리프(2D), 'sakura'/'leaf'/'whitePetal' 은 텍스처형.

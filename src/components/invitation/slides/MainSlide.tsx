@@ -14,9 +14,11 @@ interface Props {
   brideName: string;
   weddingDate: string | null;
   main: InvitationContent['main'];
+  /** scoped: 좌측 미리보기 패널처럼 부모 박스 안에서만 컨페티가 동작하도록. */
+  scoped?: boolean;
 }
 
-export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
+export function MainSlide({ groomName, brideName, weddingDate, main, scoped }: Props) {
   const [confettiTrigger, setConfettiTrigger] = useState<number | null>(null);
 
   const handleCelebrate = () => setConfettiTrigger(Date.now());
@@ -33,6 +35,7 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
         weddingDate={weddingDate}
         onCelebrate={handleCelebrate}
         confettiTrigger={confettiTrigger}
+        scoped={scoped}
       />
     );
   }
@@ -46,6 +49,7 @@ export function MainSlide({ groomName, brideName, weddingDate, main }: Props) {
       weddingDate={weddingDate}
       onCelebrate={handleCelebrate}
       confettiTrigger={confettiTrigger}
+      scoped={scoped}
     />
   );
 }
@@ -61,6 +65,7 @@ interface PosterProps {
   weddingDate: string | null;
   onCelebrate: () => void;
   confettiTrigger: number | null;
+  scoped?: boolean;
 }
 
 function PosterFullImageSlide({
@@ -70,6 +75,7 @@ function PosterFullImageSlide({
   weddingDate,
   onCelebrate,
   confettiTrigger,
+  scoped,
 }: PosterProps) {
   // 구버전 데이터에 posterDesign 이 없을 수도 있어 안전하게 기본값 폴백.
   const design: PosterDesign = main.posterDesign ?? PosterDesignSchema.parse(undefined);
@@ -88,14 +94,16 @@ function PosterFullImageSlide({
       {/* 가독성 확보용 살짝의 어두운 오버레이 */}
       <div className="absolute inset-0 bg-black/25" />
 
-      {/* 1-a) 하단 그라데이션 — 테마 배경색에 맞춰 페이드 */}
+      {/* 1-a) 하단 그라데이션 — 테마 배경색에 맞춰 부드럽게 페이드.
+          높이 1/2 → 1/3, 시작점에 더 큰 투명 영역을 둬서 전체 강도를 낮춘다. */}
       {design.effects.gradient && (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3"
           style={{
             backgroundImage:
-              'linear-gradient(to bottom, transparent 0%, var(--mw-bg, rgba(0,0,0,0.6)) 100%)',
+              'linear-gradient(to bottom, transparent 0%, transparent 35%, var(--mw-bg, rgba(0,0,0,0.6)) 100%)',
+            opacity: 0.7,
           }}
         />
       )}
@@ -183,7 +191,7 @@ function PosterFullImageSlide({
         </button>
       </div>
 
-      <Confetti trigger={confettiTrigger} />
+      <Confetti trigger={confettiTrigger} scoped={scoped} />
 
       <style jsx>{`
         :global(.mw-title-reveal) {
@@ -238,6 +246,7 @@ function LegacyMainSlide({
   weddingDate,
   onCelebrate,
   confettiTrigger,
+  scoped,
 }: PosterProps) {
   const layout = main.layout ?? 'poster';
   const hasImage = !!main.heroImage;
@@ -346,7 +355,7 @@ function LegacyMainSlide({
         </button>
       </div>
 
-      <Confetti trigger={confettiTrigger} />
+      <Confetti trigger={confettiTrigger} scoped={scoped} />
     </section>
   );
 }

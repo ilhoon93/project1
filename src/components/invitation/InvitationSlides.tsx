@@ -54,6 +54,7 @@ export function InvitationSlides({
         brideName={brideName}
         weddingDate={weddingDate}
         main={content.main}
+        scoped={scoped}
       />
     ),
     basic: content.basic.enabled ? (
