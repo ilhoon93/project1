@@ -24,6 +24,22 @@ export interface Palette {
   petals: string[];
   /** Optional CSS background-image layered on top of `bg`. Used for textured themes. */
   bgPattern?: string;
+  /**
+   * 일러스트형 메인 슬라이드의 PNG 이미지에 적용할 CSS filter.
+   * 다크 테마에서는 'invert(...) hue-rotate(180deg)' 로 라인 아트가 밝게
+   * 보이도록 하고, 라이트 테마에서는 'none' (또는 미설정 = 'none').
+   *
+   * --mw-illust-filter 변수로 노출되므로 사용자가 직접 오버라이드해 미세
+   * 조정할 수도 있다.
+   */
+  illustFilter?: string;
+  /**
+   * 일러스트 PNG 의 mix-blend-mode. 사용자가 투명 배경 PNG 를 쓰면 'normal'
+   * 이면 충분하지만, 흰/크림 배경 PNG 를 그대로 쓸 경우 라이트 테마에서
+   * 'multiply' 가 자연스럽게 배경을 녹여낸다.
+   * --mw-illust-blend 변수로 노출.
+   */
+  illustBlend?: string;
 }
 
 // 펄 — 부드러운 라디얼 그라디언트로 진주빛 광택. 어디에나 무난.
@@ -72,6 +88,9 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     accent: '#D4B5A0',
     dot: '#5C4F75',
     petals: ['#B8A6D6', '#D4A5DC', '#DDD0EB', '#E8D5F2'],
+    // 다크 테마 — 라인 아트 PNG 를 반전해 밝게 보이도록.
+    // hue-rotate(180deg) 로 잉크 색은 살리되 명도만 뒤집힘.
+    illustFilter: 'invert(0.9) hue-rotate(180deg)',
   },
   // 펄 — 진주빛 배경 위에 남색 계열 글씨로 정갈한 톤.
   pearl: {
@@ -99,6 +118,8 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     accent: '#D4AF7F',
     dot: '#3A3A42',
     petals: ['#E8D5A8', '#D4AF7F', '#F5E9C8', '#C9A66B'],
+    // 진한 검정 배경 — 라인 아트를 더 강하게 반전해 또렷이 보이도록.
+    illustFilter: 'invert(0.95) hue-rotate(180deg)',
   },
   // 샴페인 — 웜 아이보리 + 딥 와인 글자 + 골드 액센트.
   // 결혼 분위기 풀로 살리고 글자 가독성도 강한 조합.
