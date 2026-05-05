@@ -116,6 +116,52 @@ export const PosterDesignSchema = z
 
 export type PosterDesign = z.infer<typeof PosterDesignSchema>;
 
+// ── 일러스트형 디자인 ─────────────────────────────────────
+//
+// 일러스트형은 두 가지 서브 베리언트(arch / dance)를 제공한다.
+//   - arch  : 꽃 아치 아래 손 잡고 걷는 신랑·신부
+//   - dance : 댄스 포즈의 신랑·신부 + 골드 스파클
+//
+// 폰트는 첨부 이미지(Playfair Display)에 맞춰 고정. 색상과 문구만
+// 풀이미지형처럼 사용자가 변경 가능. 날짜·이름 박스는 토글 가능하지만
+// 위치는 고정 레이아웃을 따른다 (드래그 슬라이더 없음).
+
+export const ILLUSTRATION_VARIANTS = ['arch', 'dance'] as const;
+export type IllustrationVariant = (typeof ILLUSTRATION_VARIANTS)[number];
+
+export const IllustrationDesignSchema = z
+  .object({
+    variant: z.enum(ILLUSTRATION_VARIANTS).default('arch'),
+    title: z
+      .object({
+        text: z.string().max(60).default(TITLE_TEXT_PRESETS[4]), // "A day, our way"
+        // 색상은 hex / 'currentColor' 둘 다 받는다. 'currentColor' 면 테마 fg.
+        color: z.string().max(32).default('currentColor'),
+      })
+      .default({
+        text: TITLE_TEXT_PRESETS[4],
+        color: 'currentColor',
+      }),
+    dateBox: z
+      .object({
+        enabled: z.boolean().default(true),
+      })
+      .default({ enabled: true }),
+    nameBox: z
+      .object({
+        enabled: z.boolean().default(true),
+      })
+      .default({ enabled: true }),
+  })
+  .default({
+    variant: 'arch',
+    title: { text: TITLE_TEXT_PRESETS[4], color: 'currentColor' },
+    dateBox: { enabled: true },
+    nameBox: { enabled: true },
+  });
+
+export type IllustrationDesign = z.infer<typeof IllustrationDesignSchema>;
+
 export const MainSectionSchema = z
   .object({
     layout: z.enum(MAIN_LAYOUTS).default('poster'),
@@ -124,12 +170,14 @@ export const MainSectionSchema = z
     /** Free AI generation is one-shot; flips true after a successful run. */
     aiUsed: z.boolean().default(false),
     posterDesign: PosterDesignSchema,
+    illustrationDesign: IllustrationDesignSchema,
   })
   .default({
     layout: 'poster',
     greeting: '',
     aiUsed: false,
     posterDesign: PosterDesignSchema.parse(undefined),
+    illustrationDesign: IllustrationDesignSchema.parse(undefined),
   });
 
 // ── basic info slide (글귀 / 인사말 / 가족 / 날짜) ──────────

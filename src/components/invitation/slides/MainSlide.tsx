@@ -2,12 +2,16 @@
 
 import { useState } from 'react';
 import {
+  IllustrationDesignSchema,
   PosterDesignSchema,
   type InvitationContent,
   type PosterDesign,
+  type IllustrationDesign,
 } from '@/types/invitation';
 import { TITLE_FONT_OPTIONS } from '@/lib/theme';
 import { Confetti } from '@/components/shared/Confetti';
+import { CoupleArch } from '@/components/illustrations/CoupleArch';
+import { CoupleDance } from '@/components/illustrations/CoupleDance';
 
 interface Props {
   groomName: string;
@@ -40,7 +44,21 @@ export function MainSlide({ groomName, brideName, weddingDate, main, scoped }: P
     );
   }
 
-  // 풀이미지가 아닐 때 — 기존 레이아웃 그대로 유지.
+  if (layout === 'illustration') {
+    return (
+      <IllustrationSlide
+        main={main}
+        groomName={groomName}
+        brideName={brideName}
+        weddingDate={weddingDate}
+        onCelebrate={handleCelebrate}
+        confettiTrigger={confettiTrigger}
+        scoped={scoped}
+      />
+    );
+  }
+
+  // 그 외 (polaroid / text / 이미지 없는 poster) — 기존 레이아웃 그대로 유지.
   return (
     <LegacyMainSlide
       main={main}
@@ -238,6 +256,135 @@ function PositionedBox({
 // Legacy 레이아웃 (polaroid / illustration / text / 이미지 없는 poster)
 // — 기존 동작 유지
 // ─────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────
+// 일러스트형 슬라이드 — arch / dance 두 베리언트
+// ─────────────────────────────────────────────────────────────
+
+const PLAYFAIR = "var(--font-playfair-display), serif";
+
+function IllustrationSlide({
+  main,
+  groomName,
+  brideName,
+  weddingDate,
+  onCelebrate,
+  confettiTrigger,
+  scoped,
+}: PosterProps) {
+  const design: IllustrationDesign =
+    main.illustrationDesign ?? IllustrationDesignSchema.parse(undefined);
+
+  const Illust = design.variant === 'dance' ? CoupleDance : CoupleArch;
+  const titleColor = design.title.color || 'currentColor';
+
+  return (
+    <section className="relative flex h-full min-h-full w-full flex-col items-center overflow-y-auto px-6 pb-20 pt-12">
+      {/* 제목 — Playfair Display 고정 */}
+      <h1
+        className="text-center font-light leading-tight"
+        style={{
+          fontFamily: PLAYFAIR,
+          color: titleColor,
+          fontSize: 'clamp(32px, 8vw, 48px)',
+        }}
+      >
+        {design.title.text}
+      </h1>
+
+      {/* 메시지 (부제 위치) */}
+      {main.greeting && (
+        <p
+          className="mt-3 max-w-md whitespace-pre-line text-center text-sm leading-relaxed opacity-80 md:text-base"
+          style={{ fontFamily: 'inherit' }}
+        >
+          {main.greeting}
+        </p>
+      )}
+
+      {/* 일러스트 */}
+      <div className="my-6 w-full max-w-md flex-1">
+        <Illust className="mx-auto h-auto w-full" />
+      </div>
+
+      {/* 작은 장식 디바이더 */}
+      <Divider />
+
+      {/* 이름 박스 */}
+      {design.nameBox.enabled && (
+        <p
+          className="mt-3 text-center text-base font-light tracking-wide"
+          style={{ fontFamily: 'inherit' }}
+        >
+          신랑 {groomName} · 신부 {brideName}
+        </p>
+      )}
+
+      {/* 디바이더 (이름·날짜 사이) */}
+      {design.nameBox.enabled && design.dateBox.enabled && weddingDate && (
+        <Divider className="mt-3" />
+      )}
+
+      {/* 날짜 박스 */}
+      {design.dateBox.enabled && weddingDate && (
+        <div className="mt-3 text-center">
+          <p className="text-sm tracking-[0.2em]" style={{ fontFamily: PLAYFAIR }}>
+            {formatDateForIllust(weddingDate)}
+          </p>
+          <p className="mt-1 text-xs tracking-[0.2em] opacity-70" style={{ fontFamily: PLAYFAIR }}>
+            {formatTimeForIllust(weddingDate)}
+          </p>
+        </div>
+      )}
+
+      {/* 하단 축하하기 버튼 */}
+      <div className="mt-6 flex flex-col items-center">
+        <button
+          type="button"
+          onClick={onCelebrate}
+          className="inline-flex items-center gap-1.5 text-xs font-medium opacity-70 transition-opacity hover:opacity-100"
+        >
+          <span className="underline underline-offset-4">축하하기</span>
+          <span aria-hidden className="text-base leading-none">🎉</span>
+        </button>
+      </div>
+
+      <Confetti trigger={confettiTrigger} scoped={scoped} />
+    </section>
+  );
+}
+
+function Divider({ className }: { className?: string }) {
+  return (
+    <div
+      className={`flex items-center justify-center gap-2 opacity-60 ${className ?? ''}`}
+      aria-hidden
+    >
+      <span className="h-px w-12 bg-current" />
+      <span className="text-xs">❀</span>
+      <span className="h-px w-12 bg-current" />
+    </div>
+  );
+}
+
+function formatDateForIllust(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+  return `${d.getFullYear()}. ${String(d.getMonth() + 1).padStart(2, '0')}. ${String(d.getDate()).padStart(2, '0')} ${days[d.getDay()]}`;
+}
+
+function formatTimeForIllust(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  // 시간 정보가 자정(00:00) 이면 표시 생략 — 데이터에 시간이 안 들어 있는 경우.
+  if (hours === 0 && d.getMinutes() === 0) return '';
+  const period = hours < 12 ? 'AM' : 'PM';
+  const h12 = hours % 12 === 0 ? 12 : hours % 12;
+  return `${period} ${h12}:${minutes}`;
+}
 
 function LegacyMainSlide({
   main,
