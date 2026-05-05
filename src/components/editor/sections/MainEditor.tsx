@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { MAIN_LAYOUTS, type PosterDesign } from '@/types/invitation';
+import {
+  MAIN_LAYOUTS,
+  ILLUSTRATION_VARIANTS,
+  type PosterDesign,
+  type IllustrationDesign,
+  type IllustrationVariant,
+} from '@/types/invitation';
 import { useEditorStore } from '@/stores/editor';
 import {
   TITLE_FONT_KEYS,
@@ -48,9 +54,13 @@ export function MainEditor() {
   const layout = main.layout ?? 'poster';
   const showImagePicker = layout !== 'text' && layout !== 'illustration';
   const isPoster = layout === 'poster';
+  const isIllustration = layout === 'illustration';
   const design = main.posterDesign;
+  const illust = main.illustrationDesign;
 
   const patchDesign = (next: PosterDesign) => patch('main', { ...main, posterDesign: next });
+  const patchIllust = (next: IllustrationDesign) =>
+    patch('main', { ...main, illustrationDesign: next });
 
   return (
     <SectionEditor title="메인 화면" description="첫 슬라이드의 레이아웃과 인사말">
@@ -110,6 +120,10 @@ export function MainEditor() {
 
         {isPoster && design && (
           <PosterDesignControls design={design} onChange={patchDesign} />
+        )}
+
+        {isIllustration && illust && (
+          <IllustrationDesignControls design={illust} onChange={patchIllust} />
         )}
 
         <TextAreaField
@@ -302,6 +316,113 @@ function PosterDesignControls({ design, onChange }: DesignProps) {
             onChange({ ...design, messageBox: { ...design.messageBox, position } })
           }
         />
+      </Group>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 일러스트형 디자인 컨트롤
+// ─────────────────────────────────────────────────────────────
+
+interface IllustProps {
+  design: IllustrationDesign;
+  onChange: (next: IllustrationDesign) => void;
+}
+
+const ILLUST_VARIANT_LABELS: Record<IllustrationVariant, { name: string; hint: string }> = {
+  arch: { name: '꽃 아치', hint: '플로럴 아치 + 손잡은 커플' },
+  dance: { name: '슬로우 댄스', hint: '댄스 포즈 + 골드 스파클' },
+};
+
+function IllustrationDesignControls({ design, onChange }: IllustProps) {
+  return (
+    <div className="flex flex-col gap-5 rounded-md border border-input bg-muted/20 p-3">
+      <h3 className="text-sm font-semibold text-foreground">일러스트형 디자인</h3>
+
+      {/* 베리언트 선택 */}
+      <Group label="일러스트 스타일">
+        <div className="grid grid-cols-2 gap-2">
+          {ILLUSTRATION_VARIANTS.map((key) => {
+            const selected = design.variant === key;
+            const meta = ILLUST_VARIANT_LABELS[key];
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onChange({ ...design, variant: key })}
+                aria-pressed={selected}
+                className={`flex flex-col items-center gap-1 rounded-md border px-2 py-3 text-xs transition-colors ${
+                  selected
+                    ? 'border-foreground bg-foreground text-background'
+                    : 'border-input bg-background text-foreground hover:bg-muted'
+                }`}
+              >
+                <span className="font-medium">{meta.name}</span>
+                <span className={selected ? 'opacity-80' : 'text-muted-foreground'}>
+                  {meta.hint}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </Group>
+
+      {/* 제목 텍스트 — 폰트는 Playfair Display 고정, 문구·색상만 선택 */}
+      <Group label="제목 텍스트">
+        <TitleTextCombobox
+          value={design.title.text}
+          onChange={(text) =>
+            onChange({ ...design, title: { ...design.title, text } })
+          }
+        />
+        <p className="text-xs text-muted-foreground">
+          폰트는 일러스트 스타일에 맞춰 Playfair Display 로 고정됩니다.
+        </p>
+        <ColorPicker
+          label="색상"
+          value={design.title.color}
+          onChange={(color) =>
+            onChange({ ...design, title: { ...design.title, color } })
+          }
+          presets={TITLE_COLOR_PRESETS}
+          allowThemeDefault
+        />
+      </Group>
+
+      {/* 날짜 박스 — 토글만, 위치 고정 */}
+      <Group
+        label="날짜 박스"
+        toggle={{
+          checked: design.dateBox.enabled,
+          onChange: (v) =>
+            onChange({ ...design, dateBox: { enabled: v } }),
+        }}
+      >
+        <p className="text-xs text-muted-foreground">
+          일러스트 아래 정해진 위치에 표시됩니다. 폰트·색상은 전체 디자인을 따릅니다.
+        </p>
+      </Group>
+
+      {/* 이름 박스 — 토글만, 위치 고정 */}
+      <Group
+        label="이름 박스"
+        toggle={{
+          checked: design.nameBox.enabled,
+          onChange: (v) =>
+            onChange({ ...design, nameBox: { enabled: v } }),
+        }}
+      >
+        <p className="text-xs text-muted-foreground">
+          신랑·신부 이름이 일러스트 아래 정해진 위치에 표시됩니다.
+        </p>
+      </Group>
+
+      {/* 메시지 박스 — 토글 없음, 위치 고정 (제목 바로 아래 부제 자리) */}
+      <Group label="메시지 박스">
+        <p className="text-xs text-muted-foreground">
+          제목 바로 아래 부제 자리에 인사말이 표시됩니다. 위치 고정.
+        </p>
       </Group>
     </div>
   );
@@ -652,16 +773,36 @@ function ColorPicker({
   value,
   onChange,
   presets,
+  allowThemeDefault,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   presets: string[];
+  /** true 면 "테마색" (currentColor) 옵션을 가장 앞에 노출. */
+  allowThemeDefault?: boolean;
 }) {
+  const themeSelected = value === 'currentColor';
   return (
     <div className="flex flex-col gap-1.5 text-sm">
       <span className="font-medium text-foreground">{label}</span>
       <div className="flex flex-wrap items-center gap-2">
+        {allowThemeDefault && (
+          <button
+            type="button"
+            onClick={() => onChange('currentColor')}
+            aria-label="테마 기본 색상"
+            aria-pressed={themeSelected}
+            title="테마 기본 색상"
+            className={`flex h-7 items-center gap-1 rounded-full border-2 px-2 text-[10px] transition-shadow ${
+              themeSelected
+                ? 'border-foreground bg-foreground text-background shadow'
+                : 'border-input bg-background text-foreground'
+            }`}
+          >
+            테마색
+          </button>
+        )}
         {presets.map((preset) => {
           const selected = preset.toLowerCase() === value.toLowerCase();
           return (
