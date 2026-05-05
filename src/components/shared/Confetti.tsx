@@ -74,7 +74,19 @@ function pickShape(): Shape {
  * Sparkle has been intentionally minimised — the muted palette is kept flat
  * so the focus stays on the falling motion itself.
  */
-export function Confetti({ trigger }: { trigger: number | null }) {
+/**
+ * scoped: 컨테이너의 부모 박스 안에서만 동작하도록 viewport 단위(`vw`/`vh`)
+ * 대신 부모 상대 단위(`%`)와 absolute positioning 을 쓴다. 에디터 좌측
+ * 미리보기 패널에서 "축하하기" 를 눌렀을 때, 컨페티가 전체 화면이 아닌
+ * 미리보기 박스 안에만 떨어지도록 하기 위함.
+ */
+export function Confetti({
+  trigger,
+  scoped = false,
+}: {
+  trigger: number | null;
+  scoped?: boolean;
+}) {
   const [active, setActive] = useState(false);
 
   const pieces = useMemo<Piece[]>(() => {
@@ -125,10 +137,19 @@ export function Confetti({ trigger }: { trigger: number | null }) {
 
   if (!active || trigger == null) return null;
 
+  // scoped 모드: 부모 박스 (가장 가까운 position:relative 조상) 안에서만
+  // 컨페티가 떨어지도록. unitX/Y 를 % 로 바꾸면 keyframes 의 vw/vh 도 맞춰
+  // % 계열 키프레임을 써야 한다.
+  const unitX = scoped ? '%' : 'vw';
+  const unitY = scoped ? '%' : 'vh';
+  const fallKeyframes = scoped ? 'confetti-fall-scoped' : 'confetti-fall';
+
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed inset-0 z-40 overflow-hidden"
+      className={`pointer-events-none z-40 overflow-hidden ${
+        scoped ? 'absolute inset-0' : 'fixed inset-0'
+      }`}
       style={{ perspective: '700px' }}
     >
       {pieces.map((p) => {
@@ -151,17 +172,17 @@ export function Confetti({ trigger }: { trigger: number | null }) {
             key={`${trigger}-${p.id}`}
             className="confetti-wrap"
             style={{
-              left: `${p.originX}vw`,
-              top: `${p.originY}vh`,
-              ['--scatter-dx' as never]: `${p.scatterX - p.originX}vw`,
-              ['--scatter-dy' as never]: `${p.scatterY - p.originY}vh`,
+              left: `${p.originX}${unitX}`,
+              top: `${p.originY}${unitY}`,
+              ['--scatter-dx' as never]: `${p.scatterX - p.originX}${unitX}`,
+              ['--scatter-dy' as never]: `${p.scatterY - p.originY}${unitY}`,
               ['--sway' as never]: `${p.swayPx * p.swayDir}px`,
               ['--rz-start' as never]: `${p.rotate}deg`,
               // 두 단계로 나눠 chained CSS animation — keyframe selector 에서
               // 변수를 percentage 로 쓸 수 없어서 어쩔 수 없이 분리.
               animation: `
                 confetti-burst ${BURST_MS}ms cubic-bezier(0.18, 0.7, 0.3, 1) ${p.delay}ms forwards,
-                confetti-fall ${p.fallDuration}ms cubic-bezier(0.4, 0, 0.6, 1) ${p.delay + BURST_MS}ms forwards
+                ${fallKeyframes} ${p.fallDuration}ms cubic-bezier(0.4, 0, 0.6, 1) ${p.delay + BURST_MS}ms forwards
               `,
             }}
           >
@@ -274,6 +295,48 @@ export function Confetti({ trigger }: { trigger: number | null }) {
           }
           100% {
             transform: rotateY(360deg) rotateX(0deg);
+          }
+        }
+        /* scoped 모드 — 부모 박스 기준 % 단위로 동일 동작 재현 */
+        @keyframes confetti-fall-scoped {
+          0% {
+            transform: translate3d(var(--scatter-dx), var(--scatter-dy), 0)
+              rotate(calc(var(--rz-start) + 120deg));
+            opacity: 1;
+          }
+          25% {
+            transform: translate3d(
+                calc(var(--scatter-dx) + var(--sway) * 1),
+                calc(var(--scatter-dy) + 25%),
+                0
+              )
+              rotate(calc(var(--rz-start) + 240deg));
+          }
+          55% {
+            transform: translate3d(
+                calc(var(--scatter-dx) + var(--sway) * -1),
+                calc(var(--scatter-dy) + 55%),
+                0
+              )
+              rotate(calc(var(--rz-start) + 360deg));
+          }
+          82% {
+            transform: translate3d(
+                calc(var(--scatter-dx) + var(--sway) * 0.6),
+                calc(var(--scatter-dy) + 88%),
+                0
+              )
+              rotate(calc(var(--rz-start) + 480deg));
+            opacity: 1;
+          }
+          100% {
+            transform: translate3d(
+                calc(var(--scatter-dx) + var(--sway) * -0.3),
+                calc(var(--scatter-dy) + 115%),
+                0
+              )
+              rotate(calc(var(--rz-start) + 560deg));
+            opacity: 0;
           }
         }
       `}</style>

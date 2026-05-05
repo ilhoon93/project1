@@ -240,44 +240,54 @@ export function PetalShape({ type, color }: { type: PetalType; color: string }) 
   }
 
   if (type === 'whitePetal') {
-    // 한 잎짜리 흰 꽃잎. 실사 사진 느낌이 나도록:
-    //  - 길쭉한 타원형의 꽃잎 형태 (한쪽 끝이 살짝 패임)
+    // 한 잎짜리 흰 꽃잎. 벚꽃 한 장 같은 자연스러운 형태:
+    //  - 아래쪽이 둥글고 넓은 본체 (꽃받침 쪽)
+    //  - 위로 갈수록 좁아지면서 끝에 V자 노치 (벚꽃 특유의 갈라진 끝)
     //  - 흰색에서 미세한 핑크/베이지 그라디언트 → 입체감
-    //  - 가운데 잎맥 라인 + 가장자리 살짝 그림자
+    //  - 길쭉한 쌀알이 아닌, 폭 ≈ 길이의 0.7 정도 비율로 통통한 꽃잎 실루엣
     return (
       <svg viewBox="0 0 40 50" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
         <defs>
-          <radialGradient id={gradId} cx="50%" cy="35%" r="70%">
+          <radialGradient id={gradId} cx="50%" cy="62%" r="65%">
             <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
-            <stop offset="55%" stopColor="#FFF8F4" stopOpacity="0.98" />
-            <stop offset="100%" stopColor="#F2DCD4" stopOpacity="0.92" />
+            <stop offset="55%" stopColor="#FFF6F0" stopOpacity="0.98" />
+            <stop offset="100%" stopColor="#F0D4CC" stopOpacity="0.9" />
           </radialGradient>
           <linearGradient id={`${gradId}-shade`} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0" />
-            <stop offset="100%" stopColor="#C9A8A0" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#C9A8A0" stopOpacity="0.16" />
           </linearGradient>
         </defs>
-        {/* 꽃잎 본체 — 위쪽에 살짝 패임(노치)으로 한쪽이 갈라진 모양 */}
+        {/* 꽃잎 본체 — 위쪽 V자 노치, 아래로 갈수록 둥글게 부풀어 오른 형태 */}
         <path
-          d="M20 4
-             C 12 6, 6 16, 8 28
-             C 9 36, 14 44, 20 47
-             C 26 44, 31 36, 32 28
-             C 34 16, 28 6, 21 4
-             C 21 6, 20 7, 20 8
-             C 20 7, 19 6, 19 4 Z"
+          d="M17 7
+             C 10 7, 4 13, 4 23
+             C 4 36, 10 46, 20 48
+             C 30 46, 36 36, 36 23
+             C 36 13, 30 7, 23 7
+             L 22 9
+             L 20 11
+             L 18 9
+             Z"
           fill={`url(#${gradId})`}
-          stroke="rgba(180,140,135,0.35)"
-          strokeWidth="0.4"
+          stroke="rgba(180,140,135,0.32)"
+          strokeWidth="0.45"
         />
-        {/* 입체감용 음영 오버레이 */}
+        {/* 입체감용 음영 오버레이 — 우상단에서 비추는 빛으로 가정 */}
         <path
-          d="M20 4
-             C 12 6, 6 16, 8 28
-             C 9 36, 14 44, 20 47
-             C 26 44, 31 36, 32 28
-             C 34 16, 28 6, 21 4 Z"
+          d="M17 7
+             C 10 7, 4 13, 4 23
+             C 4 36, 10 46, 20 48
+             C 30 46, 36 36, 36 23
+             C 36 13, 30 7, 23 7 Z"
           fill={`url(#${gradId}-shade)`}
+        />
+        {/* 가운데 잎맥 — 아래에서 위 노치 쪽으로 옅게 */}
+        <path
+          d="M20 46 Q20 30, 20 14"
+          stroke="rgba(180,140,135,0.18)"
+          strokeWidth="0.35"
+          fill="none"
         />
       </svg>
     );

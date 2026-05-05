@@ -63,11 +63,13 @@ export function EditorToolbar({ invitationId }: { invitationId: string }) {
         <Button variant="ghost" size="sm" onClick={() => void save()} disabled={status === 'saving'}>
           저장
         </Button>
+        {/* lg 이상에서는 좌측 패널이 실시간 미리보기 역할이라 별도 버튼 불필요 */}
         <Button
           variant="outline"
           size="sm"
           onClick={() => void handlePreview()}
           disabled={navigating || status === 'saving'}
+          className="lg:hidden"
         >
           {navigating ? '저장 중...' : '미리보기'}
         </Button>

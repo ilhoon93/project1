@@ -340,8 +340,13 @@ function SavedRow({
         <Button asChild variant="outline" size="sm">
           <Link href={`/edit/${inv.id}`}>편집</Link>
         </Button>
-        <Button asChild variant="outline" size="sm">
+        {/* 모바일/태블릿: 별도 미리보기 페이지 */}
+        <Button asChild variant="outline" size="sm" className="lg:hidden">
           <Link href={`/preview/${inv.id}`}>미리보기</Link>
+        </Button>
+        {/* 데스크톱: 에디터에 좌측 실시간 미리보기가 있으므로 에디터 페이지로 */}
+        <Button asChild variant="outline" size="sm" className="hidden lg:inline-flex">
+          <Link href={`/edit/${inv.id}`}>미리보기</Link>
         </Button>
         <Button
           variant="default"
