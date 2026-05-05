@@ -44,7 +44,7 @@ export function EditorLivePreview({ invitationId }: Props) {
   }
 
   return (
-    <div className="flex h-full max-h-[800px] w-full max-w-[420px] flex-col gap-2">
+    <div className="flex h-full max-h-[800px] w-full max-w-[380px] flex-col gap-2">
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>실시간 미리보기</span>
         <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wider">

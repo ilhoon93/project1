@@ -144,7 +144,7 @@ function PosterFullImageSlide({
       <PositionedBox position={design.title.position}>
         <h1
           key={`${design.title.text}-${design.title.animate}`}
-          className={`whitespace-pre-wrap text-center font-light leading-snug ${
+          className={`whitespace-pre-wrap text-center font-bold leading-snug ${
             design.title.animate ? 'mw-title-reveal' : ''
           }`}
           style={{
@@ -196,7 +196,7 @@ function PosterFullImageSlide({
       )}
 
       {/* 하단 축하하기 버튼 */}
-      <div className="absolute bottom-20 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center">
+      <div className="absolute bottom-12 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center">
         <button
           type="button"
           onClick={onCelebrate}
@@ -278,9 +278,9 @@ function IllustrationSlide({
 
   return (
     <section className="relative flex h-full min-h-full w-full flex-col items-center overflow-y-auto px-6 pb-20 pt-12">
-      {/* 제목 — Playfair Display 고정 */}
+      {/* 제목 — Playfair Display 고정, 굵은 굵기 */}
       <h1
-        className="text-center font-light leading-tight"
+        className="text-center font-bold leading-tight"
         style={{
           fontFamily: PLAYFAIR,
           color: titleColor,
@@ -536,7 +536,7 @@ function LegacyMainSlide({
         )}
       </div>
 
-      <div className="absolute bottom-20 left-1/2 z-20 flex w-full -translate-x-1/2 flex-col items-center gap-4 px-10">
+      <div className="absolute bottom-12 left-1/2 z-20 flex w-full -translate-x-1/2 flex-col items-center gap-4 px-10">
         <button
           type="button"
           onClick={onCelebrate}

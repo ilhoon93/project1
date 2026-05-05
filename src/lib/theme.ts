@@ -60,6 +60,17 @@ const CHAMPAGNE_PATTERN =
   'radial-gradient(circle at 25% 25%, rgba(212,165,116,0.22) 0%, rgba(255,248,235,0) 42%), ' +
   'radial-gradient(circle at 80% 70%, rgba(232,200,160,0.18) 0%, rgba(255,248,235,0) 45%)';
 
+// 일러스트 PNG 가 흰/크림 배경 위에 그려져 있어도 모든 테마에서 배경이
+// 사라진 것처럼 보이게 하는 두 가지 전략:
+//   - 라이트 테마: mix-blend-mode 'multiply' — 흰 배경이 곱해져 테마 bg 와
+//     동화되고, 짙은 라인 아트만 남는다.
+//   - 다크 테마:  filter 로 명도 반전 + mix-blend-mode 'screen' — 반전된
+//     이미지에서 (원래 흰 배경 → 검정) 부분이 screen 으로 사라지고,
+//     (원래 라인 → 흰색) 부분만 남아 다크 bg 위에서도 잘 보인다.
+const LIGHT_ILLUST_BLEND = 'multiply';
+const DARK_ILLUST_FILTER = 'invert(0.95) hue-rotate(180deg)';
+const DARK_ILLUST_BLEND = 'screen';
+
 export const THEME_PALETTES: Record<ColorTheme, Palette> = {
   cream: {
     bg: '#FAF7F2',
@@ -67,6 +78,7 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     accent: '#8B7355',
     dot: '#D4C5B0',
     petals: ['#F4D9D0', '#E8C2B8', '#F1E0D6', '#D4B5A0'],
+    illustBlend: LIGHT_ILLUST_BLEND,
   },
   blush: {
     bg: '#FFF4F1',
@@ -74,6 +86,7 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     accent: '#C9748E',
     dot: '#E5B8BD',
     petals: ['#FFD1D9', '#FFB6C1', '#FFC0CB', '#FFE4E1'],
+    illustBlend: LIGHT_ILLUST_BLEND,
   },
   sage: {
     bg: '#F1F5EE',
@@ -81,6 +94,7 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     accent: '#658067',
     dot: '#C8D5C0',
     petals: ['#C4D9C0', '#A8C5A1', '#D5E5CD', '#B3CFA8'],
+    illustBlend: LIGHT_ILLUST_BLEND,
   },
   dusk: {
     bg: '#221C2E',
@@ -88,9 +102,8 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     accent: '#D4B5A0',
     dot: '#5C4F75',
     petals: ['#B8A6D6', '#D4A5DC', '#DDD0EB', '#E8D5F2'],
-    // 다크 테마 — 라인 아트 PNG 를 반전해 밝게 보이도록.
-    // hue-rotate(180deg) 로 잉크 색은 살리되 명도만 뒤집힘.
-    illustFilter: 'invert(0.9) hue-rotate(180deg)',
+    illustFilter: DARK_ILLUST_FILTER,
+    illustBlend: DARK_ILLUST_BLEND,
   },
   // 펄 — 진주빛 배경 위에 남색 계열 글씨로 정갈한 톤.
   pearl: {
@@ -100,6 +113,7 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     dot: '#B5BCC9',
     petals: ['#F5E1DA', '#E8D0C8', '#FFFFFF', '#EFD9D2'],
     bgPattern: PEARL_PATTERN,
+    illustBlend: LIGHT_ILLUST_BLEND,
   },
   // 편지지 — 박엽지/캔버스 질감의 따뜻한 흰 바탕에 검정 글자.
   // 결혼 청첩장 정통 톤. 글자는 또렷한 잉크 검정.
@@ -110,6 +124,7 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     dot: '#C9B59A',
     petals: ['#F0E2C8', '#E5D5B8', '#FFFFFF', '#F5EBD8'],
     bgPattern: LETTER_PAPER_PATTERN,
+    illustBlend: LIGHT_ILLUST_BLEND,
   },
   // 미드나잇 — 검정 배경 + 밝은 샴페인 글자. 모던/세련.
   midnight: {
@@ -118,8 +133,8 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     accent: '#D4AF7F',
     dot: '#3A3A42',
     petals: ['#E8D5A8', '#D4AF7F', '#F5E9C8', '#C9A66B'],
-    // 진한 검정 배경 — 라인 아트를 더 강하게 반전해 또렷이 보이도록.
-    illustFilter: 'invert(0.95) hue-rotate(180deg)',
+    illustFilter: DARK_ILLUST_FILTER,
+    illustBlend: DARK_ILLUST_BLEND,
   },
   // 샴페인 — 웜 아이보리 + 딥 와인 글자 + 골드 액센트.
   // 결혼 분위기 풀로 살리고 글자 가독성도 강한 조합.
@@ -130,6 +145,7 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     dot: '#E5CDA8',
     petals: ['#F5DCC4', '#E8C8A8', '#FFEFD8', '#D4B58F'],
     bgPattern: CHAMPAGNE_PATTERN,
+    illustBlend: LIGHT_ILLUST_BLEND,
   },
 };
 
