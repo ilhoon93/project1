@@ -102,6 +102,10 @@ export function SlideContainer({
     ['--mw-fg' as string]: palette.fg,
     ['--mw-accent' as string]: palette.accent,
     ['--mw-dot' as string]: palette.dot,
+    // 일러스트형 메인 슬라이드의 PNG 라인아트가 다크 테마에서도 잘 보이도록
+    // 테마별 CSS filter / blend mode 를 변수로 흘려 보낸다.
+    ['--mw-illust-filter' as string]: palette.illustFilter ?? 'none',
+    ['--mw-illust-blend' as string]: palette.illustBlend ?? 'normal',
   } as React.CSSProperties;
 
   return (

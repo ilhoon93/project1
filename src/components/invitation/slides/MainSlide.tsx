@@ -10,8 +10,6 @@ import {
 } from '@/types/invitation';
 import { TITLE_FONT_OPTIONS } from '@/lib/theme';
 import { Confetti } from '@/components/shared/Confetti';
-import { CoupleArch } from '@/components/illustrations/CoupleArch';
-import { CoupleDance } from '@/components/illustrations/CoupleDance';
 
 interface Props {
   groomName: string;
@@ -275,8 +273,8 @@ function IllustrationSlide({
   const design: IllustrationDesign =
     main.illustrationDesign ?? IllustrationDesignSchema.parse(undefined);
 
-  const Illust = design.variant === 'dance' ? CoupleDance : CoupleArch;
   const titleColor = design.title.color || 'currentColor';
+  const illustSrc = `/illustrations/illust-${design.variant}.png`;
 
   return (
     <section className="relative flex h-full min-h-full w-full flex-col items-center overflow-y-auto px-6 pb-20 pt-12">
@@ -302,9 +300,10 @@ function IllustrationSlide({
         </p>
       )}
 
-      {/* 일러스트 */}
+      {/* 일러스트 — public/illustrations/ 의 PNG 를 그대로 사용.
+          --mw-illust-filter / --mw-illust-blend 로 다크 테마 대응. */}
       <div className="my-6 w-full max-w-md flex-1">
-        <Illust className="mx-auto h-auto w-full" />
+        <IllustrationImage src={illustSrc} variant={design.variant} />
       </div>
 
       {/* 작은 장식 디바이더 */}
@@ -351,6 +350,53 @@ function IllustrationSlide({
 
       <Confetti trigger={confettiTrigger} scoped={scoped} />
     </section>
+  );
+}
+
+/**
+ * 일러스트형 메인의 PNG 라인아트.
+ *  - public/illustrations/illust-{variant}.png 를 로드
+ *  - 다크 테마는 --mw-illust-filter (invert + hue-rotate) 로 명도 반전
+ *  - 파일이 없으면 자리 안내 메시지를 보여줌
+ */
+function IllustrationImage({
+  src,
+  variant,
+}: {
+  src: string;
+  variant: 'arch' | 'dance';
+}) {
+  const [errored, setErrored] = useState(false);
+
+  if (errored) {
+    return (
+      <div className="grid aspect-[4/5] w-full place-items-center rounded-md border border-dashed border-current/40 px-6 text-center text-xs opacity-70">
+        <div className="space-y-1.5">
+          <p className="font-medium">일러스트 이미지 추가 필요</p>
+          <p className="font-mono text-[10px] opacity-80">
+            public/illustrations/illust-{variant}.png
+          </p>
+          <p className="text-[10px]">
+            투명 배경 PNG 를 위 경로에 저장해주세요.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img
+      src={src}
+      alt=""
+      className="mx-auto block h-auto w-full select-none"
+      style={{
+        filter: 'var(--mw-illust-filter, none)',
+        mixBlendMode: 'var(--mw-illust-blend, normal)' as React.CSSProperties['mixBlendMode'],
+      }}
+      onError={() => setErrored(true)}
+      draggable={false}
+    />
   );
 }
 
