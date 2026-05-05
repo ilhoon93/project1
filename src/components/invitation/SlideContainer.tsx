@@ -147,6 +147,11 @@ export function SlideContainer({
             className={`relative h-full flex-shrink-0 touch-pan-y overflow-y-auto ${
               scoped ? 'w-full' : 'w-screen'
             }`}
+            // 모든 cqw/cqh 단위가 슬라이드 박스 자체를 기준으로 잡히도록
+            // container-type 을 지정. 모바일 풀스크린에서는 슬라이드 = 뷰포트라
+            // cqw≈vw 동일하게 동작하고, 데스크톱 미리보기 패널에서는 폰 프레임
+            // 박스를 기준이라 폰트 크기·비율이 모바일과 동일하게 보인다.
+            style={{ containerType: 'size' }}
           >
             {slide}
           </div>

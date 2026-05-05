@@ -3,16 +3,18 @@
  * Schema in invitation.ts stores the chosen *keys*; this file maps keys to actual values.
  */
 
+// 라이트 테마를 앞에, 다크 테마(dusk / midnight)는 마지막 두 자리에 배치 —
+// picker 를 열면 자연스럽게 자주 쓰이는 라이트 톤부터 보이고 다크는
+// 끝에 모여 있다.
 export const COLOR_THEMES = [
   'cream',
   'blush',
   'sage',
-  'dusk',
   'pearl',
-  // 새로 추가된 결혼식 친화 팔레트.
-  'letterPaper', // 편지지 — 박엽지/캔버스 질감 흰 바탕 + 검정 글자
-  'midnight',    // 미드나잇 — 검정 배경 + 밝은 샴페인 글자
-  'champagne',   // 샴페인 — 웜 아이보리 + 와인 글자, 분위기·가독성 강화
+  'letterPaper', // 편지지 — 흰 바탕 + 검정 글자
+  'champagne',   // 샴페인 — 웜 아이보리 + 와인 글자
+  'dusk',        // 더스크 — 다크 보랏빛
+  'midnight',    // 미드나잇 — 검정 배경 + 밝은 샴페인
 ] as const;
 export type ColorTheme = (typeof COLOR_THEMES)[number];
 
@@ -60,16 +62,17 @@ const CHAMPAGNE_PATTERN =
   'radial-gradient(circle at 25% 25%, rgba(212,165,116,0.22) 0%, rgba(255,248,235,0) 42%), ' +
   'radial-gradient(circle at 80% 70%, rgba(232,200,160,0.18) 0%, rgba(255,248,235,0) 45%)';
 
-// 일러스트 PNG 가 흰/크림 배경 위에 그려져 있어도 모든 테마에서 배경이
-// 사라진 것처럼 보이게 하는 두 가지 전략:
-//   - 라이트 테마: mix-blend-mode 'multiply' — 흰 배경이 곱해져 테마 bg 와
-//     동화되고, 짙은 라인 아트만 남는다.
-//   - 다크 테마:  filter 로 명도 반전 + mix-blend-mode 'screen' — 반전된
-//     이미지에서 (원래 흰 배경 → 검정) 부분이 screen 으로 사라지고,
-//     (원래 라인 → 흰색) 부분만 남아 다크 bg 위에서도 잘 보인다.
+// 일러스트 PNG 의 테마별 처리 전략:
+//   - 라이트 테마: mix-blend-mode 'multiply' — 흰/크림 배경이 곱해져 테마 bg
+//     에 자연스럽게 동화되고, 짙은 라인 아트만 남는다.
+//   - 다크 테마: 색을 반전하지 않고 원본 색상을 유지 (사용자 요청). 다크
+//     배경에서도 짙은 라인이 보이도록 drop-shadow 로 살짝 흰빛 글로우를
+//     입혀 가독성을 살린다. 투명 배경 PNG 를 가정 — 잔존하는 이미지 배경이
+//     보이지 않도록 mix-blend-mode 'normal' 로 둔다.
 const LIGHT_ILLUST_BLEND = 'multiply';
-const DARK_ILLUST_FILTER = 'invert(0.95) hue-rotate(180deg)';
-const DARK_ILLUST_BLEND = 'screen';
+const DARK_ILLUST_FILTER =
+  'drop-shadow(0 0 1.5px rgba(255,255,255,0.55)) drop-shadow(0 0 4px rgba(255,255,255,0.18))';
+const DARK_ILLUST_BLEND = 'normal';
 
 export const THEME_PALETTES: Record<ColorTheme, Palette> = {
   cream: {
@@ -115,14 +118,14 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     bgPattern: PEARL_PATTERN,
     illustBlend: LIGHT_ILLUST_BLEND,
   },
-  // 편지지 — 박엽지/캔버스 질감의 따뜻한 흰 바탕에 검정 글자.
-  // 결혼 청첩장 정통 톤. 글자는 또렷한 잉크 검정.
+  // 편지지 — 순백 바탕 + 잉크 검정 글자. 결혼 청첩장 클래식 톤.
+  // 종이 결 패턴은 유지해 완전 평면 디자인을 피함.
   letterPaper: {
-    bg: '#F7F2E8',
-    fg: '#1A1A1A',
-    accent: '#5A4632',
-    dot: '#C9B59A',
-    petals: ['#F0E2C8', '#E5D5B8', '#FFFFFF', '#F5EBD8'],
+    bg: '#FFFFFF',
+    fg: '#000000',
+    accent: '#333333',
+    dot: '#D4D4D4',
+    petals: ['#F5F5F5', '#EAEAEA', '#FFFFFF', '#FAFAFA'],
     bgPattern: LETTER_PAPER_PATTERN,
     illustBlend: LIGHT_ILLUST_BLEND,
   },

@@ -277,14 +277,20 @@ function IllustrationSlide({
   const illustSrc = `/illustrations/illust-${design.variant}.png`;
 
   return (
-    <section className="relative flex h-full min-h-full w-full flex-col items-center overflow-y-auto px-6 pb-20 pt-12">
-      {/* 제목 — Playfair Display 고정, 굵은 굵기 */}
+    // overflow-hidden + 압축된 vertical spacing 으로 세로 스크롤 발생 방지.
+    // 폰트/패딩 단위는 cqw/cqh — 모바일 풀스크린과 데스크톱 미리보기 패널이
+    // 비율적으로 동일하게 보이도록 컨테이너 기준 단위로 통일.
+    <section
+      className="relative flex h-full min-h-full w-full flex-col items-center overflow-hidden text-center"
+      style={{ padding: '5cqh 6cqw 4cqh' }}
+    >
+      {/* 제목 — Playfair Display, 굵은 굵기, cqw 기반 사이즈 */}
       <h1
-        className="text-center font-bold leading-tight"
+        className="font-bold leading-tight"
         style={{
           fontFamily: PLAYFAIR,
           color: titleColor,
-          fontSize: 'clamp(32px, 8vw, 48px)',
+          fontSize: 'clamp(28px, 9cqw, 44px)',
         }}
       >
         {design.title.text}
@@ -293,51 +299,56 @@ function IllustrationSlide({
       {/* 메시지 (부제 위치) */}
       {main.greeting && (
         <p
-          className="mt-3 max-w-md whitespace-pre-line text-center text-sm leading-relaxed opacity-80 md:text-base"
-          style={{ fontFamily: 'inherit' }}
+          className="max-w-md whitespace-pre-line leading-relaxed opacity-80"
+          style={{
+            fontFamily: 'inherit',
+            fontSize: 'clamp(12px, 3.6cqw, 16px)',
+            marginTop: '1.5cqh',
+          }}
         >
           {main.greeting}
         </p>
       )}
 
       {/* 일러스트 — public/illustrations/ 의 PNG 를 그대로 사용.
-          --mw-illust-filter / --mw-illust-blend 로 다크 테마 대응. */}
-      <div className="my-6 w-full max-w-md flex-1">
+          --mw-illust-filter / --mw-illust-blend 로 테마 대응. flex-1 으로
+          남는 공간 차지하면서도 max-w-md 로 무한 확장은 막는다. */}
+      <div
+        className="flex w-full max-w-md flex-1 items-center justify-center"
+        style={{ marginTop: '2cqh', marginBottom: '2cqh', minHeight: 0 }}
+      >
         <IllustrationImage src={illustSrc} variant={design.variant} />
       </div>
-
-      {/* 작은 장식 디바이더 */}
-      <Divider />
 
       {/* 이름 박스 */}
       {design.nameBox.enabled && (
         <p
-          className="mt-3 text-center text-base font-light tracking-wide"
-          style={{ fontFamily: 'inherit' }}
+          className="font-light tracking-wide"
+          style={{
+            fontFamily: 'inherit',
+            fontSize: 'clamp(14px, 4cqw, 18px)',
+          }}
         >
           신랑 {groomName} · 신부 {brideName}
         </p>
       )}
 
-      {/* 디바이더 (이름·날짜 사이) */}
-      {design.nameBox.enabled && design.dateBox.enabled && weddingDate && (
-        <Divider className="mt-3" />
-      )}
-
-      {/* 날짜 박스 */}
+      {/* 날짜 박스 — 요일/시간은 표기 안 함 (사용자 요청) */}
       {design.dateBox.enabled && weddingDate && (
-        <div className="mt-3 text-center">
-          <p className="text-sm tracking-[0.2em]" style={{ fontFamily: PLAYFAIR }}>
-            {formatDateForIllust(weddingDate)}
-          </p>
-          <p className="mt-1 text-xs tracking-[0.2em] opacity-70" style={{ fontFamily: PLAYFAIR }}>
-            {formatTimeForIllust(weddingDate)}
-          </p>
-        </div>
+        <p
+          className="tracking-[0.2em]"
+          style={{
+            fontFamily: PLAYFAIR,
+            fontSize: 'clamp(13px, 3.8cqw, 17px)',
+            marginTop: '1.2cqh',
+          }}
+        >
+          {formatDateForIllust(weddingDate)}
+        </p>
       )}
 
       {/* 하단 축하하기 버튼 */}
-      <div className="mt-6 flex flex-col items-center">
+      <div style={{ marginTop: '1.8cqh' }} className="flex flex-col items-center">
         <button
           type="button"
           onClick={onCelebrate}
@@ -400,36 +411,11 @@ function IllustrationImage({
   );
 }
 
-function Divider({ className }: { className?: string }) {
-  return (
-    <div
-      className={`flex items-center justify-center gap-2 opacity-60 ${className ?? ''}`}
-      aria-hidden
-    >
-      <span className="h-px w-12 bg-current" />
-      <span className="text-xs">❀</span>
-      <span className="h-px w-12 bg-current" />
-    </div>
-  );
-}
-
+// 날짜만 표시 — 요일/시간은 사용자 요청으로 제거. YYYY. MM. DD 형식.
 function formatDateForIllust(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-  return `${d.getFullYear()}. ${String(d.getMonth() + 1).padStart(2, '0')}. ${String(d.getDate()).padStart(2, '0')} ${days[d.getDay()]}`;
-}
-
-function formatTimeForIllust(iso: string) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  const hours = d.getHours();
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  // 시간 정보가 자정(00:00) 이면 표시 생략 — 데이터에 시간이 안 들어 있는 경우.
-  if (hours === 0 && d.getMinutes() === 0) return '';
-  const period = hours < 12 ? 'AM' : 'PM';
-  const h12 = hours % 12 === 0 ? 12 : hours % 12;
-  return `${period} ${h12}:${minutes}`;
+  return `${d.getFullYear()}. ${String(d.getMonth() + 1).padStart(2, '0')}. ${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function LegacyMainSlide({
