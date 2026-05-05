@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 // 부드러운 톤 위주의 결혼식 팔레트. 채도가 너무 높은 색은 빼서
 // "꽃가루" 라기보다 색종이 느낌이 나도록.
@@ -88,6 +88,11 @@ export function Confetti({
   scoped?: boolean;
 }) {
   const [active, setActive] = useState(false);
+  // 레이아웃 전환 등으로 Confetti 가 새로 마운트될 때, 같은 trigger 값에 대해
+  // 한 번 더 발화하는 사고를 막기 위해 마운트 시점의 trigger 값으로 초기화.
+  // 사용자가 새로 "축하하기" 를 누르면 trigger 값이 Date.now() 로 바뀌어
+  // 이 ref 와 다르기 때문에 정상 발화. 같은 값으로 다시 마운트된 경우만 무시.
+  const lastFiredRef = useRef<number | null>(trigger);
 
   const pieces = useMemo<Piece[]>(() => {
     void trigger;
@@ -130,6 +135,10 @@ export function Confetti({
 
   useEffect(() => {
     if (trigger == null) return;
+    // 같은 trigger 값으로 다시 마운트되었거나(레이아웃 전환 등) 이미 처리한
+    // 값이면 무시. 새 Date.now() 가 들어와야만 실제 발화.
+    if (lastFiredRef.current === trigger) return;
+    lastFiredRef.current = trigger;
     setActive(true);
     const t = setTimeout(() => setActive(false), ACTIVE_MS);
     return () => clearTimeout(t);
