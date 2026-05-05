@@ -55,19 +55,16 @@ const CHAMPAGNE_PATTERN =
   'radial-gradient(circle at 25% 25%, rgba(212,165,116,0.22) 0%, rgba(255,248,235,0) 42%), ' +
   'radial-gradient(circle at 80% 70%, rgba(232,200,160,0.18) 0%, rgba(255,248,235,0) 45%)';
 
-// 일러스트 PNG 처리 전략 — SVG feColorMatrix 로 흰/크림 픽셀을 알파 0 으로
-// 깎아내는 "크로마키" 방식. mix-blend-mode 와 달리 GPU 합성 단계가 아니라
-// 픽셀 단계 필터라 슬라이드 전환 같은 transform 애니메이션 중에도 안정적
-// 으로 적용 → 흰 배경이 깜빡 보이는 현상 없음.
+// 일러스트 PNG 는 *투명 배경* 으로 저장하는 것을 전제로 한다 — 그렇지 않으면
+// 색상 필터로는 신랑·신부의 흰 드레스/피부/연한 꽃 같은 밝은 톤 요소들과
+// 배경(흰/크림)을 구분할 수 없다. (luminance 만으로는 공간적으로 같은 색을
+// 가진 영역을 분리하지 못하기 때문.)
 //
-// 필터 정의 자체는 SlideContainer 가 한 번 렌더(SVG <defs>)하고, 각 테마는
-// 그 url(#…) 을 자기 illustFilter 체인 맨 앞에 둔다. 다크 테마에는 추가로
-// drop-shadow 두 겹 글로우를 더해 짙은 라인이 어두운 바탕에서도 보이게.
-const KEY_OUT_LIGHT = 'url(#mw-key-out-light)';
-const DARK_ILLUST_GLOW =
+// 따라서 라이트 테마에선 어떤 필터도 적용하지 않고, 다크 테마(dusk/midnight)
+// 에선 짙은 라인이 어두운 바탕에서도 보이도록 drop-shadow 두 겹 글로우만
+// 더한다. 투명 PNG 라면 글로우는 figure 외곽선 주변에 자연스럽게 깔린다.
+const DARK_ILLUST_FILTER =
   'drop-shadow(0 0 1.5px rgba(255,255,255,0.55)) drop-shadow(0 0 4px rgba(255,255,255,0.18))';
-const LIGHT_ILLUST_FILTER = KEY_OUT_LIGHT;
-const DARK_ILLUST_FILTER = `${KEY_OUT_LIGHT} ${DARK_ILLUST_GLOW}`;
 
 export const THEME_PALETTES: Record<ColorTheme, Palette> = {
   cream: {
@@ -76,7 +73,6 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     accent: '#8B7355',
     dot: '#D4C5B0',
     petals: ['#F4D9D0', '#E8C2B8', '#F1E0D6', '#D4B5A0'],
-    illustFilter: LIGHT_ILLUST_FILTER,
   },
   blush: {
     bg: '#FFF4F1',
@@ -84,7 +80,6 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     accent: '#C9748E',
     dot: '#E5B8BD',
     petals: ['#FFD1D9', '#FFB6C1', '#FFC0CB', '#FFE4E1'],
-    illustFilter: LIGHT_ILLUST_FILTER,
   },
   sage: {
     bg: '#F1F5EE',
@@ -92,7 +87,6 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     accent: '#658067',
     dot: '#C8D5C0',
     petals: ['#C4D9C0', '#A8C5A1', '#D5E5CD', '#B3CFA8'],
-    illustFilter: LIGHT_ILLUST_FILTER,
   },
   dusk: {
     bg: '#221C2E',
@@ -110,7 +104,6 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     dot: '#B5BCC9',
     petals: ['#F5E1DA', '#E8D0C8', '#FFFFFF', '#EFD9D2'],
     bgPattern: PEARL_PATTERN,
-    illustFilter: LIGHT_ILLUST_FILTER,
   },
   // 편지지 — 순백 바탕 + 잉크 검정 글자. 결혼 청첩장 클래식 톤.
   // 종이 결 패턴은 유지해 완전 평면 디자인을 피함.
@@ -121,7 +114,6 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     dot: '#D4D4D4',
     petals: ['#F5F5F5', '#EAEAEA', '#FFFFFF', '#FAFAFA'],
     bgPattern: LETTER_PAPER_PATTERN,
-    illustFilter: LIGHT_ILLUST_FILTER,
   },
   // 미드나잇 — 검정 배경 + 밝은 샴페인 글자. 모던/세련.
   midnight: {
@@ -141,7 +133,6 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     dot: '#E5CDA8',
     petals: ['#F5DCC4', '#E8C8A8', '#FFEFD8', '#D4B58F'],
     bgPattern: CHAMPAGNE_PATTERN,
-    illustFilter: LIGHT_ILLUST_FILTER,
   },
 };
 
