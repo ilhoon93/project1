@@ -245,7 +245,7 @@ export interface FontOption {
 export const FONT_OPTIONS: Record<FontKey, FontOption> = {
   // ── 명조 / 고딕 ──────────────────────────────────────
   serif: { label: '명조', family: "var(--font-noto-serif-kr), serif" },
-  sans: { label: '본고딕', family: "var(--font-noto-sans-kr), sans-serif" },
+  sans: { label: '본고딕', family: "var(--font-noto-sans-kr), sans-serif" }, // 히든
   nanumGothic: {
     label: '나눔고딕',
     family: "var(--font-nanum-gothic), var(--font-noto-sans-kr), sans-serif",
@@ -278,7 +278,7 @@ export const FONT_OPTIONS: Record<FontKey, FontOption> = {
   },
 
   // ── 손글씨 / 캘리 ────────────────────────────────────
-  handwritten: { label: '손글씨', family: "var(--font-gaegu), cursive" },
+  handwritten: { label: '손글씨', family: "var(--font-gaegu), cursive" }, // 히든
   nanumPen: {
     label: '나눔손글씨 펜',
     family: "var(--font-nanum-pen), cursive",
@@ -348,7 +348,7 @@ export const FONT_OPTIONS: Record<FontKey, FontOption> = {
     //family: "var(--font-gowun-batang), serif",
   },
   // 붓펜 느낌의 한글 필기체 — 손글씨(Gaegu)와는 결이 다름.
-  dokdo: { label: '캘리', family: "var(--font-dokdo), cursive" },
+  dokdo: { label: '캘리', family: "var(--font-dokdo), cursive" }, // 히든
 };
 
 // ── 영문 장식 폰트 (메인 풀이미지형 제목 전용) ──────────────
@@ -417,7 +417,9 @@ export const TITLE_TEXT_PRESETS = [
  * 정의한 폴백 폰트로 렌더된다.
  */
 export const HIDDEN_FONT_KEYS = new Set<FontKey>([
-  'dokdo'
+  'dokdo',
+  'handwritten',
+  'sans'
 
 ]);
 
