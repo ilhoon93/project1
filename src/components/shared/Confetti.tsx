@@ -158,9 +158,8 @@ export function Confetti({
       }`}
       style={{
         perspective: '700px',
-        // scoped 모드: 자기 자신을 container 로 선언해 cqh/cqw 가
-        // 이 박스 크기를 기준으로 계산되도록.
-        ...(scoped ? { containerType: 'size' as const } : {}),
+        // SlideContainer 의 슬라이드 div 가 이미 container-type: size 라
+        // cqw/cqh 가 슬라이드 박스 크기 기준으로 계산된다 — 추가 설정 불필요.
       }}
     >
       {pieces.map((p) => {
