@@ -137,11 +137,17 @@ export function Confetti({
 
   if (!active || trigger == null) return null;
 
-  // scoped 모드: 부모 박스 (가장 가까운 position:relative 조상) 안에서만
-  // 컨페티가 떨어지도록. unitX/Y 를 % 로 바꾸면 keyframes 의 vw/vh 도 맞춰
-  // % 계열 키프레임을 써야 한다.
-  const unitX = scoped ? '%' : 'vw';
-  const unitY = scoped ? '%' : 'vh';
+  // scoped 모드: 부모 박스 안에서만 컨페티가 동작하도록 viewport 단위
+  // (vw/vh) 대신 container query 단위(cqw/cqh) 사용.
+  //
+  // 왜 % 가 아니라 cqw/cqh 인가:
+  //   CSS `transform: translate(x%, y%)` 의 % 는 *그 요소 자신의 크기* 를
+  //   기준이라 12px 짜리 컨페티 조각을 25% 이동시키면 단 3px 만 움직인다 →
+  //   결과적으로 화면 상단에서 잠시 맴돌다 사라지는 듯 보임.
+  //   cqh/cqw 는 closest container 의 크기를 기준 — 부모 박스를
+  //   container-type:size 로 지정하면 우리가 원하던 % 동작이 나온다.
+  const unitX = scoped ? 'cqw' : 'vw';
+  const unitY = scoped ? 'cqh' : 'vh';
   const fallKeyframes = scoped ? 'confetti-fall-scoped' : 'confetti-fall';
 
   return (
@@ -150,7 +156,12 @@ export function Confetti({
       className={`pointer-events-none z-40 overflow-hidden ${
         scoped ? 'absolute inset-0' : 'fixed inset-0'
       }`}
-      style={{ perspective: '700px' }}
+      style={{
+        perspective: '700px',
+        // scoped 모드: 자기 자신을 container 로 선언해 cqh/cqw 가
+        // 이 박스 크기를 기준으로 계산되도록.
+        ...(scoped ? { containerType: 'size' as const } : {}),
+      }}
     >
       {pieces.map((p) => {
         // streamer(길쭉한 모양) 의 가로/세로 길이를 줄여 너무 두드러지지 않게
@@ -297,7 +308,7 @@ export function Confetti({
             transform: rotateY(360deg) rotateX(0deg);
           }
         }
-        /* scoped 모드 — 부모 박스 기준 % 단위로 동일 동작 재현 */
+        /* scoped 모드 — 부모 박스(container query) 기준 cqh 로 낙하 */
         @keyframes confetti-fall-scoped {
           0% {
             transform: translate3d(var(--scatter-dx), var(--scatter-dy), 0)
@@ -307,7 +318,7 @@ export function Confetti({
           25% {
             transform: translate3d(
                 calc(var(--scatter-dx) + var(--sway) * 1),
-                calc(var(--scatter-dy) + 25%),
+                calc(var(--scatter-dy) + 25cqh),
                 0
               )
               rotate(calc(var(--rz-start) + 240deg));
@@ -315,7 +326,7 @@ export function Confetti({
           55% {
             transform: translate3d(
                 calc(var(--scatter-dx) + var(--sway) * -1),
-                calc(var(--scatter-dy) + 55%),
+                calc(var(--scatter-dy) + 55cqh),
                 0
               )
               rotate(calc(var(--rz-start) + 360deg));
@@ -323,7 +334,7 @@ export function Confetti({
           82% {
             transform: translate3d(
                 calc(var(--scatter-dx) + var(--sway) * 0.6),
-                calc(var(--scatter-dy) + 88%),
+                calc(var(--scatter-dy) + 88cqh),
                 0
               )
               rotate(calc(var(--rz-start) + 480deg));
@@ -332,7 +343,7 @@ export function Confetti({
           100% {
             transform: translate3d(
                 calc(var(--scatter-dx) + var(--sway) * -0.3),
-                calc(var(--scatter-dy) + 115%),
+                calc(var(--scatter-dy) + 115cqh),
                 0
               )
               rotate(calc(var(--rz-start) + 560deg));
