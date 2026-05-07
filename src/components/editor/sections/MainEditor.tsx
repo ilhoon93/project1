@@ -89,57 +89,48 @@ export function MainEditor() {
   return (
     <SectionEditor title="메인 화면" description="첫 슬라이드의 레이아웃과 인사말">
       <div className="flex flex-col gap-4">
-        {/* 레이아웃 선택 — picker 에는 4가지 상위 레이아웃만 노출.
-            'polaroid' (구버전) 는 frame 으로 흡수돼 picker 에서는 보이지 않지만
-            저장된 데이터에 있을 경우 frame 으로 자동 매핑된다. */}
-        <div className="flex flex-col gap-2 text-sm">
-          <span className="font-medium text-foreground">레이아웃</span>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {LAYOUT_PICKER_KEYS.map((key) => {
-              const selected = key === 'frame' ? isFrameLayout(layout) : layout === key;
-              const meta = LAYOUT_LABELS[key];
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => patch('main', { ...main, layout: key })}
-                  aria-pressed={selected}
-                  className={`flex flex-col items-center gap-1 rounded-md border px-2 py-3 text-xs transition-colors ${
-                    selected
-                      ? 'border-foreground bg-foreground text-background'
-                      : 'border-input bg-background text-foreground hover:bg-muted'
-                  }`}
-                >
-                  <span className="font-medium">{meta.name}</span>
-                  <span className={selected ? 'opacity-80' : 'text-muted-foreground'}>
-                    {meta.hint}
-                  </span>
-                </button>
-              );
-            })}
+        {/* 레이아웃 선택 + 메인 사진 미리보기 — 같은 행에 좌(레이아웃 버튼) + 우(미리보기) 배치.
+            미리보기 컨테이너는 레이아웃에 상관없이 동일 사이즈를 유지 (w-32 + aspect-[9/16]). */}
+        <div className="flex flex-col gap-2 text-sm sm:flex-row sm:items-start sm:gap-4">
+          <div className="min-w-0 flex-1">
+            <span className="font-medium text-foreground">레이아웃</span>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {LAYOUT_PICKER_KEYS.map((key) => {
+                const selected = key === 'frame' ? isFrameLayout(layout) : layout === key;
+                const meta = LAYOUT_LABELS[key];
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => patch('main', { ...main, layout: key })}
+                    aria-pressed={selected}
+                    className={`flex flex-col items-center gap-1 rounded-md border px-2 py-3 text-xs transition-colors ${
+                      selected
+                        ? 'border-foreground bg-foreground text-background'
+                        : 'border-input bg-background text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <span className="font-medium">{meta.name}</span>
+                    <span className={selected ? 'opacity-80' : 'text-muted-foreground'}>
+                      {meta.hint}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        {showImagePicker && (
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-foreground">메인 사진</span>
-            {/* 변형(폴라로이드/하트/스크린) 별로 미리보기 비율 + fit 결정.
-                screen 은 contain (잘림 없음) — 그 외는 cover + imagePosition. */}
-            <div className="w-full max-w-[200px]">
+          {showImagePicker && (
+            // 우측 미리보기 — 고정 너비(w-32) + 항상 9:16 비율 컨테이너.
+            // 변형별 표시 차이(square/contain 등) 는 컨테이너 안쪽 ImageUploader 가 처리.
+            <div className="flex w-full shrink-0 flex-col gap-1.5 sm:w-32">
+              <span className="text-sm font-medium text-foreground">메인 사진</span>
               <ImageUploader
                 value={main.heroImage ?? null}
                 onChange={(url) => patch('main', { ...main, heroImage: url })}
                 invitationId={invitationId}
                 folder="main"
-                previewAspect={
-                  isFrame
-                    ? frame?.variant === 'screen'
-                      ? 'aspect-square'
-                      : frame?.variant === 'heart'
-                        ? 'aspect-[10/9]'
-                        : 'aspect-square'
-                    : 'aspect-[9/16]'
-                }
+                previewAspect="aspect-[9/16]"
                 previewFit={
                   isFrame
                     ? frame?.variant === 'screen'
@@ -156,24 +147,25 @@ export function MainEditor() {
                 }
                 // 9:20 비율 폰에서 좌우가 잘리는 영역을 회색으로 표시 (포스터일 때만).
                 showWideAspectCropMask={isPoster}
-                label="사진 선택하기"
+                label="사진 선택"
               />
             </div>
-            {isPoster && (
-              <div className="rounded-md border border-dashed border-input bg-muted/30 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-                <p className="mb-1 font-medium text-foreground">권장 이미지 규격</p>
-                <ul className="list-disc space-y-0.5 pl-4">
-                  <li>해상도: <strong>1080 × 1920 px</strong> (9:16 세로형)</li>
-                  <li>형식: JPG · PNG · WEBP (최대 25MB)</li>
-                  <li>중요한 인물·소품은 화면 중앙에 — 상하 약 15%는 그라데이션·텍스트가 덮을 수 있어요.</li>
-                  <li>
-                    스마트폰 기종(9:20 비율 등 길쭉한 화면)에서는 좌우가 약 7% 정도 잘릴 수 있어요. 미리보기 좌우의{' '}
-                    <span className="rounded bg-foreground/15 px-1 py-0.5 font-medium text-foreground">회색 영역</span>
-                    이 잘릴 수 있는 부분이에요.
-                  </li>
-                </ul>
-              </div>
-            )}
+          )}
+        </div>
+
+        {showImagePicker && isPoster && (
+          <div className="rounded-md border border-dashed border-input bg-muted/30 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+            <p className="mb-1 font-medium text-foreground">권장 이미지 규격</p>
+            <ul className="list-disc space-y-0.5 pl-4">
+              <li>해상도: <strong>1080 × 1920 px</strong> (9:16 세로형)</li>
+              <li>형식: JPG · PNG · WEBP (최대 25MB)</li>
+              <li>중요한 인물·소품은 화면 중앙에 — 상하 약 15%는 그라데이션·텍스트가 덮을 수 있어요.</li>
+              <li>
+                스마트폰 기종(9:20 비율 등 길쭉한 화면)에서는 좌우가 약 7% 정도 잘릴 수 있어요. 미리보기 좌우의{' '}
+                <span className="rounded bg-foreground/15 px-1 py-0.5 font-medium text-foreground">회색 영역</span>
+                이 잘릴 수 있는 부분이에요.
+              </li>
+            </ul>
           </div>
         )}
 

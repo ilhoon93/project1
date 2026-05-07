@@ -39,32 +39,32 @@ export function EditorClient({ invitationId, meta, content }: Props) {
 
   // Hydrate the store with server-provided data on first mount.
   //
-  // Important: if the persisted store already holds this invitation's content
-  // (e.g. user clicked 미리보기, came back, and Next.js may serve a cached
-  // server render), keep the local store as-is. Otherwise round-tripping to
-  // /preview wipes uncommitted edits with stale server data.
+  // 정책:
+  //   - 같은 청첩장 ID 의 persist 데이터가 있고 + `unsaved === true` 이면
+  //     로컬에 저장 안 한 편집분이 있다는 뜻 → 그대로 사용 (예: /preview 다녀와도 보존).
+  //   - 그 외에는 항상 서버 데이터를 사용 → 다른 기기(모바일↔노트북)에서
+  //     같은 네이버 계정으로 열었을 때 최신 저장 결과가 그대로 보임.
   //
-  // We do still re-parse the local content through the current schema so any
-  // fields that didn't exist when the state was persisted (e.g. account
-  // groomFather/brideMother added in step 5) get filled in with defaults
-  // instead of crashing the editor with `undefined.map(...)`.
+  // 로컬 content 는 현재 스키마로 한 번 reparse 해 신규 필드도 기본값으로 채운다.
   const hydrated = useRef(false);
   useEffect(() => {
     if (hydrated.current) return;
     hydrated.current = true;
     const current = useEditorStore.getState();
-    if (current.invitationId === invitationId && current.content) {
+    const sameInvitation = current.invitationId === invitationId && current.content;
+    if (sameInvitation && current.unsaved) {
       try {
         const reparsed = InvitationContentSchema.parse(current.content);
         if (JSON.stringify(reparsed) !== JSON.stringify(current.content)) {
           useEditorStore.setState({ content: reparsed });
         }
       } catch {
-        // If old persisted state can't be coerced, fall back to server data.
+        // 로컬 데이터가 스키마와 맞지 않으면 안전하게 서버 데이터로 폴백.
         init(invitationId, meta, content);
       }
       return;
     }
+    // 저장 완료 상태이거나 다른 청첩장 → 서버 데이터로 초기화 (기기간 동기화 보장).
     init(invitationId, meta, content);
   }, [invitationId, meta, content, init]);
 
