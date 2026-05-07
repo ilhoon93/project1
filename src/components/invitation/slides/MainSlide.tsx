@@ -201,8 +201,8 @@ function PosterFullImageSlide({
         </PositionedBox>
       )}
 
-      {/* 5) 메시지 박스 — 인사말 */}
-      {main.greeting && (
+      {/* 5) 인사말 — 토글이 켜져 있고 본문이 있을 때만 표시 */}
+      {design.messageBox.enabled && main.greeting && (
         <PositionedBox position={design.messageBox.position}>
           <p
             className="max-w-md whitespace-pre-line text-center leading-relaxed drop-shadow-sm"
@@ -295,78 +295,100 @@ function IllustrationSlide({
   const illustSrc = `/illustrations/illust-${design.variant}.png`;
 
   return (
-    // overflow-hidden + 압축된 vertical spacing 으로 세로 스크롤 발생 방지.
-    // 폰트/패딩 단위는 cqw/cqh — 모바일 풀스크린과 데스크톱 미리보기 패널이
-    // 비율적으로 동일하게 보이도록 컨테이너 기준 단위로 통일.
+    // 레이아웃 구조 (위→아래):
+    //   ┌───────────────────────────────┐
+    //   │ flex-1 (justify-end)          │ ← 제목+인사말이 이 영역의 BOTTOM 에 붙음
+    //   │   (overflow-hidden)           │   = 이미지 상단 바로 위
+    //   │   h1 title                    │
+    //   │   p  greeting                 │
+    //   ├───────────────────────────────┤
+    //   │ shrink-0 image                │ ← 고정 높이, 위치 흔들리지 않음
+    //   ├───────────────────────────────┤
+    //   │ shrink-0 divider/names/date   │ ← 이미지 바로 아래 가깝게 붙음
+    //   │ flex-1 (spacer)               │
+    //   └───────────────────────────────┘
+    //   absolute 축하하기 버튼 (위치 고정)
+    //
+    // 인사말이 길어져도 이미지 자리는 그대로 유지된다 — overflow-hidden 으로
+    // 상단으로 자연스럽게 잘리고, 이미지·이름·날짜·버튼은 흔들리지 않는다.
     <section
       className="relative flex h-full min-h-full w-full flex-col items-center overflow-hidden text-center"
-      style={{ padding: '5cqh 6cqw 4cqh' }}
     >
-      {/* 제목 — Playfair Display, 굵은 굵기, cqw 기반 사이즈 */}
-      <h1
-        className="font-bold leading-tight"
-        style={{
-          fontFamily: PLAYFAIR,
-          color: titleColor,
-          fontSize: 'clamp(28px, 9cqw, 44px)',
-        }}
+      {/* 1) 상단 영역 — 제목 + 인사말. justify-end + overflow-hidden 로
+          이미지 상단을 기준으로 위로 자라는 형태. */}
+      <div
+        className="flex w-full flex-col items-center justify-end overflow-hidden px-6"
+        style={{ flex: '1 1 0', minHeight: 0, paddingTop: '4cqh' }}
       >
-        {design.title.text}
-      </h1>
-
-      {/* 메시지 (부제 위치) */}
-      {main.greeting && (
-        <p
-          className="max-w-md whitespace-pre-line leading-relaxed opacity-80"
+        <h1
+          className="font-bold leading-tight"
           style={{
-            fontFamily: 'inherit',
-            fontSize: 'clamp(12px, 3.6cqw, 16px)',
-            marginTop: '1.5cqh',
+            fontFamily: PLAYFAIR,
+            color: titleColor,
+            fontSize: 'clamp(26px, 8cqw, 40px)',
           }}
         >
-          {main.greeting}
-        </p>
-      )}
+          {design.title.text}
+        </h1>
 
-      {/* 일러스트 — public/illustrations/ 의 PNG 를 그대로 사용.
-          --mw-illust-filter / --mw-illust-blend 로 테마 대응. flex-1 으로
-          남는 공간 차지하면서도 max-w-md 로 무한 확장은 막는다. */}
+        {main.greeting && (
+          <p
+            className="max-w-md whitespace-pre-line leading-relaxed opacity-80"
+            style={{
+              fontFamily: 'inherit',
+              fontSize: 'clamp(12px, 3.4cqw, 15px)',
+              marginTop: '1.2cqh',
+            }}
+          >
+            {main.greeting}
+          </p>
+        )}
+      </div>
+
+      {/* 2) 일러스트 이미지 — 고정 높이, 흔들리지 않음. 위 영역과 살짝만 띄움. */}
       <div
-        className="flex w-full max-w-md flex-1 items-center justify-center"
-        style={{ marginTop: '2cqh', marginBottom: '2cqh', minHeight: 0 }}
+        className="flex w-full max-w-sm shrink-0 items-center justify-center px-6"
+        style={{ marginTop: '1cqh' }}
       >
         <IllustrationImage src={illustSrc} variant={design.variant} />
       </div>
 
-      {/* 이름 박스 */}
+      {/* 3) 이미지 하단 디바이더 — 이름/날짜와 이미지를 시각적으로 구분 */}
+      <IllustDivider />
+
+      {/* 4) 이름 — 이미지 바로 아래 붙도록 작은 marginTop */}
       {design.nameBox.enabled && (
         <p
-          className="font-light tracking-wide"
+          className="shrink-0 font-light tracking-wide"
           style={{
             fontFamily: 'inherit',
-            fontSize: 'clamp(14px, 4cqw, 18px)',
+            fontSize: 'clamp(14px, 3.8cqw, 17px)',
+            marginTop: '1cqh',
           }}
         >
           신랑 {groomName} · 신부 {brideName}
         </p>
       )}
 
-      {/* 날짜 박스 — 요일/시간은 표기 안 함 (사용자 요청) */}
+      {/* 5) 날짜 — 이름 바로 아래 */}
       {design.dateBox.enabled && weddingDate && (
         <p
-          className="tracking-[0.2em]"
+          className="shrink-0 tracking-[0.2em]"
           style={{
             fontFamily: PLAYFAIR,
-            fontSize: 'clamp(13px, 3.8cqw, 17px)',
-            marginTop: '1.2cqh',
+            fontSize: 'clamp(13px, 3.6cqw, 16px)',
+            marginTop: '0.8cqh',
           }}
         >
           {formatDateForIllust(weddingDate)}
         </p>
       )}
 
-      {/* 하단 축하하기 버튼 */}
-      <div style={{ marginTop: '1.8cqh' }} className="flex flex-col items-center">
+      {/* 6) 하단 spacer — 인사말 길이와 무관하게 축하하기 자리를 비워둠 */}
+      <div style={{ flex: '1 1 0', minHeight: '6cqh' }} />
+
+      {/* 7) 하단 축하하기 버튼 — absolute 로 위치 고정 */}
+      <div className="absolute bottom-0 left-1/2 z-20 -translate-x-1/2" style={{ marginBottom: '4cqh' }}>
         <button
           type="button"
           onClick={onCelebrate}
@@ -379,6 +401,24 @@ function IllustrationSlide({
 
       <Confetti trigger={confettiTrigger} scoped={scoped} />
     </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 일러스트 하단 디바이더 — 가는 라인 + 가운데 작은 다이아 글리프
+// ─────────────────────────────────────────────────────────────
+
+function IllustDivider() {
+  return (
+    <div
+      aria-hidden
+      className="flex w-full max-w-xs shrink-0 items-center justify-center gap-2 opacity-60"
+      style={{ marginTop: '1.2cqh' }}
+    >
+      <span className="h-px flex-1 bg-current" style={{ opacity: 0.55 }} />
+      <span className="text-[0.85em] leading-none">✦</span>
+      <span className="h-px flex-1 bg-current" style={{ opacity: 0.55 }} />
+    </div>
   );
 }
 

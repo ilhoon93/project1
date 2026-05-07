@@ -338,6 +338,14 @@ function PetalIcon({ type, accent }: { type: PetalType; accent: string }) {
   if (type === 'none') {
     return <span className="text-base text-muted-foreground">∅</span>;
   }
+  // 별빛 — 작은 별 + 트레일로 정적 미리보기 (실제 효과는 별똥별 + 트윙클).
+  if (type === 'starlight') {
+    return (
+      <span className="inline-flex h-5 w-5 items-center justify-center align-middle text-base leading-none" style={{ color: accent }}>
+        ✦
+      </span>
+    );
+  }
   if (PETAL_IS_TEXTURE[type]) {
     return (
       <span className="inline-block h-5 w-5 align-middle">

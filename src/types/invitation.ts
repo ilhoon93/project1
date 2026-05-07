@@ -107,10 +107,11 @@ export const PosterDesignSchema = z
       .default({ enabled: true, position: { x: 50, y: 72 }, fontSize: 22 }),
     messageBox: z
       .object({
+        enabled: z.boolean().default(true),
         position: PositionSchema.default({ x: 50, y: 80 }),
         fontSize: z.number().min(12).max(40).default(14),
       })
-      .default({ position: { x: 50, y: 80 }, fontSize: 14 }),
+      .default({ enabled: true, position: { x: 50, y: 80 }, fontSize: 14 }),
   })
   .default({
     effects: { gradient: true, border: false },
@@ -125,7 +126,7 @@ export const PosterDesignSchema = z
     },
     dateBox: { enabled: true, position: { x: 50, y: 88 }, fontSize: 14 },
     nameBox: { enabled: true, position: { x: 50, y: 72 }, fontSize: 22 },
-    messageBox: { position: { x: 50, y: 80 }, fontSize: 14 },
+    messageBox: { enabled: true, position: { x: 50, y: 80 }, fontSize: 14 },
   });
 
 export type PosterDesign = z.infer<typeof PosterDesignSchema>;

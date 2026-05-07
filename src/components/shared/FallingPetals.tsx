@@ -16,6 +16,8 @@ const PETAL_SIZE_SCALE: Record<PetalType, number> = {
   sakura: 1,
   leaf: 0.75,
   whitePetal: 0.7,
+  // starlight 는 자체 렌더 분기를 쓰지만 PetalType 모든 키를 채워야 하므로 더미 1.
+  starlight: 1,
   none: 1,
 };
 
@@ -72,6 +74,9 @@ export function FallingPetals({
   );
 
   if (type === 'none') return null;
+  if (type === 'starlight') {
+    return <Starlight palette={palette} />;
+  }
   const isTexture = PETAL_IS_TEXTURE[type];
   const glyph = PETAL_GLYPHS[type];
   const sizeScale = PETAL_SIZE_SCALE[type];
@@ -294,4 +299,170 @@ export function PetalShape({ type, color }: { type: PetalType; color: string }) 
   }
 
   return null;
+}
+
+// ─────────────────────────────────────────────────────────────
+// 별빛 — 트윙클하는 별 + 가끔 가로지르는 별똥별 + 바닥의 옅은 오로라 글로우.
+// 다른 효과들과 달리 "떨어지는" 게 아니므로 별도 분기.
+// ─────────────────────────────────────────────────────────────
+
+interface Star {
+  id: number;
+  left: number;
+  top: number;
+  size: number;
+  delay: number;
+  duration: number;
+  color: string;
+}
+
+interface Shoot {
+  id: number;
+  top: number;
+  delay: number;
+  duration: number;
+}
+
+function Starlight({ palette }: { palette: readonly string[] }) {
+  const stars = useMemo<Star[]>(
+    () =>
+      // 화면 전체에 자잘하게 퍼진 트윙클 별. 색상은 팔레트에서 무작위 선택.
+      Array.from({ length: 36 }, (_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        top: Math.random() * 100,
+        size: 1.5 + Math.random() * 2.5,
+        delay: Math.random() * 4,
+        duration: 2.4 + Math.random() * 2.6,
+        color: palette[Math.floor(Math.random() * palette.length)],
+      })),
+    [palette],
+  );
+
+  // 별똥별 — 4개 정도가 길게 어긋난 텀으로 가로지름.
+  const shoots = useMemo<Shoot[]>(
+    () =>
+      Array.from({ length: 4 }, (_, i) => ({
+        id: i,
+        top: 8 + Math.random() * 40,
+        delay: i * 3.5 + Math.random() * 2,
+        duration: 1.6 + Math.random() * 0.8,
+      })),
+    [],
+  );
+
+  const auroraColor = palette[0] ?? '#B89BD9';
+
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
+    >
+      {/* 하단 오로라 글로우 — 옅은 라디얼 그라디언트로 별빛 분위기 깔기 */}
+      <div
+        className="absolute inset-x-0 bottom-0 h-2/3"
+        style={{
+          background: `radial-gradient(ellipse at 30% 100%, ${hexAlpha(auroraColor, 0.28)} 0%, transparent 55%), radial-gradient(ellipse at 75% 100%, ${hexAlpha(auroraColor, 0.22)} 0%, transparent 55%)`,
+          mixBlendMode: 'screen',
+        }}
+      />
+
+      {stars.map((s) => (
+        <span
+          key={s.id}
+          className="star"
+          style={{
+            left: `${s.left}%`,
+            top: `${s.top}%`,
+            width: `${s.size}px`,
+            height: `${s.size}px`,
+            backgroundColor: s.color,
+            boxShadow: `0 0 ${s.size * 2}px ${hexAlpha(s.color, 0.7)}`,
+            animationDelay: `${s.delay}s`,
+            animationDuration: `${s.duration}s`,
+          }}
+        />
+      ))}
+
+      {shoots.map((sh) => (
+        <span
+          key={`shoot-${sh.id}`}
+          className="shoot"
+          style={{
+            top: `${sh.top}%`,
+            animationDelay: `${sh.delay}s`,
+            animationDuration: `${sh.duration}s`,
+          }}
+        />
+      ))}
+
+      <style jsx>{`
+        .star {
+          position: absolute;
+          border-radius: 9999px;
+          opacity: 0;
+          animation-name: twinkle;
+          animation-iteration-count: infinite;
+          animation-timing-function: ease-in-out;
+          will-change: opacity, transform;
+        }
+        @keyframes twinkle {
+          0%, 100% {
+            opacity: 0.15;
+            transform: scale(0.85);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.25);
+          }
+        }
+        .shoot {
+          position: absolute;
+          left: -10%;
+          width: 14%;
+          height: 1.5px;
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.85) 60%,
+            #ffffff 100%
+          );
+          border-radius: 9999px;
+          opacity: 0;
+          transform: translate3d(0, 0, 0) rotate(18deg);
+          animation-name: shoot;
+          animation-iteration-count: infinite;
+          animation-timing-function: ease-out;
+          filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6));
+        }
+        @keyframes shoot {
+          0% {
+            opacity: 0;
+            transform: translate3d(0, 0, 0) rotate(18deg);
+          }
+          5% {
+            opacity: 1;
+          }
+          70% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+            transform: translate3d(120vw, 35vh, 0) rotate(18deg);
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/** "#RRGGBB" → "rgba(...)" 헬퍼. 잘못된 입력이면 원본 그대로 돌려줘 무시되게 함. */
+function hexAlpha(hex: string, alpha: number): string {
+  const m = /^#([0-9a-fA-F]{6})$/.exec(hex);
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 0xff;
+  const g = (n >> 8) & 0xff;
+  const b = n & 0xff;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }

@@ -10,6 +10,7 @@ export const COLOR_THEMES = [
   'cream',
   'blush',
   'sage',
+  'lavender',    // 라벤더 — 연보라 톤. 별빛/오로라 효과와 잘 어울림.
   'pearl',
   'letterPaper', // 편지지 — 흰 바탕 + 검정 글자
   'champagne',   // 샴페인 — 웜 아이보리 + 와인 글자
@@ -88,6 +89,15 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     dot: '#C8D5C0',
     petals: ['#C4D9C0', '#A8C5A1', '#D5E5CD', '#B3CFA8'],
   },
+  // 라벤더 — 은은한 연보라 배경에 짙은 보랏빛 글자.
+  // 별빛/오로라 배경 효과와 결이 잘 맞는 톤이라 같은 업데이트에 함께 추가.
+  lavender: {
+    bg: '#F4EFFA',
+    fg: '#3F2E5C',
+    accent: '#8E6FBF',
+    dot: '#D7C9EA',
+    petals: ['#E2D2F2', '#C9B5E5', '#EFE4F8', '#B89BD9'],
+  },
   dusk: {
     bg: '#221C2E',
     fg: '#F5E9D0',
@@ -140,6 +150,7 @@ export const COLOR_THEME_LABELS: Record<ColorTheme, string> = {
   cream: '크림',
   blush: '블러쉬',
   sage: '세이지',
+  lavender: '라벤더',
   dusk: '더스크',
   pearl: '펄',
   letterPaper: '편지지',
@@ -156,6 +167,10 @@ export const PETAL_TYPES = [
   'sakura',
   'leaf',
   'whitePetal',
+  // 별빛 — 위 6종처럼 "떨어지는" 효과가 아니라 화면 전체에 깔리는
+  // 트윙클 + 가끔 가로지르는 별똥별 조합. FallingPetals 가 type==='starlight'
+  // 일 때 별도 렌더 분기를 탄다.
+  'starlight',
   'none',
 ] as const;
 export type PetalType = (typeof PETAL_TYPES)[number];
@@ -168,6 +183,7 @@ export const PETAL_GLYPHS: Record<PetalType, string> = {
   sakura: '',
   leaf: '',
   whitePetal: '',
+  starlight: '',
   none: '',
 };
 
@@ -178,6 +194,7 @@ export const PETAL_LABELS: Record<PetalType, string> = {
   sakura: '벚꽃잎 (질감)',
   leaf: '단풍잎 (질감)',
   whitePetal: '흰 꽃잎 (실사풍)',
+  starlight: '별빛 (오로라)',
   none: '없음',
 };
 
@@ -189,6 +206,8 @@ export const PETAL_IS_TEXTURE: Record<PetalType, boolean> = {
   sakura: true,
   leaf: true,
   whitePetal: true,
+  // starlight 는 자체 렌더 분기를 사용하므로 텍스처 분기에 들어가지 않는다.
+  starlight: false,
   none: false,
 };
 
