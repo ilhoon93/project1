@@ -331,7 +331,7 @@ function Starlight({ palette }: { palette: readonly string[] }) {
   const stars = useMemo<Star[]>(
     () =>
       // 화면 전체에 자잘하게 퍼진 트윙클 별. 색상은 팔레트에서 무작위 선택.
-      Array.from({ length: 32 }, (_, i) => ({
+      Array.from({ length: 22 }, (_, i) => ({
         id: i,
         left: Math.random() * 100,
         top: Math.random() * 100,
@@ -377,7 +377,7 @@ function Starlight({ palette }: { palette: readonly string[] }) {
             top: `${a.top}%`,
             width: `${42 * a.scale}cqw`,
             height: `${30 * a.scale}cqh`,
-            background: `radial-gradient(ellipse, ${hexAlpha(a.color, 0.45)} 0%, ${hexAlpha(a.color, 0.15)} 45%, transparent 75%)`,
+            background: `radial-gradient(ellipse, ${hexAlpha(a.color, 0.3)} 0%, ${hexAlpha(a.color, 0.1)} 45%, transparent 75%)`,
             animationDelay: `${a.delay}s`,
             animationDuration: `${a.duration}s`,
           }}
@@ -423,7 +423,7 @@ function Starlight({ palette }: { palette: readonly string[] }) {
             transform: translate(-50%, -50%) scale(0.8);
           }
           50% {
-            opacity: 0.85;
+            opacity: 0.55;
             transform: translate(-50%, -50%) scale(1.05);
           }
         }
