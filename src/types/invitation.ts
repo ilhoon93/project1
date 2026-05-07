@@ -264,25 +264,49 @@ export const FrameDesignSchema = z
 
 export type FrameDesign = z.infer<typeof FrameDesignSchema>;
 
-export const MainSectionSchema = z
-  .object({
-    layout: z.enum(MAIN_LAYOUTS).default('poster'),
-    heroImage: z.string().url().nullable().optional(),
-    greeting: z.string().max(500).default(''),
-    /** Free AI generation is one-shot; flips true after a successful run. */
-    aiUsed: z.boolean().default(false),
-    posterDesign: PosterDesignSchema,
-    illustrationDesign: IllustrationDesignSchema,
-    frameDesign: FrameDesignSchema,
-  })
-  .default({
-    layout: 'poster',
-    greeting: '',
-    aiUsed: false,
-    posterDesign: PosterDesignSchema.parse(undefined),
-    illustrationDesign: IllustrationDesignSchema.parse(undefined),
-    frameDesign: FrameDesignSchema.parse(undefined),
-  });
+// 짧은 간 PR 에서만 살아 있던 구버전 layout 키('frameHeart' / 'frameScreen') 가
+// 저장된 데이터에 남아 있으면 z.enum 검증이 실패한다. 두 키를 신규 키('frame')
+// + frameDesign.variant 로 매핑해주는 preprocess 단계로 안전하게 마이그레이션.
+function migrateMainSection(input: unknown): unknown {
+  if (!input || typeof input !== 'object') return input;
+  const obj = input as Record<string, unknown>;
+  if (obj.layout === 'frameHeart' || obj.layout === 'frameScreen') {
+    const variant = obj.layout === 'frameHeart' ? 'heart' : 'screen';
+    const existingFrame =
+      obj.frameDesign && typeof obj.frameDesign === 'object'
+        ? (obj.frameDesign as Record<string, unknown>)
+        : {};
+    return {
+      ...obj,
+      layout: 'frame',
+      frameDesign: { ...existingFrame, variant },
+    };
+  }
+  return obj;
+}
+
+export const MainSectionSchema = z.preprocess(
+  migrateMainSection,
+  z
+    .object({
+      layout: z.enum(MAIN_LAYOUTS).default('poster'),
+      heroImage: z.string().url().nullable().optional(),
+      greeting: z.string().max(500).default(''),
+      /** Free AI generation is one-shot; flips true after a successful run. */
+      aiUsed: z.boolean().default(false),
+      posterDesign: PosterDesignSchema,
+      illustrationDesign: IllustrationDesignSchema,
+      frameDesign: FrameDesignSchema,
+    })
+    .default({
+      layout: 'poster',
+      greeting: '',
+      aiUsed: false,
+      posterDesign: PosterDesignSchema.parse(undefined),
+      illustrationDesign: IllustrationDesignSchema.parse(undefined),
+      frameDesign: FrameDesignSchema.parse(undefined),
+    }),
+);
 
 // ── basic info slide (글귀 / 인사말 / 가족 / 날짜) ──────────
 
