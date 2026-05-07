@@ -36,12 +36,26 @@ export function LoginForm() {
   const callbackError = searchParams.get('error');
   const reason = searchParams.get('reason');
   const [loading, setLoading] = useState<'kakao' | 'naver' | null>(null);
+  // 자동 로그인 — 체크 시 정보 저장 + 다음 방문 자동 로그인. 끄면 다음 브라우저
+  // 세션에서 AutoLoginGate 가 강제 로그아웃 시킨다. 기본값은 체크.
+  const [autoLogin, setAutoLogin] = useState(true);
+  // 사용자의 이전 선택을 기억해 체크박스 초기 상태에 반영.
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('mw_auto_login');
+      if (stored === '0') setAutoLogin(false);
+    } catch {
+      // localStorage 접근 실패는 무시 — 기본값(true) 유지.
+    }
+  }, []);
   const reasonMessage =
     reason === 'browser_closed'
       ? '브라우저를 닫으면 자동으로 로그아웃됩니다. 다시 로그인해주세요.'
       : reason === 'idle_timeout'
         ? '오랫동안 활동이 없어 자동으로 로그아웃되었습니다. 다시 로그인해주세요.'
-        : null;
+        : reason === 'auto_login_off'
+          ? '자동 로그인이 꺼져 있어 다시 로그인해주세요.'
+          : null;
   const [error, setError] = useState<string | null>(errorMessageFor(callbackError));
 
   // bfcache 가드: 외부 OAuth 페이지로 이동했다 뒤로가기로 돌아오면
@@ -75,6 +89,16 @@ export function LoginForm() {
   const handleNaverLogin = () => {
     setLoading('naver');
     setError(null);
+    // OAuth 리다이렉트 전에 사용자의 자동 로그인 선호도를 localStorage 에 저장.
+    // 콜백 이후 AutoLoginGate 가 이 값을 읽어 자동 로그아웃 여부를 결정한다.
+    try {
+      localStorage.setItem('mw_auto_login', autoLogin ? '1' : '0');
+      // 새 로그인 시점에 sessionStorage 마커를 미리 켜두어, 콜백 직후 첫 페이지에서
+      // AutoLoginGate 가 방금 로그인한 사용자를 즉시 로그아웃 시키지 않도록 한다.
+      sessionStorage.setItem('mw_session_active', '1');
+    } catch {
+      // 저장 실패는 무시 — 자동 로그인 기본 동작으로 폴백.
+    }
     window.location.href = `/api/auth/naver/start?next=${encodeURIComponent(next)}`;
   };
 
@@ -100,6 +124,17 @@ export function LoginForm() {
         <NaverIcon />
         {loading === 'naver' ? '연결 중...' : '네이버로 시작하기'}
       </button>
+
+      {/* 자동 로그인 체크박스 — 체크 시 다음 방문 자동 로그인, 해제 시 다음 방문 재로그인 필요 */}
+      <label className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={autoLogin}
+          onChange={(e) => setAutoLogin(e.target.checked)}
+          className="h-4 w-4 cursor-pointer accent-[#03C75A]"
+        />
+        <span>자동 로그인</span>
+      </label>
 
       {reasonMessage && (
         <p className="text-center text-xs text-muted-foreground">

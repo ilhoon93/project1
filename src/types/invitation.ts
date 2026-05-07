@@ -192,12 +192,21 @@ export const IllustrationDesignSchema = z
         offsetY: z.number().min(-10).max(10).default(0),
       })
       .default({ enabled: true, fontSize: 16, offsetY: 0 }),
+    // 인사말 — main.greeting 본문을 표시할지/얼마만큼 보여줄지 결정.
+    messageBox: z
+      .object({
+        enabled: z.boolean().default(true),
+        fontSize: z.number().min(11).max(20).default(13),
+        offsetY: z.number().min(-10).max(10).default(0),
+      })
+      .default({ enabled: true, fontSize: 13, offsetY: 0 }),
   })
   .default({
     variant: 'arch',
     title: { text: TITLE_TEXT_PRESETS[4], color: 'currentColor', fontSize: 34, offsetY: 0 },
     dateBox: { enabled: true, fontSize: 15, offsetY: 0 },
     nameBox: { enabled: true, fontSize: 16, offsetY: 0 },
+    messageBox: { enabled: true, fontSize: 13, offsetY: 0 },
   });
 
 export type IllustrationDesign = z.infer<typeof IllustrationDesignSchema>;
@@ -214,6 +223,9 @@ export type FrameVariant = (typeof FRAME_VARIANTS)[number];
 export const FrameDesignSchema = z
   .object({
     variant: z.enum(FRAME_VARIANTS).default('polaroid'),
+    // 사진 어느 부분을 프레임에 보일지 — object-position 으로 매핑 (0–100 %).
+    // screen 변형(정사각형 + contain) 처럼 잘리지 않는 케이스에서는 의미 없음.
+    imagePosition: PositionSchema.default({ x: 50, y: 50 }),
     title: z
       .object({
         enabled: z.boolean().default(true),
@@ -221,6 +233,8 @@ export const FrameDesignSchema = z
         font: z.enum(TITLE_FONT_KEYS).default('playfairDisplay'),
         color: z.string().max(32).default('currentColor'),
         fontSize: z.number().min(18).max(44).default(26),
+        // 기본 위치 대비 cqh 단위 상하 미세 조정. 음수 = 위로, 양수 = 아래로.
+        offsetY: z.number().min(-10).max(10).default(0),
       })
       .default({
         enabled: true,
@@ -228,38 +242,44 @@ export const FrameDesignSchema = z
         font: 'playfairDisplay',
         color: 'currentColor',
         fontSize: 26,
+        offsetY: 0,
       }),
     nameBox: z
       .object({
         enabled: z.boolean().default(true),
         fontSize: z.number().min(12).max(28).default(20),
+        offsetY: z.number().min(-10).max(10).default(0),
       })
-      .default({ enabled: true, fontSize: 20 }),
+      .default({ enabled: true, fontSize: 20, offsetY: 0 }),
     dateBox: z
       .object({
         enabled: z.boolean().default(true),
         fontSize: z.number().min(11).max(22).default(14),
+        offsetY: z.number().min(-10).max(10).default(0),
       })
-      .default({ enabled: true, fontSize: 14 }),
+      .default({ enabled: true, fontSize: 14, offsetY: 0 }),
     messageBox: z
       .object({
         enabled: z.boolean().default(true),
         fontSize: z.number().min(11).max(22).default(13),
+        offsetY: z.number().min(-10).max(10).default(0),
       })
-      .default({ enabled: true, fontSize: 13 }),
+      .default({ enabled: true, fontSize: 13, offsetY: 0 }),
   })
   .default({
     variant: 'polaroid',
+    imagePosition: { x: 50, y: 50 },
     title: {
       enabled: true,
       text: TITLE_TEXT_PRESETS[0],
       font: 'playfairDisplay',
       color: 'currentColor',
       fontSize: 26,
+      offsetY: 0,
     },
-    nameBox: { enabled: true, fontSize: 20 },
-    dateBox: { enabled: true, fontSize: 14 },
-    messageBox: { enabled: true, fontSize: 13 },
+    nameBox: { enabled: true, fontSize: 20, offsetY: 0 },
+    dateBox: { enabled: true, fontSize: 14, offsetY: 0 },
+    messageBox: { enabled: true, fontSize: 13, offsetY: 0 },
   });
 
 export type FrameDesign = z.infer<typeof FrameDesignSchema>;
