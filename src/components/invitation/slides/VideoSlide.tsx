@@ -14,12 +14,16 @@ export function VideoSlide({ video }: { video: InvitationContent['video'] }) {
   const embedUrl = isExternal ? toEmbedUrl(video.url) : null;
 
   // 영화 스크린 느낌 — 슬라이드 전체를 어두운 배경으로 깔고, 영상은 가운데에서
-  // 잘리지 않고 화면 안에 모두 들어가도록 배치. width=auto + height=auto + max
-  // 만으로 채우면 브라우저가 16:9 비율을 유지하면서 가장 큰 사이즈를 자동
-  // 으로 골라준다 (가로/세로 중 먼저 한계에 닿는 쪽이 100% 가 됨).
+  // 잘리지 않고 화면 안에 가능한 한 가득 들어가도록 배치.
+  //
+  // SlideContainer 가 containerType: 'size' 를 깔아두기 때문에 cqw/cqh 가
+  // 슬라이드 박스 기준으로 동작한다. width 를 min(가로 100%, 세로*16/9) 로 잡으면
+  // 16:9 비율이 잘리지 않으면서 가용 공간을 최대로 활용한다.
+  // (이전 PR 의 width:auto + max-width 조합은 flex items-center 안에서 width
+  //  가 0 으로 줄어들어 영상이 안 보이는 버그가 있어 명시 width 로 수정.)
   return (
     <section
-      className="relative flex h-full min-h-full w-full flex-col items-center justify-center"
+      className="relative flex h-full min-h-full w-full items-center justify-center"
       style={{ backgroundColor: '#0A0A0C' }}
     >
       {/* 제목 — 상단에 살짝 */}
@@ -30,16 +34,12 @@ export function VideoSlide({ video }: { video: InvitationContent['video'] }) {
         </header>
       )}
 
-      {/* 영상 컨테이너 — width/height 둘 다 auto + max 100% + aspectRatio 로
-          잘림 없이 슬라이드를 가능한 한 가득 채운다. */}
+      {/* 영상 컨테이너 — 슬라이드(컨테이너) 안에 들어가는 가장 큰 16:9 박스 */}
       <div
         className="relative overflow-hidden bg-black shadow-[0_0_60px_rgba(0,0,0,0.8)]"
         style={{
           aspectRatio: '16 / 9',
-          width: 'auto',
-          height: 'auto',
-          maxWidth: '100%',
-          maxHeight: '100%',
+          width: 'min(100cqw, calc(100cqh * 16 / 9))',
         }}
       >
         {embedUrl ? (
