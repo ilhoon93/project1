@@ -137,9 +137,7 @@ export function MainEditor() {
                 folder="main"
                 previewAspect={
                   isFrame
-                    ? frame?.variant === 'heart'
-                      ? 'aspect-[4/5]'
-                      : 'aspect-square'
+                    ? 'aspect-square'  // polaroid / heart / screen 모두 1:1 (heart 도 가로 확대 + 정사각형)
                     : 'aspect-[9/16]'
                 }
                 previewFit={

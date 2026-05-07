@@ -854,20 +854,15 @@ function FrameImage({
 
   if (variant === 'heart') {
     // 하트 모양 클립 + 외곽 그림자.
-    // HeartClip 안에 일반 <img> 를 넣어 object-cover + objectPosition 활용.
-    // SVG clipPath(objectBoundingBox) 라 컨테이너 크기에 맞춰 하트가 자동 스케일 →
-    // 슬라이드(큰 컨테이너) 와 에디터 미리보기(작은 컨테이너) 가 항상 동일한 모양.
-    //
-    // 컨테이너를 4:5(세로가 약간 더 김) 로 두어 9:16 인물 사진 cover 시 잘리는
-    // 영역을 줄였다 (10:9 일 때 ~49% → 4:5 일 때 ~30% 만 잘림). 사진 절반 이상이
-    // 하트 안에 보이도록 사용자 요청.
+    // 4:5(세로) → 1:1(정사각형) + 너비 확대로 가로로 더 큰 하트로 조정.
+    // 외곽 흰 배경(이전 #f5f5f4) 제거 → 하트 바깥은 슬라이드(테마) 배경이 그대로 보이고,
+    // drop-shadow 가 하트 모양 그대로 살짝 떨어지게 됨.
     return (
       <HeartClip
         className="shrink-0"
         style={{
-          width: 'min(95cqw, 28rem)',
-          aspectRatio: '4 / 5',
-          backgroundColor: '#f5f5f4',
+          width: 'min(98cqw, 32rem)',
+          aspectRatio: '1 / 1',
           filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.18))',
         }}
       >
@@ -880,7 +875,10 @@ function FrameImage({
             style={{ objectPosition: objectPos }}
           />
         ) : (
-          <div className="grid h-full w-full place-items-center text-3xl text-stone-400">💗</div>
+          // 빈 상태 — 하트 안쪽만 placeholder 색을 깔도록 children 안에 배경을 둔다.
+          <div className="grid h-full w-full place-items-center bg-stone-100 text-3xl text-stone-400">
+            💗
+          </div>
         )}
       </HeartClip>
     );

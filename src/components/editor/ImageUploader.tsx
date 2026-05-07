@@ -208,16 +208,16 @@ function FramedPreview({
     );
   }
 
-  // 하트 — 슬라이드(MainSlide) 와 동일한 HeartClip + 4:5 비율을 사용해
+  // 하트 — 슬라이드(MainSlide) 와 동일한 HeartClip + 1:1 비율을 사용해
   // 미리보기/실제 슬라이드의 잘림 모양을 정확히 일치시킨다.
+  // 외곽 흰 배경 제거 — 하트 바깥은 미리보기 카드 배경이 그대로 보임.
   if (frameVariant === 'heart') {
     return (
       <div className="flex w-full justify-center">
         <HeartClip
           style={{
             width: '8rem',
-            aspectRatio: '4 / 5',
-            backgroundColor: '#f5f5f4',
+            aspectRatio: '1 / 1',
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -39,37 +39,59 @@ export async function editImage(input: {
 }
 
 // ─────────────────────────────────────────────────────────────
-// chatGPT 2.0 (OpenAI gpt-image / fal-ai/gpt-image-1/edit-image)
+// chatGPT 2.0 (OpenAI gpt-image / fal-ai/gpt-image-1/edit-image) — 큐 모드
+//
+// fal.subscribe 는 작업이 끝날 때까지 함수가 블록되어 60초 + α 가 걸릴 수 있다.
+// Vercel Hobby 의 60s 제한과 충돌하므로 `fal.queue.submit / status / result` 로
+// 분리해 사용한다. 한 번의 함수 호출은 1–5초로 짧고, 클라이언트가 폴링한다.
 // ─────────────────────────────────────────────────────────────
+
+const GPT_IMAGE_MODEL = 'fal-ai/gpt-image-1/edit-image';
 
 interface GptImageEditResult {
   images: { url: string; content_type?: string }[];
 }
 
-/**
- * fal.ai 의 chatGPT 2.0 (OpenAI gpt-image-1) 인페인팅 모델로 이미지 편집.
- *
- * 모델 슬러그: `fal-ai/gpt-image-1/edit-image/byok` 또는 `fal-ai/gpt-image-1/edit-image`
- * 둘 다 같은 입력 스키마를 받는다 — 사진 URL 1개 + 프롬프트.
- *
- * 기본은 BYOK (Bring Your Own Key) 가 아닌 fal.ai 가 OpenAI 키를 대신 호출해
- * 결제하는 `edit-image` 엔드포인트를 사용한다. fal.ai 의 `FAL_KEY` 한 개만 있으면
- * 동작하기 때문에 사용자 셋업 부담이 없다.
- */
-export async function editImageWithGptImage(input: {
+/** 작업 제출 → 큐 request_id 반환 (1–3초). */
+export async function submitImageEdit(input: {
   imageUrl: string;
   prompt: string;
 }): Promise<string> {
   ensureConfigured();
-  const result = await fal.subscribe('fal-ai/gpt-image-1/edit-image', {
+  const { request_id } = await fal.queue.submit(GPT_IMAGE_MODEL, {
     input: {
       image_urls: [input.imageUrl],
       prompt: input.prompt,
       num_images: 1,
     },
   });
+  if (!request_id) throw new Error('fal.queue.submit returned no request_id');
+  return request_id;
+}
+
+export type FalQueueStatus = 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+
+/** 큐 작업 상태 조회 (0.5–1초). */
+export async function getImageEditStatus(requestId: string): Promise<{
+  status: FalQueueStatus;
+  queuePosition?: number;
+}> {
+  ensureConfigured();
+  const status = (await fal.queue.status(GPT_IMAGE_MODEL, {
+    requestId,
+  })) as { status: FalQueueStatus; queue_position?: number };
+  return {
+    status: status.status,
+    queuePosition: status.queue_position,
+  };
+}
+
+/** 완료된 큐 작업의 결과 이미지 URL 반환 (1–2초). status === 'COMPLETED' 일 때만 호출. */
+export async function getImageEditResult(requestId: string): Promise<string> {
+  ensureConfigured();
+  const result = await fal.queue.result(GPT_IMAGE_MODEL, { requestId });
   const data = result.data as GptImageEditResult;
   const url = data.images?.[0]?.url;
-  if (!url) throw new Error('fal.ai (gpt-image-1) returned no image');
+  if (!url) throw new Error('fal.queue.result returned no image url');
   return url;
 }

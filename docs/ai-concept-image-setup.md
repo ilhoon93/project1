@@ -63,34 +63,52 @@ supabase db push
 | 경로 | 설명 |
 | --- | --- |
 | `src/lib/fal/concepts.ts` | 5가지 컨셉 카탈로그 + 마스터 프롬프트 빌더 |
-| `src/lib/fal/client.ts` (`editImageWithGptImage`) | `fal-ai/gpt-image-1/edit-image` 호출 래퍼 |
-| `src/app/api/ai/concept-generate/route.ts` | POST=생성 / GET=잔여 쿼터 조회 |
+| `src/lib/fal/client.ts` (`submitImageEdit / getImageEditStatus / getImageEditResult`) | fal.ai 큐 모드 래퍼 |
+| `src/app/api/ai/concept-generate/route.ts` | POST=큐 제출(requestId 반환) / GET=잔여 쿼터 조회 |
+| `src/app/api/ai/concept-status/route.ts` | GET=fal.ai 큐 작업 상태 조회 (폴링) |
+| `src/app/api/ai/concept-finalize/route.ts` | POST=완료된 결과를 우리 Storage 에 저장 + 사용량 +1 |
 | `src/components/editor/AIPanel.tsx` | 에디터 우측 "AI 이미지" 탭 진입점 |
-| `src/components/editor/AIImageGenerator.tsx` | 업로드 → 컨셉 선택 → 생성 → 다운로드 UI |
+| `src/components/editor/AIImageGenerator.tsx` | 업로드 → 컨셉 선택 → 큐 제출 → 폴링 → 다운로드 UI |
 
 ---
 
-## 5. 동작 흐름
+## 5. 동작 흐름 (큐 모드)
+
+`fal.subscribe` (블로킹) 대신 `fal.queue.submit/status/result` 로 분리해 각 함수
+호출이 5초 안쪽으로 끝납니다. **Vercel Hobby 의 60s 함수 제한과 무관하게 동작**.
 
 ```
 사용자 업로드 (private-uploads)
         │
         ▼  signed URL 1시간
-POST /api/ai/concept-generate
+POST /api/ai/concept-generate                 ← 1–3초
         │
         ├─ ai_image_usage 조회 (user_id 단위)
         │     └─ used_count >= 1  →  403 quota_exhausted
         │
-        ├─ fal.ai gpt-image-1/edit-image 호출
-        │     └─ buildConceptPrompt(concept) 로 프롬프트 완성
+        ├─ fal.queue.submit(buildConceptPrompt(concept))
         │
+        └─ { requestId } 즉시 반환
+
+클라이언트가 5초 간격으로 폴링:
+GET /api/ai/concept-status?id={requestId}     ← 0.5–1초
+        ├─ status: IN_QUEUE / IN_PROGRESS  →  계속 폴링
+        ├─ status: FAILED                  →  에러 표시
+        └─ status: COMPLETED               →  finalize 호출
+
+POST /api/ai/concept-finalize                 ← 3–5초
+        │
+        ├─ 쿼터 재확인
+        ├─ fal.queue.result → 결과 URL
         ├─ 결과를 public-images 버킷에 저장 (ai-results/{user_id}/...)
-        │
         └─ ai_image_usage upsert (used_count += 1, last_image_path)
 ```
 
 `GET /api/ai/concept-generate` 는 진입 시 한 번 호출돼 잔여 사용 가능 여부 +
 마지막 결과 URL 을 받아 UI 분기에 사용합니다.
+
+새로고침 안전장치: 진행 중이던 `requestId` 는 `sessionStorage.mw_ai_active_request`
+에 저장되어 페이지 새로고침 후에도 폴링을 이어갈 수 있습니다.
 
 ---
 
@@ -113,3 +131,9 @@ vars.bride` 만 컨셉별로 다르게 두면 됩니다.
 - **계정당 1회 제한을 초기화하고 싶다** →
   `delete from public.ai_image_usage where user_id = '...';` 로 행을 지우면
   다시 1회 사용 가능합니다.
+- **`Unexpected token 'A', "An error o"...` 가 화면에 보였다** → 이전 동기 모드
+  (fal.subscribe) 에서 Vercel 함수 타임아웃 시 발생하던 증상. 큐 모드로 전환된
+  현재는 발생하지 않아야 합니다. 만약 여전히 보인다면 `concept-status` 폴링
+  라우트 자체가 타임아웃 났을 가능성 — fal.ai 가 응답을 5–10초 이상 끌고 있는
+  경우라 잠시 후 새로고침으로 폴링 재개됩니다 (sessionStorage 의 active
+  requestId 가 자동 복구).
