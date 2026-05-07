@@ -17,6 +17,10 @@ interface Props {
   folder: string;
   /** Tailwind aspect class for the preview, defaults to a 3:4 portrait. */
   previewAspect?: string;
+  /** Whether the preview crops to fill the frame (cover) or shows the full image (contain). */
+  previewFit?: 'cover' | 'contain';
+  /** When previewFit='cover', selects which portion of the image is centered (0–100). */
+  previewPosition?: { x: number; y: number };
   label?: string;
 }
 
@@ -30,6 +34,8 @@ export function ImageUploader({
   invitationId,
   folder,
   previewAspect = 'aspect-[3/4]',
+  previewFit = 'cover',
+  previewPosition,
   label = '사진 업로드',
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -91,12 +97,30 @@ export function ImageUploader({
 
       {value ? (
         <div className="flex flex-col gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={value}
-            alt="업로드된 사진"
-            className={`${previewAspect} w-full rounded-md object-cover`}
-          />
+          {/* contain: 잘림 없이 전체를 보여주고 남는 영역은 배경색(--mw-bg)으로 채움.
+              cover: 프레임을 채우되 previewPosition 으로 보일 영역을 선택. */}
+          <div
+            className={`${previewAspect} w-full overflow-hidden rounded-md`}
+            style={
+              previewFit === 'contain'
+                ? { backgroundColor: 'var(--mw-bg, #f5f5f5)' }
+                : undefined
+            }
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={value}
+              alt="업로드된 사진"
+              className={`h-full w-full ${
+                previewFit === 'contain' ? 'object-contain' : 'object-cover'
+              }`}
+              style={
+                previewFit === 'cover' && previewPosition
+                  ? { objectPosition: `${previewPosition.x}% ${previewPosition.y}%` }
+                  : undefined
+              }
+            />
+          </div>
           <div className="flex gap-2">
             <Button
               type="button"

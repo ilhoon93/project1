@@ -98,17 +98,35 @@ function PosterFullImageSlide({
 
   const titleFont = TITLE_FONT_OPTIONS[design.title.font].family;
 
+  const imageFit = design.image?.fit ?? 'cover';
+  const imagePos = design.image?.position ?? { x: 50, y: 50 };
+
   return (
-    <section className="relative h-full min-h-full w-full overflow-hidden text-white">
+    <section
+      className="relative h-full min-h-full w-full overflow-hidden text-white"
+      style={
+        // contain 모드는 이미지 외 영역을 테마 배경색으로 채운다.
+        imageFit === 'contain'
+          ? { backgroundColor: 'var(--mw-bg, #1a1a1a)' }
+          : undefined
+      }
+    >
       {/* 배경 이미지 */}
       <img
         src={main.heroImage!}
         alt=""
-        className="absolute inset-0 h-full w-full object-cover"
+        className={`absolute inset-0 h-full w-full ${
+          imageFit === 'contain' ? 'object-contain' : 'object-cover'
+        }`}
+        style={
+          imageFit === 'cover'
+            ? { objectPosition: `${imagePos.x}% ${imagePos.y}%` }
+            : undefined
+        }
       />
 
-      {/* 가독성 확보용 살짝의 어두운 오버레이 */}
-      <div className="absolute inset-0 bg-black/25" />
+      {/* 가독성 확보용 살짝의 어두운 오버레이 — contain 모드에선 이미지 밖 배경까지 어두워지지 않도록 생략 */}
+      {imageFit === 'cover' && <div className="absolute inset-0 bg-black/25" />}
 
       {/* 1-a) 하단 그라데이션 — 테마 배경색에 맞춰 부드럽게 페이드.
           높이 1/2 → 1/3, 시작점에 더 큰 투명 영역을 둬서 전체 강도를 낮춘다. */}
