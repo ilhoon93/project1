@@ -21,7 +21,7 @@ import { TextAreaField } from '../form-fields';
 import { ImageUploader } from '../ImageUploader';
 
 const LAYOUT_LABELS: Record<(typeof MAIN_LAYOUTS)[number], { name: string; hint: string }> = {
-  poster: { name: '풀이미지형', hint: '풀이미지 배경' },
+  poster: { name: '포스터', hint: '풀이미지 배경' },
   polaroid: { name: '폴라로이드', hint: '액자 프레임' },
   illustration: { name: '일러스트', hint: '신랑신부 그림' },
   text: { name: '텍스트', hint: '이미지 없이' },
@@ -103,6 +103,8 @@ export function MainEditor() {
               invitationId={invitationId}
               folder="main"
               previewAspect="aspect-[3/4]"
+              previewFit={isPoster ? design?.image.fit : 'cover'}
+              previewPosition={isPoster ? design?.image.position : undefined}
               label="사진 선택하기"
             />
             {isPoster && (
@@ -119,41 +121,92 @@ export function MainEditor() {
         )}
 
         {isPoster && design && (
-          <PosterDesignControls design={design} onChange={patchDesign} />
+          <PosterDesignControls
+            design={design}
+            onChange={patchDesign}
+            greeting={main.greeting}
+            onGreetingChange={(greeting) => patch('main', { ...main, greeting })}
+          />
         )}
 
         {isIllustration && illust && (
-          <IllustrationDesignControls design={illust} onChange={patchIllust} />
+          <IllustrationDesignControls
+            design={illust}
+            onChange={patchIllust}
+            greeting={main.greeting}
+            onGreetingChange={(greeting) => patch('main', { ...main, greeting })}
+          />
         )}
 
-        <TextAreaField
-          label="인사말"
-          value={main.greeting}
-          maxLength={500}
-          rows={4}
-          placeholder="저희 두 사람의 약속을 함께 축복해주세요"
-          onChange={(e) => patch('main', { ...main, greeting: e.target.value })}
-        />
+        {/* 포스터/일러스트는 각 디자인 패널 내부 "인사말" 그룹에서 작성한다.
+            폴라로이드·텍스트는 디자인 패널이 없으므로 여기서 그대로 노출. */}
+        {!isPoster && !isIllustration && (
+          <TextAreaField
+            label="인사말"
+            value={main.greeting}
+            maxLength={500}
+            rows={4}
+            placeholder="저희 두 사람의 약속을 함께 축복해주세요"
+            onChange={(e) => patch('main', { ...main, greeting: e.target.value })}
+          />
+        )}
       </div>
     </SectionEditor>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// 풀이미지형 디자인 컨트롤
+// 포스터 디자인 컨트롤
 // ─────────────────────────────────────────────────────────────
 
 interface DesignProps {
   design: PosterDesign;
   onChange: (next: PosterDesign) => void;
+  greeting: string;
+  onGreetingChange: (next: string) => void;
 }
 
-function PosterDesignControls({ design, onChange }: DesignProps) {
+function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: DesignProps) {
   return (
     <div className="flex flex-col gap-5 rounded-md border border-input bg-muted/20 p-3">
-      <h3 className="text-sm font-semibold text-foreground">풀이미지형 디자인</h3>
+      <h3 className="text-sm font-semibold text-foreground">포스터 디자인</h3>
 
-      {/* 1. 이미지 효과 */}
+      {/* 1. 이미지 표시 방법 — 전체 보기 vs 프레임에 맞게 자르기 */}
+      <Group label="이미지 표시 방법">
+        <div className="grid grid-cols-2 gap-2">
+          <FitOptionButton
+            selected={design.image.fit === 'contain'}
+            onClick={() =>
+              onChange({ ...design, image: { ...design.image, fit: 'contain' } })
+            }
+            title="전체 보기"
+            hint={'이미지 전체를 잘리지 않게\n나머지는 배경색'}
+          />
+          <FitOptionButton
+            selected={design.image.fit === 'cover'}
+            onClick={() =>
+              onChange({ ...design, image: { ...design.image, fit: 'cover' } })
+            }
+            title="프레임에 맞게 자르기"
+            hint={'슬라이더로 보일 영역을\n선택해 프레임을 채움'}
+          />
+        </div>
+        {design.image.fit === 'cover' && (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-muted-foreground">
+              슬라이더로 사진에서 보일 영역의 중심을 선택하세요.
+            </p>
+            <PositionSliders
+              position={design.image.position}
+              onChange={(position) =>
+                onChange({ ...design, image: { ...design.image, position } })
+              }
+            />
+          </div>
+        )}
+      </Group>
+
+      {/* 2. 이미지 효과 */}
       <Group label="이미지 효과">
         <ToggleRow
           label="하단 그라데이션"
@@ -227,9 +280,9 @@ function PosterDesignControls({ design, onChange }: DesignProps) {
         />
       </Group>
 
-      {/* 3. 날짜 박스 */}
+      {/* 3. 날짜 */}
       <Group
-        label="날짜 박스"
+        label="날짜"
         toggle={{
           checked: design.dateBox.enabled,
           onChange: (v) =>
@@ -261,9 +314,9 @@ function PosterDesignControls({ design, onChange }: DesignProps) {
         )}
       </Group>
 
-      {/* 4. 이름 박스 */}
+      {/* 4. 이름 */}
       <Group
-        label="이름 박스"
+        label="이름"
         toggle={{
           checked: design.nameBox.enabled,
           onChange: (v) =>
@@ -295,10 +348,10 @@ function PosterDesignControls({ design, onChange }: DesignProps) {
         )}
       </Group>
 
-      {/* 5. 메시지 박스 */}
-      <Group label="메시지 박스">
+      {/* 5. 인사말 — 위치/크기 슬라이더 아래에서 본문도 같이 작성 */}
+      <Group label="인사말">
         <p className="text-xs text-muted-foreground">
-          인사말이 표시됩니다. 폰트와 색상은 전체 디자인을 따릅니다.
+          폰트와 색상은 전체 디자인을 따릅니다.
         </p>
         <SliderRow
           label="글자 크기"
@@ -316,8 +369,54 @@ function PosterDesignControls({ design, onChange }: DesignProps) {
             onChange({ ...design, messageBox: { ...design.messageBox, position } })
           }
         />
+        <TextAreaField
+          label="인사말 내용"
+          value={greeting}
+          maxLength={500}
+          rows={4}
+          placeholder="저희 두 사람의 약속을 함께 축복해주세요"
+          onChange={(e) => onGreetingChange(e.target.value)}
+        />
       </Group>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 이미지 표시 방법 옵션 버튼
+// ─────────────────────────────────────────────────────────────
+
+function FitOptionButton({
+  selected,
+  onClick,
+  title,
+  hint,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  title: string;
+  hint: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={`flex flex-col items-center gap-1 rounded-md border px-2 py-3 text-xs transition-colors ${
+        selected
+          ? 'border-foreground bg-foreground text-background'
+          : 'border-input bg-background text-foreground hover:bg-muted'
+      }`}
+    >
+      <span className="font-medium">{title}</span>
+      <span
+        className={`whitespace-pre-line text-center leading-snug ${
+          selected ? 'opacity-80' : 'text-muted-foreground'
+        }`}
+      >
+        {hint}
+      </span>
+    </button>
   );
 }
 
@@ -328,6 +427,8 @@ function PosterDesignControls({ design, onChange }: DesignProps) {
 interface IllustProps {
   design: IllustrationDesign;
   onChange: (next: IllustrationDesign) => void;
+  greeting: string;
+  onGreetingChange: (next: string) => void;
 }
 
 const ILLUST_VARIANT_LABELS: Record<IllustrationVariant, { name: string; hint: string }> = {
@@ -335,7 +436,7 @@ const ILLUST_VARIANT_LABELS: Record<IllustrationVariant, { name: string; hint: s
   dance: { name: '슬로우 댄스', hint: '댄스 포즈 + 골드 스파클' },
 };
 
-function IllustrationDesignControls({ design, onChange }: IllustProps) {
+function IllustrationDesignControls({ design, onChange, greeting, onGreetingChange }: IllustProps) {
   return (
     <div className="flex flex-col gap-5 rounded-md border border-input bg-muted/20 p-3">
       <h3 className="text-sm font-semibold text-foreground">일러스트형 디자인</h3>
@@ -390,9 +491,9 @@ function IllustrationDesignControls({ design, onChange }: IllustProps) {
         />
       </Group>
 
-      {/* 날짜 박스 — 토글만, 위치 고정 */}
+      {/* 날짜 — 토글만, 위치 고정 */}
       <Group
-        label="날짜 박스"
+        label="날짜"
         toggle={{
           checked: design.dateBox.enabled,
           onChange: (v) =>
@@ -404,9 +505,9 @@ function IllustrationDesignControls({ design, onChange }: IllustProps) {
         </p>
       </Group>
 
-      {/* 이름 박스 — 토글만, 위치 고정 */}
+      {/* 이름 — 토글만, 위치 고정 */}
       <Group
-        label="이름 박스"
+        label="이름"
         toggle={{
           checked: design.nameBox.enabled,
           onChange: (v) =>
@@ -418,11 +519,19 @@ function IllustrationDesignControls({ design, onChange }: IllustProps) {
         </p>
       </Group>
 
-      {/* 메시지 박스 — 토글 없음, 위치 고정 (제목 바로 아래 부제 자리) */}
-      <Group label="메시지 박스">
+      {/* 인사말 — 위치 고정 (제목 바로 아래 부제 자리). 본문도 여기서 작성. */}
+      <Group label="인사말">
         <p className="text-xs text-muted-foreground">
-          제목 바로 아래 부제 자리에 인사말이 표시됩니다. 위치 고정.
+          제목 바로 아래 부제 자리에 표시됩니다. 위치 고정.
         </p>
+        <TextAreaField
+          label="인사말 내용"
+          value={greeting}
+          maxLength={500}
+          rows={4}
+          placeholder="저희 두 사람의 약속을 함께 축복해주세요"
+          onChange={(e) => onGreetingChange(e.target.value)}
+        />
       </Group>
     </div>
   );

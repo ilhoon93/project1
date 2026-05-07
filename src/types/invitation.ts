@@ -50,6 +50,12 @@ const PositionSchema = z
   })
   .default({ x: 50, y: 50 });
 
+// 이미지 표시 방식.
+//   - cover  : 프레임을 가득 채우고 imagePosition 으로 보일 영역을 선택 (기존 동작).
+//   - contain: 이미지 전체를 잘리지 않게 보여주고 남는 영역은 배경색으로 채움.
+export const POSTER_IMAGE_FITS = ['cover', 'contain'] as const;
+export type PosterImageFit = (typeof POSTER_IMAGE_FITS)[number];
+
 export const PosterDesignSchema = z
   .object({
     effects: z
@@ -58,6 +64,13 @@ export const PosterDesignSchema = z
         border: z.boolean().default(false),
       })
       .default({ gradient: true, border: false }),
+    image: z
+      .object({
+        fit: z.enum(POSTER_IMAGE_FITS).default('cover'),
+        // cover 일 때 보일 영역의 중심점(0–100 %). object-position 으로 매핑.
+        position: PositionSchema.default({ x: 50, y: 50 }),
+      })
+      .default({ fit: 'cover', position: { x: 50, y: 50 } }),
     title: z
       .object({
         // 콤보박스 프리셋(TITLE_TEXT_PRESETS) 또는 직접 입력 — 자유 문자열.
@@ -101,6 +114,7 @@ export const PosterDesignSchema = z
   })
   .default({
     effects: { gradient: true, border: false },
+    image: { fit: 'cover', position: { x: 50, y: 50 } },
     title: {
       text: TITLE_TEXT_PRESETS[0],
       font: 'playfairDisplay',
