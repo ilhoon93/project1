@@ -143,9 +143,9 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-3" data-noswipe>
-          {/* 1줄: 이름(가용 공간 차지) + 신랑측/신부측. 이름과 신부측 사이 빈 공간이 없도록
-              이름 input 을 flex-1 로 확장. */}
-          <div className="flex items-center gap-1.5">
+          {/* 한 줄: 이름(flex-1) + 신랑측 + 신부측 + 서명하기. 가운데 공백을 최소화하기 위해
+              gap-1 + 이름 input 만 flex-1, 나머지는 shrink-0 고정. */}
+          <div className="flex items-center gap-1">
             <input
               type="text"
               value={name}
@@ -153,7 +153,7 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
               maxLength={20}
               required
               placeholder="이름"
-              className={`h-9 min-w-0 flex-1 px-2.5 text-sm ${inputBaseClass}`}
+              className={`h-9 min-w-0 flex-1 px-2 text-sm ${inputBaseClass}`}
             />
             {[
               { v: 'groom', label: '신랑측' },
@@ -172,20 +172,20 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
                 {opt.label}
               </button>
             ))}
+            {/* 서명하기 — 짧은 레이블로 줄여 한 줄에 들어가도록. 작성 후엔 ✓ 표시. */}
+            <button
+              type="button"
+              onClick={() => setShowSigPopup(true)}
+              aria-label={signatureData ? '서명 다시 하기' : '서명하기 (선택)'}
+              className={`h-9 shrink-0 rounded-md border px-2 text-[11px] font-medium transition-colors ${
+                signatureData
+                  ? 'border-[var(--mw-accent)] bg-[var(--mw-accent)] text-white shadow-sm'
+                  : 'border-[var(--mw-accent)] bg-white text-[var(--mw-accent)] hover:bg-[var(--mw-accent)] hover:text-white'
+              }`}
+            >
+              {signatureData ? '서명 ✓' : '서명하기'}
+            </button>
           </div>
-
-          {/* 2줄: 서명하기 버튼 — 한 줄 채우는 게 깔끔. */}
-          <button
-            type="button"
-            onClick={() => setShowSigPopup(true)}
-            className={`h-9 rounded-md border text-xs font-medium transition-colors ${
-              signatureData
-                ? 'border-[var(--mw-accent)] bg-[var(--mw-accent)] text-white shadow-sm'
-                : 'border-[var(--mw-accent)] bg-white text-[var(--mw-accent)] hover:bg-[var(--mw-accent)] hover:text-white'
-            }`}
-          >
-            {signatureData ? '서명하기 ✓' : '서명하기 (선택)'}
-          </button>
 
           <textarea
             value={message}

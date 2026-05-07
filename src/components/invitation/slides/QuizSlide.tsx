@@ -11,13 +11,12 @@ interface Props {
 }
 
 export function QuizSlide({ quiz, invitationId, isPreview }: Props) {
-  // Drafts may include questions without text or full options; only render
-  // ones that are actually playable.
+  // Drafts may include questions without text or full options.
+  // 질문(q.q) 만 비어 있지 않으면 렌더한다 — 옵션 일부가 비어 있어도 비어 있지 않은 보기만
+  // 노출해 2번째 문항이 자동으로 사라지지 않게 함.
   const playable = quiz.questions
     .map((q, qi) => ({ q, qi }))
-    .filter(
-      ({ q }) => q.q.trim() && q.options.every((opt) => opt.trim()),
-    );
+    .filter(({ q }) => q.q.trim());
 
   if (playable.length === 0) {
     return <EmptyState message="등록된 퀴즈가 없습니다" />;
@@ -84,6 +83,8 @@ function Question({
       </h3>
       <ul className="flex flex-col gap-2">
         {question.options.map((opt, oi) => {
+          // 비어 있는 보기는 건너뜀 — 2번째 문항이 일부만 채워져 있어도 화면에 보이도록.
+          if (!opt.trim()) return null;
           const isPicked = selected === oi;
           const isCorrect = oi === question.answer;
           const showState = isAnswered;

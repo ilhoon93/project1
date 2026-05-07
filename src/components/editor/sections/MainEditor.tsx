@@ -104,14 +104,14 @@ export function MainEditor() {
                     type="button"
                     onClick={() => patch('main', { ...main, layout: key })}
                     aria-pressed={selected}
-                    className={`flex flex-col items-center gap-1 rounded-md border px-2 py-3 text-xs transition-colors ${
+                    className={`flex flex-col items-center gap-0.5 rounded-md border px-1.5 py-1.5 text-[11px] leading-tight transition-colors ${
                       selected
                         ? 'border-foreground bg-foreground text-background'
                         : 'border-input bg-background text-foreground hover:bg-muted'
                     }`}
                   >
                     <span className="font-medium">{meta.name}</span>
-                    <span className={selected ? 'opacity-80' : 'text-muted-foreground'}>
+                    <span className={`text-[10px] ${selected ? 'opacity-80' : 'text-muted-foreground'}`}>
                       {meta.hint}
                     </span>
                   </button>
@@ -158,6 +158,8 @@ export function MainEditor() {
                 }
                 // 9:20 비율 폰에서 좌우가 잘리는 영역을 회색으로 표시 — 포스터 전용.
                 showWideAspectCropMask={isPoster}
+                // 액자프레임 변형은 미리보기에 실제 프레임 셰이프를 적용해 잘릴 영역 가시화.
+                frameVariant={isFrame ? frame?.variant : undefined}
                 label="사진 선택"
               />
             </div>
