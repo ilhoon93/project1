@@ -27,6 +27,11 @@ const LAYOUT_LABELS: Record<(typeof MAIN_LAYOUTS)[number], { name: string; hint:
   text: { name: '텍스트', hint: '이미지 없이' },
 };
 
+// "이미지 표시 방법" 옵션은 코드는 살려두되 일단 UI 에서만 숨김.
+// 데이터/렌더링 경로(MainSlide 의 imageFit/imagePosition)는 그대로 동작하므로
+// 이 플래그를 true 로 바꾸면 즉시 다시 노출된다.
+const SHOW_IMAGE_FIT_OPTION = false;
+
 // 결혼 청첩장에서 자주 쓰이는 색상 — 활용 빈도 순서로 앞쪽에 배치.
 // 흰/검정(고대비) → 따뜻한 세피아·골드 → 짙은 액센트(네이비·버건디·세이지)
 // → 연한 톤(블러쉬·로즈·아이보리) 순.
@@ -102,9 +107,11 @@ export function MainEditor() {
               onChange={(url) => patch('main', { ...main, heroImage: url })}
               invitationId={invitationId}
               folder="main"
-              previewAspect="aspect-[3/4]"
+              previewAspect="aspect-[9/16]"
               previewFit={isPoster ? design?.image.fit : 'cover'}
               previewPosition={isPoster ? design?.image.position : undefined}
+              // 9:20 비율 폰에서 좌우가 잘리는 영역을 회색으로 표시 (포스터일 때만).
+              showWideAspectCropMask={isPoster}
               label="사진 선택하기"
             />
             {isPoster && (
@@ -114,6 +121,11 @@ export function MainEditor() {
                   <li>해상도: <strong>1080 × 1920 px</strong> (9:16 세로형)</li>
                   <li>형식: JPG · PNG · WEBP (최대 25MB)</li>
                   <li>중요한 인물·소품은 화면 중앙에 — 상하 약 15%는 그라데이션·텍스트가 덮을 수 있어요.</li>
+                  <li>
+                    스마트폰 기종(9:20 비율 등 길쭉한 화면)에서는 좌우가 약 9% 정도 잘릴 수 있어요. 미리보기에서{' '}
+                    <span className="rounded bg-foreground/15 px-1 py-0.5 font-medium text-foreground">회색 영역</span>이
+                    잘릴 수 있는 부분이에요.
+                  </li>
                 </ul>
               </div>
             )}
@@ -171,40 +183,42 @@ function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: 
     <div className="flex flex-col gap-5 rounded-md border border-input bg-muted/20 p-3">
       <h3 className="text-sm font-semibold text-foreground">포스터 디자인</h3>
 
-      {/* 1. 이미지 표시 방법 — 전체 보기 vs 프레임에 맞게 자르기 */}
-      <Group label="이미지 표시 방법">
-        <div className="grid grid-cols-2 gap-2">
-          <FitOptionButton
-            selected={design.image.fit === 'contain'}
-            onClick={() =>
-              onChange({ ...design, image: { ...design.image, fit: 'contain' } })
-            }
-            title="전체 보기"
-            hint={'이미지 전체를 잘리지 않게\n나머지는 배경색'}
-          />
-          <FitOptionButton
-            selected={design.image.fit === 'cover'}
-            onClick={() =>
-              onChange({ ...design, image: { ...design.image, fit: 'cover' } })
-            }
-            title="프레임에 맞게 자르기"
-            hint={'슬라이더로 보일 영역을\n선택해 프레임을 채움'}
-          />
-        </div>
-        {design.image.fit === 'cover' && (
-          <div className="flex flex-col gap-2">
-            <p className="text-xs text-muted-foreground">
-              슬라이더로 사진에서 보일 영역의 중심을 선택하세요.
-            </p>
-            <PositionSliders
-              position={design.image.position}
-              onChange={(position) =>
-                onChange({ ...design, image: { ...design.image, position } })
+      {/* 1. 이미지 표시 방법 — 일단 UI 숨김 (SHOW_IMAGE_FIT_OPTION 으로 다시 노출). */}
+      {SHOW_IMAGE_FIT_OPTION && (
+        <Group label="이미지 표시 방법">
+          <div className="grid grid-cols-2 gap-2">
+            <FitOptionButton
+              selected={design.image.fit === 'contain'}
+              onClick={() =>
+                onChange({ ...design, image: { ...design.image, fit: 'contain' } })
               }
+              title="전체 보기"
+              hint={'이미지 전체를 잘리지 않게\n나머지는 배경색'}
+            />
+            <FitOptionButton
+              selected={design.image.fit === 'cover'}
+              onClick={() =>
+                onChange({ ...design, image: { ...design.image, fit: 'cover' } })
+              }
+              title="프레임에 맞게 자르기"
+              hint={'슬라이더로 보일 영역을\n선택해 프레임을 채움'}
             />
           </div>
-        )}
-      </Group>
+          {design.image.fit === 'cover' && (
+            <div className="flex flex-col gap-2">
+              <p className="text-xs text-muted-foreground">
+                슬라이더로 사진에서 보일 영역의 중심을 선택하세요.
+              </p>
+              <PositionSliders
+                position={design.image.position}
+                onChange={(position) =>
+                  onChange({ ...design, image: { ...design.image, position } })
+                }
+              />
+            </div>
+          )}
+        </Group>
+      )}
 
       {/* 2. 이미지 효과 */}
       <Group label="이미지 효과">
@@ -255,8 +269,8 @@ function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: 
         <SliderRow
           label="글자 크기"
           value={design.title.fontSize}
-          min={24}
-          max={72}
+          min={20}
+          max={56}
           unit="px"
           onChange={(fontSize) =>
             onChange({ ...design, title: { ...design.title, fontSize } })
@@ -298,7 +312,7 @@ function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: 
               label="글자 크기"
               value={design.dateBox.fontSize}
               min={12}
-              max={40}
+              max={28}
               unit="px"
               onChange={(fontSize) =>
                 onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
@@ -331,8 +345,8 @@ function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: 
             <SliderRow
               label="글자 크기"
               value={design.nameBox.fontSize}
-              min={12}
-              max={40}
+              min={14}
+              max={32}
               unit="px"
               onChange={(fontSize) =>
                 onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
@@ -348,35 +362,46 @@ function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: 
         )}
       </Group>
 
-      {/* 5. 인사말 — 위치/크기 슬라이더 아래에서 본문도 같이 작성 */}
-      <Group label="인사말">
+      {/* 5. 인사말 — 토글 + 위치/크기 슬라이더 + 본문 입력. 토글 OFF 시 본문은 보존되지만 표시 안 됨. */}
+      <Group
+        label="인사말"
+        toggle={{
+          checked: design.messageBox.enabled,
+          onChange: (v) =>
+            onChange({ ...design, messageBox: { ...design.messageBox, enabled: v } }),
+        }}
+      >
         <p className="text-xs text-muted-foreground">
           폰트와 색상은 전체 디자인을 따릅니다.
         </p>
-        <SliderRow
-          label="글자 크기"
-          value={design.messageBox.fontSize}
-          min={12}
-          max={40}
-          unit="px"
-          onChange={(fontSize) =>
-            onChange({ ...design, messageBox: { ...design.messageBox, fontSize } })
-          }
-        />
-        <PositionSliders
-          position={design.messageBox.position}
-          onChange={(position) =>
-            onChange({ ...design, messageBox: { ...design.messageBox, position } })
-          }
-        />
-        <TextAreaField
-          label="인사말 내용"
-          value={greeting}
-          maxLength={500}
-          rows={4}
-          placeholder="저희 두 사람의 약속을 함께 축복해주세요"
-          onChange={(e) => onGreetingChange(e.target.value)}
-        />
+        {design.messageBox.enabled && (
+          <>
+            <SliderRow
+              label="글자 크기"
+              value={design.messageBox.fontSize}
+              min={12}
+              max={28}
+              unit="px"
+              onChange={(fontSize) =>
+                onChange({ ...design, messageBox: { ...design.messageBox, fontSize } })
+              }
+            />
+            <PositionSliders
+              position={design.messageBox.position}
+              onChange={(position) =>
+                onChange({ ...design, messageBox: { ...design.messageBox, position } })
+              }
+            />
+            <TextAreaField
+              label="인사말 내용"
+              value={greeting}
+              maxLength={500}
+              rows={4}
+              placeholder="저희 두 사람의 약속을 함께 축복해주세요"
+              onChange={(e) => onGreetingChange(e.target.value)}
+            />
+          </>
+        )}
       </Group>
     </div>
   );
@@ -821,6 +846,7 @@ function PositionSliders({
         max={100}
         leftHint="좌"
         rightHint="우"
+        unit="%"
         onChange={(x) => onChange({ ...position, x })}
       />
       <SliderRow
@@ -830,6 +856,7 @@ function PositionSliders({
         max={100}
         leftHint="상"
         rightHint="하"
+        unit="%"
         onChange={(y) => onChange({ ...position, y })}
       />
     </div>
@@ -855,10 +882,12 @@ function SliderRow({
   unit?: string;
   onChange: (v: number) => void;
 }) {
+  // input 에 min-w-0 을 줘야 flex-row 안에서 우측 값 칸이 박스 밖으로 밀려나지 않음.
+  // 라벨 폭을 살짝 줄이고(g-3→g-2), 우측 값 폭을 단위 길이까지 안전하게 수용 (w-14).
   return (
-    <label className="flex items-center gap-3 text-xs">
-      <span className="w-16 shrink-0 text-muted-foreground">{label}</span>
-      {leftHint && <span className="text-muted-foreground">{leftHint}</span>}
+    <label className="flex items-center gap-2 text-xs">
+      <span className="w-14 shrink-0 text-muted-foreground">{label}</span>
+      {leftHint && <span className="shrink-0 text-muted-foreground">{leftHint}</span>}
       <input
         type="range"
         min={min}
@@ -866,10 +895,10 @@ function SliderRow({
         step={1}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="flex-1 accent-foreground"
+        className="min-w-0 flex-1 accent-foreground"
       />
-      {rightHint && <span className="text-muted-foreground">{rightHint}</span>}
-      <span className="w-12 shrink-0 text-right tabular-nums text-muted-foreground">
+      {rightHint && <span className="shrink-0 text-muted-foreground">{rightHint}</span>}
+      <span className="w-14 shrink-0 text-right tabular-nums text-muted-foreground">
         {Math.round(value)}
         {unit ?? ''}
       </span>
