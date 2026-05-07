@@ -121,8 +121,13 @@ export function MainEditor() {
           </div>
 
           {showImagePicker && (
-            // 우측 미리보기 — 고정 너비(w-32) + 항상 9:16 비율 컨테이너.
-            // 변형별 표시 차이(square/contain 등) 는 컨테이너 안쪽 ImageUploader 가 처리.
+            // 우측 미리보기 — 고정 너비(w-32). 비율은 변형이 실제 슬라이드에서
+            // 차지하는 비율과 정확히 일치시킨다:
+            //   poster   : 9:16 (풀스크린 이미지) + 9:20 폰 좌우 회색 마스크
+            //   polaroid : 1:1 (square 프레임)
+            //   heart    : 10:9 (heart 프레임)
+            //   screen   : 1:1 (square 프레임)
+            // 이렇게 하면 미리보기가 실제 메인 화면에 보이는 모습과 똑같이 나타난다.
             <div className="flex w-full shrink-0 flex-col gap-1.5 sm:w-32">
               <span className="text-sm font-medium text-foreground">메인 사진</span>
               <ImageUploader
@@ -130,7 +135,13 @@ export function MainEditor() {
                 onChange={(url) => patch('main', { ...main, heroImage: url })}
                 invitationId={invitationId}
                 folder="main"
-                previewAspect="aspect-[9/16]"
+                previewAspect={
+                  isFrame
+                    ? frame?.variant === 'heart'
+                      ? 'aspect-[10/9]'
+                      : 'aspect-square'
+                    : 'aspect-[9/16]'
+                }
                 previewFit={
                   isFrame
                     ? frame?.variant === 'screen'
@@ -145,7 +156,7 @@ export function MainEditor() {
                       ? design?.image.position
                       : undefined
                 }
-                // 9:20 비율 폰에서 좌우가 잘리는 영역을 회색으로 표시 (포스터일 때만).
+                // 9:20 비율 폰에서 좌우가 잘리는 영역을 회색으로 표시 — 포스터 전용.
                 showWideAspectCropMask={isPoster}
                 label="사진 선택"
               />

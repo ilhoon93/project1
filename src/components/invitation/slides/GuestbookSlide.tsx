@@ -111,8 +111,8 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
     'rounded-md border border-[var(--mw-dot)] bg-white text-stone-900 placeholder:text-stone-400 outline-none focus:border-[var(--mw-accent)]';
 
   return (
-    // 입력부를 전체적으로 아래로 내리기 위해 상단 패딩을 늘리고 헤더 마진을 추가.
-    <section className="flex min-h-full flex-col gap-6 px-6 pb-16 pt-24">
+    // 다른 슬라이드와 동일하게 헤더는 상단(py-16)에 두고 폼은 자연스럽게 아래로 흐른다.
+    <section className="flex min-h-full flex-col gap-6 px-6 py-16">
       <header className="text-center">
         <p className="text-xs tracking-[0.3em] opacity-70">GUESTBOOK</p>
         <h2 className="mt-2 text-xl font-light">방명록</h2>
@@ -143,8 +143,8 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-3" data-noswipe>
-          {/* 이름 + 신랑/신부 + 서명하기 버튼을 한 줄에 배치.
-              이름 박스는 고정 너비(w-20) 로 줄이고 나머지 버튼은 가용 공간을 자연스럽게 차지. */}
+          {/* 1줄: 이름(가용 공간 차지) + 신랑측/신부측. 이름과 신부측 사이 빈 공간이 없도록
+              이름 input 을 flex-1 로 확장. */}
           <div className="flex items-center gap-1.5">
             <input
               type="text"
@@ -153,7 +153,7 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
               maxLength={20}
               required
               placeholder="이름"
-              className={`h-9 w-20 shrink-0 px-2 text-sm ${inputBaseClass}`}
+              className={`h-9 min-w-0 flex-1 px-2.5 text-sm ${inputBaseClass}`}
             />
             {[
               { v: 'groom', label: '신랑측' },
@@ -163,7 +163,7 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
                 key={opt.v}
                 type="button"
                 onClick={() => setSide(opt.v as 'groom' | 'bride')}
-                className={`h-9 shrink-0 rounded-md border px-2 text-[11px] font-medium transition-colors ${
+                className={`h-9 shrink-0 rounded-md border px-2.5 text-[11px] font-medium transition-colors ${
                   side === opt.v
                     ? 'border-[var(--mw-accent)] bg-[var(--mw-accent)] text-white shadow-sm'
                     : 'border-[var(--mw-dot)] bg-white text-stone-700 hover:bg-stone-50'
@@ -172,18 +172,20 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
                 {opt.label}
               </button>
             ))}
-            <button
-              type="button"
-              onClick={() => setShowSigPopup(true)}
-              className={`ml-auto h-9 shrink-0 rounded-md border px-2.5 text-[11px] font-medium transition-colors ${
-                signatureData
-                  ? 'border-[var(--mw-accent)] bg-[var(--mw-accent)] text-white shadow-sm'
-                  : 'border-[var(--mw-accent)] bg-white text-[var(--mw-accent)] hover:bg-[var(--mw-accent)] hover:text-white'
-              }`}
-            >
-              {signatureData ? '서명하기 ✓' : '서명하기 (선택)'}
-            </button>
           </div>
+
+          {/* 2줄: 서명하기 버튼 — 한 줄 채우는 게 깔끔. */}
+          <button
+            type="button"
+            onClick={() => setShowSigPopup(true)}
+            className={`h-9 rounded-md border text-xs font-medium transition-colors ${
+              signatureData
+                ? 'border-[var(--mw-accent)] bg-[var(--mw-accent)] text-white shadow-sm'
+                : 'border-[var(--mw-accent)] bg-white text-[var(--mw-accent)] hover:bg-[var(--mw-accent)] hover:text-white'
+            }`}
+          >
+            {signatureData ? '서명하기 ✓' : '서명하기 (선택)'}
+          </button>
 
           <textarea
             value={message}
@@ -269,12 +271,31 @@ function SignaturePopup({
 }) {
   const padRef = useRef<SignaturePadHandle>(null);
   const [mounted, setMounted] = useState(false);
+  // 팝업은 portal 로 document.body 에 렌더되므로 SlideContainer 의
+  // CSS 변수(--mw-bg / --mw-fg / --mw-accent / --mw-dot) 와 폰트가 상속되지
+  // 않는다. 마운트 시 활성 SlideContainer 의 computedStyle 을 읽어 인라인으로
+  // 동일 변수를 다시 깔아주면 popup 내부의 var(--mw-...) 가 그대로 동작.
+  const [themeStyle, setThemeStyle] = useState<React.CSSProperties>({});
 
-  // SSR 시 document 가 없으므로 마운트 후에만 portal 을 렌더한다.
-  // 슬라이드 컨테이너의 transform / containerType 이 fixed positioning 을
-  // 가두기 때문에 body 로 portal 해야 화면 전체에 모달이 깔린다.
   useEffect(() => {
     setMounted(true);
+    if (typeof document === 'undefined') return;
+    const slide = document.querySelector('[style*="--mw-bg"]') as HTMLElement | null;
+    if (!slide) return;
+    const cs = getComputedStyle(slide);
+    const bg = cs.getPropertyValue('--mw-bg').trim();
+    const fg = cs.getPropertyValue('--mw-fg').trim();
+    const accent = cs.getPropertyValue('--mw-accent').trim();
+    const dot = cs.getPropertyValue('--mw-dot').trim();
+    setThemeStyle({
+      ['--mw-bg' as never]: bg,
+      ['--mw-fg' as never]: fg,
+      ['--mw-accent' as never]: accent,
+      ['--mw-dot' as never]: dot,
+      backgroundColor: bg || '#ffffff',
+      color: fg || '#1f1f1f',
+      fontFamily: cs.fontFamily,
+    });
   }, []);
 
   // ESC 닫기 + 배경 스크롤 잠금.
@@ -309,12 +330,16 @@ function SignaturePopup({
         className="absolute inset-0 bg-black/55"
       />
 
-      {/* 팝업 본체 — 카드. 흰 배경 고정으로 모든 테마에서 가독성 보장. */}
-      <div className="relative z-10 flex w-full max-w-md flex-col gap-3 rounded-xl bg-white p-5 text-stone-900 shadow-2xl">
+      {/* 팝업 본체 — 테마 색/폰트를 그대로 따른다 (var(--mw-bg)/(--mw-fg) + 본문 폰트).
+          어두운 테마에서도 자연스럽게 어울리고, 라이트 테마에서도 본 디자인과 일관. */}
+      <div
+        className="relative z-10 flex w-full max-w-md flex-col gap-3 rounded-xl p-5 shadow-2xl"
+        style={themeStyle}
+      >
         <header className="flex items-start justify-between gap-2">
           <div>
             <h3 className="text-base font-semibold">서명 남기기</h3>
-            <p className="mt-1 text-xs leading-relaxed text-stone-600">
+            <p className="mt-1 text-xs leading-relaxed opacity-80">
               서명은 신랑신부에게 마음을 담아 전하는 작은 인사입니다. 작성하신 서명은
               다른 분들에게는 보이지 않고, 신랑신부에게만 전달됩니다.
             </p>
@@ -323,7 +348,7 @@ function SignaturePopup({
             type="button"
             aria-label="닫기"
             onClick={onClose}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-lg leading-none text-stone-500 hover:bg-stone-100"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-lg leading-none opacity-60 hover:bg-[var(--mw-accent)]/10 hover:opacity-100"
           >
             ×
           </button>
@@ -336,7 +361,7 @@ function SignaturePopup({
           <button
             type="button"
             onClick={() => padRef.current?.clear()}
-            className="text-xs font-medium text-stone-500 hover:underline"
+            className="text-xs font-medium opacity-60 hover:underline hover:opacity-90"
           >
             지우기
           </button>
@@ -345,7 +370,7 @@ function SignaturePopup({
             <button
               type="button"
               onClick={onClose}
-              className="h-9 rounded-md border border-stone-300 px-3 text-xs font-medium text-stone-700 hover:bg-stone-50"
+              className="h-9 rounded-md border border-[var(--mw-dot)] bg-transparent px-3 text-xs font-medium opacity-80 hover:bg-[var(--mw-accent)]/10 hover:opacity-100"
             >
               취소
             </button>
@@ -363,7 +388,7 @@ function SignaturePopup({
         </div>
 
         {initialData && (
-          <p className="text-[11px] text-stone-500">
+          <p className="text-[11px] opacity-60">
             기존 서명이 있습니다. 새로 그리지 않고 닫으면 기존 서명이 유지됩니다.
           </p>
         )}

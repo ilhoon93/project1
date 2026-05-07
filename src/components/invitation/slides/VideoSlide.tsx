@@ -26,48 +26,54 @@ export function VideoSlide({ video }: { video: InvitationContent['video'] }) {
 
   return (
     <section
-      className="relative flex h-full min-h-full w-full items-center justify-center"
+      className="relative flex h-full min-h-full w-full flex-col items-center"
       style={{ backgroundColor: '#0A0A0C' }}
     >
+      {/* 제목 — 영상 위쪽 헤더 영역에 별도 배치. 영상에 겹치지 않도록 layout flow 안에 둠. */}
       {video.title && (
-        <header className="absolute left-1/2 top-4 z-10 -translate-x-1/2 text-center text-white/85">
+        <header
+          className="z-10 flex w-full shrink-0 flex-col items-center text-center text-white/85"
+          style={{ paddingTop: '4cqh', paddingBottom: '2cqh' }}
+        >
           <p className="text-[10px] tracking-[0.3em] opacity-70">VIDEO</p>
           <h2 className="mt-1 text-sm font-light">{video.title}</h2>
         </header>
       )}
 
-      {/* 영상 컨테이너 — 슬라이드(컨테이너) 안에 들어가는 가장 큰 [aspect] 박스.
-          width = min(가로 100%, 세로 × aspect). aspect 가 16:9 든 9:16 든 동일 식이
-          그대로 동작 — 가로 영상은 폭이 100% 까지, 세로 영상은 높이가 100% 까지 채워진다. */}
-      <div
-        className="relative overflow-hidden bg-black shadow-[0_0_60px_rgba(0,0,0,0.8)]"
-        style={{
-          aspectRatio: `${aspect}`,
-          width: `min(100cqw, calc(100cqh * ${aspect}))`,
-        }}
-      >
-        {embedUrl ? (
-          <iframe
-            src={embedUrl}
-            title={video.title || 'Wedding video'}
-            className="absolute inset-0 h-full w-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        ) : (
-          <video
-            src={video.url}
-            controls
-            className="absolute inset-0 h-full w-full object-contain"
-            preload="metadata"
-            onLoadedMetadata={(e) => {
-              const el = e.currentTarget;
-              if (el.videoWidth > 0 && el.videoHeight > 0) {
-                setVideoAspect(el.videoWidth / el.videoHeight);
-              }
-            }}
-          />
-        )}
+      {/* 영상 컨테이너 — 헤더 아래 남은 공간을 가득 차지. 가로/세로 잘림 없이
+          가능한 한 가득 들어가도록 동적 비율 계산. */}
+      <div className="flex flex-1 w-full items-center justify-center" style={{ minHeight: 0 }}>
+        <div
+          className="relative overflow-hidden bg-black shadow-[0_0_60px_rgba(0,0,0,0.8)]"
+          style={{
+            aspectRatio: `${aspect}`,
+            width: `min(100cqw, calc((100cqh - 12cqh) * ${aspect}))`,
+            maxHeight: '100%',
+          }}
+        >
+          {embedUrl ? (
+            <iframe
+              src={embedUrl}
+              title={video.title || 'Wedding video'}
+              className="absolute inset-0 h-full w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <video
+              src={video.url}
+              controls
+              className="absolute inset-0 h-full w-full object-contain"
+              preload="metadata"
+              onLoadedMetadata={(e) => {
+                const el = e.currentTarget;
+                if (el.videoWidth > 0 && el.videoHeight > 0) {
+                  setVideoAspect(el.videoWidth / el.videoHeight);
+                }
+              }}
+            />
+          )}
+        </div>
       </div>
     </section>
   );

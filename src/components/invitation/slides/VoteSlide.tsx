@@ -94,7 +94,8 @@ function Question({
               className={`rounded-md border px-3 py-6 text-center text-sm font-medium transition-colors ${
                 isPicked
                   ? 'border-[var(--mw-accent)] bg-[var(--mw-accent)] text-white'
-                  : 'border-[var(--mw-dot)] bg-white/80 text-[var(--mw-fg)] hover:bg-white'
+                  // 흰 배경 + 어두운 글자 고정 — 어두운 테마에서도 가독성 보장.
+                  : 'border-[var(--mw-dot)] bg-white text-stone-900 hover:bg-stone-50'
               } disabled:opacity-60`}
             >
               {opt}

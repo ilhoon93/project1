@@ -102,7 +102,8 @@ function Tab({
       className={`rounded-full px-4 py-1.5 text-sm transition-colors ${
         active
           ? 'bg-[var(--mw-accent)] text-white'
-          : 'bg-white text-[var(--mw-accent)] ring-1 ring-[var(--mw-dot)]'
+          // 흰 배경 + 어두운 글자 고정 — 어두운 테마에서도 가독성 보장.
+          : 'bg-white text-stone-700 ring-1 ring-stone-200'
       }`}
     >
       {children}
@@ -124,12 +125,13 @@ function AccountRow({ acct }: { acct: BankAccount }) {
   };
 
   return (
-    <li className="flex items-center justify-between rounded-md bg-white px-4 py-3 ring-1 ring-[var(--mw-dot)]">
+    // 흰 배경 + 어두운 텍스트(stone-900) 고정 — 어두운 테마에서도 가독성 보장.
+    <li className="flex items-center justify-between rounded-md bg-white px-4 py-3 ring-1 ring-stone-200">
       <div className="flex flex-col">
-        <span className="text-xs text-[var(--mw-accent)]">
+        <span className="text-xs text-stone-500">
           {acct.bank} · {acct.holder}
         </span>
-        <span className="text-sm font-medium tracking-wide text-[var(--mw-fg)]">
+        <span className="text-sm font-medium tracking-wide text-stone-900">
           {acct.number}
         </span>
       </div>
