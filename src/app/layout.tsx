@@ -22,6 +22,7 @@ import {
 // Google 의 안정적인 endpoint 라 외부 의존성 중에서도 안전한 편.
 import { cn } from '@/lib/utils';
 import { AutoLogout } from '@/components/auth/AutoLogout';
+import { AutoLoginGate } from '@/components/auth/AutoLoginGate';
 import './globals.css';
 
 const geistSans = localFont({
@@ -295,6 +296,7 @@ export default function RootLayout({
           'antialiased',
         )}
       >
+        <AutoLoginGate />
         <AutoLogout />
         {children}
       </body>

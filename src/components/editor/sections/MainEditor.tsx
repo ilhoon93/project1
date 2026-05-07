@@ -5,6 +5,9 @@ import { ChevronDown } from 'lucide-react';
 import {
   ILLUSTRATION_VARIANTS,
   FRAME_VARIANTS,
+  PosterDesignSchema,
+  IllustrationDesignSchema,
+  FrameDesignSchema,
   type PosterDesign,
   type IllustrationDesign,
   type IllustrationVariant,
@@ -120,16 +123,37 @@ export function MainEditor() {
         {showImagePicker && (
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-foreground">메인 사진</span>
-            {/* 미리보기는 사이드바 너비 대비 약 60%(최대 200px) 로 좁혀 작게 보이게 한다. */}
+            {/* 변형(폴라로이드/하트/스크린) 별로 미리보기 비율 + fit 결정.
+                screen 은 contain (잘림 없음) — 그 외는 cover + imagePosition. */}
             <div className="w-full max-w-[200px]">
               <ImageUploader
                 value={main.heroImage ?? null}
                 onChange={(url) => patch('main', { ...main, heroImage: url })}
                 invitationId={invitationId}
                 folder="main"
-                previewAspect="aspect-[9/16]"
-                previewFit={isPoster ? design?.image.fit : 'cover'}
-                previewPosition={isPoster ? design?.image.position : undefined}
+                previewAspect={
+                  isFrame
+                    ? frame?.variant === 'screen'
+                      ? 'aspect-square'
+                      : frame?.variant === 'heart'
+                        ? 'aspect-[10/9]'
+                        : 'aspect-square'
+                    : 'aspect-[9/16]'
+                }
+                previewFit={
+                  isFrame
+                    ? frame?.variant === 'screen'
+                      ? 'contain'
+                      : 'cover'
+                    : design?.image.fit ?? 'cover'
+                }
+                previewPosition={
+                  isFrame
+                    ? frame?.imagePosition
+                    : isPoster
+                      ? design?.image.position
+                      : undefined
+                }
                 // 9:20 비율 폰에서 좌우가 잘리는 영역을 회색으로 표시 (포스터일 때만).
                 showWideAspectCropMask={isPoster}
                 label="사진 선택하기"
@@ -209,9 +233,27 @@ interface DesignProps {
 }
 
 function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: DesignProps) {
+  const handleReset = () => {
+    onChange(PosterDesignSchema.parse(undefined));
+  };
   return (
     <div className="flex flex-col gap-5 rounded-md border border-input bg-muted/20 p-3">
-      <h3 className="text-sm font-semibold text-foreground">포스터 디자인</h3>
+      <DesignPanelHeader title="포스터 디자인" onReset={handleReset} />
+
+      {/* 0. 이미지 위치 — 잘릴 수 있는 부분 안내 + 보일 영역 좌/우 상/하 선택. */}
+      {design.image.fit === 'cover' && (
+        <Group label="이미지 위치">
+          <p className="text-xs text-muted-foreground">
+            슬라이더로 사진에서 보일 영역의 중심을 선택하세요. 미리보기 좌우 회색 영역이 잘릴 수 있는 부분이에요.
+          </p>
+          <PositionSliders
+            position={design.image.position}
+            onChange={(position) =>
+              onChange({ ...design, image: { ...design.image, position } })
+            }
+          />
+        </Group>
+      )}
 
       {/* 1. 이미지 표시 방법 — 일단 UI 숨김 (SHOW_IMAGE_FIT_OPTION 으로 다시 노출). */}
       {SHOW_IMAGE_FIT_OPTION && (
@@ -492,9 +534,14 @@ const ILLUST_VARIANT_LABELS: Record<IllustrationVariant, { name: string; hint: s
 };
 
 function IllustrationDesignControls({ design, onChange, greeting, onGreetingChange }: IllustProps) {
+  const handleReset = () => {
+    // variant 는 "타입" 선택이라 보존, 디자인 항목만 기본값으로.
+    const defaults = IllustrationDesignSchema.parse(undefined);
+    onChange({ ...defaults, variant: design.variant });
+  };
   return (
     <div className="flex flex-col gap-5 rounded-md border border-input bg-muted/20 p-3">
-      <h3 className="text-sm font-semibold text-foreground">일러스트형 디자인</h3>
+      <DesignPanelHeader title="일러스트형 디자인" onReset={handleReset} />
 
       {/* 베리언트 선택 */}
       <Group label="일러스트 스타일">
@@ -645,11 +692,43 @@ function IllustrationDesignControls({ design, onChange, greeting, onGreetingChan
         )}
       </Group>
 
-      {/* 인사말 — 위치 고정 (제목 바로 아래 부제 자리). 본문도 여기서 작성. */}
-      <Group label="인사말">
+      {/* 인사말 — 토글 + 글자 크기/상하 위치 + 본문 입력 */}
+      <Group
+        label="인사말"
+        toggle={{
+          checked: design.messageBox.enabled,
+          onChange: (v) =>
+            onChange({ ...design, messageBox: { ...design.messageBox, enabled: v } }),
+        }}
+      >
         <p className="text-xs text-muted-foreground">
-          제목 바로 아래 부제 자리에 표시됩니다. 위치 고정.
+          제목 바로 아래 부제 자리에 표시됩니다.
         </p>
+        {design.messageBox.enabled && (
+          <>
+            <SliderRow
+              label="글자 크기"
+              value={design.messageBox.fontSize}
+              min={11}
+              max={20}
+              unit="px"
+              onChange={(fontSize) =>
+                onChange({ ...design, messageBox: { ...design.messageBox, fontSize } })
+              }
+            />
+            <SliderRow
+              label="상하 위치"
+              value={design.messageBox.offsetY}
+              min={-10}
+              max={10}
+              leftHint="상"
+              rightHint="하"
+              onChange={(offsetY) =>
+                onChange({ ...design, messageBox: { ...design.messageBox, offsetY } })
+              }
+            />
+          </>
+        )}
         <TextAreaField
           label="인사말 내용"
           value={greeting}
@@ -681,9 +760,16 @@ const FRAME_VARIANT_LABELS: Record<FrameVariant, { name: string; hint: string }>
 };
 
 function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: FrameProps) {
+  const handleReset = () => {
+    // variant 는 "타입" 선택이라 보존, 디자인 항목만 기본값으로.
+    const defaults = FrameDesignSchema.parse(undefined);
+    onChange({ ...defaults, variant: design.variant });
+  };
+  // screen 변형은 contain 으로 잘림 없음 — imagePosition 그룹을 숨긴다.
+  const showImagePosition = design.variant !== 'screen';
   return (
     <div className="flex flex-col gap-5 rounded-md border border-input bg-muted/20 p-3">
-      <h3 className="text-sm font-semibold text-foreground">액자프레임 디자인</h3>
+      <DesignPanelHeader title="액자프레임 디자인" onReset={handleReset} />
 
       {/* 프레임 스타일 — 폴라로이드 / 하트 / 스크린 변형 선택 */}
       <Group label="프레임 스타일">
@@ -713,7 +799,20 @@ function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: F
         </div>
       </Group>
 
-      {/* 제목 텍스트 — 토글 + 문구 + 폰트 + 색 + 크기 */}
+      {/* 이미지 위치 — screen 외 변형에서만 노출. 프레임에 보일 영역의 중심을 0–100% 로 선택. */}
+      {showImagePosition && (
+        <Group label="이미지 위치">
+          <p className="text-xs text-muted-foreground">
+            슬라이더로 사진에서 보일 영역의 중심을 선택하세요.
+          </p>
+          <PositionSliders
+            position={design.imagePosition}
+            onChange={(position) => onChange({ ...design, imagePosition: position })}
+          />
+        </Group>
+      )}
+
+      {/* 제목 텍스트 — 토글 + 문구 + 폰트 + 색 + 크기 + 상하 위치 */}
       <Group
         label="제목 텍스트"
         toggle={{
@@ -756,11 +855,22 @@ function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: F
                 onChange({ ...design, title: { ...design.title, fontSize } })
               }
             />
+            <SliderRow
+              label="상하 위치"
+              value={design.title.offsetY}
+              min={-10}
+              max={10}
+              leftHint="상"
+              rightHint="하"
+              onChange={(offsetY) =>
+                onChange({ ...design, title: { ...design.title, offsetY } })
+              }
+            />
           </>
         )}
       </Group>
 
-      {/* 날짜 */}
+      {/* 날짜 — 토글 + 글자 크기 + 상하 위치 */}
       <Group
         label="날짜"
         toggle={{
@@ -773,20 +883,33 @@ function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: F
           폰트와 색상은 전체 디자인을 따릅니다.
         </p>
         {design.dateBox.enabled && (
-          <SliderRow
-            label="글자 크기"
-            value={design.dateBox.fontSize}
-            min={11}
-            max={22}
-            unit="px"
-            onChange={(fontSize) =>
-              onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
-            }
-          />
+          <>
+            <SliderRow
+              label="글자 크기"
+              value={design.dateBox.fontSize}
+              min={11}
+              max={22}
+              unit="px"
+              onChange={(fontSize) =>
+                onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
+              }
+            />
+            <SliderRow
+              label="상하 위치"
+              value={design.dateBox.offsetY}
+              min={-10}
+              max={10}
+              leftHint="상"
+              rightHint="하"
+              onChange={(offsetY) =>
+                onChange({ ...design, dateBox: { ...design.dateBox, offsetY } })
+              }
+            />
+          </>
         )}
       </Group>
 
-      {/* 이름 */}
+      {/* 이름 — 토글 + 글자 크기 + 상하 위치 */}
       <Group
         label="이름"
         toggle={{
@@ -799,20 +922,33 @@ function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: F
           신랑·신부 이름이 표시됩니다.
         </p>
         {design.nameBox.enabled && (
-          <SliderRow
-            label="글자 크기"
-            value={design.nameBox.fontSize}
-            min={12}
-            max={28}
-            unit="px"
-            onChange={(fontSize) =>
-              onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
-            }
-          />
+          <>
+            <SliderRow
+              label="글자 크기"
+              value={design.nameBox.fontSize}
+              min={12}
+              max={28}
+              unit="px"
+              onChange={(fontSize) =>
+                onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
+              }
+            />
+            <SliderRow
+              label="상하 위치"
+              value={design.nameBox.offsetY}
+              min={-10}
+              max={10}
+              leftHint="상"
+              rightHint="하"
+              onChange={(offsetY) =>
+                onChange({ ...design, nameBox: { ...design.nameBox, offsetY } })
+              }
+            />
+          </>
         )}
       </Group>
 
-      {/* 인사말 */}
+      {/* 인사말 — 토글 + 글자 크기 + 상하 위치 + 본문 입력 */}
       <Group
         label="인사말"
         toggle={{
@@ -834,6 +970,17 @@ function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: F
               unit="px"
               onChange={(fontSize) =>
                 onChange({ ...design, messageBox: { ...design.messageBox, fontSize } })
+              }
+            />
+            <SliderRow
+              label="상하 위치"
+              value={design.messageBox.offsetY}
+              min={-10}
+              max={10}
+              leftHint="상"
+              rightHint="하"
+              onChange={(offsetY) =>
+                onChange({ ...design, messageBox: { ...design.messageBox, offsetY } })
               }
             />
             <TextAreaField
@@ -1045,6 +1192,25 @@ function useClickOutside(
 // ─────────────────────────────────────────────────────────────
 // 공용 서브 컴포넌트
 // ─────────────────────────────────────────────────────────────
+
+/**
+ * 디자인 패널 헤더 — 좌측 제목 + 우측 "초기화" 버튼.
+ * onReset 호출 시 부모가 디자인 객체를 기본값으로 되돌린다.
+ */
+function DesignPanelHeader({ title, onReset }: { title: string; onReset: () => void }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      <button
+        type="button"
+        onClick={onReset}
+        className="rounded-md border border-input bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      >
+        초기화
+      </button>
+    </div>
+  );
+}
 
 function Group({
   label,

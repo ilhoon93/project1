@@ -351,13 +351,16 @@ function IllustrationSlide({
           {design.title.text}
         </h1>
 
-        {main.greeting && (
+        {design.messageBox.enabled && main.greeting && (
           <p
             className="max-w-md whitespace-pre-line leading-relaxed opacity-80"
             style={{
               fontFamily: 'inherit',
-              fontSize: 'clamp(12px, 3.4cqw, 15px)',
+              fontSize: `${design.messageBox.fontSize}px`,
               marginTop: '1.4cqh',
+              transform: design.messageBox.offsetY
+                ? `translateY(${design.messageBox.offsetY}cqh)`
+                : undefined,
             }}
           >
             {main.greeting}
@@ -681,6 +684,7 @@ function FrameSlide({
   const titleFont = TITLE_FONT_OPTIONS[design.title.font].family;
   const titleColor = design.title.color || 'currentColor';
   const isScreen = variant === 'screen';
+  const imagePos = design.imagePosition ?? { x: 50, y: 50 };
 
   return (
     // 스크린 변형은 letterbox 효과를 위해 슬라이드 전체에 어두운 배경을 깐다.
@@ -702,6 +706,7 @@ function FrameSlide({
               fontFamily: titleFont,
               color: titleColor,
               fontSize: `${design.title.fontSize}px`,
+              transform: design.title.offsetY ? `translateY(${design.title.offsetY}cqh)` : undefined,
             }}
           >
             {design.title.text}
@@ -714,6 +719,9 @@ function FrameSlide({
             style={{
               fontSize: `${design.messageBox.fontSize}px`,
               marginTop: '1.4cqh',
+              transform: design.messageBox.offsetY
+                ? `translateY(${design.messageBox.offsetY}cqh)`
+                : undefined,
             }}
           >
             {main.greeting}
@@ -721,8 +729,8 @@ function FrameSlide({
         )}
       </div>
 
-      {/* 2) 액자 이미지 — variant 별로 모양만 달라짐 */}
-      <FrameImage variant={variant} src={main.heroImage ?? null} />
+      {/* 2) 액자 이미지 — variant 별로 모양만 달라짐. 잘리는 변형은 imagePosition 으로 보일 영역 선택. */}
+      <FrameImage variant={variant} src={main.heroImage ?? null} imagePosition={imagePos} />
 
       {/* 3) 이름 — 이미지 아래 살짝 띄움 */}
       {design.nameBox.enabled && (
@@ -731,6 +739,9 @@ function FrameSlide({
           style={{
             fontSize: `${design.nameBox.fontSize}px`,
             marginTop: '2.2cqh',
+            transform: design.nameBox.offsetY
+              ? `translateY(${design.nameBox.offsetY}cqh)`
+              : undefined,
           }}
         >
           {groomName} <span className="opacity-60">&amp;</span> {brideName}
@@ -744,6 +755,9 @@ function FrameSlide({
           style={{
             fontSize: `${design.dateBox.fontSize}px`,
             marginTop: '0.8cqh',
+            transform: design.dateBox.offsetY
+              ? `translateY(${design.dateBox.offsetY}cqh)`
+              : undefined,
           }}
         >
           {formatDate(weddingDate)}
@@ -774,7 +788,17 @@ function FrameSlide({
 // 변형별 이미지 프레임 — 폴라로이드 / 하트 / 스크린
 // ─────────────────────────────────────────────────────────────
 
-function FrameImage({ variant, src }: { variant: FrameVariant; src: string | null }) {
+function FrameImage({
+  variant,
+  src,
+  imagePosition,
+}: {
+  variant: FrameVariant;
+  src: string | null;
+  imagePosition: { x: number; y: number };
+}) {
+  const objectPos = `${imagePosition.x}% ${imagePosition.y}%`;
+
   if (variant === 'polaroid') {
     // 흰 테두리 + 살짝 기울임. 그림자로 입체감.
     return (
@@ -782,7 +806,12 @@ function FrameImage({ variant, src }: { variant: FrameVariant; src: string | nul
         <div className="flex h-[34cqh] w-[60cqw] max-w-[16rem] items-center justify-center overflow-hidden bg-stone-100">
           {src ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={src} alt="" className="h-full w-full object-cover" />
+            <img
+              src={src}
+              alt=""
+              className="h-full w-full object-cover"
+              style={{ objectPosition: objectPos }}
+            />
           ) : (
             <span className="text-3xl text-stone-400">📷</span>
           )}
@@ -792,73 +821,57 @@ function FrameImage({ variant, src }: { variant: FrameVariant; src: string | nul
   }
 
   if (variant === 'heart') {
-    // 하트 모양 클립 + 외곽 그림자. clipPathId 는 컴포넌트별로 고유.
+    // 하트 모양 클립 + 외곽 그림자.
+    // SVG image 의 보일 영역 선택은 viewBox 좌표 ↔ 이미지 좌표를 직접 매핑할
+    // 수 없어 SVG mask + foreignObject 가 복잡함. 대신 div + clipPath:
+    // <div clip-path:path('...') overflow:hidden> 안에 일반 <img> 로 렌더해
+    // object-position 을 그대로 활용한다. 이렇게 하면 imagePosition 슬라이더가
+    // 폴라로이드와 동일하게 동작한다.
+    const heartPath =
+      "path('M50 85 C 40 75, 10 55, 10 32 C 10 18, 22 8, 32 8 C 40 8, 46 12, 50 18 C 54 12, 60 8, 68 8 C 78 8, 90 18, 90 32 C 90 55, 60 75, 50 85 Z')";
     return (
-      <div className="relative shrink-0">
-        <svg
-          viewBox="0 0 100 90"
-          className="h-[34cqh] w-[60cqw] max-w-[16rem] drop-shadow-lg"
-          preserveAspectRatio="xMidYMid meet"
-        >
-          <defs>
-            <clipPath id="frame-heart-clip" clipPathUnits="userSpaceOnUse">
-              {/* 부드러운 하트 — 두 원 + 아래쪽 V */}
-              <path d="M50 85
-                       C 40 75, 10 55, 10 32
-                       C 10 18, 22 8, 32 8
-                       C 40 8, 46 12, 50 18
-                       C 54 12, 60 8, 68 8
-                       C 78 8, 90 18, 90 32
-                       C 90 55, 60 75, 50 85 Z" />
-            </clipPath>
-          </defs>
-
-          {/* 배경 채움 — 이미지 없을 때 폴백 */}
-          <rect x="0" y="0" width="100" height="90" fill="#f5f5f4" clipPath="url(#frame-heart-clip)" />
-          {src && (
-            <image
-              href={src}
-              x="0"
-              y="0"
-              width="100"
-              height="90"
-              preserveAspectRatio="xMidYMid slice"
-              clipPath="url(#frame-heart-clip)"
-            />
-          )}
-          {/* 가장자리 라인 — 살짝 두께감 */}
-          <path
-            d="M50 85
-               C 40 75, 10 55, 10 32
-               C 10 18, 22 8, 32 8
-               C 40 8, 46 12, 50 18
-               C 54 12, 60 8, 68 8
-               C 78 8, 90 18, 90 32
-               C 90 55, 60 75, 50 85 Z"
-            fill="none"
-            stroke="rgba(255,255,255,0.6)"
-            strokeWidth="0.6"
+      <div
+        className="relative shrink-0 overflow-hidden bg-stone-100"
+        style={{
+          width: 'min(60cqw, 16rem)',
+          aspectRatio: '100 / 90',
+          clipPath: heartPath,
+          WebkitClipPath: heartPath,
+          // SVG viewBox 가 100×90 이라 컨테이너도 10:9 비율로 맞춤.
+          filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.18))',
+        }}
+      >
+        {src ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={src}
+            alt=""
+            className="h-full w-full object-cover"
+            style={{ objectPosition: objectPos }}
           />
-        </svg>
+        ) : (
+          <div className="grid h-full w-full place-items-center text-3xl text-stone-400">💗</div>
+        )}
       </div>
     );
   }
 
-  // screen — 영화관 스크린 letterbox. 이미지가 가로로 길게(16:9) 들어가고
-  // 위·아래는 슬라이드 배경(검정)이 그대로 보여 letterbox 효과.
+  // screen — 영화관 스크린. 정사각형 비율 + object-contain 으로 좌우가 잘리지
+  // 않게 채우고, 작은 이미지는 컨테이너에 맞춰 확대된다 (img 기본 동작).
+  // 비어 있는 위/아래(또는 좌/우) 영역은 컨테이너 검정 배경이 letterbox 처럼 보임.
   return (
     <div className="flex w-full shrink-0 items-center justify-center" style={{ paddingInline: '4cqw' }}>
       <div
-        className="relative w-full max-w-md overflow-hidden bg-black"
+        className="relative w-full max-w-sm overflow-hidden bg-black"
         style={{
-          aspectRatio: '16 / 9',
+          aspectRatio: '1 / 1',
           boxShadow:
             '0 0 0 1px rgba(255,255,255,0.08), 0 12px 30px rgba(0,0,0,0.55)',
         }}
       >
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt="" className="h-full w-full object-cover" />
+          <img src={src} alt="" className="h-full w-full object-contain" />
         ) : (
           <div className="grid h-full w-full place-items-center text-3xl text-white/40">🎬</div>
         )}
