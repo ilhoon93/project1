@@ -348,6 +348,22 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['naver_accounts']['Insert']>;
         Relationships: [];
       };
+      ai_image_usage: {
+        Row: {
+          user_id: string;
+          used_count: number;
+          last_used_at: string;
+          last_image_path: string | null;
+        };
+        Insert: {
+          user_id: string;
+          used_count?: number;
+          last_used_at?: string;
+          last_image_path?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['ai_image_usage']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

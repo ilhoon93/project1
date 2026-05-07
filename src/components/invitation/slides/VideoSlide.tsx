@@ -1,6 +1,13 @@
+'use client';
+
+import { useState } from 'react';
 import type { InvitationContent } from '@/types/invitation';
 
 export function VideoSlide({ video }: { video: InvitationContent['video'] }) {
+  // 자체 호스팅 영상의 가로/세로 비율을 metadata 로드 시 측정.
+  // 임베드(YouTube/Vimeo) iframe 은 aspect 알 길이 없어 16:9 기본값 유지.
+  const [videoAspect, setVideoAspect] = useState<number | null>(null);
+
   if (!video.url) {
     return (
       <section className="flex min-h-full flex-col items-center justify-center gap-3 px-6 py-16">
@@ -13,20 +20,15 @@ export function VideoSlide({ video }: { video: InvitationContent['video'] }) {
   const isExternal = isEmbeddable(video.url);
   const embedUrl = isExternal ? toEmbedUrl(video.url) : null;
 
-  // 영화 스크린 느낌 — 슬라이드 전체를 어두운 배경으로 깔고, 영상은 가운데에서
-  // 잘리지 않고 화면 안에 가능한 한 가득 들어가도록 배치.
-  //
-  // SlideContainer 가 containerType: 'size' 를 깔아두기 때문에 cqw/cqh 가
-  // 슬라이드 박스 기준으로 동작한다. width 를 min(가로 100%, 세로*16/9) 로 잡으면
-  // 16:9 비율이 잘리지 않으면서 가용 공간을 최대로 활용한다.
-  // (이전 PR 의 width:auto + max-width 조합은 flex items-center 안에서 width
-  //  가 0 으로 줄어들어 영상이 안 보이는 버그가 있어 명시 width 로 수정.)
+  // 컨테이너 비율 — 자체 호스팅이고 metadata 가 로드된 경우에만 영상 실제 비율 사용,
+  // 그 외엔 16:9 기본. 이렇게 해두면 세로 영상은 세로로, 가로 영상은 가로로 렌더된다.
+  const aspect = videoAspect ?? 16 / 9;
+
   return (
     <section
       className="relative flex h-full min-h-full w-full items-center justify-center"
       style={{ backgroundColor: '#0A0A0C' }}
     >
-      {/* 제목 — 상단에 살짝 */}
       {video.title && (
         <header className="absolute left-1/2 top-4 z-10 -translate-x-1/2 text-center text-white/85">
           <p className="text-[10px] tracking-[0.3em] opacity-70">VIDEO</p>
@@ -34,12 +36,14 @@ export function VideoSlide({ video }: { video: InvitationContent['video'] }) {
         </header>
       )}
 
-      {/* 영상 컨테이너 — 슬라이드(컨테이너) 안에 들어가는 가장 큰 16:9 박스 */}
+      {/* 영상 컨테이너 — 슬라이드(컨테이너) 안에 들어가는 가장 큰 [aspect] 박스.
+          width = min(가로 100%, 세로 × aspect). aspect 가 16:9 든 9:16 든 동일 식이
+          그대로 동작 — 가로 영상은 폭이 100% 까지, 세로 영상은 높이가 100% 까지 채워진다. */}
       <div
         className="relative overflow-hidden bg-black shadow-[0_0_60px_rgba(0,0,0,0.8)]"
         style={{
-          aspectRatio: '16 / 9',
-          width: 'min(100cqw, calc(100cqh * 16 / 9))',
+          aspectRatio: `${aspect}`,
+          width: `min(100cqw, calc(100cqh * ${aspect}))`,
         }}
       >
         {embedUrl ? (
@@ -56,6 +60,12 @@ export function VideoSlide({ video }: { video: InvitationContent['video'] }) {
             controls
             className="absolute inset-0 h-full w-full object-contain"
             preload="metadata"
+            onLoadedMetadata={(e) => {
+              const el = e.currentTarget;
+              if (el.videoWidth > 0 && el.videoHeight > 0) {
+                setVideoAspect(el.videoWidth / el.videoHeight);
+              }
+            }}
           />
         )}
       </div>
