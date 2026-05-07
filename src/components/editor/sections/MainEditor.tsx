@@ -102,18 +102,21 @@ export function MainEditor() {
         {showImagePicker && (
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-foreground">메인 사진</span>
-            <ImageUploader
-              value={main.heroImage ?? null}
-              onChange={(url) => patch('main', { ...main, heroImage: url })}
-              invitationId={invitationId}
-              folder="main"
-              previewAspect="aspect-[9/16]"
-              previewFit={isPoster ? design?.image.fit : 'cover'}
-              previewPosition={isPoster ? design?.image.position : undefined}
-              // 9:20 비율 폰에서 좌우가 잘리는 영역을 회색으로 표시 (포스터일 때만).
-              showWideAspectCropMask={isPoster}
-              label="사진 선택하기"
-            />
+            {/* 미리보기는 사이드바 너비 대비 약 60%(최대 200px) 로 좁혀 작게 보이게 한다. */}
+            <div className="w-full max-w-[200px]">
+              <ImageUploader
+                value={main.heroImage ?? null}
+                onChange={(url) => patch('main', { ...main, heroImage: url })}
+                invitationId={invitationId}
+                folder="main"
+                previewAspect="aspect-[9/16]"
+                previewFit={isPoster ? design?.image.fit : 'cover'}
+                previewPosition={isPoster ? design?.image.position : undefined}
+                // 9:20 비율 폰에서 좌우가 잘리는 영역을 회색으로 표시 (포스터일 때만).
+                showWideAspectCropMask={isPoster}
+                label="사진 선택하기"
+              />
+            </div>
             {isPoster && (
               <div className="rounded-md border border-dashed border-input bg-muted/30 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
                 <p className="mb-1 font-medium text-foreground">권장 이미지 규격</p>
@@ -122,9 +125,9 @@ export function MainEditor() {
                   <li>형식: JPG · PNG · WEBP (최대 25MB)</li>
                   <li>중요한 인물·소품은 화면 중앙에 — 상하 약 15%는 그라데이션·텍스트가 덮을 수 있어요.</li>
                   <li>
-                    스마트폰 기종(9:20 비율 등 길쭉한 화면)에서는 좌우가 약 9% 정도 잘릴 수 있어요. 미리보기에서{' '}
-                    <span className="rounded bg-foreground/15 px-1 py-0.5 font-medium text-foreground">회색 영역</span>이
-                    잘릴 수 있는 부분이에요.
+                    스마트폰 기종(9:20 비율 등 길쭉한 화면)에서는 좌우가 약 7% 정도 잘릴 수 있어요. 미리보기 좌우의{' '}
+                    <span className="rounded bg-foreground/15 px-1 py-0.5 font-medium text-foreground">회색 영역</span>
+                    이 잘릴 수 있는 부분이에요.
                   </li>
                 </ul>
               </div>
@@ -494,7 +497,7 @@ function IllustrationDesignControls({ design, onChange, greeting, onGreetingChan
         </div>
       </Group>
 
-      {/* 제목 텍스트 — 폰트는 Playfair Display 고정, 문구·색상만 선택 */}
+      {/* 제목 텍스트 — 폰트는 Playfair Display 고정, 문구·색상·크기·상하 위치 조정 가능 */}
       <Group label="제목 텍스트">
         <TitleTextCombobox
           value={design.title.text}
@@ -514,34 +517,105 @@ function IllustrationDesignControls({ design, onChange, greeting, onGreetingChan
           presets={TITLE_COLOR_PRESETS}
           allowThemeDefault
         />
+        <SliderRow
+          label="글자 크기"
+          value={design.title.fontSize}
+          min={22}
+          max={48}
+          unit="px"
+          onChange={(fontSize) =>
+            onChange({ ...design, title: { ...design.title, fontSize } })
+          }
+        />
+        <SliderRow
+          label="상하 위치"
+          value={design.title.offsetY}
+          min={-10}
+          max={10}
+          leftHint="상"
+          rightHint="하"
+          onChange={(offsetY) =>
+            onChange({ ...design, title: { ...design.title, offsetY } })
+          }
+        />
       </Group>
 
-      {/* 날짜 — 토글만, 위치 고정 */}
+      {/* 날짜 — 토글 + 글자 크기/상하 위치 조정 */}
       <Group
         label="날짜"
         toggle={{
           checked: design.dateBox.enabled,
           onChange: (v) =>
-            onChange({ ...design, dateBox: { enabled: v } }),
+            onChange({ ...design, dateBox: { ...design.dateBox, enabled: v } }),
         }}
       >
         <p className="text-xs text-muted-foreground">
-          일러스트 아래 정해진 위치에 표시됩니다. 폰트·색상은 전체 디자인을 따릅니다.
+          일러스트 아래 표시됩니다. 폰트·색상은 전체 디자인을 따릅니다.
         </p>
+        {design.dateBox.enabled && (
+          <>
+            <SliderRow
+              label="글자 크기"
+              value={design.dateBox.fontSize}
+              min={11}
+              max={22}
+              unit="px"
+              onChange={(fontSize) =>
+                onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
+              }
+            />
+            <SliderRow
+              label="상하 위치"
+              value={design.dateBox.offsetY}
+              min={-10}
+              max={10}
+              leftHint="상"
+              rightHint="하"
+              onChange={(offsetY) =>
+                onChange({ ...design, dateBox: { ...design.dateBox, offsetY } })
+              }
+            />
+          </>
+        )}
       </Group>
 
-      {/* 이름 — 토글만, 위치 고정 */}
+      {/* 이름 — 토글 + 글자 크기/상하 위치 조정 */}
       <Group
         label="이름"
         toggle={{
           checked: design.nameBox.enabled,
           onChange: (v) =>
-            onChange({ ...design, nameBox: { enabled: v } }),
+            onChange({ ...design, nameBox: { ...design.nameBox, enabled: v } }),
         }}
       >
         <p className="text-xs text-muted-foreground">
-          신랑·신부 이름이 일러스트 아래 정해진 위치에 표시됩니다.
+          신랑·신부 이름이 일러스트 아래 표시됩니다.
         </p>
+        {design.nameBox.enabled && (
+          <>
+            <SliderRow
+              label="글자 크기"
+              value={design.nameBox.fontSize}
+              min={12}
+              max={24}
+              unit="px"
+              onChange={(fontSize) =>
+                onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
+              }
+            />
+            <SliderRow
+              label="상하 위치"
+              value={design.nameBox.offsetY}
+              min={-10}
+              max={10}
+              leftHint="상"
+              rightHint="하"
+              onChange={(offsetY) =>
+                onChange({ ...design, nameBox: { ...design.nameBox, offsetY } })
+              }
+            />
+          </>
+        )}
       </Group>
 
       {/* 인사말 — 위치 고정 (제목 바로 아래 부제 자리). 본문도 여기서 작성. */}

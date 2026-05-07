@@ -127,32 +127,19 @@ export function ImageUploader({
                   : undefined
               }
             />
-            {/* 9:20 폰에서 좌우 ~9% 가 잘려 보일 수 있다는 시각적 힌트.
-                줄무늬 + 어두운 회색 오버레이 + "잘릴 수 있어요" 라벨. */}
+            {/* 9:20 비율 폰에서 좌우가 잘릴 수 있는 영역 — 평평한 회색 오버레이.
+                실제 크롭 비율: 9:16 이미지 → 9:20 뷰포트 cover 시 좌우 약 7% 씩.
+                (다양한 모던 폰 9:18~9:20.5 분포의 중간값을 살짝 보수적으로 잡음.) */}
             {showWideAspectCropMask && (
               <>
                 <div
                   aria-hidden
-                  className="pointer-events-none absolute inset-y-0 left-0 w-[9%] bg-gradient-to-r from-black/45 to-black/20"
-                  style={{
-                    backgroundImage:
-                      'repeating-linear-gradient(135deg, rgba(255,255,255,0.18) 0 4px, rgba(255,255,255,0) 4px 9px), linear-gradient(to right, rgba(0,0,0,0.55), rgba(0,0,0,0.2))',
-                  }}
+                  className="pointer-events-none absolute inset-y-0 left-0 w-[7%] bg-neutral-500/55"
                 />
                 <div
                   aria-hidden
-                  className="pointer-events-none absolute inset-y-0 right-0 w-[9%] bg-gradient-to-l from-black/45 to-black/20"
-                  style={{
-                    backgroundImage:
-                      'repeating-linear-gradient(45deg, rgba(255,255,255,0.18) 0 4px, rgba(255,255,255,0) 4px 9px), linear-gradient(to left, rgba(0,0,0,0.55), rgba(0,0,0,0.2))',
-                  }}
+                  className="pointer-events-none absolute inset-y-0 right-0 w-[7%] bg-neutral-500/55"
                 />
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white shadow"
-                >
-                  9:20 폰에서 회색 영역이 잘릴 수 있어요
-                </span>
               </>
             )}
           </div>

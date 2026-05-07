@@ -302,7 +302,7 @@ export function PetalShape({ type, color }: { type: PetalType; color: string }) 
 }
 
 // ─────────────────────────────────────────────────────────────
-// 별빛 — 트윙클하는 별 + 가끔 가로지르는 별똥별 + 바닥의 옅은 오로라 글로우.
+// 별빛 — ✨ 느낌의 4갈래 스파클 별 + 배경에 천천히 나타났다 사라지는 오로라 글로우.
 // 다른 효과들과 달리 "떨어지는" 게 아니므로 별도 분기.
 // ─────────────────────────────────────────────────────────────
 
@@ -313,59 +313,76 @@ interface Star {
   size: number;
   delay: number;
   duration: number;
+  rotate: number;
   color: string;
 }
 
-interface Shoot {
+interface AuroraBlob {
   id: number;
+  left: number;
   top: number;
+  scale: number;
   delay: number;
   duration: number;
+  color: string;
 }
 
 function Starlight({ palette }: { palette: readonly string[] }) {
   const stars = useMemo<Star[]>(
     () =>
       // 화면 전체에 자잘하게 퍼진 트윙클 별. 색상은 팔레트에서 무작위 선택.
-      Array.from({ length: 36 }, (_, i) => ({
+      Array.from({ length: 32 }, (_, i) => ({
         id: i,
         left: Math.random() * 100,
         top: Math.random() * 100,
-        size: 1.5 + Math.random() * 2.5,
+        // 6 ~ 12px — ✨ 모양이 알아볼 수 있을 정도로는 잡음.
+        size: 6 + Math.random() * 6,
         delay: Math.random() * 4,
-        duration: 2.4 + Math.random() * 2.6,
+        duration: 2.6 + Math.random() * 2.4,
+        // 살짝 회전 변형으로 단조로움 제거.
+        rotate: Math.random() * 45 - 22,
         color: palette[Math.floor(Math.random() * palette.length)],
       })),
     [palette],
   );
 
-  // 별똥별 — 4개 정도가 길게 어긋난 텀으로 가로지름.
-  const shoots = useMemo<Shoot[]>(
+  // 오로라 — 화면 곳곳에 5개 부드러운 글로우가 서로 다른 타이밍으로 나타났다 사라짐.
+  // 위치/크기/색을 분산시켜서 매번 다른 느낌이 되도록.
+  const auroras = useMemo<AuroraBlob[]>(
     () =>
-      Array.from({ length: 4 }, (_, i) => ({
+      Array.from({ length: 5 }, (_, i) => ({
         id: i,
-        top: 8 + Math.random() * 40,
-        delay: i * 3.5 + Math.random() * 2,
-        duration: 1.6 + Math.random() * 0.8,
+        left: 10 + Math.random() * 80,
+        top: 15 + Math.random() * 70,
+        scale: 0.8 + Math.random() * 0.7,
+        delay: Math.random() * 8,
+        duration: 9 + Math.random() * 6,
+        color: palette[i % palette.length],
       })),
-    [],
+    [palette],
   );
-
-  const auroraColor = palette[0] ?? '#B89BD9';
 
   return (
     <div
       aria-hidden
       className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
     >
-      {/* 하단 오로라 글로우 — 옅은 라디얼 그라디언트로 별빛 분위기 깔기 */}
-      <div
-        className="absolute inset-x-0 bottom-0 h-2/3"
-        style={{
-          background: `radial-gradient(ellipse at 30% 100%, ${hexAlpha(auroraColor, 0.28)} 0%, transparent 55%), radial-gradient(ellipse at 75% 100%, ${hexAlpha(auroraColor, 0.22)} 0%, transparent 55%)`,
-          mixBlendMode: 'screen',
-        }}
-      />
+      {/* 배경에 랜덤 위치로 천천히 페이드 인/아웃 하는 오로라 글로우. */}
+      {auroras.map((a) => (
+        <span
+          key={`aurora-${a.id}`}
+          className="aurora"
+          style={{
+            left: `${a.left}%`,
+            top: `${a.top}%`,
+            width: `${42 * a.scale}cqw`,
+            height: `${30 * a.scale}cqh`,
+            background: `radial-gradient(ellipse, ${hexAlpha(a.color, 0.45)} 0%, ${hexAlpha(a.color, 0.15)} 45%, transparent 75%)`,
+            animationDelay: `${a.delay}s`,
+            animationDuration: `${a.duration}s`,
+          }}
+        />
+      ))}
 
       {stars.map((s) => (
         <span
@@ -376,83 +393,86 @@ function Starlight({ palette }: { palette: readonly string[] }) {
             top: `${s.top}%`,
             width: `${s.size}px`,
             height: `${s.size}px`,
-            backgroundColor: s.color,
-            boxShadow: `0 0 ${s.size * 2}px ${hexAlpha(s.color, 0.7)}`,
+            color: s.color,
+            // 회전은 keyframes 의 scale 와 합쳐 적용 — CSS 변수로 baseline rotate 전달.
+            ['--rot' as never]: `${s.rotate}deg`,
             animationDelay: `${s.delay}s`,
             animationDuration: `${s.duration}s`,
           }}
-        />
-      ))}
-
-      {shoots.map((sh) => (
-        <span
-          key={`shoot-${sh.id}`}
-          className="shoot"
-          style={{
-            top: `${sh.top}%`,
-            animationDelay: `${sh.delay}s`,
-            animationDuration: `${sh.duration}s`,
-          }}
-        />
+        >
+          <SparkleStar />
+        </span>
       ))}
 
       <style jsx>{`
-        .star {
+        .aurora {
           position: absolute;
-          border-radius: 9999px;
+          border-radius: 50%;
+          transform: translate(-50%, -50%);
           opacity: 0;
-          animation-name: twinkle;
+          mix-blend-mode: screen;
+          filter: blur(28px);
+          animation-name: aurora-pulse;
           animation-iteration-count: infinite;
           animation-timing-function: ease-in-out;
           will-change: opacity, transform;
         }
+        @keyframes aurora-pulse {
+          0%, 100% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.8);
+          }
+          50% {
+            opacity: 0.85;
+            transform: translate(-50%, -50%) scale(1.05);
+          }
+        }
+        .star {
+          position: absolute;
+          display: inline-block;
+          opacity: 0;
+          transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) scale(0.85);
+          animation-name: twinkle;
+          animation-iteration-count: infinite;
+          animation-timing-function: ease-in-out;
+          will-change: opacity, transform;
+          filter: drop-shadow(0 0 3px currentColor);
+        }
         @keyframes twinkle {
           0%, 100% {
             opacity: 0.15;
-            transform: scale(0.85);
+            transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) scale(0.7);
           }
           50% {
             opacity: 1;
-            transform: scale(1.25);
-          }
-        }
-        .shoot {
-          position: absolute;
-          left: -10%;
-          width: 14%;
-          height: 1.5px;
-          background: linear-gradient(
-            90deg,
-            transparent 0%,
-            rgba(255, 255, 255, 0.85) 60%,
-            #ffffff 100%
-          );
-          border-radius: 9999px;
-          opacity: 0;
-          transform: translate3d(0, 0, 0) rotate(18deg);
-          animation-name: shoot;
-          animation-iteration-count: infinite;
-          animation-timing-function: ease-out;
-          filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6));
-        }
-        @keyframes shoot {
-          0% {
-            opacity: 0;
-            transform: translate3d(0, 0, 0) rotate(18deg);
-          }
-          5% {
-            opacity: 1;
-          }
-          70% {
-            opacity: 1;
-          }
-          100% {
-            opacity: 0;
-            transform: translate3d(120vw, 35vh, 0) rotate(18deg);
+            transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) scale(1.15);
           }
         }
       `}</style>
     </div>
+  );
+}
+
+/** ✨ 느낌의 4갈래 스파클 별. 가운데 작은 글로우 + 길쭉한 4축 빛살. */
+function SparkleStar() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="100%"
+      height="100%"
+      fill="currentColor"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      {/* 4축 빛살 — 가운데에서 위/아래/좌/우로 길쭉하게 뻗는 형태.
+          각 방향이 살짝 부풀고 끝이 뾰족한 sparkle 실루엣. */}
+      <path d="M12 1
+               C 12 7, 13 11, 23 12
+               C 13 13, 12 17, 12 23
+               C 12 17, 11 13, 1 12
+               C 11 11, 12 7, 12 1 Z" />
+      {/* 가운데 작은 코어 — drop-shadow 와 합쳐서 살짝 빛나는 점. */}
+      <circle cx="12" cy="12" r="0.9" />
+    </svg>
   );
 }
 

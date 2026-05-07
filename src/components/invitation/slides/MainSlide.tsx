@@ -315,17 +315,19 @@ function IllustrationSlide({
       className="relative flex h-full min-h-full w-full flex-col items-center overflow-hidden text-center"
     >
       {/* 1) 상단 영역 — 제목 + 인사말. justify-end + overflow-hidden 로
-          이미지 상단을 기준으로 위로 자라는 형태. */}
+          이미지 상단을 기준으로 위로 자라는 형태.
+          paddingBottom 으로 인사말과 이미지 상단 사이 간격 확보. */}
       <div
         className="flex w-full flex-col items-center justify-end overflow-hidden px-6"
-        style={{ flex: '1 1 0', minHeight: 0, paddingTop: '4cqh' }}
+        style={{ flex: '1 1 0', minHeight: 0, paddingTop: '4cqh', paddingBottom: '2.5cqh' }}
       >
         <h1
           className="font-bold leading-tight"
           style={{
             fontFamily: PLAYFAIR,
             color: titleColor,
-            fontSize: 'clamp(26px, 8cqw, 40px)',
+            fontSize: `${design.title.fontSize}px`,
+            transform: design.title.offsetY ? `translateY(${design.title.offsetY}cqh)` : undefined,
           }}
         >
           {design.title.text}
@@ -337,7 +339,7 @@ function IllustrationSlide({
             style={{
               fontFamily: 'inherit',
               fontSize: 'clamp(12px, 3.4cqw, 15px)',
-              marginTop: '1.2cqh',
+              marginTop: '1.4cqh',
             }}
           >
             {main.greeting}
@@ -345,39 +347,44 @@ function IllustrationSlide({
         )}
       </div>
 
-      {/* 2) 일러스트 이미지 — 고정 높이, 흔들리지 않음. 위 영역과 살짝만 띄움. */}
+      {/* 2) 일러스트 이미지 — 고정 높이, 흔들리지 않음. */}
       <div
         className="flex w-full max-w-sm shrink-0 items-center justify-center px-6"
-        style={{ marginTop: '1cqh' }}
       >
         <IllustrationImage src={illustSrc} variant={design.variant} />
       </div>
 
-      {/* 3) 이미지 하단 디바이더 — 이름/날짜와 이미지를 시각적으로 구분 */}
+      {/* 3) 이미지 하단 디바이더 — 가로폭 절반 정도, 이미지와 살짝 띄움 */}
       <IllustDivider />
 
-      {/* 4) 이름 — 이미지 바로 아래 붙도록 작은 marginTop */}
+      {/* 4) 이름 — 디바이더 아래 충분한 간격 + offsetY 로 미세 조정 */}
       {design.nameBox.enabled && (
         <p
           className="shrink-0 font-light tracking-wide"
           style={{
             fontFamily: 'inherit',
-            fontSize: 'clamp(14px, 3.8cqw, 17px)',
-            marginTop: '1cqh',
+            fontSize: `${design.nameBox.fontSize}px`,
+            marginTop: '2.2cqh',
+            transform: design.nameBox.offsetY
+              ? `translateY(${design.nameBox.offsetY}cqh)`
+              : undefined,
           }}
         >
           신랑 {groomName} · 신부 {brideName}
         </p>
       )}
 
-      {/* 5) 날짜 — 이름 바로 아래 */}
+      {/* 5) 날짜 — 이름 바로 아래 + offsetY 로 미세 조정 */}
       {design.dateBox.enabled && weddingDate && (
         <p
           className="shrink-0 tracking-[0.2em]"
           style={{
             fontFamily: PLAYFAIR,
-            fontSize: 'clamp(13px, 3.6cqw, 16px)',
+            fontSize: `${design.dateBox.fontSize}px`,
             marginTop: '0.8cqh',
+            transform: design.dateBox.offsetY
+              ? `translateY(${design.dateBox.offsetY}cqh)`
+              : undefined,
           }}
         >
           {formatDateForIllust(weddingDate)}
@@ -409,11 +416,12 @@ function IllustrationSlide({
 // ─────────────────────────────────────────────────────────────
 
 function IllustDivider() {
+  // 가로폭은 화면의 절반 이하 — 이미지·이름과 자연스럽게 어울리도록 컨테이너 width 의 약 40%.
   return (
     <div
       aria-hidden
-      className="flex w-full max-w-xs shrink-0 items-center justify-center gap-2 opacity-60"
-      style={{ marginTop: '1.2cqh' }}
+      className="flex shrink-0 items-center justify-center gap-2 opacity-60"
+      style={{ marginTop: '1.8cqh', width: 'min(40%, 9rem)' }}
     >
       <span className="h-px flex-1 bg-current" style={{ opacity: 0.55 }} />
       <span className="text-[0.85em] leading-none">✦</span>
