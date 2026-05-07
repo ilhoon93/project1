@@ -8,6 +8,7 @@ import {
   type PosterDesign,
   type IllustrationDesign,
   type IllustrationVariant,
+  type FrameDesign,
 } from '@/types/invitation';
 import { useEditorStore } from '@/stores/editor';
 import {
@@ -22,10 +23,19 @@ import { ImageUploader } from '../ImageUploader';
 
 const LAYOUT_LABELS: Record<(typeof MAIN_LAYOUTS)[number], { name: string; hint: string }> = {
   poster: { name: '포스터', hint: '풀이미지 배경' },
-  polaroid: { name: '폴라로이드', hint: '액자 프레임' },
+  polaroid: { name: '액자프레임 (폴라로이드)', hint: '흰 테두리 + 살짝 기울임' },
+  frameHeart: { name: '액자프레임 (하트)', hint: '하트 모양으로 클립' },
+  frameScreen: { name: '액자프레임 (스크린)', hint: '영화관 letterbox 스타일' },
   illustration: { name: '일러스트', hint: '신랑신부 그림' },
   text: { name: '텍스트', hint: '이미지 없이' },
 };
+
+// 폴라로이드 / 하트 / 스크린 — 같은 디자인 컨트롤(FrameDesign) 을 공유한다.
+const FRAME_LAYOUTS = ['polaroid', 'frameHeart', 'frameScreen'] as const;
+type FrameLayoutKey = (typeof FRAME_LAYOUTS)[number];
+function isFrameLayout(layout: string): layout is FrameLayoutKey {
+  return (FRAME_LAYOUTS as readonly string[]).includes(layout);
+}
 
 // "이미지 표시 방법" 옵션은 코드는 살려두되 일단 UI 에서만 숨김.
 // 데이터/렌더링 경로(MainSlide 의 imageFit/imagePosition)는 그대로 동작하므로
@@ -60,12 +70,15 @@ export function MainEditor() {
   const showImagePicker = layout !== 'text' && layout !== 'illustration';
   const isPoster = layout === 'poster';
   const isIllustration = layout === 'illustration';
+  const isFrame = isFrameLayout(layout);
   const design = main.posterDesign;
   const illust = main.illustrationDesign;
+  const frame = main.frameDesign;
 
   const patchDesign = (next: PosterDesign) => patch('main', { ...main, posterDesign: next });
   const patchIllust = (next: IllustrationDesign) =>
     patch('main', { ...main, illustrationDesign: next });
+  const patchFrame = (next: FrameDesign) => patch('main', { ...main, frameDesign: next });
 
   return (
     <SectionEditor title="메인 화면" description="첫 슬라이드의 레이아웃과 인사말">
@@ -153,9 +166,18 @@ export function MainEditor() {
           />
         )}
 
-        {/* 포스터/일러스트는 각 디자인 패널 내부 "인사말" 그룹에서 작성한다.
-            폴라로이드·텍스트는 디자인 패널이 없으므로 여기서 그대로 노출. */}
-        {!isPoster && !isIllustration && (
+        {isFrame && frame && (
+          <FrameDesignControls
+            design={frame}
+            onChange={patchFrame}
+            greeting={main.greeting}
+            onGreetingChange={(greeting) => patch('main', { ...main, greeting })}
+          />
+        )}
+
+        {/* 포스터/일러스트/액자프레임 은 각 디자인 패널 내부 "인사말" 그룹에서 작성.
+            텍스트 레이아웃만 디자인 패널이 없어 여기서 그대로 노출. */}
+        {!isPoster && !isIllustration && !isFrame && (
           <TextAreaField
             label="인사말"
             value={main.greeting}
@@ -631,6 +653,160 @@ function IllustrationDesignControls({ design, onChange, greeting, onGreetingChan
           placeholder="저희 두 사람의 약속을 함께 축복해주세요"
           onChange={(e) => onGreetingChange(e.target.value)}
         />
+      </Group>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 액자프레임 디자인 컨트롤 — 폴라로이드 / 하트 / 스크린 공용
+// ─────────────────────────────────────────────────────────────
+
+interface FrameProps {
+  design: FrameDesign;
+  onChange: (next: FrameDesign) => void;
+  greeting: string;
+  onGreetingChange: (next: string) => void;
+}
+
+function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: FrameProps) {
+  return (
+    <div className="flex flex-col gap-5 rounded-md border border-input bg-muted/20 p-3">
+      <h3 className="text-sm font-semibold text-foreground">액자프레임 디자인</h3>
+
+      {/* 제목 텍스트 — 토글 + 문구 + 폰트 + 색 + 크기 */}
+      <Group
+        label="제목 텍스트"
+        toggle={{
+          checked: design.title.enabled,
+          onChange: (v) =>
+            onChange({ ...design, title: { ...design.title, enabled: v } }),
+        }}
+      >
+        {design.title.enabled && (
+          <>
+            <TitleTextCombobox
+              value={design.title.text}
+              onChange={(text) =>
+                onChange({ ...design, title: { ...design.title, text } })
+              }
+            />
+            <FontPicker
+              value={design.title.font}
+              onChange={(font) =>
+                onChange({ ...design, title: { ...design.title, font } })
+              }
+              previewText={design.title.text || 'Preview'}
+            />
+            <ColorPicker
+              label="색상"
+              value={design.title.color}
+              onChange={(color) =>
+                onChange({ ...design, title: { ...design.title, color } })
+              }
+              presets={TITLE_COLOR_PRESETS}
+              allowThemeDefault
+            />
+            <SliderRow
+              label="글자 크기"
+              value={design.title.fontSize}
+              min={18}
+              max={44}
+              unit="px"
+              onChange={(fontSize) =>
+                onChange({ ...design, title: { ...design.title, fontSize } })
+              }
+            />
+          </>
+        )}
+      </Group>
+
+      {/* 날짜 */}
+      <Group
+        label="날짜"
+        toggle={{
+          checked: design.dateBox.enabled,
+          onChange: (v) =>
+            onChange({ ...design, dateBox: { ...design.dateBox, enabled: v } }),
+        }}
+      >
+        <p className="text-xs text-muted-foreground">
+          폰트와 색상은 전체 디자인을 따릅니다.
+        </p>
+        {design.dateBox.enabled && (
+          <SliderRow
+            label="글자 크기"
+            value={design.dateBox.fontSize}
+            min={11}
+            max={22}
+            unit="px"
+            onChange={(fontSize) =>
+              onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
+            }
+          />
+        )}
+      </Group>
+
+      {/* 이름 */}
+      <Group
+        label="이름"
+        toggle={{
+          checked: design.nameBox.enabled,
+          onChange: (v) =>
+            onChange({ ...design, nameBox: { ...design.nameBox, enabled: v } }),
+        }}
+      >
+        <p className="text-xs text-muted-foreground">
+          신랑·신부 이름이 표시됩니다.
+        </p>
+        {design.nameBox.enabled && (
+          <SliderRow
+            label="글자 크기"
+            value={design.nameBox.fontSize}
+            min={12}
+            max={28}
+            unit="px"
+            onChange={(fontSize) =>
+              onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
+            }
+          />
+        )}
+      </Group>
+
+      {/* 인사말 */}
+      <Group
+        label="인사말"
+        toggle={{
+          checked: design.messageBox.enabled,
+          onChange: (v) =>
+            onChange({ ...design, messageBox: { ...design.messageBox, enabled: v } }),
+        }}
+      >
+        <p className="text-xs text-muted-foreground">
+          폰트와 색상은 전체 디자인을 따릅니다.
+        </p>
+        {design.messageBox.enabled && (
+          <>
+            <SliderRow
+              label="글자 크기"
+              value={design.messageBox.fontSize}
+              min={11}
+              max={22}
+              unit="px"
+              onChange={(fontSize) =>
+                onChange({ ...design, messageBox: { ...design.messageBox, fontSize } })
+              }
+            />
+            <TextAreaField
+              label="인사말 내용"
+              value={greeting}
+              maxLength={500}
+              rows={4}
+              placeholder="저희 두 사람의 약속을 함께 축복해주세요"
+              onChange={(e) => onGreetingChange(e.target.value)}
+            />
+          </>
+        )}
       </Group>
     </div>
   );

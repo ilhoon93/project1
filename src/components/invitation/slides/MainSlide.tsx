@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import {
+  FrameDesignSchema,
   IllustrationDesignSchema,
   PosterDesignSchema,
   type InvitationContent,
+  type FrameDesign,
   type PosterDesign,
   type IllustrationDesign,
 } from '@/types/invitation';
@@ -56,7 +58,22 @@ export function MainSlide({ groomName, brideName, weddingDate, main, scoped }: P
     );
   }
 
-  // 그 외 (polaroid / text / 이미지 없는 poster) — 기존 레이아웃 그대로 유지.
+  if (layout === 'polaroid' || layout === 'frameHeart' || layout === 'frameScreen') {
+    return (
+      <FrameSlide
+        variant={layout}
+        main={main}
+        groomName={groomName}
+        brideName={brideName}
+        weddingDate={weddingDate}
+        onCelebrate={handleCelebrate}
+        confettiTrigger={confettiTrigger}
+        scoped={scoped}
+      />
+    );
+  }
+
+  // 그 외 (text / 이미지 없는 poster) — 기존 레이아웃 그대로 유지.
   return (
     <LegacyMainSlide
       main={main}
@@ -630,4 +647,222 @@ function formatDate(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return `${d.getFullYear()}. ${String(d.getMonth() + 1).padStart(2, '0')}. ${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// 액자프레임 (폴라로이드 / 하트 / 스크린) — 같은 디자인 컨트롤(FrameDesign) 공유,
+// variant 별로 이미지 프레임만 다르게 렌더한다.
+// ─────────────────────────────────────────────────────────────
+
+type FrameVariant = 'polaroid' | 'frameHeart' | 'frameScreen';
+
+interface FrameProps {
+  variant: FrameVariant;
+  main: InvitationContent['main'];
+  groomName: string;
+  brideName: string;
+  weddingDate: string | null;
+  onCelebrate: () => void;
+  confettiTrigger: number | null;
+  scoped?: boolean;
+}
+
+function FrameSlide({
+  variant,
+  main,
+  groomName,
+  brideName,
+  weddingDate,
+  onCelebrate,
+  confettiTrigger,
+  scoped,
+}: FrameProps) {
+  const design: FrameDesign = main.frameDesign ?? FrameDesignSchema.parse(undefined);
+  const titleFont = TITLE_FONT_OPTIONS[design.title.font].family;
+  const titleColor = design.title.color || 'currentColor';
+  const isScreen = variant === 'frameScreen';
+
+  return (
+    // 스크린 변형은 letterbox 효과를 위해 슬라이드 전체에 어두운 배경을 깐다.
+    <section
+      className={`relative flex h-full min-h-full w-full flex-col items-center overflow-hidden text-center ${
+        isScreen ? 'text-white' : ''
+      }`}
+      style={isScreen ? { backgroundColor: '#0F0F12' } : undefined}
+    >
+      {/* 1) 상단 영역 — 제목 + 인사말. 이미지 위쪽에서 자라고 길어지면 위로 잘림. */}
+      <div
+        className="flex w-full flex-col items-center justify-end overflow-hidden px-6"
+        style={{ flex: '1 1 0', minHeight: 0, paddingTop: '4cqh', paddingBottom: '2cqh' }}
+      >
+        {design.title.enabled && design.title.text && (
+          <h1
+            className="font-bold leading-tight"
+            style={{
+              fontFamily: titleFont,
+              color: titleColor,
+              fontSize: `${design.title.fontSize}px`,
+            }}
+          >
+            {design.title.text}
+          </h1>
+        )}
+
+        {design.messageBox.enabled && main.greeting && (
+          <p
+            className="max-w-md whitespace-pre-line leading-relaxed opacity-80"
+            style={{
+              fontSize: `${design.messageBox.fontSize}px`,
+              marginTop: '1.4cqh',
+            }}
+          >
+            {main.greeting}
+          </p>
+        )}
+      </div>
+
+      {/* 2) 액자 이미지 — variant 별로 모양만 달라짐 */}
+      <FrameImage variant={variant} src={main.heroImage ?? null} />
+
+      {/* 3) 이름 — 이미지 아래 살짝 띄움 */}
+      {design.nameBox.enabled && (
+        <p
+          className="shrink-0 font-light tracking-wide"
+          style={{
+            fontSize: `${design.nameBox.fontSize}px`,
+            marginTop: '2.2cqh',
+          }}
+        >
+          {groomName} <span className="opacity-60">&amp;</span> {brideName}
+        </p>
+      )}
+
+      {/* 4) 날짜 — 이름 바로 아래 */}
+      {design.dateBox.enabled && weddingDate && (
+        <p
+          className="shrink-0 tracking-[0.2em] opacity-90"
+          style={{
+            fontSize: `${design.dateBox.fontSize}px`,
+            marginTop: '0.8cqh',
+          }}
+        >
+          {formatDate(weddingDate)}
+        </p>
+      )}
+
+      {/* 5) 하단 spacer */}
+      <div style={{ flex: '1 1 0', minHeight: '5cqh' }} />
+
+      {/* 6) 축하하기 버튼 — absolute 로 고정 */}
+      <div className="absolute bottom-0 left-1/2 z-20 -translate-x-1/2" style={{ marginBottom: '4cqh' }}>
+        <button
+          type="button"
+          onClick={onCelebrate}
+          className="inline-flex items-center gap-1.5 text-xs font-medium opacity-70 transition-opacity hover:opacity-100"
+        >
+          <span className="underline underline-offset-4">축하하기</span>
+          <span aria-hidden className="text-base leading-none">🎉</span>
+        </button>
+      </div>
+
+      <Confetti trigger={confettiTrigger} scoped={scoped} />
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 변형별 이미지 프레임 — 폴라로이드 / 하트 / 스크린
+// ─────────────────────────────────────────────────────────────
+
+function FrameImage({ variant, src }: { variant: FrameVariant; src: string | null }) {
+  if (variant === 'polaroid') {
+    // 흰 테두리 + 살짝 기울임. 그림자로 입체감.
+    return (
+      <div className="shrink-0 rotate-[-3deg] bg-white p-3 pb-8 shadow-xl">
+        <div className="flex h-[34cqh] w-[60cqw] max-w-[16rem] items-center justify-center overflow-hidden bg-stone-100">
+          {src ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={src} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-3xl text-stone-400">📷</span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === 'frameHeart') {
+    // 하트 모양 클립 + 외곽 그림자. clipPathId 는 컴포넌트별로 고유.
+    return (
+      <div className="relative shrink-0">
+        <svg
+          viewBox="0 0 100 90"
+          className="h-[34cqh] w-[60cqw] max-w-[16rem] drop-shadow-lg"
+          preserveAspectRatio="xMidYMid meet"
+        >
+          <defs>
+            <clipPath id="frame-heart-clip" clipPathUnits="userSpaceOnUse">
+              {/* 부드러운 하트 — 두 원 + 아래쪽 V */}
+              <path d="M50 85
+                       C 40 75, 10 55, 10 32
+                       C 10 18, 22 8, 32 8
+                       C 40 8, 46 12, 50 18
+                       C 54 12, 60 8, 68 8
+                       C 78 8, 90 18, 90 32
+                       C 90 55, 60 75, 50 85 Z" />
+            </clipPath>
+          </defs>
+
+          {/* 배경 채움 — 이미지 없을 때 폴백 */}
+          <rect x="0" y="0" width="100" height="90" fill="#f5f5f4" clipPath="url(#frame-heart-clip)" />
+          {src && (
+            <image
+              href={src}
+              x="0"
+              y="0"
+              width="100"
+              height="90"
+              preserveAspectRatio="xMidYMid slice"
+              clipPath="url(#frame-heart-clip)"
+            />
+          )}
+          {/* 가장자리 라인 — 살짝 두께감 */}
+          <path
+            d="M50 85
+               C 40 75, 10 55, 10 32
+               C 10 18, 22 8, 32 8
+               C 40 8, 46 12, 50 18
+               C 54 12, 60 8, 68 8
+               C 78 8, 90 18, 90 32
+               C 90 55, 60 75, 50 85 Z"
+            fill="none"
+            stroke="rgba(255,255,255,0.6)"
+            strokeWidth="0.6"
+          />
+        </svg>
+      </div>
+    );
+  }
+
+  // frameScreen — 영화관 스크린 letterbox. 이미지가 가로로 길게(16:9) 들어가고
+  // 위·아래는 슬라이드 배경(검정)이 그대로 보여 letterbox 효과.
+  return (
+    <div className="flex w-full shrink-0 items-center justify-center" style={{ paddingInline: '4cqw' }}>
+      <div
+        className="relative w-full max-w-md overflow-hidden bg-black"
+        style={{
+          aspectRatio: '16 / 9',
+          boxShadow:
+            '0 0 0 1px rgba(255,255,255,0.08), 0 12px 30px rgba(0,0,0,0.55)',
+        }}
+      >
+        {src ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="grid h-full w-full place-items-center text-3xl text-white/40">🎬</div>
+        )}
+      </div>
+    </div>
+  );
 }

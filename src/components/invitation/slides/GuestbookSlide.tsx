@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { InvitationContent } from '@/types/invitation';
 import { SignaturePad, type SignaturePadHandle } from '@/components/shared/SignaturePad';
 import { persistGuestIdentity } from '../SignatureGate';
@@ -117,9 +118,13 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
       </header>
 
       {guestbook.coupleMessage && (
-        <p className="whitespace-pre-line text-center text-sm leading-relaxed">
-          {guestbook.coupleMessage}
-        </p>
+        <>
+          {/* 메시지 상단 디바이더 — 헤더와 메시지를 시각적으로 구분 */}
+          <GuestbookDivider />
+          <p className="whitespace-pre-line text-center text-sm leading-relaxed">
+            {guestbook.coupleMessage}
+          </p>
+        </>
       )}
 
       {/* 신랑신부 메시지와 입력부 사이 디바이더 — 가는 라인 + 가운데 ✦ */}
@@ -137,8 +142,8 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-3" data-noswipe>
-          {/* 이름 + 신랑/신부 측을 한 줄에 배치해 입력부 높이를 줄인다 */}
-          <div className="flex gap-1.5">
+          {/* 이름 + 신랑/신부 + 서명하기 버튼을 한 줄에 배치 */}
+          <div className="flex items-center gap-1.5">
             <input
               type="text"
               value={name}
@@ -146,7 +151,7 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
               maxLength={20}
               required
               placeholder="이름"
-              className={`h-10 w-28 flex-shrink-0 px-2.5 text-sm ${inputBaseClass}`}
+              className={`h-9 min-w-0 flex-1 px-2.5 text-sm ${inputBaseClass}`}
             />
             {[
               { v: 'groom', label: '신랑측' },
@@ -156,15 +161,27 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
                 key={opt.v}
                 type="button"
                 onClick={() => setSide(opt.v as 'groom' | 'bride')}
-                className={`h-10 flex-1 rounded-md border text-xs transition-colors ${
+                className={`h-9 shrink-0 rounded-md border px-2 text-[11px] font-medium transition-colors ${
                   side === opt.v
-                    ? 'border-[var(--mw-accent)] bg-[var(--mw-accent)] text-white'
-                    : 'border-[var(--mw-dot)] bg-white text-stone-900'
+                    ? 'border-[var(--mw-accent)] bg-[var(--mw-accent)] text-white shadow-sm'
+                    : 'border-[var(--mw-dot)] bg-white text-stone-700 hover:bg-stone-50'
                 }`}
               >
                 {opt.label}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setShowSigPopup(true)}
+              aria-label={signatureData ? '서명 다시 하기' : '서명하기 (선택)'}
+              className={`h-9 shrink-0 rounded-md border px-2 text-[11px] font-medium transition-colors ${
+                signatureData
+                  ? 'border-[var(--mw-accent)] bg-[var(--mw-accent)] text-white shadow-sm'
+                  : 'border-[var(--mw-accent)] bg-white text-[var(--mw-accent)] hover:bg-[var(--mw-accent)] hover:text-white'
+              }`}
+            >
+              {signatureData ? '서명✓' : '서명'}
+            </button>
           </div>
 
           <textarea
@@ -176,20 +193,6 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
             placeholder="축하 메시지를 남겨주세요"
             className={`resize-none px-3 py-2 text-sm ${inputBaseClass}`}
           />
-
-          {/* 서명 — 팝업에서 작성. 미작성 / 작성 완료 두 상태로 버튼 텍스트 분기. */}
-          <div className="flex items-center justify-between">
-            <span className="text-xs opacity-70">
-              {signatureData ? '서명이 첨부되었습니다 ✓' : '서명 (선택)'}
-            </span>
-            <button
-              type="button"
-              onClick={() => setShowSigPopup(true)}
-              className="rounded-md border border-[var(--mw-accent)] px-3 py-1.5 text-xs font-medium text-[var(--mw-accent)] transition-colors hover:bg-[var(--mw-accent)] hover:text-white"
-            >
-              {signatureData ? '서명 다시 하기' : '서명하기'}
-            </button>
-          </div>
 
           <label className="flex items-start gap-2 text-xs opacity-80">
             <input
@@ -212,7 +215,7 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
           <button
             type="submit"
             disabled={submitting}
-            className="h-11 rounded-md bg-[var(--mw-accent)] text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+            className="mx-auto h-9 rounded-md bg-[var(--mw-accent)] px-6 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             {submitting ? '저장 중...' : '메시지 남기기'}
           </button>
@@ -264,8 +267,16 @@ function SignaturePopup({
   onConfirm: (data: string | null) => void;
 }) {
   const padRef = useRef<SignaturePadHandle>(null);
+  const [mounted, setMounted] = useState(false);
 
-  // ESC 닫기 + 배경 스크롤 잠금. 팝업 열림 동안만 적용.
+  // SSR 시 document 가 없으므로 마운트 후에만 portal 을 렌더한다.
+  // 슬라이드 컨테이너의 transform / containerType 이 fixed positioning 을
+  // 가두기 때문에 body 로 portal 해야 화면 전체에 모달이 깔린다.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // ESC 닫기 + 배경 스크롤 잠금.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -279,12 +290,14 @@ function SignaturePopup({
     };
   }, [onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  const node = (
     <div
       role="dialog"
       aria-modal="true"
       aria-label="서명"
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center px-4"
       data-noswipe
     >
       {/* 백드롭 — 클릭 시 닫기 */}
@@ -356,4 +369,6 @@ function SignaturePopup({
       </div>
     </div>
   );
+
+  return createPortal(node, document.body);
 }

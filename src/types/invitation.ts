@@ -37,7 +37,14 @@ export const ThemeSchema = z
 
 // ── individual section schemas ────────────────────────────
 
-export const MAIN_LAYOUTS = ['poster', 'polaroid', 'illustration', 'text'] as const;
+export const MAIN_LAYOUTS = [
+  'poster',
+  'polaroid',     // 액자프레임 — 폴라로이드 (흰 테두리 + 살짝 기울임)
+  'frameHeart',   // 액자프레임 — 하트 (이미지를 하트 모양으로 클립)
+  'frameScreen',  // 액자프레임 — 스크린 (영화관 letterbox 스타일)
+  'illustration',
+  'text',
+] as const;
 
 // 풀이미지형(=poster) 디자인 구성. 다른 레이아웃에서는 무시되지만
 // 사용자가 레이아웃을 다시 poster 로 바꿨을 때 직전 설정이 보존되도록
@@ -188,6 +195,63 @@ export const IllustrationDesignSchema = z
 
 export type IllustrationDesign = z.infer<typeof IllustrationDesignSchema>;
 
+// ── 액자프레임 디자인 ────────────────────────────────────
+//
+// 폴라로이드 / 하트 / 스크린 세 변형이 같은 스키마를 공유한다 — 각 변형의 차이는
+// 이미지 프레임 모양이고, 그 외 제목·이름·날짜·인사말 요소는 동일한 컨트롤로
+// 노출한다. 폰트·색상·글자 크기·토글까지 포스터형과 비슷한 자유도를 제공한다.
+
+export const FrameDesignSchema = z
+  .object({
+    title: z
+      .object({
+        enabled: z.boolean().default(true),
+        text: z.string().max(60).default(TITLE_TEXT_PRESETS[0]),
+        font: z.enum(TITLE_FONT_KEYS).default('playfairDisplay'),
+        color: z.string().max(32).default('currentColor'),
+        fontSize: z.number().min(18).max(44).default(26),
+      })
+      .default({
+        enabled: true,
+        text: TITLE_TEXT_PRESETS[0],
+        font: 'playfairDisplay',
+        color: 'currentColor',
+        fontSize: 26,
+      }),
+    nameBox: z
+      .object({
+        enabled: z.boolean().default(true),
+        fontSize: z.number().min(12).max(28).default(20),
+      })
+      .default({ enabled: true, fontSize: 20 }),
+    dateBox: z
+      .object({
+        enabled: z.boolean().default(true),
+        fontSize: z.number().min(11).max(22).default(14),
+      })
+      .default({ enabled: true, fontSize: 14 }),
+    messageBox: z
+      .object({
+        enabled: z.boolean().default(true),
+        fontSize: z.number().min(11).max(22).default(13),
+      })
+      .default({ enabled: true, fontSize: 13 }),
+  })
+  .default({
+    title: {
+      enabled: true,
+      text: TITLE_TEXT_PRESETS[0],
+      font: 'playfairDisplay',
+      color: 'currentColor',
+      fontSize: 26,
+    },
+    nameBox: { enabled: true, fontSize: 20 },
+    dateBox: { enabled: true, fontSize: 14 },
+    messageBox: { enabled: true, fontSize: 13 },
+  });
+
+export type FrameDesign = z.infer<typeof FrameDesignSchema>;
+
 export const MainSectionSchema = z
   .object({
     layout: z.enum(MAIN_LAYOUTS).default('poster'),
@@ -197,6 +261,7 @@ export const MainSectionSchema = z
     aiUsed: z.boolean().default(false),
     posterDesign: PosterDesignSchema,
     illustrationDesign: IllustrationDesignSchema,
+    frameDesign: FrameDesignSchema,
   })
   .default({
     layout: 'poster',
@@ -204,6 +269,7 @@ export const MainSectionSchema = z
     aiUsed: false,
     posterDesign: PosterDesignSchema.parse(undefined),
     illustrationDesign: IllustrationDesignSchema.parse(undefined),
+    frameDesign: FrameDesignSchema.parse(undefined),
   });
 
 // ── basic info slide (글귀 / 인사말 / 가족 / 날짜) ──────────
