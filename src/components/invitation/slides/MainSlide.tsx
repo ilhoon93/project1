@@ -12,6 +12,7 @@ import {
 } from '@/types/invitation';
 import { TITLE_FONT_OPTIONS } from '@/lib/theme';
 import { Confetti } from '@/components/shared/Confetti';
+import { HeartClip } from '@/components/shared/HeartClip';
 
 interface Props {
   groomName: string;
@@ -853,23 +854,20 @@ function FrameImage({
 
   if (variant === 'heart') {
     // 하트 모양 클립 + 외곽 그림자.
-    // SVG image 의 보일 영역 선택은 viewBox 좌표 ↔ 이미지 좌표를 직접 매핑할
-    // 수 없어 SVG mask + foreignObject 가 복잡함. 대신 div + clipPath:
-    // <div clip-path:path('...') overflow:hidden> 안에 일반 <img> 로 렌더해
-    // object-position 을 그대로 활용한다. 이렇게 하면 imagePosition 슬라이더가
-    // 폴라로이드와 동일하게 동작한다.
-    const heartPath =
-      "path('M50 85 C 40 75, 10 55, 10 32 C 10 18, 22 8, 32 8 C 40 8, 46 12, 50 18 C 54 12, 60 8, 68 8 C 78 8, 90 18, 90 32 C 90 55, 60 75, 50 85 Z')";
+    // HeartClip 안에 일반 <img> 를 넣어 object-cover + objectPosition 활용.
+    // SVG clipPath(objectBoundingBox) 라 컨테이너 크기에 맞춰 하트가 자동 스케일 →
+    // 슬라이드(큰 컨테이너) 와 에디터 미리보기(작은 컨테이너) 가 항상 동일한 모양.
+    //
+    // 컨테이너를 4:5(세로가 약간 더 김) 로 두어 9:16 인물 사진 cover 시 잘리는
+    // 영역을 줄였다 (10:9 일 때 ~49% → 4:5 일 때 ~30% 만 잘림). 사진 절반 이상이
+    // 하트 안에 보이도록 사용자 요청.
     return (
-      <div
-        className="relative shrink-0 overflow-hidden bg-stone-100"
+      <HeartClip
+        className="shrink-0"
         style={{
-          // 하트 사이즈 키움 (60cqw/16rem → 80cqw/22rem) — 사용자 요청.
-          width: 'min(80cqw, 22rem)',
-          aspectRatio: '100 / 90',
-          clipPath: heartPath,
-          WebkitClipPath: heartPath,
-          // SVG viewBox 가 100×90 이라 컨테이너도 10:9 비율로 맞춤.
+          width: 'min(95cqw, 28rem)',
+          aspectRatio: '4 / 5',
+          backgroundColor: '#f5f5f4',
           filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.18))',
         }}
       >
@@ -884,7 +882,7 @@ function FrameImage({
         ) : (
           <div className="grid h-full w-full place-items-center text-3xl text-stone-400">💗</div>
         )}
-      </div>
+      </HeartClip>
     );
   }
 

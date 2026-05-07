@@ -1,12 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { InvitationContent } from '@/types/invitation';
 
 export function VideoSlide({ video }: { video: InvitationContent['video'] }) {
-  // 자체 호스팅 영상의 가로/세로 비율을 metadata 로드 시 측정.
-  // 임베드(YouTube/Vimeo) iframe 은 aspect 알 길이 없어 16:9 기본값 유지.
+  // 영상의 가로/세로 비율 — self-hosted 는 metadata 로 직접 측정,
+  // 임베드(YouTube/Vimeo/Shorts) 는 URL 힌트로 추정.
   const [videoAspect, setVideoAspect] = useState<number | null>(null);
+
+  // self-hosted 영상은 컨트롤되는 <video> 의 onLoadedMetadata 가 늦게 발화하거나
+  // 누락되는 경우가 있어 (preload=metadata 가 무시되거나 첫 렌더가 16:9 박스로
+  // 잠시 노출돼 세로 영상이 작게 보임) 별도 video element 로 프리로드 한다.
+  useEffect(() => {
+    if (!video.url) return;
+    if (typeof document === 'undefined') return;
+    if (isEmbeddable(video.url)) {
+      // 임베드는 URL 힌트로 미리 비율 결정 (YouTube Shorts → 9:16).
+      setVideoAspect(guessEmbedAspect(video.url));
+      return;
+    }
+    const v = document.createElement('video');
+    v.preload = 'metadata';
+    v.muted = true;
+    v.crossOrigin = 'anonymous';
+    let canceled = false;
+    const onMeta = () => {
+      if (canceled) return;
+      if (v.videoWidth > 0 && v.videoHeight > 0) {
+        setVideoAspect(v.videoWidth / v.videoHeight);
+      }
+    };
+    v.addEventListener('loadedmetadata', onMeta);
+    v.src = video.url;
+    return () => {
+      canceled = true;
+      v.removeEventListener('loadedmetadata', onMeta);
+      v.src = '';
+    };
+  }, [video.url]);
 
   if (!video.url) {
     return (
@@ -20,8 +51,7 @@ export function VideoSlide({ video }: { video: InvitationContent['video'] }) {
   const isExternal = isEmbeddable(video.url);
   const embedUrl = isExternal ? toEmbedUrl(video.url) : null;
 
-  // 컨테이너 비율 — 자체 호스팅이고 metadata 가 로드된 경우에만 영상 실제 비율 사용,
-  // 그 외엔 16:9 기본. 이렇게 해두면 세로 영상은 세로로, 가로 영상은 가로로 렌더된다.
+  // 컨테이너 비율 — 측정/추정된 값을 사용. 아직 모르면 16:9 잠정 폴백.
   const aspect = videoAspect ?? 16 / 9;
 
   return (
@@ -98,8 +128,13 @@ function isEmbeddable(url: string) {
 function toEmbedUrl(url: string): string {
   try {
     const u = new URL(url);
-    if (u.hostname.includes('youtube.com') && u.searchParams.get('v')) {
-      return `https://www.youtube.com/embed/${u.searchParams.get('v')}`;
+    if (u.hostname.includes('youtube.com')) {
+      // 표준 watch URL: youtube.com/watch?v=ID
+      const v = u.searchParams.get('v');
+      if (v) return `https://www.youtube.com/embed/${v}`;
+      // Shorts URL: youtube.com/shorts/ID — 임베드 경로로 변환해야 iframe 에서 재생됨.
+      const shortsMatch = u.pathname.match(/^\/shorts\/([^/]+)/);
+      if (shortsMatch) return `https://www.youtube.com/embed/${shortsMatch[1]}`;
     }
     if (u.hostname === 'youtu.be') {
       return `https://www.youtube.com/embed${u.pathname}`;
@@ -111,4 +146,21 @@ function toEmbedUrl(url: string): string {
   } catch {
     return url;
   }
+}
+
+/**
+ * 임베드 URL 의 종류로 비율을 어림 잡는다 — YouTube Shorts 는 항상 9:16,
+ * 그 외 일반 YouTube/Vimeo 는 16:9 가 기본. (정확한 값은 oEmbed API 등으로
+ * 가져올 수 있지만 대부분 케이스에서 이 휴리스틱이면 충분.)
+ */
+function guessEmbedAspect(url: string): number {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('youtube.com') && /^\/shorts\//.test(u.pathname)) {
+      return 9 / 16;
+    }
+  } catch {
+    // ignore
+  }
+  return 16 / 9;
 }

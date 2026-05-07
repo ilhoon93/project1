@@ -138,7 +138,7 @@ export function MainEditor() {
                 previewAspect={
                   isFrame
                     ? frame?.variant === 'heart'
-                      ? 'aspect-[10/9]'
+                      ? 'aspect-[4/5]'
                       : 'aspect-square'
                     : 'aspect-[9/16]'
                 }
