@@ -871,7 +871,8 @@ function FrameImage({
       <div
         className="relative shrink-0 overflow-hidden bg-stone-100"
         style={{
-          width: 'min(60cqw, 16rem)',
+          // 하트 사이즈 키움 (60cqw/16rem → 80cqw/22rem) — 사용자 요청.
+          width: 'min(80cqw, 22rem)',
           aspectRatio: '100 / 90',
           clipPath: heartPath,
           WebkitClipPath: heartPath,
