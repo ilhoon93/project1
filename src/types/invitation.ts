@@ -152,27 +152,38 @@ export const IllustrationDesignSchema = z
         text: z.string().max(60).default(TITLE_TEXT_PRESETS[4]), // "A day, our way"
         // 색상은 hex / 'currentColor' 둘 다 받는다. 'currentColor' 면 테마 fg.
         color: z.string().max(32).default('currentColor'),
+        // px 단위 — 슬라이더로 22–48 사이에서 조정.
+        fontSize: z.number().min(22).max(48).default(34),
+        // 기본 위치(이미지 상단 위쪽)를 기준으로 cqh 단위 상하 미세 조정.
+        // 음수 = 위로, 양수 = 아래로. -10 ~ +10 cqh.
+        offsetY: z.number().min(-10).max(10).default(0),
       })
       .default({
         text: TITLE_TEXT_PRESETS[4],
         color: 'currentColor',
+        fontSize: 34,
+        offsetY: 0,
       }),
     dateBox: z
       .object({
         enabled: z.boolean().default(true),
+        fontSize: z.number().min(11).max(22).default(15),
+        offsetY: z.number().min(-10).max(10).default(0),
       })
-      .default({ enabled: true }),
+      .default({ enabled: true, fontSize: 15, offsetY: 0 }),
     nameBox: z
       .object({
         enabled: z.boolean().default(true),
+        fontSize: z.number().min(12).max(24).default(16),
+        offsetY: z.number().min(-10).max(10).default(0),
       })
-      .default({ enabled: true }),
+      .default({ enabled: true, fontSize: 16, offsetY: 0 }),
   })
   .default({
     variant: 'arch',
-    title: { text: TITLE_TEXT_PRESETS[4], color: 'currentColor' },
-    dateBox: { enabled: true },
-    nameBox: { enabled: true },
+    title: { text: TITLE_TEXT_PRESETS[4], color: 'currentColor', fontSize: 34, offsetY: 0 },
+    dateBox: { enabled: true, fontSize: 15, offsetY: 0 },
+    nameBox: { enabled: true, fontSize: 16, offsetY: 0 },
   });
 
 export type IllustrationDesign = z.infer<typeof IllustrationDesignSchema>;
