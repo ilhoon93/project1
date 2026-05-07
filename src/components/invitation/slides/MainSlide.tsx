@@ -58,10 +58,11 @@ export function MainSlide({ groomName, brideName, weddingDate, main, scoped }: P
     );
   }
 
-  if (layout === 'polaroid' || layout === 'frameHeart' || layout === 'frameScreen') {
+  // 'frame' 신규 키 + 'polaroid' 구버전 키 둘 다 액자프레임 분기로 보낸다.
+  // 변형(폴라로이드/하트/스크린) 은 frameDesign.variant 로 결정.
+  if (layout === 'frame' || layout === 'polaroid') {
     return (
       <FrameSlide
-        variant={layout}
         main={main}
         groomName={groomName}
         brideName={brideName}
@@ -654,10 +655,9 @@ function formatDate(iso: string) {
 // variant 별로 이미지 프레임만 다르게 렌더한다.
 // ─────────────────────────────────────────────────────────────
 
-type FrameVariant = 'polaroid' | 'frameHeart' | 'frameScreen';
+type FrameVariant = 'polaroid' | 'heart' | 'screen';
 
 interface FrameProps {
-  variant: FrameVariant;
   main: InvitationContent['main'];
   groomName: string;
   brideName: string;
@@ -668,7 +668,6 @@ interface FrameProps {
 }
 
 function FrameSlide({
-  variant,
   main,
   groomName,
   brideName,
@@ -678,9 +677,10 @@ function FrameSlide({
   scoped,
 }: FrameProps) {
   const design: FrameDesign = main.frameDesign ?? FrameDesignSchema.parse(undefined);
+  const variant: FrameVariant = design.variant;
   const titleFont = TITLE_FONT_OPTIONS[design.title.font].family;
   const titleColor = design.title.color || 'currentColor';
-  const isScreen = variant === 'frameScreen';
+  const isScreen = variant === 'screen';
 
   return (
     // 스크린 변형은 letterbox 효과를 위해 슬라이드 전체에 어두운 배경을 깐다.
@@ -791,7 +791,7 @@ function FrameImage({ variant, src }: { variant: FrameVariant; src: string | nul
     );
   }
 
-  if (variant === 'frameHeart') {
+  if (variant === 'heart') {
     // 하트 모양 클립 + 외곽 그림자. clipPathId 는 컴포넌트별로 고유.
     return (
       <div className="relative shrink-0">
@@ -844,7 +844,7 @@ function FrameImage({ variant, src }: { variant: FrameVariant; src: string | nul
     );
   }
 
-  // frameScreen — 영화관 스크린 letterbox. 이미지가 가로로 길게(16:9) 들어가고
+  // screen — 영화관 스크린 letterbox. 이미지가 가로로 길게(16:9) 들어가고
   // 위·아래는 슬라이드 배경(검정)이 그대로 보여 letterbox 효과.
   return (
     <div className="flex w-full shrink-0 items-center justify-center" style={{ paddingInline: '4cqw' }}>

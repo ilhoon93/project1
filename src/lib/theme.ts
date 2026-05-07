@@ -11,6 +11,7 @@ export const COLOR_THEMES = [
   'blush',
   'sage',
   'lavender',    // 라벤더 — 연보라 톤. 별빛/오로라 효과와 잘 어울림.
+  'sky',         // 하늘 — 맑은 날 하늘 그라데이션 + 옅은 구름 텍스처.
   'pearl',
   'letterPaper', // 편지지 — 흰 바탕 + 검정 글자
   'champagne',   // 샴페인 — 웜 아이보리 + 와인 글자
@@ -56,6 +57,18 @@ const CHAMPAGNE_PATTERN =
   'radial-gradient(circle at 25% 25%, rgba(212,165,116,0.22) 0%, rgba(255,248,235,0) 42%), ' +
   'radial-gradient(circle at 80% 70%, rgba(232,200,160,0.18) 0%, rgba(255,248,235,0) 45%)';
 
+// 하늘 — 맑은 한낮의 하늘. 위에서 아래로 푸른 톤이 점점 옅어지는 수직
+// 그라데이션 위에, 듬성듬성한 흰 구름 같은 라디얼 글로우 3개를 얹어
+// 단색이 아닌 자연스러운 하늘 느낌을 낸다. 낮 → 지평선 방향 그라데이션은
+// 맨 마지막에 두어 stack 의 가장 아래 깔리도록 한다 (위쪽 라디얼들이 구름).
+const SKY_PATTERN =
+  // 부드러운 흰 구름 패치 — 가장자리 흐림을 위해 알파 fade.
+  'radial-gradient(ellipse 55% 30% at 22% 28%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 70%), ' +
+  'radial-gradient(ellipse 45% 25% at 78% 38%, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 70%), ' +
+  'radial-gradient(ellipse 50% 22% at 50% 78%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 70%), ' +
+  // 수직 하늘 그라데이션 — 위(좀 더 진한 푸른 하늘) → 아래(밝은 지평선).
+  'linear-gradient(to bottom, #B5D4EE 0%, #CFE3F4 35%, #E5EFF8 70%, #F5F8FB 100%)';
+
 // 일러스트 PNG 는 *투명 배경* 으로 저장하는 것을 전제로 한다 — 그렇지 않으면
 // 색상 필터로는 신랑·신부의 흰 드레스/피부/연한 꽃 같은 밝은 톤 요소들과
 // 배경(흰/크림)을 구분할 수 없다. (luminance 만으로는 공간적으로 같은 색을
@@ -97,6 +110,15 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     accent: '#8E6FBF',
     dot: '#D7C9EA',
     petals: ['#E2D2F2', '#C9B5E5', '#EFE4F8', '#B89BD9'],
+  },
+  // 하늘 — 푸른 그라데이션 + 옅은 구름. 텍스트는 짙은 네이비로 가독성 확보.
+  sky: {
+    bg: '#CFE3F4',
+    fg: '#1E3A5F',
+    accent: '#4F86B8',
+    dot: '#B7D2E8',
+    petals: ['#FFFFFF', '#E8F2FA', '#D2E4F2', '#BCD6EC'],
+    bgPattern: SKY_PATTERN,
   },
   dusk: {
     bg: '#221C2E',
@@ -151,6 +173,7 @@ export const COLOR_THEME_LABELS: Record<ColorTheme, string> = {
   blush: '블러쉬',
   sage: '세이지',
   lavender: '라벤더',
+  sky: '하늘',
   dusk: '더스크',
   pearl: '펄',
   letterPaper: '편지지',

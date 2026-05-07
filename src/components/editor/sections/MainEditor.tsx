@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import {
-  MAIN_LAYOUTS,
   ILLUSTRATION_VARIANTS,
+  FRAME_VARIANTS,
   type PosterDesign,
   type IllustrationDesign,
   type IllustrationVariant,
   type FrameDesign,
+  type FrameVariant,
 } from '@/types/invitation';
 import { useEditorStore } from '@/stores/editor';
 import {
@@ -21,20 +22,22 @@ import { SectionEditor } from '../SectionEditor';
 import { TextAreaField } from '../form-fields';
 import { ImageUploader } from '../ImageUploader';
 
-const LAYOUT_LABELS: Record<(typeof MAIN_LAYOUTS)[number], { name: string; hint: string }> = {
+// picker 에는 4가지 상위 레이아웃만 노출한다. 'polaroid' 는 구버전 데이터
+// 호환용으로 enum 엔 남아 있지만 picker 에는 보이지 않고, 내부적으로 frame 과
+// 동일한 분기를 탄다 (variant 는 frameDesign.variant 로 별도 선택).
+const LAYOUT_PICKER_KEYS = ['poster', 'frame', 'illustration', 'text'] as const;
+type LayoutPickerKey = (typeof LAYOUT_PICKER_KEYS)[number];
+
+const LAYOUT_LABELS: Record<LayoutPickerKey, { name: string; hint: string }> = {
   poster: { name: '포스터', hint: '풀이미지 배경' },
-  polaroid: { name: '액자프레임 (폴라로이드)', hint: '흰 테두리 + 살짝 기울임' },
-  frameHeart: { name: '액자프레임 (하트)', hint: '하트 모양으로 클립' },
-  frameScreen: { name: '액자프레임 (스크린)', hint: '영화관 letterbox 스타일' },
+  frame: { name: '액자프레임', hint: '폴라로이드 · 하트 · 스크린' },
   illustration: { name: '일러스트', hint: '신랑신부 그림' },
   text: { name: '텍스트', hint: '이미지 없이' },
 };
 
-// 폴라로이드 / 하트 / 스크린 — 같은 디자인 컨트롤(FrameDesign) 을 공유한다.
-const FRAME_LAYOUTS = ['polaroid', 'frameHeart', 'frameScreen'] as const;
-type FrameLayoutKey = (typeof FRAME_LAYOUTS)[number];
-function isFrameLayout(layout: string): layout is FrameLayoutKey {
-  return (FRAME_LAYOUTS as readonly string[]).includes(layout);
+// 액자프레임 분기 — 'frame' 또는 구버전 'polaroid' 둘 다 같은 컨트롤로 처리.
+function isFrameLayout(layout: string): boolean {
+  return layout === 'frame' || layout === 'polaroid';
 }
 
 // "이미지 표시 방법" 옵션은 코드는 살려두되 일단 UI 에서만 숨김.
@@ -83,12 +86,14 @@ export function MainEditor() {
   return (
     <SectionEditor title="메인 화면" description="첫 슬라이드의 레이아웃과 인사말">
       <div className="flex flex-col gap-4">
-        {/* 레이아웃 선택 */}
+        {/* 레이아웃 선택 — picker 에는 4가지 상위 레이아웃만 노출.
+            'polaroid' (구버전) 는 frame 으로 흡수돼 picker 에서는 보이지 않지만
+            저장된 데이터에 있을 경우 frame 으로 자동 매핑된다. */}
         <div className="flex flex-col gap-2 text-sm">
           <span className="font-medium text-foreground">레이아웃</span>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {MAIN_LAYOUTS.map((key) => {
-              const selected = layout === key;
+            {LAYOUT_PICKER_KEYS.map((key) => {
+              const selected = key === 'frame' ? isFrameLayout(layout) : layout === key;
               const meta = LAYOUT_LABELS[key];
               return (
                 <button
@@ -669,10 +674,44 @@ interface FrameProps {
   onGreetingChange: (next: string) => void;
 }
 
+const FRAME_VARIANT_LABELS: Record<FrameVariant, { name: string; hint: string }> = {
+  polaroid: { name: '폴라로이드', hint: '흰 테두리 + 살짝 기울임' },
+  heart: { name: '하트', hint: '하트 모양으로 클립' },
+  screen: { name: '스크린', hint: '영화관 letterbox' },
+};
+
 function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: FrameProps) {
   return (
     <div className="flex flex-col gap-5 rounded-md border border-input bg-muted/20 p-3">
       <h3 className="text-sm font-semibold text-foreground">액자프레임 디자인</h3>
+
+      {/* 프레임 스타일 — 폴라로이드 / 하트 / 스크린 변형 선택 */}
+      <Group label="프레임 스타일">
+        <div className="grid grid-cols-3 gap-2">
+          {FRAME_VARIANTS.map((key) => {
+            const selected = design.variant === key;
+            const meta = FRAME_VARIANT_LABELS[key];
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onChange({ ...design, variant: key })}
+                aria-pressed={selected}
+                className={`flex flex-col items-center gap-0.5 rounded-md border px-2 py-2.5 text-[11px] transition-colors ${
+                  selected
+                    ? 'border-foreground bg-foreground text-background'
+                    : 'border-input bg-background text-foreground hover:bg-muted'
+                }`}
+              >
+                <span className="font-medium">{meta.name}</span>
+                <span className={`text-[10px] leading-snug ${selected ? 'opacity-80' : 'text-muted-foreground'}`}>
+                  {meta.hint}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </Group>
 
       {/* 제목 텍스트 — 토글 + 문구 + 폰트 + 색 + 크기 */}
       <Group

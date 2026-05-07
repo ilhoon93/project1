@@ -39,12 +39,19 @@ export const ThemeSchema = z
 
 export const MAIN_LAYOUTS = [
   'poster',
-  'polaroid',     // 액자프레임 — 폴라로이드 (흰 테두리 + 살짝 기울임)
-  'frameHeart',   // 액자프레임 — 하트 (이미지를 하트 모양으로 클립)
-  'frameScreen',  // 액자프레임 — 스크린 (영화관 letterbox 스타일)
+  // 액자프레임 — 일러스트형과 같은 패턴: 단일 레이아웃 키 아래에 variant
+  // (폴라로이드 / 하트 / 스크린) 를 가진다. 변형은 FrameDesignSchema.variant 로
+  // 선택. 이전에 사용하던 'polaroid' 키는 frame 으로 흡수되었지만, 기존
+  // 데이터에 있을 수 있어 호환을 위해 enum 에 남겨둔다 (내부적으로는
+  // layout==='frame' 와 동일하게 처리).
+  'frame',
+  'polaroid',
   'illustration',
   'text',
 ] as const;
+
+// 'polaroid' 같은 구버전 layout 키는 FrameDesign 분기로 같이 보냄.
+export const FRAME_LAYOUT_KEYS = ['frame', 'polaroid'] as const;
 
 // 풀이미지형(=poster) 디자인 구성. 다른 레이아웃에서는 무시되지만
 // 사용자가 레이아웃을 다시 poster 로 바꿨을 때 직전 설정이 보존되도록
@@ -199,10 +206,14 @@ export type IllustrationDesign = z.infer<typeof IllustrationDesignSchema>;
 //
 // 폴라로이드 / 하트 / 스크린 세 변형이 같은 스키마를 공유한다 — 각 변형의 차이는
 // 이미지 프레임 모양이고, 그 외 제목·이름·날짜·인사말 요소는 동일한 컨트롤로
-// 노출한다. 폰트·색상·글자 크기·토글까지 포스터형과 비슷한 자유도를 제공한다.
+// 노출한다. 일러스트형과 동일한 패턴으로 variant 필드 하나로 변형을 선택한다.
+
+export const FRAME_VARIANTS = ['polaroid', 'heart', 'screen'] as const;
+export type FrameVariant = (typeof FRAME_VARIANTS)[number];
 
 export const FrameDesignSchema = z
   .object({
+    variant: z.enum(FRAME_VARIANTS).default('polaroid'),
     title: z
       .object({
         enabled: z.boolean().default(true),
@@ -238,6 +249,7 @@ export const FrameDesignSchema = z
       .default({ enabled: true, fontSize: 13 }),
   })
   .default({
+    variant: 'polaroid',
     title: {
       enabled: true,
       text: TITLE_TEXT_PRESETS[0],

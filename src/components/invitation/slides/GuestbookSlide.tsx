@@ -111,7 +111,8 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
     'rounded-md border border-[var(--mw-dot)] bg-white text-stone-900 placeholder:text-stone-400 outline-none focus:border-[var(--mw-accent)]';
 
   return (
-    <section className="flex min-h-full flex-col gap-6 px-6 py-16">
+    // 입력부를 전체적으로 아래로 내리기 위해 상단 패딩을 늘리고 헤더 마진을 추가.
+    <section className="flex min-h-full flex-col gap-6 px-6 pb-16 pt-24">
       <header className="text-center">
         <p className="text-xs tracking-[0.3em] opacity-70">GUESTBOOK</p>
         <h2 className="mt-2 text-xl font-light">방명록</h2>
@@ -142,7 +143,8 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-3" data-noswipe>
-          {/* 이름 + 신랑/신부 + 서명하기 버튼을 한 줄에 배치 */}
+          {/* 이름 + 신랑/신부 + 서명하기 버튼을 한 줄에 배치.
+              이름 박스는 고정 너비(w-20) 로 줄이고 나머지 버튼은 가용 공간을 자연스럽게 차지. */}
           <div className="flex items-center gap-1.5">
             <input
               type="text"
@@ -151,7 +153,7 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
               maxLength={20}
               required
               placeholder="이름"
-              className={`h-9 min-w-0 flex-1 px-2.5 text-sm ${inputBaseClass}`}
+              className={`h-9 w-20 shrink-0 px-2 text-sm ${inputBaseClass}`}
             />
             {[
               { v: 'groom', label: '신랑측' },
@@ -173,14 +175,13 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
             <button
               type="button"
               onClick={() => setShowSigPopup(true)}
-              aria-label={signatureData ? '서명 다시 하기' : '서명하기 (선택)'}
-              className={`h-9 shrink-0 rounded-md border px-2 text-[11px] font-medium transition-colors ${
+              className={`ml-auto h-9 shrink-0 rounded-md border px-2.5 text-[11px] font-medium transition-colors ${
                 signatureData
                   ? 'border-[var(--mw-accent)] bg-[var(--mw-accent)] text-white shadow-sm'
                   : 'border-[var(--mw-accent)] bg-white text-[var(--mw-accent)] hover:bg-[var(--mw-accent)] hover:text-white'
               }`}
             >
-              {signatureData ? '서명✓' : '서명'}
+              {signatureData ? '서명하기 ✓' : '서명하기 (선택)'}
             </button>
           </div>
 
