@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { InvitationContent } from '@/types/invitation';
 import { SignaturePad, type SignaturePadHandle } from '@/components/shared/SignaturePad';
 import { persistGuestIdentity } from '../SignatureGate';
@@ -36,7 +36,10 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
-  const padRef = useRef<SignaturePadHandle>(null);
+
+  // 서명은 팝업에서 작성 → 확인 시 dataURL 을 state 에 캐싱한 뒤 폼 제출 시 사용.
+  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [showSigPopup, setShowSigPopup] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +59,6 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
     }
 
     setSubmitting(true);
-    const sig = padRef.current?.toDataURL() ?? null;
 
     try {
       // 1) Signature first — gives the couple the visitor's name + side + signature
@@ -67,7 +69,7 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
           invitationId,
           visitorName: name.trim(),
           visitorSide: side,
-          signatureData: sig,
+          signatureData,
           consentPersonalInfo: consent,
         }),
       });
@@ -102,6 +104,11 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
     }
   };
 
+  // 입력 필드 공용 클래스 — 어두운 테마에서도 글씨가 잘 보이도록 강제 텍스트 색을
+  // stone-900 으로 고정. 흰 배경 + 짙은 글자 조합은 모든 테마에서 안전하다.
+  const inputBaseClass =
+    'rounded-md border border-[var(--mw-dot)] bg-white text-stone-900 placeholder:text-stone-400 outline-none focus:border-[var(--mw-accent)]';
+
   return (
     <section className="flex min-h-full flex-col gap-6 px-6 py-16">
       <header className="text-center">
@@ -110,10 +117,13 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
       </header>
 
       {guestbook.coupleMessage && (
-        <p className="whitespace-pre-line rounded-md bg-white/60 p-4 text-center text-sm leading-relaxed">
+        <p className="whitespace-pre-line text-center text-sm leading-relaxed">
           {guestbook.coupleMessage}
         </p>
       )}
+
+      {/* 신랑신부 메시지와 입력부 사이 디바이더 — 가는 라인 + 가운데 ✦ */}
+      <GuestbookDivider />
 
       <p className="text-center text-xs opacity-70">
         남기시는 메시지는 신랑신부에게만 전달되며, 다른 분들에게는 보이지 않습니다.
@@ -126,14 +136,7 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
             : '메시지를 남겨주셔서 감사합니다 🙏'}
         </p>
       ) : (
-        <form
-          onSubmit={handleSubmit}
-          // 흰색 배경으로 입력 영역을 시각적으로 구분하되, 별도 테두리는
-          // 두지 않는다 — 컨테이너 안의 각 인풋이 이미 자체 테두리를 갖고
-          // 있어 이중 프레임이 되는 것을 피한다.
-          className="flex flex-col gap-3 rounded-lg bg-white/70 p-4"
-          data-noswipe
-        >
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3" data-noswipe>
           {/* 이름 + 신랑/신부 측을 한 줄에 배치해 입력부 높이를 줄인다 */}
           <div className="flex gap-1.5">
             <input
@@ -143,7 +146,7 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
               maxLength={20}
               required
               placeholder="이름"
-              className="h-10 w-28 flex-shrink-0 rounded-md border border-[var(--mw-dot)] bg-white px-2.5 text-sm text-[var(--mw-fg)] outline-none focus:border-[var(--mw-accent)]"
+              className={`h-10 w-28 flex-shrink-0 px-2.5 text-sm ${inputBaseClass}`}
             />
             {[
               { v: 'groom', label: '신랑측' },
@@ -156,7 +159,7 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
                 className={`h-10 flex-1 rounded-md border text-xs transition-colors ${
                   side === opt.v
                     ? 'border-[var(--mw-accent)] bg-[var(--mw-accent)] text-white'
-                    : 'border-[var(--mw-dot)] bg-white text-[var(--mw-fg)]'
+                    : 'border-[var(--mw-dot)] bg-white text-stone-900'
                 }`}
               >
                 {opt.label}
@@ -171,20 +174,20 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
             required
             rows={3}
             placeholder="축하 메시지를 남겨주세요"
-            className="resize-none rounded-md border border-[var(--mw-dot)] bg-white px-3 py-2 text-sm text-[var(--mw-fg)] outline-none focus:border-[var(--mw-accent)]"
+            className={`resize-none px-3 py-2 text-sm ${inputBaseClass}`}
           />
 
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-[var(--mw-accent)]">서명 (선택)</span>
-            {/* width 미지정 — 자체 wrapper가 폼 너비에 맞춰 늘어나서 다른
-                인풋들과 오른쪽 라인이 정렬된다. */}
-            <SignaturePad ref={padRef} height={120} />
+          {/* 서명 — 팝업에서 작성. 미작성 / 작성 완료 두 상태로 버튼 텍스트 분기. */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs opacity-70">
+              {signatureData ? '서명이 첨부되었습니다 ✓' : '서명 (선택)'}
+            </span>
             <button
               type="button"
-              onClick={() => padRef.current?.clear()}
-              className="self-end text-xs text-[var(--mw-accent)] hover:underline"
+              onClick={() => setShowSigPopup(true)}
+              className="rounded-md border border-[var(--mw-accent)] px-3 py-1.5 text-xs font-medium text-[var(--mw-accent)] transition-colors hover:bg-[var(--mw-accent)] hover:text-white"
             >
-              지우기
+              {signatureData ? '서명 다시 하기' : '서명하기'}
             </button>
           </div>
 
@@ -215,6 +218,142 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
           </button>
         </form>
       )}
+
+      {showSigPopup && (
+        <SignaturePopup
+          initialData={signatureData}
+          onClose={() => setShowSigPopup(false)}
+          onConfirm={(data) => {
+            setSignatureData(data);
+            setShowSigPopup(false);
+          }}
+        />
+      )}
     </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 디바이더 — 신랑신부 메시지와 입력부를 시각적으로 구분
+// ─────────────────────────────────────────────────────────────
+
+function GuestbookDivider() {
+  return (
+    <div
+      aria-hidden
+      className="mx-auto flex w-full max-w-[12rem] items-center justify-center gap-3 opacity-60"
+    >
+      <span className="h-px flex-1 bg-current" style={{ opacity: 0.55 }} />
+      <span className="text-[0.85em] leading-none">✦</span>
+      <span className="h-px flex-1 bg-current" style={{ opacity: 0.55 }} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 서명 팝업 — 서명의 의미 안내 + SignaturePad. 확인 시 dataURL 을 부모로 전달.
+// ─────────────────────────────────────────────────────────────
+
+function SignaturePopup({
+  initialData,
+  onClose,
+  onConfirm,
+}: {
+  initialData: string | null;
+  onClose: () => void;
+  onConfirm: (data: string | null) => void;
+}) {
+  const padRef = useRef<SignaturePadHandle>(null);
+
+  // ESC 닫기 + 배경 스크롤 잠금. 팝업 열림 동안만 적용.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="서명"
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      data-noswipe
+    >
+      {/* 백드롭 — 클릭 시 닫기 */}
+      <button
+        type="button"
+        aria-label="서명 닫기"
+        onClick={onClose}
+        className="absolute inset-0 bg-black/55"
+      />
+
+      {/* 팝업 본체 — 카드. 흰 배경 고정으로 모든 테마에서 가독성 보장. */}
+      <div className="relative z-10 flex w-full max-w-md flex-col gap-3 rounded-xl bg-white p-5 text-stone-900 shadow-2xl">
+        <header className="flex items-start justify-between gap-2">
+          <div>
+            <h3 className="text-base font-semibold">서명 남기기</h3>
+            <p className="mt-1 text-xs leading-relaxed text-stone-600">
+              서명은 신랑신부에게 마음을 담아 전하는 작은 인사입니다. 작성하신 서명은
+              다른 분들에게는 보이지 않고, 신랑신부에게만 전달됩니다.
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="닫기"
+            onClick={onClose}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-lg leading-none text-stone-500 hover:bg-stone-100"
+          >
+            ×
+          </button>
+        </header>
+
+        {/* SignaturePad — 팝업이 열릴 때만 마운트되므로 캔버스 ref 도 새로 생성된다. */}
+        <SignaturePad ref={padRef} height={160} />
+
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => padRef.current?.clear()}
+            className="text-xs font-medium text-stone-500 hover:underline"
+          >
+            지우기
+          </button>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-9 rounded-md border border-stone-300 px-3 text-xs font-medium text-stone-700 hover:bg-stone-50"
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const data = padRef.current?.toDataURL() ?? null;
+                onConfirm(data);
+              }}
+              className="h-9 rounded-md bg-[var(--mw-accent)] px-4 text-xs font-medium text-white hover:opacity-90"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+
+        {initialData && (
+          <p className="text-[11px] text-stone-500">
+            기존 서명이 있습니다. 새로 그리지 않고 닫으면 기존 서명이 유지됩니다.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
