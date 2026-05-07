@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { nanoid } from '@/lib/utils/nanoid';
+import { HeartClip } from '@/components/shared/HeartClip';
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const ACCEPT = ['image/jpeg', 'image/png', 'image/webp'];
@@ -207,19 +208,16 @@ function FramedPreview({
     );
   }
 
-  // 하트 — clipPath 로 하트 모양 클립. 사진 부분만 cover + position.
+  // 하트 — 슬라이드(MainSlide) 와 동일한 HeartClip + 4:5 비율을 사용해
+  // 미리보기/실제 슬라이드의 잘림 모양을 정확히 일치시킨다.
   if (frameVariant === 'heart') {
-    const heartPath =
-      "path('M50 85 C 40 75, 10 55, 10 32 C 10 18, 22 8, 32 8 C 40 8, 46 12, 50 18 C 54 12, 60 8, 68 8 C 78 8, 90 18, 90 32 C 90 55, 60 75, 50 85 Z')";
     return (
       <div className="flex w-full justify-center">
-        <div
-          className="overflow-hidden bg-stone-100"
+        <HeartClip
           style={{
-            width: '7.5rem',
-            aspectRatio: '100 / 90',
-            clipPath: heartPath,
-            WebkitClipPath: heartPath,
+            width: '8rem',
+            aspectRatio: '4 / 5',
+            backgroundColor: '#f5f5f4',
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -229,7 +227,7 @@ function FramedPreview({
             className="h-full w-full object-cover"
             style={objectPos ? { objectPosition: objectPos } : undefined}
           />
-        </div>
+        </HeartClip>
       </div>
     );
   }
