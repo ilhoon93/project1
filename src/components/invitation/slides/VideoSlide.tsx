@@ -29,25 +29,28 @@ export function VideoSlide({ video }: { video: InvitationContent['video'] }) {
       className="relative flex h-full min-h-full w-full flex-col items-center"
       style={{ backgroundColor: '#0A0A0C' }}
     >
-      {/* 제목 — 영상 위쪽 헤더 영역에 별도 배치. 영상에 겹치지 않도록 layout flow 안에 둠. */}
+      {/* 제목 — 영상 위쪽 헤더 영역에 배치. 제목과 영상 사이 간격은 좁게. */}
       {video.title && (
         <header
           className="z-10 flex w-full shrink-0 flex-col items-center text-center text-white/85"
-          style={{ paddingTop: '4cqh', paddingBottom: '2cqh' }}
+          style={{ paddingTop: '3cqh', paddingBottom: '0.6cqh' }}
         >
           <p className="text-[10px] tracking-[0.3em] opacity-70">VIDEO</p>
           <h2 className="mt-1 text-sm font-light">{video.title}</h2>
         </header>
       )}
 
-      {/* 영상 컨테이너 — 헤더 아래 남은 공간을 가득 차지. 가로/세로 잘림 없이
-          가능한 한 가득 들어가도록 동적 비율 계산. */}
-      <div className="flex flex-1 w-full items-center justify-center" style={{ minHeight: 0 }}>
+      {/* 영상 컨테이너 — 헤더와 하단 인디케이터 사이의 남은 공간을 가득 차지.
+          하단 paddingBottom 으로 슬라이드 인디케이터 점들과 영상이 겹치지 않게 띄움. */}
+      <div
+        className="flex w-full flex-1 items-center justify-center"
+        style={{ minHeight: 0, paddingBottom: '5cqh' }}
+      >
         <div
           className="relative overflow-hidden bg-black shadow-[0_0_60px_rgba(0,0,0,0.8)]"
           style={{
             aspectRatio: `${aspect}`,
-            width: `min(100cqw, calc((100cqh - 12cqh) * ${aspect}))`,
+            width: `min(100cqw, calc((100cqh - 10cqh) * ${aspect}))`,
             maxHeight: '100%',
           }}
         >

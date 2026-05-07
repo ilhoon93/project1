@@ -685,11 +685,12 @@ function FrameSlide({
   const titleColor = design.title.color || 'currentColor';
   const isScreen = variant === 'screen';
   const imagePos = design.imagePosition ?? { x: 50, y: 50 };
-  // 스크린 변형 — 업로드 이미지의 실제 가로:세로 비율에 따라 두 가지 동작:
-  //   landscape (가로 ≥ 세로): 슬라이드 전체를 가득 채우는 cover 모드 (텍스트 오버레이)
-  //   portrait  (세로 > 가로): 정사각형 프레임 + 잘림 영역 선택 (현재 동작)
-  // imageAspect 가 null 인 동안(로드 전)은 안전하게 portrait 레이아웃으로 폴백.
-  const [imageAspect, setImageAspect] = useState<'landscape' | 'portrait' | null>(null);
+  // 스크린 변형 — 업로드 이미지의 실제 가로:세로 비율(width/height) 을 측정해
+  // FrameImage 가 변형마다 다른 박스 비율을 적용한다.
+  //   landscape (>=1) : 이미지 자연 비율 + object-contain → 잘림 없이 전체 표시,
+  //                     상하 빈 공간은 슬라이드(섹션) 배경 = 테마 배경색
+  //   portrait  (<1)  : 1:1 정사각형 + object-cover + imagePosition 으로 크롭
+  const [imageAspect, setImageAspect] = useState<number | null>(null);
   useEffect(() => {
     if (!isScreen || !main.heroImage) {
       setImageAspect(null);
@@ -699,7 +700,9 @@ function FrameSlide({
     let canceled = false;
     img.onload = () => {
       if (canceled) return;
-      setImageAspect(img.naturalWidth >= img.naturalHeight ? 'landscape' : 'portrait');
+      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+        setImageAspect(img.naturalWidth / img.naturalHeight);
+      }
     };
     img.src = main.heroImage;
     return () => {
@@ -707,28 +710,9 @@ function FrameSlide({
     };
   }, [isScreen, main.heroImage]);
 
-  // 스크린 + 가로 사진 → 사진을 슬라이드에 가득 채우는 별도 레이아웃.
-  if (isScreen && main.heroImage && imageAspect === 'landscape') {
-    return (
-      <ScreenLandscapeSlide
-        main={main}
-        groomName={groomName}
-        brideName={brideName}
-        weddingDate={weddingDate}
-        design={design}
-        titleFont={titleFont}
-        titleColor={titleColor}
-        imagePos={imagePos}
-        onCelebrate={onCelebrate}
-        confettiTrigger={confettiTrigger}
-        scoped={scoped}
-      />
-    );
-  }
-
   return (
-    // 스크린 변형은 letterbox 효과를 위해 슬라이드 전체에 테마 배경색을 그대로 사용.
-    // (검정 대신 var(--mw-bg) — 사용자 요청)
+    // 슬라이드 배경 = 테마 배경색(var(--mw-bg)). 스크린 변형의 위/아래 letterbox 도
+    // 이 배경이 그대로 노출돼 자연스럽게 이어진다.
     <section
       className="relative flex h-full min-h-full w-full flex-col items-center overflow-hidden text-center"
     >
@@ -767,8 +751,14 @@ function FrameSlide({
         )}
       </div>
 
-      {/* 2) 액자 이미지 — variant 별로 모양만 달라짐. 잘리는 변형은 imagePosition 으로 보일 영역 선택. */}
-      <FrameImage variant={variant} src={main.heroImage ?? null} imagePosition={imagePos} />
+      {/* 2) 액자 이미지 — variant 별로 모양만 달라짐. 잘리는 변형은 imagePosition 으로 보일 영역 선택.
+          screen 변형은 imageAspect 에 따라 가로:세로 vs 정사각형으로 분기. */}
+      <FrameImage
+        variant={variant}
+        src={main.heroImage ?? null}
+        imagePosition={imagePos}
+        imageAspect={imageAspect}
+      />
 
       {/* 3) 이름 — 이미지 아래 살짝 띄움 */}
       {design.nameBox.enabled && (
@@ -830,10 +820,13 @@ function FrameImage({
   variant,
   src,
   imagePosition,
+  imageAspect,
 }: {
   variant: FrameVariant;
   src: string | null;
   imagePosition: { x: number; y: number };
+  /** screen 변형 한정: 업로드 이미지의 실제 width/height 비율. null 이면 정사각형 폴백. */
+  imageAspect?: number | null;
 }) {
   const objectPos = `${imagePosition.x}% ${imagePosition.y}%`;
 
@@ -895,16 +888,23 @@ function FrameImage({
     );
   }
 
-  // screen — 영화관 스크린 (세로 사진 케이스). 정사각형 프레임 + cover +
-  // imagePosition 으로 보일 영역 선택 가능. 컨테이너 배경은 테마 배경색 그대로
-  // 두어 (var(--mw-bg)) 어두운 검정 막대 대신 화면이 자연스럽게 이어지게 함.
-  // 가로 사진 케이스는 FrameSlide → ScreenLandscapeSlide 에서 별도 처리.
+  // screen — 사진 비율에 따라 두 가지 모드:
+  //   landscape (aspect ≥ 1): 사진 자연 비율 + object-contain → 잘림 없이 전체 표시.
+  //                            컨테이너 폭 = 슬라이드 폭, 높이 = 폭 / 비율. 상하는 슬라이드(테마) 배경.
+  //   portrait  (aspect < 1): 1:1 정사각형 + object-cover + imagePosition 으로 크롭.
+  //                            상하는 슬라이드(테마) 배경 그대로 노출.
+  // imageAspect 가 null(로드 전 / 이미지 없음) 이면 정사각형 + cover 폴백.
+  const isLandscape = (imageAspect ?? 1) >= 1;
+  const containerAspect = isLandscape ? imageAspect ?? 1 : 1;
+  const fitClass = isLandscape ? 'object-contain' : 'object-cover';
   return (
     <div className="flex w-full shrink-0 items-center justify-center" style={{ paddingInline: '4cqw' }}>
       <div
         className="relative w-full max-w-sm overflow-hidden"
         style={{
-          aspectRatio: '1 / 1',
+          aspectRatio: `${containerAspect}`,
+          // landscape: contain 모드라 이미지 옆에 빈 공간 거의 없음. portrait: square 안 잘린 이미지 영역.
+          // 어느 쪽이든 컨테이너 배경은 테마 배경색을 그대로 깔아 둠.
           backgroundColor: 'var(--mw-bg, #1a1a1a)',
           boxShadow: '0 12px 30px rgba(0,0,0,0.18)',
         }}
@@ -914,8 +914,8 @@ function FrameImage({
           <img
             src={src}
             alt=""
-            className="h-full w-full object-cover"
-            style={{ objectPosition: objectPos }}
+            className={`h-full w-full ${fitClass}`}
+            style={!isLandscape ? { objectPosition: objectPos } : undefined}
           />
         ) : (
           <div className="grid h-full w-full place-items-center text-3xl opacity-40">🎬</div>
@@ -925,124 +925,3 @@ function FrameImage({
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// 스크린 + 가로 사진 — 사진을 슬라이드 전체에 가득 채우고 텍스트는 오버레이.
-// 포스터형과 비슷한 톤이지만 FrameDesign 의 토글/글자 크기/오프셋 그대로 활용.
-// ─────────────────────────────────────────────────────────────
-
-interface ScreenLandscapeProps {
-  main: InvitationContent['main'];
-  groomName: string;
-  brideName: string;
-  weddingDate: string | null;
-  design: FrameDesign;
-  titleFont: string;
-  titleColor: string;
-  imagePos: { x: number; y: number };
-  onCelebrate: () => void;
-  confettiTrigger: number | null;
-  scoped?: boolean;
-}
-
-function ScreenLandscapeSlide({
-  main,
-  groomName,
-  brideName,
-  weddingDate,
-  design,
-  titleFont,
-  titleColor,
-  imagePos,
-  onCelebrate,
-  confettiTrigger,
-  scoped,
-}: ScreenLandscapeProps) {
-  return (
-    <section className="relative h-full min-h-full w-full overflow-hidden text-white">
-      {/* 배경 이미지 — 가로 사진 전체 화면 cover */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={main.heroImage!}
-        alt=""
-        className="absolute inset-0 h-full w-full object-cover"
-        style={{ objectPosition: `${imagePos.x}% ${imagePos.y}%` }}
-      />
-      {/* 가독성 확보용 살짝의 어두운 오버레이 */}
-      <div className="absolute inset-0 bg-black/30" />
-
-      {/* 텍스트 영역 — 상단 (제목+인사말) */}
-      <div className="absolute inset-x-0 top-0 z-10 flex flex-col items-center px-6 text-center" style={{ paddingTop: '6cqh' }}>
-        {design.title.enabled && design.title.text && (
-          <h1
-            className="font-bold leading-tight drop-shadow-md"
-            style={{
-              fontFamily: titleFont,
-              color: titleColor === 'currentColor' ? '#FFFFFF' : titleColor,
-              fontSize: `${design.title.fontSize}px`,
-              transform: design.title.offsetY ? `translateY(${design.title.offsetY}cqh)` : undefined,
-            }}
-          >
-            {design.title.text}
-          </h1>
-        )}
-        {design.messageBox.enabled && main.greeting && (
-          <p
-            className="mt-3 max-w-md whitespace-pre-line leading-relaxed text-white/95 drop-shadow-md"
-            style={{
-              fontSize: `${design.messageBox.fontSize}px`,
-              transform: design.messageBox.offsetY
-                ? `translateY(${design.messageBox.offsetY}cqh)`
-                : undefined,
-            }}
-          >
-            {main.greeting}
-          </p>
-        )}
-      </div>
-
-      {/* 텍스트 영역 — 하단 (이름+날짜) */}
-      <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center px-6 text-center" style={{ paddingBottom: '12cqh' }}>
-        {design.nameBox.enabled && (
-          <p
-            className="font-light tracking-wide drop-shadow-md"
-            style={{
-              fontSize: `${design.nameBox.fontSize}px`,
-              transform: design.nameBox.offsetY
-                ? `translateY(${design.nameBox.offsetY}cqh)`
-                : undefined,
-            }}
-          >
-            {groomName} <span className="opacity-70">&amp;</span> {brideName}
-          </p>
-        )}
-        {design.dateBox.enabled && weddingDate && (
-          <p
-            className="mt-2 tracking-[0.2em] text-white/90 drop-shadow-md"
-            style={{
-              fontSize: `${design.dateBox.fontSize}px`,
-              transform: design.dateBox.offsetY
-                ? `translateY(${design.dateBox.offsetY}cqh)`
-                : undefined,
-            }}
-          >
-            {formatDate(weddingDate)}
-          </p>
-        )}
-      </div>
-
-      {/* 축하하기 버튼 — absolute 로 위치 고정 */}
-      <div className="absolute bottom-0 left-1/2 z-20 -translate-x-1/2" style={{ marginBottom: '4cqh' }}>
-        <button
-          type="button"
-          onClick={onCelebrate}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-white opacity-80 transition-opacity hover:opacity-100"
-        >
-          <span className="underline underline-offset-4">축하하기</span>
-          <span aria-hidden className="text-base leading-none">🎉</span>
-        </button>
-      </div>
-
-      <Confetti trigger={confettiTrigger} scoped={scoped} />
-    </section>
-  );
-}

@@ -27,6 +27,12 @@ interface Props {
    * 메인 포스터처럼 풀스크린 표시되는 경우에만 의미가 있다.
    */
   showWideAspectCropMask?: boolean;
+  /**
+   * 액자프레임 변형(폴라로이드/하트/스크린) 미리보기 셰이프.
+   * 설정 시 미리보기에 실제 프레임 모양(흰 테두리 + 기울임, 하트 클립 등) 을 적용해
+   * 사용자가 잘릴 영역을 그대로 확인할 수 있게 한다.
+   */
+  frameVariant?: 'polaroid' | 'heart' | 'screen';
   label?: string;
 }
 
@@ -43,6 +49,7 @@ export function ImageUploader({
   previewFit = 'cover',
   previewPosition,
   showWideAspectCropMask = false,
+  frameVariant,
   label = '사진 업로드',
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -104,45 +111,14 @@ export function ImageUploader({
 
       {value ? (
         <div className="flex flex-col gap-2">
-          {/* contain: 잘림 없이 전체를 보여주고 남는 영역은 배경색(--mw-bg)으로 채움.
-              cover: 프레임을 채우되 previewPosition 으로 보일 영역을 선택. */}
-          <div
-            className={`${previewAspect} relative w-full overflow-hidden rounded-md`}
-            style={
-              previewFit === 'contain'
-                ? { backgroundColor: 'var(--mw-bg, #f5f5f5)' }
-                : undefined
-            }
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={value}
-              alt="업로드된 사진"
-              className={`h-full w-full ${
-                previewFit === 'contain' ? 'object-contain' : 'object-cover'
-              }`}
-              style={
-                previewFit === 'cover' && previewPosition
-                  ? { objectPosition: `${previewPosition.x}% ${previewPosition.y}%` }
-                  : undefined
-              }
-            />
-            {/* 9:20 비율 폰에서 좌우가 잘릴 수 있는 영역 — 평평한 회색 오버레이.
-                실제 크롭 비율: 9:16 이미지 → 9:20 뷰포트 cover 시 좌우 약 7% 씩.
-                (다양한 모던 폰 9:18~9:20.5 분포의 중간값을 살짝 보수적으로 잡음.) */}
-            {showWideAspectCropMask && (
-              <>
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-y-0 left-0 w-[7%] bg-neutral-500/55"
-                />
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-y-0 right-0 w-[7%] bg-neutral-500/55"
-                />
-              </>
-            )}
-          </div>
+          <FramedPreview
+            src={value}
+            previewAspect={previewAspect}
+            previewFit={previewFit}
+            previewPosition={previewPosition}
+            showWideAspectCropMask={showWideAspectCropMask}
+            frameVariant={frameVariant}
+          />
           <div className="flex gap-2">
             <Button
               type="button"
@@ -180,6 +156,126 @@ export function ImageUploader({
         <p role="alert" className="text-xs text-destructive">
           {errorMsg}
         </p>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// FramedPreview — 미리보기 박스. 액자프레임 변형(폴라로이드/하트/스크린) 일 때
+// 실제 슬라이드에서 보이는 프레임 모양을 그대로 렌더해 잘릴 영역을 시각화.
+// 변형이 없으면 기존 사각형 미리보기 (포스터/일반) 와 동일하게 동작.
+// ─────────────────────────────────────────────────────────────
+
+interface FramedPreviewProps {
+  src: string;
+  previewAspect: string;
+  previewFit: 'cover' | 'contain';
+  previewPosition?: { x: number; y: number };
+  showWideAspectCropMask: boolean;
+  frameVariant?: 'polaroid' | 'heart' | 'screen';
+}
+
+function FramedPreview({
+  src,
+  previewAspect,
+  previewFit,
+  previewPosition,
+  showWideAspectCropMask,
+  frameVariant,
+}: FramedPreviewProps) {
+  const objectPos = previewPosition
+    ? `${previewPosition.x}% ${previewPosition.y}%`
+    : undefined;
+
+  // 폴라로이드 — 흰 테두리 + 살짝 기울임. 사진 부분만 cover + position.
+  if (frameVariant === 'polaroid') {
+    return (
+      <div className="flex w-full justify-center">
+        <div className="rotate-[-3deg] bg-white p-1.5 pb-3 shadow-md">
+          <div className="aspect-square w-full overflow-hidden bg-stone-100" style={{ width: '6.5rem' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt="업로드된 사진"
+              className="h-full w-full object-cover"
+              style={objectPos ? { objectPosition: objectPos } : undefined}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 하트 — clipPath 로 하트 모양 클립. 사진 부분만 cover + position.
+  if (frameVariant === 'heart') {
+    const heartPath =
+      "path('M50 85 C 40 75, 10 55, 10 32 C 10 18, 22 8, 32 8 C 40 8, 46 12, 50 18 C 54 12, 60 8, 68 8 C 78 8, 90 18, 90 32 C 90 55, 60 75, 50 85 Z')";
+    return (
+      <div className="flex w-full justify-center">
+        <div
+          className="overflow-hidden bg-stone-100"
+          style={{
+            width: '7.5rem',
+            aspectRatio: '100 / 90',
+            clipPath: heartPath,
+            WebkitClipPath: heartPath,
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt="업로드된 사진"
+            className="h-full w-full object-cover"
+            style={objectPos ? { objectPosition: objectPos } : undefined}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // 스크린 — 정사각형 (또는 contain) + 테마 배경색을 카드 배경으로 깔아 letterbox 톤 시각화.
+  if (frameVariant === 'screen') {
+    return (
+      <div
+        className={`${previewAspect} relative w-full overflow-hidden rounded-md`}
+        style={{ backgroundColor: 'var(--mw-bg, #f5f5f5)' }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt="업로드된 사진"
+          className={`h-full w-full ${previewFit === 'contain' ? 'object-contain' : 'object-cover'}`}
+          style={previewFit === 'cover' && objectPos ? { objectPosition: objectPos } : undefined}
+        />
+      </div>
+    );
+  }
+
+  // 기본(포스터/일반) — 사각형 미리보기. 9:20 폰 좌우 회색 마스크 옵션 적용.
+  return (
+    <div
+      className={`${previewAspect} relative w-full overflow-hidden rounded-md`}
+      style={previewFit === 'contain' ? { backgroundColor: 'var(--mw-bg, #f5f5f5)' } : undefined}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt="업로드된 사진"
+        className={`h-full w-full ${previewFit === 'contain' ? 'object-contain' : 'object-cover'}`}
+        style={previewFit === 'cover' && objectPos ? { objectPosition: objectPos } : undefined}
+      />
+      {showWideAspectCropMask && (
+        <>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 left-0 w-[7%] bg-neutral-500/55"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 right-0 w-[7%] bg-neutral-500/55"
+          />
+        </>
       )}
     </div>
   );
