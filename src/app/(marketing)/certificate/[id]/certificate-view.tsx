@@ -1,18 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import html2canvas from 'html2canvas';
-import { OrnamentCorner } from '@/components/certificate/OrnamentCorner';
 
 interface Props {
   groomName: string;
   brideName: string;
   weddingDate: string | null;
-  /** 모바일 알림장 절대 URL. null 이면 발행 안 된 알림장. */
-  invitationUrl: string | null;
-  /** 절대 URL 이 비어 있을 때 클라이언트가 origin 을 붙일 수 있도록 path 만 fallback 으로 받음. */
+  /** 모바일 알림장의 슬러그 path (예: '/abcdef'). origin 은 클라이언트가 붙임. */
   invitationPath: string | null;
 }
 
@@ -23,39 +20,54 @@ const VOWS: string[] = [
 ];
 
 /**
- * 혼인서약서 — 마이페이지 진입, 작은 썸네일로 노출.
+ * 혼인서약서 — 마이페이지 진입, 작은 썸네일 노출.
  *
  * 디자인:
  *   - 한글 "혼인서약서" 단일 제목
- *   - 4 모서리 + 외곽선 금색 웨딩 장식
- *   - 신랑·신부 이름이 청연체(가비아) 로 서명란에 자동 채움
- *   - 하단 가운데 QR (모바일 알림장 진입)
- *   - 스몰웨딩/노웨딩 톤 짧은 서약문 3줄
+ *   - 단순 금색 외곽선 (모서리 장식 SVG 제거 — 위치 정렬 어려움)
+ *   - 서약문 → 날짜 → 신랑/신부 서명 (청연체) → 하단 QR 순서
+ *   - 중앙 신랑·신부 이름 큰 글씨 섹션 제거 (서명란이 그 역할)
  *
- * 인쇄 격리:
- *   - body data-print="cert" 모드에서 .cert-print-target 외 모든 요소 숨김
- *   - 인쇄 시 A4 풀 사이즈로 출력
+ * 화면 ↔ 이미지 저장 일관성:
+ *   html2canvas 가 CSS Container Query 단위(cqw) 를 지원하지 않아
+ *   스크린/캡처 결과가 어긋났던 문제를 해결하기 위해 박스 width 를 ResizeObserver
+ *   로 측정 후 모든 사이즈를 px 기반 인라인 스타일로 적용.
  */
 export function CertificateView({
   groomName,
   brideName,
   weddingDate,
-  invitationUrl,
   invitationPath,
 }: Props) {
   const router = useRouter();
   const certRef = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(420);
   const [busy, setBusy] = useState(false);
+  const [qrValue, setQrValue] = useState<string | null>(null);
 
-  // QR 의 실제 값 — 서버가 NEXT_PUBLIC_BASE_URL 을 안 줬을 때 클라이언트의
-  // window.location.origin 으로 fallback. mount 후 1회만 계산.
-  const [qrValue, setQrValue] = useState<string | null>(invitationUrl);
+  // QR — 마이페이지의 하객용 URL과 동일한 origin 사용 (서버에서 절대 URL 만들면
+  // localhost 같은 잘못된 값이 들어갈 수 있어 클라이언트 window.location.origin 만 신뢰).
   useEffect(() => {
-    if (qrValue && qrValue.startsWith('http')) return;
-    if (!invitationPath) return;
-    if (typeof window === 'undefined') return;
+    if (!invitationPath || typeof window === 'undefined') return;
     setQrValue(`${window.location.origin}${invitationPath}`);
-  }, [invitationPath, qrValue]);
+  }, [invitationPath]);
+
+  // ResizeObserver — cert 박스 width 를 측정해 px 단위 스케일 기준값으로 사용.
+  useLayoutEffect(() => {
+    const node = certRef.current;
+    if (!node) return;
+    const update = () => {
+      const cw = node.clientWidth;
+      if (cw > 0) setW(cw);
+    };
+    update();
+    const obs = new ResizeObserver(update);
+    obs.observe(node);
+    return () => obs.disconnect();
+  }, []);
+
+  /** 박스 width 의 N% 에 해당하는 px 값. cqw 와 동일한 의미. */
+  const px = (cqw: number) => (cqw / 100) * w;
 
   const handleSaveImage = async () => {
     const node = certRef.current;
@@ -67,6 +79,11 @@ export function CertificateView({
         scale: 2,
         useCORS: true,
         logging: false,
+        // width/height 명시 — 측정한 박스 사이즈와 정확히 일치시켜 미리보기 = PNG.
+        width: node.clientWidth,
+        height: node.clientHeight,
+        windowWidth: node.clientWidth,
+        windowHeight: node.clientHeight,
       });
       const dataUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
@@ -83,8 +100,6 @@ export function CertificateView({
     }
   };
 
-  // 인쇄 시 사이트 chrome (탭바, 헤더, AutoLoginGate 등) 가 같이 출력되는 문제를
-  // 막기 위해 body 에 data-printing 마커를 잠깐 붙여 다른 요소를 CSS 로 숨긴다.
   const handlePrint = () => {
     document.body.setAttribute('data-printing', 'cert');
     const cleanup = () => {
@@ -92,7 +107,6 @@ export function CertificateView({
       window.removeEventListener('afterprint', cleanup);
     };
     window.addEventListener('afterprint', cleanup);
-    // print 콜은 동기적으로 다이얼로그를 띄우므로 setAttribute 가 먼저 적용됨.
     requestAnimationFrame(() => window.print());
   };
 
@@ -100,7 +114,7 @@ export function CertificateView({
 
   return (
     <div className="cert-shell min-h-screen bg-stone-100 px-4 py-6">
-      {/* 액션 버튼 — 인쇄 시 숨김 */}
+      {/* 액션 버튼 */}
       <div className="mx-auto mb-5 flex max-w-md items-center justify-between gap-2">
         <button
           type="button"
@@ -128,7 +142,6 @@ export function CertificateView({
         </div>
       </div>
 
-      {/* 썸네일 컨테이너 */}
       <div
         className="cert-print-target mx-auto"
         style={{ width: '100%', maxWidth: 'min(92vw, 420px)' }}
@@ -140,24 +153,23 @@ export function CertificateView({
           style={{
             width: '100%',
             aspectRatio: '210 / 297',
-            padding: '6.5cqw 7cqw',
+            padding: `${px(6.5)}px ${px(7)}px`,
             boxShadow: '0 12px 40px -8px rgba(0,0,0,0.18)',
             fontFamily:
               "'Noto Serif KR', 'Nanum Myeongjo', 'Hahmlet', 'Times New Roman', serif",
             color: '#0f0d0a',
             position: 'relative',
-            containerType: 'inline-size',
+            // html2canvas 호환을 위해 box-sizing 명시.
+            boxSizing: 'border-box',
           }}
         >
-          {/* 금색 외곽선 */}
+          {/* 단순 금색 외곽선 — 모서리 장식 SVG 삭제 (위치 정렬 이슈) */}
           <div
             aria-hidden
             style={{
               position: 'absolute',
-              inset: '4cqw',
-              border: '0.5cqw solid transparent',
-              borderImage:
-                'linear-gradient(135deg, #B8941F 0%, #D4AF37 30%, #F4E4A6 50%, #D4AF37 70%, #A6841C 100%) 1',
+              inset: `${px(4)}px`,
+              border: `${Math.max(1, px(0.5))}px solid #C9A227`,
               pointerEvents: 'none',
             }}
           />
@@ -165,18 +177,12 @@ export function CertificateView({
             aria-hidden
             style={{
               position: 'absolute',
-              inset: '5.6cqw',
-              border: '0.15cqw solid #D4AF37',
-              opacity: 0.5,
+              inset: `${px(5.6)}px`,
+              border: `1px solid #D4AF37`,
+              opacity: 0.4,
               pointerEvents: 'none',
             }}
           />
-
-          {/* 4 모서리 장식 — 외곽선 위쪽 점에 정확히 정렬 */}
-          <CornerSlot pos="tl" />
-          <CornerSlot pos="tr" />
-          <CornerSlot pos="bl" />
-          <CornerSlot pos="br" />
 
           <div
             style={{
@@ -184,19 +190,19 @@ export function CertificateView({
               display: 'flex',
               flexDirection: 'column',
               height: '100%',
-              gap: '3.5cqw',
+              gap: `${px(3)}px`,
             }}
           >
-            {/* 1) 제목 — 한글만 */}
+            {/* 1) 제목 */}
             <header
               style={{
                 textAlign: 'center',
-                marginTop: '8cqw',
+                marginTop: `${px(7)}px`,
               }}
             >
               <h1
                 style={{
-                  fontSize: '7.5cqw',
+                  fontSize: `${px(7.5)}px`,
                   letterSpacing: '0.4em',
                   paddingLeft: '0.4em',
                   fontWeight: 700,
@@ -208,64 +214,21 @@ export function CertificateView({
               </h1>
             </header>
 
-            {/* 2) 신랑·신부 + 결혼식 날짜 */}
-            <section
-              style={{
-                textAlign: 'center',
-                fontSize: '3.2cqw',
-                lineHeight: 1.7,
-              }}
-            >
-              <p
-                style={{
-                  margin: 0,
-                  marginBottom: '1.5cqw',
-                  fontSize: '2.6cqw',
-                  color: '#5c544a',
-                  letterSpacing: '0.3em',
-                  paddingLeft: '0.3em',
-                }}
-              >
-                신랑 신부
-              </p>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: '5.5cqw',
-                  fontWeight: 600,
-                  letterSpacing: '0.1em',
-                }}
-              >
-                {groomName}
-                <span style={{ margin: '0 1em', opacity: 0.45 }}>·</span>
-                {brideName}
-              </p>
-              {dateText && (
-                <p
-                  style={{
-                    marginTop: '2cqw',
-                    marginBottom: 0,
-                    fontSize: '2.8cqw',
-                    color: '#5c544a',
-                    letterSpacing: '0.18em',
-                  }}
-                >
-                  {dateText}
-                </p>
-              )}
-            </section>
-
-            {/* 3) 서약문 */}
+            {/* 2) 서약문 — 인사말 + 3 줄 약속 */}
             <section
               style={{
                 flex: '1 1 auto',
-                padding: '0 2cqw',
-                fontSize: '3cqw',
+                padding: `0 ${px(3)}px`,
+                marginTop: `${px(4)}px`,
+                fontSize: `${px(3.2)}px`,
                 lineHeight: 2,
                 textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
               }}
             >
-              <p style={{ margin: 0, marginBottom: '3cqw' }}>
+              <p style={{ margin: 0, marginBottom: `${px(4)}px` }}>
                 오늘부터 우리 두 사람은
                 <br />
                 서로의 일상이 되어 함께 살아갑니다.
@@ -277,9 +240,9 @@ export function CertificateView({
                   margin: 0,
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '1.5cqw',
+                  gap: `${px(1.5)}px`,
                   textAlign: 'center',
-                  fontSize: '2.9cqw',
+                  fontSize: `${px(3)}px`,
                 }}
               >
                 {VOWS.map((v, i) => (
@@ -288,38 +251,61 @@ export function CertificateView({
               </ul>
             </section>
 
-            {/* 4) 서명란 — 청연체 자동 채움 (자필 라벨 제거) */}
+            {/* 3) 날짜 — 서약문 다음 위치 */}
+            {dateText && (
+              <p
+                style={{
+                  margin: 0,
+                  marginTop: `${px(2)}px`,
+                  fontSize: `${px(3)}px`,
+                  color: '#5c544a',
+                  letterSpacing: '0.2em',
+                  paddingLeft: '0.2em',
+                  textAlign: 'center',
+                }}
+              >
+                {dateText}
+              </p>
+            )}
+
+            {/* 4) 서명란 — 신랑 / 신부 청연체 자동 채움 */}
             <footer
               style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
-                gap: '4cqw',
-                padding: '0 2cqw',
+                gap: `${px(4)}px`,
+                padding: `0 ${px(2)}px`,
+                marginTop: `${px(2)}px`,
               }}
             >
-              <ScriptSign label="신 랑" name={groomName} />
-              <ScriptSign label="신 부" name={brideName} />
+              <ScriptSign label="신 랑" name={groomName} basePx={w} />
+              <ScriptSign label="신 부" name={brideName} basePx={w} />
             </footer>
 
-            {/* 5) 하단 QR — 모바일 알림장 */}
+            {/* 5) 하단 QR — 마이페이지 하객용 URL */}
             {qrValue && (
               <div
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '1cqw',
-                  marginTop: '0.5cqw',
+                  gap: `${px(1)}px`,
+                  marginTop: `${px(0.5)}px`,
                 }}
               >
                 <div
                   style={{
-                    padding: '1cqw',
+                    padding: `${px(1)}px`,
                     background: '#fff',
-                    border: '0.15cqw solid #D4AF37',
+                    border: `1px solid #D4AF37`,
                   }}
                 >
-                  <div style={{ width: '12cqw', height: '12cqw' }}>
+                  <div
+                    style={{
+                      width: `${px(11)}px`,
+                      height: `${px(11)}px`,
+                    }}
+                  >
                     <QRCodeSVG
                       value={qrValue}
                       size={48}
@@ -331,7 +317,7 @@ export function CertificateView({
                 </div>
                 <span
                   style={{
-                    fontSize: '2.2cqw',
+                    fontSize: `${px(2.2)}px`,
                     color: '#5c544a',
                     letterSpacing: '0.25em',
                     paddingLeft: '0.25em',
@@ -345,8 +331,7 @@ export function CertificateView({
         </article>
       </div>
 
-      {/* 인쇄 CSS — body[data-printing="cert"] 일 때 cert-print-target 만 보이게.
-          A4 풀 사이즈, 단일 페이지, 다른 chrome 모두 숨김. */}
+      {/* 인쇄 격리 + A4 풀 사이즈 출력 */}
       <style jsx global>{`
         @media print {
           @page {
@@ -387,44 +372,28 @@ export function CertificateView({
   );
 }
 
-function CornerSlot({ pos }: { pos: 'tl' | 'tr' | 'bl' | 'br' }) {
-  const style: React.CSSProperties = { position: 'absolute' };
-  // 외곽선 inset 4cqw 안쪽으로 살짝 들어가도록 3.2cqw 배치.
-  if (pos === 'tl') {
-    style.top = '3.2cqw';
-    style.left = '3.2cqw';
-  } else if (pos === 'tr') {
-    style.top = '3.2cqw';
-    style.right = '3.2cqw';
-  } else if (pos === 'bl') {
-    style.bottom = '3.2cqw';
-    style.left = '3.2cqw';
-  } else {
-    style.bottom = '3.2cqw';
-    style.right = '3.2cqw';
-  }
-  return (
-    <div style={style}>
-      <div style={{ width: '14cqw', height: '14cqw' }}>
-        <OrnamentCorner position={pos} size={64} />
-      </div>
-    </div>
-  );
-}
-
-function ScriptSign({ label, name }: { label: string; name: string }) {
+function ScriptSign({
+  label,
+  name,
+  basePx,
+}: {
+  label: string;
+  name: string;
+  basePx: number;
+}) {
+  const px = (cqw: number) => (cqw / 100) * basePx;
   return (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '1cqw',
+        gap: `${px(1)}px`,
       }}
     >
       <span
         style={{
-          fontSize: '2.4cqw',
+          fontSize: `${px(2.4)}px`,
           letterSpacing: '0.3em',
           paddingLeft: '0.3em',
           color: '#5c544a',
@@ -432,11 +401,10 @@ function ScriptSign({ label, name }: { label: string; name: string }) {
       >
         {label}
       </span>
-      {/* 가비아 청연체 — 우아한 한글 필기체 (root layout 에서 --font-gabia-cheongyeon 으로 로드) */}
       <span
         style={{
           fontFamily: "var(--font-gabia-cheongyeon), serif",
-          fontSize: '7cqw',
+          fontSize: `${px(7)}px`,
           color: '#0f0d0a',
           lineHeight: 1.1,
         }}
@@ -446,8 +414,8 @@ function ScriptSign({ label, name }: { label: string; name: string }) {
       <div
         style={{
           width: '70%',
-          borderTop: '0.15cqw solid #0f0d0a',
-          marginTop: '0.5cqw',
+          borderTop: '1px solid #0f0d0a',
+          marginTop: `${px(0.5)}px`,
         }}
       />
     </div>
