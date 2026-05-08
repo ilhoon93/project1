@@ -19,6 +19,18 @@ Editor 에서 몇 줄만 실행**하면 발행권·영구소장·AI 패키지·�
 >  order by u.created_at desc;
 > ```
 
+### 자주 마주치는 체크 제약 (먼저 읽고 시작)
+
+| 컬럼 | 허용값 |
+| --- | --- |
+| `publish_credits_ledger.reason` | `purchase`, `publish`, `admin_grant`, `admin_revoke`, `refund` |
+| `archive_credits_ledger.reason` | (체크 제약 없음 — 자유 텍스트) |
+| `purchase_orders.source` | `portone`, `naver_smartstore`, `manual` |
+| `purchase_orders.status` | `pending`, `completed`, `failed`, `refunded` |
+
+QA 직접 충전 시 publish 쪽은 **`admin_grant`(+) / `admin_revoke`(-)** 를 사용. 다른 값(`'manual'` 등) 을 넣으면
+`publish_credits_ledger_reason_check` 에 막힌다.
+
 ---
 
 ## 0. 환경 준비 — 마이그레이션 적용 확인
@@ -60,8 +72,9 @@ select public.publish_credits_balance('<USER_ID>'::uuid) as publish_credits;
 ```sql
 -- grant_purchase_credits 가 표준 경로. 'basic' 패키지 1건 = 발행권 +2.
 -- 결제 흐름을 거치지 않고 ledger 에 직접 +N 을 꽂아도 동일하게 동작.
+-- ⚠️ reason 은 ('purchase','publish','admin_grant','admin_revoke','refund') 중에서만 허용.
 insert into public.publish_credits_ledger (user_id, delta, reason, ref_table, ref_id, note)
-values ('<USER_ID>'::uuid, 5, 'manual', null, null, 'qa-grant');
+values ('<USER_ID>'::uuid, 5, 'admin_grant', null, null, 'qa-grant');
 
 -- 결과 확인
 select public.publish_credits_balance('<USER_ID>'::uuid);  -- → 기존 잔량 + 5
@@ -75,7 +88,7 @@ with bal as (
   select public.publish_credits_balance('<USER_ID>'::uuid) as v
 )
 insert into public.publish_credits_ledger (user_id, delta, reason, ref_table, ref_id, note)
-select '<USER_ID>'::uuid, -bal.v, 'manual', null, null, 'qa-reset' from bal;
+select '<USER_ID>'::uuid, -bal.v, 'admin_revoke', null, null, 'qa-reset' from bal;
 ```
 
 이후 발행 시도 → "발행권이 부족합니다" 에러 + 402 응답 확인.
@@ -164,8 +177,9 @@ update public.publications
 
 ```sql
 -- 5개 즉시 지급
+-- (archive_credits_ledger.reason 은 자유 텍스트라 'manual' 도 허용. publish 와 다름에 주의.)
 insert into public.archive_credits_ledger (user_id, delta, reason, ref_table, ref_id, note)
-values ('<USER_ID>'::uuid, 5, 'manual', null, null, 'qa-archive-grant');
+values ('<USER_ID>'::uuid, 5, 'admin_grant', null, null, 'qa-archive-grant');
 
 select public.archive_credits_balance('<USER_ID>'::uuid);
 ```
@@ -216,7 +230,7 @@ update public.publications
 update public.publications set archived = false where slug = 'qatest1';
 -- 환불은 별도 ledger 행으로 (음수 → 양수 보정)
 insert into public.archive_credits_ledger (user_id, delta, reason, ref_table, ref_id, note)
-values ('<USER_ID>'::uuid, 1, 'manual', 'publications', '<PUB_ID>'::uuid, 'qa-archive-revert');
+values ('<USER_ID>'::uuid, 1, 'admin_grant', 'publications', '<PUB_ID>'::uuid, 'qa-archive-revert');
 ```
 
 ---
@@ -443,14 +457,17 @@ declare
   uid uuid := '<USER_ID>'::uuid;
 begin
   -- 1) 발행권 +5
+  --    ⚠️ publish_credits_ledger.reason 은 ('purchase','publish','admin_grant','admin_revoke','refund') 만 허용.
   insert into public.publish_credits_ledger (user_id, delta, reason, note)
-  values (uid, 5, 'manual', 'qa-bootstrap-publish');
+  values (uid, 5, 'admin_grant', 'qa-bootstrap-publish');
 
   -- 2) 영구소장 +5
+  --    archive_credits_ledger.reason 은 자유 텍스트(체크 제약 없음).
   insert into public.archive_credits_ledger (user_id, delta, reason, note)
-  values (uid, 5, 'manual', 'qa-bootstrap-archive');
+  values (uid, 5, 'admin_grant', 'qa-bootstrap-archive');
 
   -- 3) AI 스냅 / AI 영상 / 가족 잠금 해제
+  --    purchase_orders.source 는 ('portone','naver_smartstore','manual') 만 허용 → 'manual' OK.
   insert into public.purchase_orders (user_id, source, package_code, amount, granted_credits, status)
   values
     (uid, 'manual', 'ai_snap',     19900, 0, 'completed'),
