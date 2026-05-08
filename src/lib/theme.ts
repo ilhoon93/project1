@@ -43,14 +43,15 @@ export interface Palette {
 const PEARL_PATTERN =
   'radial-gradient(circle at 30% 20%, rgba(255,230,235,0.55) 0%, rgba(255,255,255,0) 38%), radial-gradient(circle at 75% 70%, rgba(220,235,255,0.5) 0%, rgba(255,255,255,0) 40%), radial-gradient(circle at 50% 50%, rgba(255,250,240,0.35) 0%, rgba(255,255,255,0) 60%)';
 
-// 편지지 — 박엽지·캔버스 같은 따뜻한 흰 바탕에 미세한 섬유결과 얼룩.
-// 라디얼로 자연스러운 변색, 반복 라인으로 종이 결을 더한다.
+// 편지지 — 펄/샴페인과 같은 다중 라디얼 광택 패턴이지만, 따뜻한 베이지/
+// 골드 톤 대신 *흰색 + 매우 옅은 쿨 그레이* 만 사용. 결과적으로 진주빛
+// 광택은 살아 있되 어떤 테마 글자색과도 충돌하지 않는 중립 톤 종이결이
+// 된다. 종이 결 라인은 거의 보이지 않을 정도로 은은하게.
 const LETTER_PAPER_PATTERN =
-  'radial-gradient(circle at 18% 22%, rgba(214,193,160,0.18) 0%, rgba(255,255,255,0) 28%), ' +
-  'radial-gradient(circle at 78% 65%, rgba(196,176,148,0.16) 0%, rgba(255,255,255,0) 32%), ' +
-  'radial-gradient(circle at 45% 85%, rgba(220,200,170,0.12) 0%, rgba(255,255,255,0) 36%), ' +
-  'repeating-linear-gradient(118deg, rgba(165,135,95,0.045) 0px, rgba(165,135,95,0.045) 1px, rgba(255,255,255,0) 1px, rgba(255,255,255,0) 5px), ' +
-  'repeating-linear-gradient(32deg, rgba(165,135,95,0.03) 0px, rgba(165,135,95,0.03) 1px, rgba(255,255,255,0) 1px, rgba(255,255,255,0) 7px)';
+  'radial-gradient(circle at 25% 22%, rgba(220,224,232,0.32) 0%, rgba(255,255,255,0) 42%), ' +
+  'radial-gradient(circle at 78% 68%, rgba(228,232,238,0.28) 0%, rgba(255,255,255,0) 45%), ' +
+  'radial-gradient(circle at 50% 90%, rgba(214,218,226,0.18) 0%, rgba(255,255,255,0) 50%), ' +
+  'repeating-linear-gradient(118deg, rgba(170,175,185,0.04) 0px, rgba(170,175,185,0.04) 1px, rgba(255,255,255,0) 1px, rgba(255,255,255,0) 6px)';
 
 // 샴페인 — 웜 아이보리 위에 옅은 골드 광택의 부드러운 라디얼.
 const CHAMPAGNE_PATTERN =
@@ -137,14 +138,15 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     petals: ['#F5E1DA', '#E8D0C8', '#FFFFFF', '#EFD9D2'],
     bgPattern: PEARL_PATTERN,
   },
-  // 편지지 — 순백 바탕 + 잉크 검정 글자. 결혼 청첩장 클래식 톤.
-  // 종이 결 패턴은 유지해 완전 평면 디자인을 피함.
+  // 편지지 — 순백 바탕 + 매우 옅은 쿨 그레이 글자/액센트 + 진주빛 광택 패턴.
+  // 펄/샴페인처럼 다중 라디얼 광택을 깔지만 따뜻한 베이지·골드 대신 흰색과
+  // 옅은 회색만 사용해 클래식하고 정갈한 톤을 유지.
   letterPaper: {
     bg: '#FFFFFF',
-    fg: '#000000',
-    accent: '#333333',
-    dot: '#D4D4D4',
-    petals: ['#F5F5F5', '#EAEAEA', '#FFFFFF', '#FAFAFA'],
+    fg: '#2A2C33',
+    accent: '#7A7E88',
+    dot: '#E4E6EC',
+    petals: ['#FFFFFF', '#F5F6F8', '#ECEEF2', '#FAFBFC'],
     bgPattern: LETTER_PAPER_PATTERN,
   },
   // 미드나잇 — 검정 배경 + 밝은 샴페인 글자. 모던/세련.
