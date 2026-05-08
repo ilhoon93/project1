@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { InvitationContentSchema } from '@/types/invitation';
 import { InvitationSlides } from '@/components/invitation/InvitationSlides';
+import { InAppBrowserGuard } from '@/components/invitation/InAppBrowserGuard';
 
 interface PageProps {
   params: { slug: string };
@@ -101,13 +102,16 @@ export default async function PublicInvitationPage({ params }: PageProps) {
   const content = InvitationContentSchema.parse(inv.content ?? {});
 
   return (
-    <InvitationSlides
-      invitationId={inv.invitation_id}
-      groomName={inv.groom_name}
-      brideName={inv.bride_name}
-      weddingDate={inv.wedding_date}
-      content={content}
-    />
+    <>
+      <InAppBrowserGuard />
+      <InvitationSlides
+        invitationId={inv.invitation_id}
+        groomName={inv.groom_name}
+        brideName={inv.bride_name}
+        weddingDate={inv.wedding_date}
+        content={content}
+      />
+    </>
   );
 }
 
