@@ -86,10 +86,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (result.kind === 'missing') return { title: '우리다운' };
   const { inv } = result;
   const title = `${inv.groom_name} ❤ ${inv.bride_name} 결혼합니다`;
+  // 카카오톡 공유 카드에 보이는 한 줄 설명 — 인앱 뷰어 안내까지 같이 표기.
+  const description =
+    '저희 두 사람의 결혼을 알립니다. 전체 화면으로 보시려면 외부 브라우저로 열어주세요.';
   return {
     title,
-    description: '저희 두 사람의 결혼식에 초대합니다',
-    openGraph: { title, description: '저희 두 사람의 결혼식에 초대합니다' },
+    description,
+    openGraph: { title, description },
   };
 }
 
