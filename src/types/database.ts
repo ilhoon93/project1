@@ -291,6 +291,7 @@ export type Database = {
           user_id: string;
           slug: string;
           owner_token: string;
+          archived: boolean;
           groom_name: string;
           bride_name: string;
           wedding_date: string | null;
@@ -307,6 +308,7 @@ export type Database = {
           user_id: string;
           slug: string;
           owner_token: string;
+          archived?: boolean;
           groom_name: string;
           bride_name: string;
           wedding_date?: string | null;
@@ -408,6 +410,22 @@ export type Database = {
       publish_invitation_v3: {
         Args: { inv_id: string; new_slug: string; new_owner_tok: string };
         Returns: Json;
+      };
+      publish_invitation_v4: {
+        Args: { inv_id: string; new_slug: string; new_owner_tok: string };
+        Returns: Json;
+      };
+      archive_credits_balance: {
+        Args: { uid: string };
+        Returns: number;
+      };
+      apply_archive: {
+        Args: { pub_id: string };
+        Returns: Json;
+      };
+      user_has_package: {
+        Args: { uid: string; pkg_code: string };
+        Returns: boolean;
       };
       bump_cheers: {
         Args: { inv_id: string };

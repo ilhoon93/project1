@@ -76,6 +76,36 @@ export function EditorClient({ invitationId, meta, content }: Props) {
     return () => clearTimeout(t);
   }, [status, save]);
 
+  // 보유 패키지 entitlement — AI/가족 탭 노출 분기 기준.
+  // AI 이미지 탭은 ai_snap 미보유 사용자에게도 "무료 1회" 가 있어 항상 보이지만,
+  // ai_video / family 같이 동작하는 기능 미구현 패키지는 잠금 해제 시에만 노출.
+  const [entitlements, setEntitlements] = useState<{
+    aiSnap: boolean;
+    aiVideo: boolean;
+    familyPack: boolean;
+  } | null>(null);
+  useEffect(() => {
+    let canceled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/me/entitlements');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (canceled) return;
+        setEntitlements({
+          aiSnap: !!data.aiSnap,
+          aiVideo: !!data.aiVideo,
+          familyPack: !!data.familyPack,
+        });
+      } catch {
+        // 401/네트워크 오류는 entitlements null 그대로 — 기본 동작 (AI 1회 무료) 유지.
+      }
+    })();
+    return () => {
+      canceled = true;
+    };
+  }, []);
+
   // 미저장 변경이 있을 때 탭/창 닫기 경고.
   useEffect(() => {
     if (status !== 'dirty') return;
@@ -102,13 +132,24 @@ export function EditorClient({ invitationId, meta, content }: Props) {
         {/* ── 우측 (mobile: 단일 컬럼): 탭 + 에디터 컨트롤 ─────── */}
         <div className="flex min-w-0 flex-col">
           <div className="sticky top-[57px] z-10 -mx-0 border-b bg-background/80 backdrop-blur lg:top-0 lg:rounded-md lg:border lg:bg-background">
-            <div className="mx-auto flex max-w-2xl gap-1 px-4 lg:max-w-none lg:px-3">
+            <div className="mx-auto flex max-w-2xl items-center gap-1 px-4 lg:max-w-none lg:px-3">
               <TabButton selected={tab === 'edit'} onClick={() => setTab('edit')}>
                 기본 편집
               </TabButton>
               <TabButton selected={tab === 'ai'} onClick={() => setTab('ai')}>
                 AI 이미지
+                {entitlements?.aiSnap && <PackageBadge>스냅 ✓</PackageBadge>}
               </TabButton>
+              {entitlements?.aiVideo && (
+                <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-200">
+                  AI 영상 잠금해제
+                </span>
+              )}
+              {entitlements?.familyPack && (
+                <span className="ml-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-200">
+                  가족 패키지
+                </span>
+              )}
             </div>
           </div>
 
@@ -134,6 +175,14 @@ export function EditorClient({ invitationId, meta, content }: Props) {
         </div>
       </div>
     </div>
+  );
+}
+
+function PackageBadge({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="ml-1.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-medium text-emerald-700 ring-1 ring-emerald-200">
+      {children}
+    </span>
   );
 }
 
