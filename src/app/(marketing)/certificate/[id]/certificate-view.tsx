@@ -222,7 +222,11 @@ export function CertificateView({
           className="cert-page mx-auto bg-white"
           style={{
             width: '100%',
-            aspectRatio: '210 / 297',
+            // aspect-ratio CSS 는 html2canvas v1.4.x 가 측정 시점에 따라
+            // height 를 0/auto 로 잘못 계산하는 케이스가 있어, 화면과 캡처
+            // 결과의 비율이 어긋나는 문제 발생. 측정한 width 로부터 A4
+            // 비율(297/210)에 맞는 height 를 직접 px 로 박아 해결.
+            height: `${(w * 297) / 210}px`,
             padding: `${px(6.5)}px ${px(7)}px`,
             boxShadow: '0 12px 40px -8px rgba(0,0,0,0.18)',
             fontFamily:

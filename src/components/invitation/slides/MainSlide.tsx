@@ -103,6 +103,22 @@ export function MainSlide({
     );
   }
 
+  if (layout === 'text') {
+    return (
+      <TextLayoutSlide
+        main={main}
+        groomName={groomName}
+        brideName={brideName}
+        weddingDate={weddingDate}
+        onCelebrate={handleCelebrate}
+        confettiTrigger={confettiTrigger}
+        scoped={scoped}
+        mode={mode}
+        cheersCount={cheersCount}
+      />
+    );
+  }
+
   if (layout === 'frame' || layout === 'polaroid') {
     return (
       <FrameSlide
@@ -525,6 +541,107 @@ function IllustrationSlide({
 }
 
 // ─────────────────────────────────────────────────────────────
+// 텍스트형 슬라이드 — 일러스트형과 같은 골격(제목 → 인사말 → 데코 →
+// 디바이더 → 이름 → 날짜)을 따르되, 일러스트 자리에 text-flower.png
+// 를 두고 디자인 컨트롤(IllustrationDesign 같은) 없이 합리적인 기본값을
+// 그대로 쓰는 변형.
+//
+// 기존 LegacyMainSlide 의 단순한 "꽃 PNG + 이름·날짜" 레이아웃에서
+// 일러스트형과 동일한 디자인 시그니처(영문 타이틀·디바이더·중앙 정렬
+// 인사말)로 격상해 사용자 요청을 만족.
+// ─────────────────────────────────────────────────────────────
+
+function TextLayoutSlide({
+  main,
+  groomName,
+  brideName,
+  weddingDate,
+  onCelebrate,
+  confettiTrigger,
+  scoped,
+  mode,
+  cheersCount,
+}: PosterProps) {
+  return (
+    <section
+      className="relative flex h-full min-h-full w-full flex-col items-center overflow-hidden text-center"
+    >
+      {/* 1) 상단 영역 — 영문 제목 + 인사말. 일러스트형과 같은
+          flex:1 + justify-end + overflow-hidden 패턴이라 인사말이 길어져도
+          데코·이름·날짜 자리는 흔들리지 않는다. */}
+      <div
+        className="flex w-full flex-col items-center justify-end overflow-hidden px-6"
+        style={{ flex: '1 1 0', minHeight: 0, paddingTop: '4cqh', paddingBottom: '2.5cqh' }}
+      >
+        <h1
+          className="font-bold leading-tight"
+          style={{ fontFamily: PLAYFAIR, fontSize: '34px' }}
+        >
+          We are getting married
+        </h1>
+        {main.greeting && (
+          <p
+            className="max-w-md whitespace-pre-line leading-relaxed opacity-80"
+            style={{ fontFamily: 'inherit', fontSize: '13px', marginTop: '1.4cqh' }}
+          >
+            {main.greeting}
+          </p>
+        )}
+      </div>
+
+      {/* 2) 데코 — 꽃 일러스트. 일러스트형의 메인 일러스트와 같은 자리/같은
+          라인아트 톤. 다크 테마에선 --mw-illust-filter 가 자동 적용되어
+          밝은 배경처럼 보이도록 invert/glow 처리. */}
+      <div className="flex w-full max-w-sm shrink-0 items-center justify-center px-6">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/illustrations/text-flower.png"
+          alt=""
+          aria-hidden
+          className="block h-auto w-2/3 max-w-[14rem] select-none object-contain"
+          draggable={false}
+          style={{ filter: 'var(--mw-illust-filter, none)' }}
+        />
+      </div>
+
+      {/* 3) 이미지 하단 디바이더 — 일러스트형과 동일 컴포넌트 재사용. */}
+      <IllustDivider />
+
+      {/* 4) 이름 — 디바이더 아래 충분한 간격. */}
+      <p
+        className="shrink-0 font-light tracking-wide"
+        style={{ fontFamily: 'inherit', fontSize: '16px', marginTop: '2.2cqh' }}
+      >
+        신랑 {groomName} · 신부 {brideName}
+      </p>
+
+      {/* 5) 날짜 — 이름 바로 아래. 일러스트형과 같은 Playfair 폰트로 통일. */}
+      {weddingDate && (
+        <p
+          className="shrink-0 tracking-[0.2em]"
+          style={{ fontFamily: PLAYFAIR, fontSize: '15px', marginTop: '0.8cqh' }}
+        >
+          {formatDateForIllust(weddingDate)}
+        </p>
+      )}
+
+      {/* 6) 하단 spacer — 인사말 길이와 무관하게 축하하기 자리를 비워둠 */}
+      <div style={{ flex: '1 1 0', minHeight: '6cqh' }} />
+
+      <div className="absolute bottom-16 left-1/2 z-20 -translate-x-1/2">
+        <CelebrationFooter
+          mode={mode}
+          cheersCount={cheersCount}
+          onCelebrate={onCelebrate}
+        />
+      </div>
+
+      <Confetti trigger={confettiTrigger} scoped={scoped} />
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // 일러스트 하단 디바이더 — 가는 라인 + 가운데 작은 다이아 글리프
 // ─────────────────────────────────────────────────────────────
 
@@ -646,9 +763,6 @@ function LegacyMainSlide({
         {layout === 'illustration' && (
           <p className="text-xs uppercase tracking-[0.3em] opacity-70">Wedding Day</p>
         )}
-        {layout === 'text' && (
-          <p className="text-xs uppercase tracking-[0.4em] opacity-70">— Save the Date —</p>
-        )}
 
         {layout === 'polaroid' && (
           // 직각 모서리(rounded-none), 사진 크기 확대(h-80 w-64),
@@ -665,25 +779,7 @@ function LegacyMainSlide({
         )}
         {layout === 'illustration' && <CoupleIllustration />}
 
-        {layout === 'text' ? (
-          <div className="flex flex-col items-center gap-4">
-            {/* 텍스트형 상단 데코 — 꽃 일러스트. 투명 배경 PNG 라 모든 테마와 어울림.
-                다크 테마에선 일러스트 글로우 필터(--mw-illust-filter) 가 자동 적용. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/illustrations/text-flower.png"
-              alt=""
-              aria-hidden
-              className="h-20 w-auto object-contain"
-              style={{ filter: 'var(--mw-illust-filter)' }}
-            />
-            <h1 className="flex flex-col items-center gap-3 text-4xl font-light leading-tight">
-              <span>{groomName}</span>
-              <span className="h-px w-12 bg-current opacity-50" />
-              <span>{brideName}</span>
-            </h1>
-          </div>
-        ) : layout === 'illustration' ? (
+        {layout === 'illustration' ? (
           <h1 className="flex items-baseline gap-3 text-2xl font-light">
             <span>{groomName}</span>
             <span className="text-base opacity-60">&</span>
