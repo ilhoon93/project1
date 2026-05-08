@@ -1,20 +1,21 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import html2canvas from 'html2canvas';
-import { OrnamentCorner, OrnamentDivider } from '@/components/certificate/OrnamentCorner';
+import { OrnamentCorner } from '@/components/certificate/OrnamentCorner';
 
 interface Props {
   groomName: string;
   brideName: string;
   weddingDate: string | null;
-  /** 모바일 알림장 URL (QR 코드용). null 이면 발행 안 된 알림장 — QR 비표시. */
+  /** 모바일 알림장 절대 URL. null 이면 발행 안 된 알림장. */
   invitationUrl: string | null;
+  /** 절대 URL 이 비어 있을 때 클라이언트가 origin 을 붙일 수 있도록 path 만 fallback 으로 받음. */
+  invitationPath: string | null;
 }
 
-// 스몰웨딩 / 노웨딩 톤 — 거창한 의식 대신 두 사람의 약속에 집중한 짧은 문구.
 const VOWS: string[] = [
   '서로의 가장 가까운 친구가 되겠습니다.',
   '함께하는 매일을 소중히 여기겠습니다.',
@@ -22,25 +23,39 @@ const VOWS: string[] = [
 ];
 
 /**
- * 혼인서약서 — 마이페이지 버튼 클릭 시 진입. 화면에는 작은 썸네일 형태로 노출,
- * 사용자는 두 가지 저장 옵션 중 선택.
+ * 혼인서약서 — 마이페이지 진입, 작은 썸네일로 노출.
  *
  * 디자인:
- *   - 한자 제거 → 한글 "혼인서약서" 단일 제목
- *   - 4 모서리 + 상하 가운데 금색 웨딩 장식 (OrnamentCorner / OrnamentDivider)
- *   - 신랑·신부 서명란을 도장 대신 필기체(Nanum Pen Script) 자동 채움
- *   - QR 코드는 하단 가운데에 배치
- *   - 스몰웨딩/노웨딩 커플 톤의 짧은 서약문 3줄
+ *   - 한글 "혼인서약서" 단일 제목
+ *   - 4 모서리 + 외곽선 금색 웨딩 장식
+ *   - 신랑·신부 이름이 청연체(가비아) 로 서명란에 자동 채움
+ *   - 하단 가운데 QR (모바일 알림장 진입)
+ *   - 스몰웨딩/노웨딩 톤 짧은 서약문 3줄
+ *
+ * 인쇄 격리:
+ *   - body data-print="cert" 모드에서 .cert-print-target 외 모든 요소 숨김
+ *   - 인쇄 시 A4 풀 사이즈로 출력
  */
 export function CertificateView({
   groomName,
   brideName,
   weddingDate,
   invitationUrl,
+  invitationPath,
 }: Props) {
   const router = useRouter();
   const certRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
+
+  // QR 의 실제 값 — 서버가 NEXT_PUBLIC_BASE_URL 을 안 줬을 때 클라이언트의
+  // window.location.origin 으로 fallback. mount 후 1회만 계산.
+  const [qrValue, setQrValue] = useState<string | null>(invitationUrl);
+  useEffect(() => {
+    if (qrValue && qrValue.startsWith('http')) return;
+    if (!invitationPath) return;
+    if (typeof window === 'undefined') return;
+    setQrValue(`${window.location.origin}${invitationPath}`);
+  }, [invitationPath, qrValue]);
 
   const handleSaveImage = async () => {
     const node = certRef.current;
@@ -68,16 +83,25 @@ export function CertificateView({
     }
   };
 
+  // 인쇄 시 사이트 chrome (탭바, 헤더, AutoLoginGate 등) 가 같이 출력되는 문제를
+  // 막기 위해 body 에 data-printing 마커를 잠깐 붙여 다른 요소를 CSS 로 숨긴다.
   const handlePrint = () => {
-    window.print();
+    document.body.setAttribute('data-printing', 'cert');
+    const cleanup = () => {
+      document.body.removeAttribute('data-printing');
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    // print 콜은 동기적으로 다이얼로그를 띄우므로 setAttribute 가 먼저 적용됨.
+    requestAnimationFrame(() => window.print());
   };
 
   const dateText = weddingDate ? formatKoreanDate(weddingDate) : '';
 
   return (
-    <div className="min-h-screen bg-stone-100 px-4 py-6 print:bg-white print:px-0 print:py-0">
+    <div className="cert-shell min-h-screen bg-stone-100 px-4 py-6">
       {/* 액션 버튼 — 인쇄 시 숨김 */}
-      <div className="mx-auto mb-5 flex max-w-md items-center justify-between gap-2 print:hidden">
+      <div className="mx-auto mb-5 flex max-w-md items-center justify-between gap-2">
         <button
           type="button"
           onClick={() => router.back()}
@@ -104,17 +128,18 @@ export function CertificateView({
         </div>
       </div>
 
-      {/* 썸네일 컨테이너 — 작은 크기로 노출 (모바일: w-full 최대 360, 데스크톱: 420) */}
-      <div className="mx-auto" style={{ width: '100%', maxWidth: 'min(92vw, 420px)' }}>
+      {/* 썸네일 컨테이너 */}
+      <div
+        className="cert-print-target mx-auto"
+        style={{ width: '100%', maxWidth: 'min(92vw, 420px)' }}
+      >
         <article
           ref={certRef}
           id="cert-page"
-          className="cert-page mx-auto bg-white print:shadow-none"
+          className="cert-page mx-auto bg-white"
           style={{
             width: '100%',
             aspectRatio: '210 / 297',
-            // padding 은 CSS 픽셀 — A4 비율 박스 안에서 동일 비율 유지.
-            // 인쇄 시 @page A4 와 매칭되도록 cqw 단위 사용.
             padding: '6.5cqw 7cqw',
             boxShadow: '0 12px 40px -8px rgba(0,0,0,0.18)',
             fontFamily:
@@ -124,7 +149,7 @@ export function CertificateView({
             containerType: 'inline-size',
           }}
         >
-          {/* 금색 외곽선 + 4 모서리 장식 */}
+          {/* 금색 외곽선 */}
           <div
             aria-hidden
             style={{
@@ -147,19 +172,11 @@ export function CertificateView({
             }}
           />
 
-          {/* 4 모서리 장식 */}
-          <div style={{ position: 'absolute', top: '2.5cqw', left: '2.5cqw' }}>
-            <CornerWrap position="tl" />
-          </div>
-          <div style={{ position: 'absolute', top: '2.5cqw', right: '2.5cqw' }}>
-            <CornerWrap position="tr" />
-          </div>
-          <div style={{ position: 'absolute', bottom: '2.5cqw', left: '2.5cqw' }}>
-            <CornerWrap position="bl" />
-          </div>
-          <div style={{ position: 'absolute', bottom: '2.5cqw', right: '2.5cqw' }}>
-            <CornerWrap position="br" />
-          </div>
+          {/* 4 모서리 장식 — 외곽선 위쪽 점에 정확히 정렬 */}
+          <CornerSlot pos="tl" />
+          <CornerSlot pos="tr" />
+          <CornerSlot pos="bl" />
+          <CornerSlot pos="br" />
 
           <div
             style={{
@@ -170,15 +187,11 @@ export function CertificateView({
               gap: '3.5cqw',
             }}
           >
-            {/* 1) 제목 — 한글만, 큰 명조체 */}
+            {/* 1) 제목 — 한글만 */}
             <header
               style={{
                 textAlign: 'center',
                 marginTop: '8cqw',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '2cqw',
               }}
             >
               <h1
@@ -193,9 +206,6 @@ export function CertificateView({
               >
                 혼인서약서
               </h1>
-              <div style={{ width: '32cqw' }}>
-                <OrnamentDivider width={120} />
-              </div>
             </header>
 
             {/* 2) 신랑·신부 + 결혼식 날짜 */}
@@ -245,7 +255,7 @@ export function CertificateView({
               )}
             </section>
 
-            {/* 3) 서약문 — 짧은 3줄, 스몰웨딩/노웨딩 톤 */}
+            {/* 3) 서약문 */}
             <section
               style={{
                 flex: '1 1 auto',
@@ -278,7 +288,7 @@ export function CertificateView({
               </ul>
             </section>
 
-            {/* 4) 서명란 — 도장 대신 필기체 이름 자동 채움 */}
+            {/* 4) 서명란 — 청연체 자동 채움 (자필 라벨 제거) */}
             <footer
               style={{
                 display: 'grid',
@@ -291,15 +301,15 @@ export function CertificateView({
               <ScriptSign label="신 부" name={brideName} />
             </footer>
 
-            {/* 5) 하단 QR 코드 — 모바일 알림장 진입 */}
-            {invitationUrl && (
+            {/* 5) 하단 QR — 모바일 알림장 */}
+            {qrValue && (
               <div
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '1cqw',
-                  marginTop: '1cqw',
+                  marginTop: '0.5cqw',
                 }}
               >
                 <div
@@ -309,10 +319,9 @@ export function CertificateView({
                     border: '0.15cqw solid #D4AF37',
                   }}
                 >
-                  {/* qrcode.react SVG — 픽셀 단위로 받음, cqw 변환 위해 wrapper 사이즈 사용 */}
                   <div style={{ width: '12cqw', height: '12cqw' }}>
                     <QRCodeSVG
-                      value={invitationUrl}
+                      value={qrValue}
                       size={48}
                       level="M"
                       marginSize={0}
@@ -336,33 +345,69 @@ export function CertificateView({
         </article>
       </div>
 
-      {/* 인쇄용 CSS — A4 단일 페이지, 그림자/배경 제거. 인쇄 시엔 풀 사이즈로 출력 */}
+      {/* 인쇄 CSS — body[data-printing="cert"] 일 때 cert-print-target 만 보이게.
+          A4 풀 사이즈, 단일 페이지, 다른 chrome 모두 숨김. */}
       <style jsx global>{`
         @media print {
           @page {
             size: A4;
             margin: 0;
           }
-          html,
-          body {
-            background: #fff !important;
-          }
-          .cert-page {
-            box-shadow: none !important;
-            page-break-after: avoid;
-            max-width: none !important;
-            width: 210mm !important;
-          }
+        }
+        body[data-printing='cert'] {
+          background: #fff !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        body[data-printing='cert'] > *:not(.cert-shell) {
+          display: none !important;
+        }
+        body[data-printing='cert'] .cert-shell {
+          background: #fff !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          min-height: 0 !important;
+        }
+        body[data-printing='cert'] .cert-shell > *:not(.cert-print-target) {
+          display: none !important;
+        }
+        body[data-printing='cert'] .cert-print-target {
+          width: 210mm !important;
+          max-width: 210mm !important;
+          margin: 0 !important;
+        }
+        body[data-printing='cert'] .cert-page {
+          width: 210mm !important;
+          height: 297mm !important;
+          box-shadow: none !important;
+          page-break-after: avoid;
         }
       `}</style>
     </div>
   );
 }
 
-function CornerWrap({ position }: { position: 'tl' | 'tr' | 'bl' | 'br' }) {
+function CornerSlot({ pos }: { pos: 'tl' | 'tr' | 'bl' | 'br' }) {
+  const style: React.CSSProperties = { position: 'absolute' };
+  // 외곽선 inset 4cqw 안쪽으로 살짝 들어가도록 3.2cqw 배치.
+  if (pos === 'tl') {
+    style.top = '3.2cqw';
+    style.left = '3.2cqw';
+  } else if (pos === 'tr') {
+    style.top = '3.2cqw';
+    style.right = '3.2cqw';
+  } else if (pos === 'bl') {
+    style.bottom = '3.2cqw';
+    style.left = '3.2cqw';
+  } else {
+    style.bottom = '3.2cqw';
+    style.right = '3.2cqw';
+  }
   return (
-    <div style={{ width: '14cqw', height: '14cqw' }}>
-      <OrnamentCorner position={position} size={64} />
+    <div style={style}>
+      <div style={{ width: '14cqw', height: '14cqw' }}>
+        <OrnamentCorner position={pos} size={64} />
+      </div>
     </div>
   );
 }
@@ -387,14 +432,13 @@ function ScriptSign({ label, name }: { label: string; name: string }) {
       >
         {label}
       </span>
-      {/* 필기체 이름 — Nanum Pen Script (root layout 에서 로드됨, --font-nanum-pen) */}
+      {/* 가비아 청연체 — 우아한 한글 필기체 (root layout 에서 --font-gabia-cheongyeon 으로 로드) */}
       <span
         style={{
-          fontFamily: "var(--font-nanum-pen), 'Nanum Pen Script', cursive",
+          fontFamily: "var(--font-gabia-cheongyeon), serif",
           fontSize: '7cqw',
           color: '#0f0d0a',
-          lineHeight: 1,
-          marginTop: '0.5cqw',
+          lineHeight: 1.1,
         }}
       >
         {name}
@@ -404,14 +448,8 @@ function ScriptSign({ label, name }: { label: string; name: string }) {
           width: '70%',
           borderTop: '0.15cqw solid #0f0d0a',
           marginTop: '0.5cqw',
-          paddingTop: '0.7cqw',
-          fontSize: '2cqw',
-          color: '#8a8478',
-          textAlign: 'center',
         }}
-      >
-        (자필 서명)
-      </div>
+      />
     </div>
   );
 }

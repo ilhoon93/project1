@@ -29,9 +29,9 @@ export function EditorToolbar({ invitationId }: { invitationId: string }) {
   const router = useRouter();
   const [navigating, setNavigating] = useState(false);
 
-  // 미리보기는 그냥 이동만 — 자동 저장 제거. 저장이 필요하면 사용자가 "저장"
-  // 버튼을 명시적으로 누른 뒤 미리보기로 이동하도록 dirty 상태 안내.
-  const handlePreview = () => {
+  // 미리보기는 자동 저장 안 함. 단, 저장이 진행 중이면 끝까지 기다렸다가 이동 →
+  // "저장" 클릭 후 바로 "미리보기" 누르는 흐름에서도 최신 데이터가 반영되게 한다.
+  const handlePreview = async () => {
     if (navigating) return;
     if (status === 'dirty') {
       const ok = window.confirm(
@@ -40,17 +40,24 @@ export function EditorToolbar({ invitationId }: { invitationId: string }) {
       if (!ok) return;
     }
     setNavigating(true);
+    // 저장 진행 중이면 완료까지 폴링 — race condition 방지.
+    while (useEditorStore.getState().status === 'saving') {
+      await new Promise((r) => setTimeout(r, 50));
+    }
     router.push(`/preview/${invitationId}`);
   };
 
-  // 마이페이지 이동 — 미저장 변경이 있으면 confirm 으로 한 번 더 묻는다.
-  // 저장은 사용자가 명시적으로 "저장" 버튼을 눌러야만 발생.
-  const handleGoMypage = () => {
+  // 저장내역 (= 마이페이지) 이동 — 미저장 변경이 있으면 confirm. 저장 진행 중이면
+  // 완료까지 기다림.
+  const handleGoMypage = async () => {
     if (status === 'dirty') {
       const ok = window.confirm(
-        '저장하지 않은 변경사항이 있어요. 마이페이지로 이동하면 변경사항이 사라집니다. 이동할까요?',
+        '저장하지 않은 변경사항이 있어요. 저장내역으로 이동하면 변경사항이 사라집니다. 이동할까요?',
       );
       if (!ok) return;
+    }
+    while (useEditorStore.getState().status === 'saving') {
+      await new Promise((r) => setTimeout(r, 50));
     }
     router.push('/mypage');
   };
@@ -61,7 +68,7 @@ export function EditorToolbar({ invitationId }: { invitationId: string }) {
         <Link
           href="/mypage"
           className="text-sm text-muted-foreground hover:text-foreground"
-          aria-label="저장 내역으로"
+          aria-label="저장내역으로"
         >
           ←
         </Link>
@@ -71,8 +78,8 @@ export function EditorToolbar({ invitationId }: { invitationId: string }) {
       </div>
 
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={handleGoMypage}>
-          마이페이지
+        <Button variant="ghost" size="sm" onClick={() => void handleGoMypage()}>
+          저장내역
         </Button>
         <Button
           variant="default"
@@ -86,7 +93,7 @@ export function EditorToolbar({ invitationId }: { invitationId: string }) {
         <Button
           variant="outline"
           size="sm"
-          onClick={handlePreview}
+          onClick={() => void handlePreview()}
           disabled={navigating || status === 'saving'}
           className="lg:hidden"
         >

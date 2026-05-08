@@ -83,54 +83,46 @@ export function BasicInfoEditor() {
                 ※ 故 표시는 이름 앞에 자동으로 붙습니다.
               </p>
               <SideBlock title="신랑측">
-                <TextField
-                  label="신랑 이름"
+                <CompactNameField
+                  label="신랑"
                   value={meta.groomName}
-                  maxLength={20}
-                  placeholder="홍길동"
-                  onChange={(e) => setMeta({ groomName: e.target.value })}
+                  onChange={(v) => setMeta({ groomName: v })}
                 />
-                <div className="grid grid-cols-2 gap-3">
-                  <ParentField
-                    label="신랑 아버지"
-                    value={basic.family.groomFather}
-                    onChange={(p) =>
-                      set({ ...basic, family: { ...basic.family, groomFather: p } })
-                    }
-                  />
-                  <ParentField
-                    label="신랑 어머니"
-                    value={basic.family.groomMother}
-                    onChange={(p) =>
-                      set({ ...basic, family: { ...basic.family, groomMother: p } })
-                    }
-                  />
-                </div>
+                <ParentField
+                  label="아버지"
+                  value={basic.family.groomFather}
+                  onChange={(p) =>
+                    set({ ...basic, family: { ...basic.family, groomFather: p } })
+                  }
+                />
+                <ParentField
+                  label="어머니"
+                  value={basic.family.groomMother}
+                  onChange={(p) =>
+                    set({ ...basic, family: { ...basic.family, groomMother: p } })
+                  }
+                />
               </SideBlock>
               <SideBlock title="신부측">
-                <TextField
-                  label="신부 이름"
+                <CompactNameField
+                  label="신부"
                   value={meta.brideName}
-                  maxLength={20}
-                  placeholder="김영희"
-                  onChange={(e) => setMeta({ brideName: e.target.value })}
+                  onChange={(v) => setMeta({ brideName: v })}
                 />
-                <div className="grid grid-cols-2 gap-3">
-                  <ParentField
-                    label="신부 아버지"
-                    value={basic.family.brideFather}
-                    onChange={(p) =>
-                      set({ ...basic, family: { ...basic.family, brideFather: p } })
-                    }
-                  />
-                  <ParentField
-                    label="신부 어머니"
-                    value={basic.family.brideMother}
-                    onChange={(p) =>
-                      set({ ...basic, family: { ...basic.family, brideMother: p } })
-                    }
-                  />
-                </div>
+                <ParentField
+                  label="아버지"
+                  value={basic.family.brideFather}
+                  onChange={(p) =>
+                    set({ ...basic, family: { ...basic.family, brideFather: p } })
+                  }
+                />
+                <ParentField
+                  label="어머니"
+                  value={basic.family.brideMother}
+                  onChange={(p) =>
+                    set({ ...basic, family: { ...basic.family, brideMother: p } })
+                  }
+                />
               </SideBlock>
             </>
           )}
@@ -146,7 +138,6 @@ export function BasicInfoEditor() {
               type="date"
               value={meta.weddingDate ?? ''}
               onChange={(e) => setMeta({ weddingDate: e.target.value || null })}
-              hint="발행 후 30일이 만료일이 됩니다"
             />
           )}
         </SubBox>
@@ -161,7 +152,6 @@ export function BasicInfoEditor() {
               value={basic.greeting.text}
               maxLength={500}
               rows={4}
-              placeholder="저희 결혼식에 함께해주세요. (결혼식이 따로 없을 경우 그 사실을 적어주셔도 됩니다)"
               onChange={(e) =>
                 set({ ...basic, greeting: { ...basic.greeting, text: e.target.value } })
               }
@@ -179,7 +169,6 @@ export function BasicInfoEditor() {
             value={basic.quote.text}
             maxLength={200}
             rows={2}
-            placeholder="짧은 한 줄 글귀를 적어주세요"
             onChange={(e) =>
               set({ ...basic, quote: { ...basic.quote, text: e.target.value } })
             }
@@ -347,6 +336,29 @@ function SideBlock({
   );
 }
 
+function CompactNameField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-16 shrink-0 text-xs text-muted-foreground">{label}</span>
+      <input
+        type="text"
+        value={value}
+        maxLength={20}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+      />
+    </div>
+  );
+}
+
 function ParentField({
   label,
   value,
@@ -356,16 +368,18 @@ function ParentField({
   value: Parent;
   onChange: (next: Parent) => void;
 }) {
+  // 컴팩트 1줄 형식 — 라벨 + 입력 + 故 체크박스를 한 줄에 배치해 화면 공간 절약.
   return (
-    <div className="flex flex-col gap-1.5">
-      <TextField
-        label={label}
+    <div className="flex items-center gap-2">
+      <span className="w-16 shrink-0 text-xs text-muted-foreground">{label}</span>
+      <input
+        type="text"
         value={value.name}
         maxLength={20}
-        placeholder="이름"
         onChange={(e) => onChange({ ...value, name: e.target.value })}
+        className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
       />
-      <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
         <input
           type="checkbox"
           checked={value.deceased}

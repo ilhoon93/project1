@@ -34,7 +34,7 @@ export function GuestbookEditor() {
         />
         <p className="rounded-md border border-dashed bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
           하객이 남긴 메시지는 두 분에게만 전달되며, 다른 하객에게는 노출되지
-          않습니다. 받은 메시지는 곧 추가될 관리 페이지에서 확인할 수 있어요.
+          않습니다.
         </p>
       </div>
     </SectionEditor>
