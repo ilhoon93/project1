@@ -8,9 +8,11 @@ interface Props {
   vote: InvitationContent['vote'];
   invitationId: string;
   isPreview?: boolean;
+  mode?: 'guest' | 'owner';
+  ownerPicks?: { question_index: number; selected_option: number }[];
 }
 
-export function VoteSlide({ vote, invitationId, isPreview }: Props) {
+export function VoteSlide({ vote, invitationId, isPreview, mode = 'guest', ownerPicks }: Props) {
   const playable = vote.questions
     .map((q, qi) => ({ q, qi }))
     .filter(({ q }) => q.q.trim() && q.options.every((opt) => opt.trim()));
@@ -28,21 +30,85 @@ export function VoteSlide({ vote, invitationId, isPreview }: Props) {
     <section className="flex min-h-full flex-col gap-8 px-6 py-16">
       <header className="text-center">
         <p className="text-xs tracking-[0.3em] opacity-70">VOTE</p>
-        <h2 className="mt-2 text-xl font-light">함께 골라보기</h2>
+        <h2 className="mt-2 text-xl font-light">
+          {mode === 'owner' ? '하객 투표 결과' : '함께 골라보기'}
+        </h2>
       </header>
 
       <div className="flex flex-col gap-8">
-        {playable.map(({ q, qi }) => (
-          <Question
-            key={qi}
-            qi={qi}
-            question={q}
-            invitationId={invitationId}
-            isPreview={isPreview}
-          />
-        ))}
+        {playable.map(({ q, qi }) =>
+          mode === 'owner' ? (
+            <QuestionStats
+              key={qi}
+              qi={qi}
+              question={q}
+              picks={(ownerPicks ?? []).filter((p) => p.question_index === qi)}
+            />
+          ) : (
+            <Question
+              key={qi}
+              qi={qi}
+              question={q}
+              invitationId={invitationId}
+              isPreview={isPreview}
+            />
+          ),
+        )}
       </div>
     </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// owner 모드 — 보기별 응답 분포 막대 그래프.
+// ─────────────────────────────────────────────────────────────
+
+function QuestionStats({
+  qi,
+  question,
+  picks,
+}: {
+  qi: number;
+  question: InvitationContent['vote']['questions'][number];
+  picks: { selected_option: number }[];
+}) {
+  const total = picks.length;
+  const distribution = question.options.map((_, oi) => picks.filter((p) => p.selected_option === oi).length);
+  const max = Math.max(1, ...distribution);
+  return (
+    <article className="flex flex-col gap-3">
+      <h3 className="text-center text-sm font-medium">
+        Q{qi + 1}. {question.q}
+      </h3>
+      <p className="text-center text-xs text-muted-foreground">
+        총 {total.toLocaleString()}명 응답
+      </p>
+      <div className="grid grid-cols-1 gap-2">
+        {question.options.map((opt, oi) => {
+          if (!opt.trim()) return null;
+          const count = distribution[oi];
+          const pct = total === 0 ? 0 : Math.round((count / total) * 100);
+          return (
+            <div
+              key={oi}
+              className="relative overflow-hidden rounded-md border border-[var(--mw-dot)] bg-white px-3 py-2.5 text-sm text-stone-900"
+            >
+              <span
+                aria-hidden
+                className="absolute inset-y-0 left-0 bg-[var(--mw-accent)]/20"
+                style={{ width: `${(count / max) * 100}%` }}
+              />
+              <span className="relative flex items-center justify-between gap-2">
+                <span className="font-medium">{opt}</span>
+                <span className="tabular-nums text-xs text-muted-foreground">
+                  {count} ({pct}%)
+                </span>
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </article>
   );
 }
 

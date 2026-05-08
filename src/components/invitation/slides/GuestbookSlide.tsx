@@ -13,20 +13,60 @@ export interface GuestbookMessage {
   created_at: string;
 }
 
+interface OwnerSignature {
+  id: string;
+  visitor_name: string | null;
+  visitor_side: 'groom' | 'bride' | null;
+  signature_data_url: string | null;
+  created_at: string;
+}
+interface OwnerMessage {
+  id: string;
+  visitor_name: string | null;
+  message: string;
+  created_at: string;
+}
+
 interface Props {
   guestbook: InvitationContent['guestbook'];
   invitationId: string;
-  /**
-   * Kept for backwards compatibility with the prop signature; per the plan,
-   * visitor messages are now PRIVATE — only the couple sees them in their
-   * own admin view, never on the public invitation. We accept the prop but
-   * never render the list to other guests.
-   */
   initialMessages?: GuestbookMessage[];
   isPreview?: boolean;
+  /** owner 모드 — 메시지/서명 책 형태로 표시. */
+  mode?: 'guest' | 'owner';
+  ownerMessages?: OwnerMessage[];
+  ownerSignatures?: OwnerSignature[];
 }
 
-export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
+export function GuestbookSlide({
+  guestbook,
+  invitationId,
+  isPreview,
+  mode = 'guest',
+  ownerMessages,
+  ownerSignatures,
+}: Props) {
+  if (mode === 'owner') {
+    return (
+      <OwnerGuestbookView
+        guestbook={guestbook}
+        messages={ownerMessages ?? []}
+        signatures={ownerSignatures ?? []}
+      />
+    );
+  }
+  return <GuestGuestbookForm guestbook={guestbook} invitationId={invitationId} isPreview={isPreview} />;
+}
+
+function GuestGuestbookForm({
+  guestbook,
+  invitationId,
+  isPreview,
+}: {
+  guestbook: InvitationContent['guestbook'];
+  invitationId: string;
+  isPreview?: boolean;
+}) {
   const [name, setName] = useState('');
   // Default to '신랑' (groom) — the "선택 안 함" option was dropped per the
   // design pass; if a guest doesn't want to pick, they can still leave a
@@ -242,6 +282,176 @@ export function GuestbookSlide({ guestbook, invitationId, isPreview }: Props) {
 // ─────────────────────────────────────────────────────────────
 // 디바이더 — 신랑신부 메시지와 입력부를 시각적으로 구분
 // ─────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────
+// owner 모드 — 메시지/서명을 책처럼 한 페이지씩 넘기는 뷰.
+// ─────────────────────────────────────────────────────────────
+
+function OwnerGuestbookView({
+  guestbook,
+  messages,
+  signatures,
+}: {
+  guestbook: InvitationContent['guestbook'];
+  messages: OwnerMessage[];
+  signatures: OwnerSignature[];
+}) {
+  // 메시지 + 서명을 created_at 으로 한 페이지씩 정렬해 책장 넘기듯 보여 준다.
+  // 한 페이지에 메시지 1개씩 — 짧은 글이라도 큼지막하게 강조.
+  type Page = { kind: 'cover' } | { kind: 'message'; m: OwnerMessage } | { kind: 'signatures'; sigs: OwnerSignature[] };
+  const pages: Page[] = [{ kind: 'cover' }];
+  for (const m of messages) pages.push({ kind: 'message', m });
+  if (signatures.length > 0) pages.push({ kind: 'signatures', sigs: signatures });
+
+  const [page, setPage] = useState(0);
+  const [flipDir, setFlipDir] = useState<'next' | 'prev' | null>(null);
+  const total = pages.length;
+  const clamped = Math.max(0, Math.min(total - 1, page));
+  const current = pages[clamped];
+
+  const go = (dir: 'next' | 'prev') => {
+    setFlipDir(dir);
+    if (dir === 'next' && clamped < total - 1) setPage(clamped + 1);
+    if (dir === 'prev' && clamped > 0) setPage(clamped - 1);
+    setTimeout(() => setFlipDir(null), 600);
+  };
+
+  return (
+    <section className="flex min-h-full flex-col gap-6 px-6 py-16">
+      <header className="text-center">
+        <p className="text-xs tracking-[0.3em] opacity-70">GUESTBOOK</p>
+        <h2 className="mt-2 text-xl font-light">받은 메시지 · 서명</h2>
+      </header>
+
+      {guestbook.coupleMessage && (
+        <p className="whitespace-pre-line text-center text-sm leading-relaxed opacity-80">
+          {guestbook.coupleMessage}
+        </p>
+      )}
+
+      <div className="relative mx-auto w-full max-w-md" data-noswipe>
+        <div
+          key={clamped}
+          className={`relative aspect-[4/5] w-full origin-left rounded-md bg-white p-6 text-stone-900 shadow-xl ring-1 ring-stone-200 ${
+            flipDir === 'next'
+              ? 'animate-mw-page-flip-next'
+              : flipDir === 'prev'
+                ? 'animate-mw-page-flip-prev'
+                : ''
+          }`}
+        >
+          {current.kind === 'cover' && (
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+              <p className="text-xs tracking-[0.4em] text-stone-500">VISITORS&apos; BOOK</p>
+              <p className="text-2xl font-light">{messages.length + signatures.length}건의 마음</p>
+              <p className="max-w-xs text-sm leading-relaxed text-stone-600">
+                메시지 {messages.length}건 · 서명 {signatures.length}건
+                <br />
+                넘겨 가며 천천히 읽어 보세요.
+              </p>
+            </div>
+          )}
+          {current.kind === 'message' && (
+            <div className="flex h-full flex-col gap-3">
+              <p className="text-xs text-stone-500">
+                {formatDate(current.m.created_at)} · {current.m.visitor_name ?? '익명'} 님
+              </p>
+              <p className="flex-1 whitespace-pre-line text-base leading-relaxed text-stone-800">
+                {current.m.message}
+              </p>
+            </div>
+          )}
+          {current.kind === 'signatures' && (
+            <div className="flex h-full flex-col gap-3">
+              <p className="text-xs font-medium text-stone-500">서명 모음 ({current.sigs.length})</p>
+              <div className="grid flex-1 grid-cols-2 gap-3 overflow-y-auto pr-1">
+                {current.sigs.map((s) => (
+                  <div key={s.id} className="flex flex-col gap-1 rounded-md border border-stone-200 p-2">
+                    <p className="truncate text-[11px] text-stone-500">
+                      {s.visitor_name ?? '익명'}
+                      {s.visitor_side ? ` · ${s.visitor_side === 'groom' ? '신랑측' : '신부측'}` : ''}
+                    </p>
+                    {s.signature_data_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={s.signature_data_url}
+                        alt={`${s.visitor_name ?? '익명'} 서명`}
+                        className="h-16 w-full rounded bg-white object-contain"
+                      />
+                    ) : (
+                      <div className="grid h-16 place-items-center text-[10px] text-stone-400">
+                        (서명 없음)
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[10px] text-stone-400">
+            {clamped + 1} / {total}
+          </div>
+        </div>
+
+        {/* 좌우 페이지 넘기기 버튼 */}
+        <button
+          type="button"
+          aria-label="이전 페이지"
+          onClick={() => go('prev')}
+          disabled={clamped === 0}
+          className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 px-2 py-1 text-base text-white transition-opacity hover:bg-black/60 disabled:opacity-30"
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          aria-label="다음 페이지"
+          onClick={() => go('next')}
+          disabled={clamped === total - 1}
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 px-2 py-1 text-base text-white transition-opacity hover:bg-black/60 disabled:opacity-30"
+        >
+          ›
+        </button>
+
+        <style jsx global>{`
+          @keyframes mw-page-flip-next {
+            0% {
+              opacity: 0;
+              transform: perspective(1200px) rotateY(-25deg);
+            }
+            100% {
+              opacity: 1;
+              transform: perspective(1200px) rotateY(0);
+            }
+          }
+          @keyframes mw-page-flip-prev {
+            0% {
+              opacity: 0;
+              transform: perspective(1200px) rotateY(25deg);
+            }
+            100% {
+              opacity: 1;
+              transform: perspective(1200px) rotateY(0);
+            }
+          }
+          .animate-mw-page-flip-next {
+            animation: mw-page-flip-next 0.5s ease-out;
+          }
+          .animate-mw-page-flip-prev {
+            animation: mw-page-flip-prev 0.5s ease-out;
+          }
+        `}</style>
+      </div>
+    </section>
+  );
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+}
 
 function GuestbookDivider() {
   return (

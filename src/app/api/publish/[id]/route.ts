@@ -1,21 +1,24 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { generateSlug } from '@/lib/utils/nanoid';
+import { generateOwnerToken, generateSlug } from '@/lib/utils/nanoid';
 import { PG_UNIQUE_VIOLATION } from '@/lib/utils/validation';
 
-interface PublishV2Result {
+interface PublishV3Result {
   publication_id: string;
   slug: string;
+  owner_token: string;
   expires_at: string;
 }
 
 /**
  * POST /api/publish/[id]
  *
- * Consumes one publish credit and emits a fresh `publications` row
- * with its own unique slug + 30-day expiry. Re-publishing the same
- * invitation creates an additional publication (and a new URL),
- * leaving any previously shared URLs valid until they expire.
+ * 발행권 1개를 차감하고 새 publications row 를 만든다.
+ * 한 번의 발행에서 두 종류 URL 이 생성됨:
+ *   - 하객용  : `/{slug}`               — 사람들에게 배포
+ *   - 소장용  : `/{slug}/o/{owner_token}` — 신랑신부 본인 전용 (메시지/통계 뷰)
+ *
+ * 재발행 시에는 publications row 가 추가되며, 새 slug + 새 owner_token 도 함께 발급.
  */
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -24,27 +27,30 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Allocate a slug; retry on the (vanishingly rare) collision against
-  // publications.slug, since publish_invitation_v2 takes the slug as input.
   for (let attempt = 0; attempt < 4; attempt++) {
     const slug = generateSlug();
-    const { data, error } = await supabase.rpc('publish_invitation_v2', {
+    const ownerToken = generateOwnerToken();
+    const { data, error } = await supabase.rpc('publish_invitation_v3', {
       inv_id: params.id,
       new_slug: slug,
+      new_owner_tok: ownerToken,
     });
 
     if (!error) {
-      const result = data as unknown as PublishV2Result;
+      const result = data as unknown as PublishV3Result;
+      const base = process.env.NEXT_PUBLIC_BASE_URL ?? '';
       return NextResponse.json({
         success: true,
         slug: result.slug,
+        ownerToken: result.owner_token,
         publicationId: result.publication_id,
         expiresAt: result.expires_at,
-        url: `${process.env.NEXT_PUBLIC_BASE_URL ?? ''}/${result.slug}`,
+        url: `${base}/${result.slug}`,
+        ownerUrl: `${base}/${result.slug}/o/${result.owner_token}`,
       });
     }
 
-    // 23505 = unique_violation on publications.slug — retry with a new slug
+    // 23505 = unique_violation on publications.slug or owner_token — retry.
     if ((error as { code?: string }).code === PG_UNIQUE_VIOLATION) continue;
 
     if (error.message.includes('Insufficient publish credits')) {

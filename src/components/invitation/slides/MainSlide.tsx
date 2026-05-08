@@ -15,18 +15,58 @@ import { Confetti } from '@/components/shared/Confetti';
 import { HeartClip } from '@/components/shared/HeartClip';
 
 interface Props {
+  invitationId: string;
   groomName: string;
   brideName: string;
   weddingDate: string | null;
   main: InvitationContent['main'];
   /** scoped: 좌측 미리보기 패널처럼 부모 박스 안에서만 컨페티가 동작하도록. */
   scoped?: boolean;
+  /** isPreview: 에디터 미리보기 — 축하하기 카운트가 서버에 기록되지 않음. */
+  isPreview?: boolean;
+  /**
+   * mode === 'owner' 인 경우(소장용 URL)
+   *   - 진입 시 컨페티가 자동으로 한 번 터짐
+   *   - 축하하기 버튼은 누적 카운트 표시로 대체
+   */
+  mode?: 'guest' | 'owner';
+  /** owner 모드에서 표시할 누적 축하 횟수. */
+  cheersCount?: number;
 }
 
-export function MainSlide({ groomName, brideName, weddingDate, main, scoped }: Props) {
+export function MainSlide({
+  invitationId,
+  groomName,
+  brideName,
+  weddingDate,
+  main,
+  scoped,
+  isPreview,
+  mode = 'guest',
+  cheersCount = 0,
+}: Props) {
   const [confettiTrigger, setConfettiTrigger] = useState<number | null>(null);
 
-  const handleCelebrate = () => setConfettiTrigger(Date.now());
+  // owner 모드 — 진입 시 컨페티 자동 한 번 터트림.
+  useEffect(() => {
+    if (mode === 'owner') {
+      const t = setTimeout(() => setConfettiTrigger(Date.now()), 350);
+      return () => clearTimeout(t);
+    }
+  }, [mode]);
+
+  const handleCelebrate = () => {
+    setConfettiTrigger(Date.now());
+    // guest 모드 + 발행된 페이지에서만 카운트 기록 (미리보기 제외).
+    if (mode === 'guest' && !isPreview) {
+      void fetch('/api/guest/cheer', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        keepalive: true,
+        body: JSON.stringify({ invitationId }),
+      }).catch(() => {});
+    }
+  };
 
   const layout = main.layout ?? 'poster';
   const hasImage = !!main.heroImage;
@@ -41,6 +81,8 @@ export function MainSlide({ groomName, brideName, weddingDate, main, scoped }: P
         onCelebrate={handleCelebrate}
         confettiTrigger={confettiTrigger}
         scoped={scoped}
+        mode={mode}
+        cheersCount={cheersCount}
       />
     );
   }
@@ -55,12 +97,12 @@ export function MainSlide({ groomName, brideName, weddingDate, main, scoped }: P
         onCelebrate={handleCelebrate}
         confettiTrigger={confettiTrigger}
         scoped={scoped}
+        mode={mode}
+        cheersCount={cheersCount}
       />
     );
   }
 
-  // 'frame' 신규 키 + 'polaroid' 구버전 키 둘 다 액자프레임 분기로 보낸다.
-  // 변형(폴라로이드/하트/스크린) 은 frameDesign.variant 로 결정.
   if (layout === 'frame' || layout === 'polaroid') {
     return (
       <FrameSlide
@@ -71,11 +113,12 @@ export function MainSlide({ groomName, brideName, weddingDate, main, scoped }: P
         onCelebrate={handleCelebrate}
         confettiTrigger={confettiTrigger}
         scoped={scoped}
+        mode={mode}
+        cheersCount={cheersCount}
       />
     );
   }
 
-  // 그 외 (text / 이미지 없는 poster) — 기존 레이아웃 그대로 유지.
   return (
     <LegacyMainSlide
       main={main}
@@ -85,6 +128,8 @@ export function MainSlide({ groomName, brideName, weddingDate, main, scoped }: P
       onCelebrate={handleCelebrate}
       confettiTrigger={confettiTrigger}
       scoped={scoped}
+      mode={mode}
+      cheersCount={cheersCount}
     />
   );
 }
@@ -93,7 +138,52 @@ export function MainSlide({ groomName, brideName, weddingDate, main, scoped }: P
 // 풀이미지형 (poster + heroImage) — 디자인 컨트롤 적용 슬라이드
 // ─────────────────────────────────────────────────────────────
 
-interface PosterProps {
+interface CelebrationFooterProps {
+  mode: 'guest' | 'owner';
+  cheersCount: number;
+  onCelebrate: () => void;
+}
+
+/**
+ * 메인 슬라이드 하단 "축하하기" 버튼 / 누적 카운트 표시.
+ *  - guest 모드: 축하하기 클릭으로 컨페티 + 카운트 +1 (handler 가 처리)
+ *  - owner 모드: 클릭 불가능. "총 N번의 축하가 터졌습니다" 텍스트로 대체.
+ *
+ * 각 메인 슬라이드 variant 가 동일한 footer 를 쓸 수 있도록 추출.
+ */
+function CelebrationFooter({
+  mode,
+  cheersCount,
+  onCelebrate,
+  inverse,
+}: CelebrationFooterProps & { inverse?: boolean }) {
+  // poster fullImage / 가로 스크린 처럼 어두운 오버레이 위에 띄울 땐 inverse=true 로 흰색 톤.
+  const baseColor = inverse ? 'text-white' : '';
+  if (mode === 'owner') {
+    return (
+      <div className={`flex flex-col items-center text-xs font-medium opacity-80 ${baseColor}`}>
+        <span aria-hidden className="text-base leading-none">🎉</span>
+        <span className="mt-1">
+          총 <span className="font-semibold">{cheersCount.toLocaleString()}</span>번의 축하가 터졌습니다
+        </span>
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onCelebrate}
+      className={`inline-flex items-center gap-1.5 text-xs font-medium opacity-80 transition-opacity hover:opacity-100 ${baseColor}`}
+    >
+      <span className="underline underline-offset-4">축하하기</span>
+      <span aria-hidden className="text-base leading-none">🎉</span>
+    </button>
+  );
+}
+
+type FooterMode = Pick<CelebrationFooterProps, 'mode' | 'cheersCount'>;
+
+interface PosterProps extends FooterMode {
   main: InvitationContent['main'];
   groomName: string;
   brideName: string;
@@ -111,6 +201,8 @@ function PosterFullImageSlide({
   onCelebrate,
   confettiTrigger,
   scoped,
+  mode,
+  cheersCount,
 }: PosterProps) {
   // 구버전 데이터에 posterDesign 이 없을 수도 있어 안전하게 기본값 폴백.
   const design: PosterDesign = main.posterDesign ?? PosterDesignSchema.parse(undefined);
@@ -232,16 +324,14 @@ function PosterFullImageSlide({
         </PositionedBox>
       )}
 
-      {/* 하단 축하하기 버튼 */}
+      {/* 하단 축하하기 / 누적 카운트 */}
       <div className="absolute bottom-12 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center">
-        <button
-          type="button"
-          onClick={onCelebrate}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-white opacity-80 transition-opacity hover:opacity-100"
-        >
-          <span className="underline underline-offset-4">축하하기</span>
-          <span aria-hidden className="text-base leading-none">🎉</span>
-        </button>
+        <CelebrationFooter
+          mode={mode}
+          cheersCount={cheersCount}
+          onCelebrate={onCelebrate}
+          inverse
+        />
       </div>
 
       <Confetti trigger={confettiTrigger} scoped={scoped} />
@@ -306,6 +396,8 @@ function IllustrationSlide({
   onCelebrate,
   confettiTrigger,
   scoped,
+  mode,
+  cheersCount,
 }: PosterProps) {
   const design: IllustrationDesign =
     main.illustrationDesign ?? IllustrationDesignSchema.parse(undefined);
@@ -416,16 +508,13 @@ function IllustrationSlide({
       {/* 6) 하단 spacer — 인사말 길이와 무관하게 축하하기 자리를 비워둠 */}
       <div style={{ flex: '1 1 0', minHeight: '6cqh' }} />
 
-      {/* 7) 하단 축하하기 버튼 — absolute 로 위치 고정 */}
+      {/* 7) 하단 축하하기 / 누적 카운트 — absolute 로 위치 고정 */}
       <div className="absolute bottom-0 left-1/2 z-20 -translate-x-1/2" style={{ marginBottom: '4cqh' }}>
-        <button
-          type="button"
-          onClick={onCelebrate}
-          className="inline-flex items-center gap-1.5 text-xs font-medium opacity-70 transition-opacity hover:opacity-100"
-        >
-          <span className="underline underline-offset-4">축하하기</span>
-          <span aria-hidden className="text-base leading-none">🎉</span>
-        </button>
+        <CelebrationFooter
+          mode={mode}
+          cheersCount={cheersCount}
+          onCelebrate={onCelebrate}
+        />
       </div>
 
       <Confetti trigger={confettiTrigger} scoped={scoped} />
@@ -519,6 +608,8 @@ function LegacyMainSlide({
   onCelebrate,
   confettiTrigger,
   scoped,
+  mode,
+  cheersCount,
 }: PosterProps) {
   const layout = main.layout ?? 'poster';
   const hasImage = !!main.heroImage;
@@ -612,15 +703,12 @@ function LegacyMainSlide({
       </div>
 
       <div className="absolute bottom-12 left-1/2 z-20 flex w-full -translate-x-1/2 flex-col items-center gap-4 px-10">
-        <button
-          type="button"
-          onClick={onCelebrate}
-          className="inline-flex items-center gap-1.5 text-xs font-medium opacity-60 transition-opacity hover:opacity-100"
-          style={{ color: overlay ? 'white' : 'inherit' }}
-        >
-          <span className="underline underline-offset-4">축하하기</span>
-          <span aria-hidden className="text-base leading-none">🎉</span>
-        </button>
+        <CelebrationFooter
+          mode={mode}
+          cheersCount={cheersCount}
+          onCelebrate={onCelebrate}
+          inverse={overlay}
+        />
       </div>
 
       <Confetti trigger={confettiTrigger} scoped={scoped} />
@@ -661,7 +749,7 @@ function formatDate(iso: string) {
 
 type FrameVariant = 'polaroid' | 'heart' | 'screen';
 
-interface FrameProps {
+interface FrameProps extends FooterMode {
   main: InvitationContent['main'];
   groomName: string;
   brideName: string;
@@ -679,6 +767,8 @@ function FrameSlide({
   onCelebrate,
   confettiTrigger,
   scoped,
+  mode,
+  cheersCount,
 }: FrameProps) {
   const design: FrameDesign = main.frameDesign ?? FrameDesignSchema.parse(undefined);
   const variant: FrameVariant = design.variant;
@@ -796,16 +886,14 @@ function FrameSlide({
       {/* 5) 하단 spacer */}
       <div style={{ flex: '1 1 0', minHeight: '5cqh' }} />
 
-      {/* 6) 축하하기 버튼 — absolute 로 고정 */}
+      {/* 6) 축하하기 / 누적 카운트 — absolute 로 고정 */}
       <div className="absolute bottom-0 left-1/2 z-20 -translate-x-1/2" style={{ marginBottom: '4cqh' }}>
-        <button
-          type="button"
-          onClick={onCelebrate}
-          className="inline-flex items-center gap-1.5 text-xs font-medium opacity-70 transition-opacity hover:opacity-100"
-        >
-          <span className="underline underline-offset-4">축하하기</span>
-          <span aria-hidden className="text-base leading-none">🎉</span>
-        </button>
+        <CelebrationFooter
+          mode={mode}
+          cheersCount={cheersCount}
+          onCelebrate={onCelebrate}
+          inverse={isScreen}
+        />
       </div>
 
       <Confetti trigger={confettiTrigger} scoped={scoped} />

@@ -27,7 +27,7 @@ export default async function MyPage() {
       .order('updated_at', { ascending: false }),
     supabase
       .from('publications')
-      .select('id, invitation_id, slug, published_at, expires_at, revoked_at')
+      .select('id, invitation_id, slug, owner_token, published_at, expires_at, revoked_at')
       .eq('user_id', user.id)
       .order('published_at', { ascending: false }),
     supabase.rpc('publish_credits_balance', { uid: user.id }),
@@ -45,29 +45,45 @@ export default async function MyPage() {
     pubsByInvitation.set(p.invitation_id, arr);
   }
 
-  // 메인 사진 썸네일용 — content.main.heroImage 만 안전하게 추출.
-  const extractHeroImage = (content: unknown): string | null => {
-    if (!content || typeof content !== 'object') return null;
-    const main = (content as { main?: unknown }).main;
-    if (!main || typeof main !== 'object') return null;
-    const hero = (main as { heroImage?: unknown }).heroImage;
-    return typeof hero === 'string' && hero ? hero : null;
+  // content 에서 썸네일 / 레이아웃 / 테마 정보를 안전하게 추출.
+  const extractInvitationMeta = (
+    content: unknown,
+  ): { heroImage: string | null; layout: string | null; colorTheme: string | null } => {
+    if (!content || typeof content !== 'object')
+      return { heroImage: null, layout: null, colorTheme: null };
+    const c = content as Record<string, unknown>;
+    const main = c.main as Record<string, unknown> | undefined;
+    const theme = c.theme as Record<string, unknown> | undefined;
+    return {
+      heroImage:
+        main && typeof main.heroImage === 'string' && main.heroImage
+          ? (main.heroImage as string)
+          : null,
+      layout: main && typeof main.layout === 'string' ? (main.layout as string) : null,
+      colorTheme:
+        theme && typeof theme.colorTheme === 'string' ? (theme.colorTheme as string) : null,
+    };
   };
 
-  const invitations: MyPageInvitation[] = (invs ?? []).map((i) => ({
-    id: i.id,
-    slug: i.slug,
-    groomName: i.groom_name,
-    brideName: i.bride_name,
-    weddingDate: i.wedding_date,
-    isPublished: i.is_published,
-    publishedAt: i.published_at,
-    expiresAt: i.expires_at,
-    updatedAt: i.updated_at,
-    createdAt: i.created_at,
-    heroImage: extractHeroImage(i.content),
-    publications: pubsByInvitation.get(i.id) ?? [],
-  }));
+  const invitations: MyPageInvitation[] = (invs ?? []).map((i) => {
+    const meta = extractInvitationMeta(i.content);
+    return {
+      id: i.id,
+      slug: i.slug,
+      groomName: i.groom_name,
+      brideName: i.bride_name,
+      weddingDate: i.wedding_date,
+      isPublished: i.is_published,
+      publishedAt: i.published_at,
+      expiresAt: i.expires_at,
+      updatedAt: i.updated_at,
+      createdAt: i.created_at,
+      heroImage: meta.heroImage,
+      layout: meta.layout,
+      colorTheme: meta.colorTheme,
+      publications: pubsByInvitation.get(i.id) ?? [],
+    };
+  });
 
   return (
     <MyPageClient

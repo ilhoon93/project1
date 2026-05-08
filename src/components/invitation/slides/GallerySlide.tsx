@@ -1,9 +1,26 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { Heart } from 'lucide-react';
 import type { InvitationContent } from '@/types/invitation';
 
-export function GallerySlide({ gallery }: { gallery: InvitationContent['gallery'] }) {
+interface Props {
+  gallery: InvitationContent['gallery'];
+  invitationId: string;
+  isPreview?: boolean;
+  /** owner 모드 — 좋아요 클릭 비활성, 단순 카운트 표시. */
+  mode?: 'guest' | 'owner';
+  /** 사진 인덱스별 누적 좋아요 카운트 (owner view 진입 시 prefetch). */
+  initialLikes?: Record<number, number>;
+}
+
+export function GallerySlide({
+  gallery,
+  invitationId,
+  isPreview,
+  mode = 'guest',
+  initialLikes,
+}: Props) {
   if (gallery.images.length === 0) {
     return (
       <section className="flex min-h-full flex-col items-center justify-center gap-3 px-6 py-16">
@@ -23,11 +40,109 @@ export function GallerySlide({ gallery }: { gallery: InvitationContent['gallery'
       </header>
 
       {layout === 'grid' ? (
-        <GalleryGrid images={gallery.images} />
+        <GalleryGrid
+          images={gallery.images}
+          invitationId={invitationId}
+          isPreview={isPreview}
+          mode={mode}
+          initialLikes={initialLikes}
+        />
       ) : (
-        <GallerySlider images={gallery.images} />
+        <GallerySlider
+          images={gallery.images}
+          invitationId={invitationId}
+          isPreview={isPreview}
+          mode={mode}
+          initialLikes={initialLikes}
+        />
       )}
     </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 좋아요 hook + 하트 버튼 — Slider/Grid 양쪽에서 공유.
+// ─────────────────────────────────────────────────────────────
+
+function useLikes(invitationId: string, isPreview: boolean | undefined, initial: Record<number, number> | undefined) {
+  const [counts, setCounts] = useState<Record<number, number>>(initial ?? {});
+  const [bursts, setBursts] = useState<Record<number, number>>({});
+
+  const like = (index: number) => {
+    setCounts((prev) => ({ ...prev, [index]: (prev[index] ?? 0) + 1 }));
+    setBursts((prev) => ({ ...prev, [index]: Date.now() }));
+    if (isPreview) return;
+    void fetch('/api/guest/gallery-like', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      keepalive: true,
+      body: JSON.stringify({ invitationId, imageIndex: index }),
+    }).catch(() => {});
+  };
+
+  return { counts, bursts, like };
+}
+
+function HeartLikeButton({
+  index,
+  count,
+  burstKey,
+  onLike,
+  disabled,
+}: {
+  index: number;
+  count: number;
+  burstKey: number | undefined;
+  onLike: (i: number) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={(e) => {
+        e.stopPropagation();
+        onLike(index);
+      }}
+      aria-label="이 사진 좋아요"
+      className={`pointer-events-auto absolute bottom-2 left-2 z-30 flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-medium text-white transition-colors ${
+        disabled ? 'cursor-default opacity-80' : 'hover:bg-black/75'
+      }`}
+    >
+      <Heart size={13} className="fill-rose-400 text-rose-400" />
+      <span className="tabular-nums">{count.toLocaleString()}</span>
+      {burstKey && <FloatingHeart key={burstKey} />}
+    </button>
+  );
+}
+
+/** 클릭 순간 떠오르는 하트 애니메이션 — 1.2초 동안 위로 떠올라 사라진다. */
+function FloatingHeart() {
+  return (
+    <span className="pointer-events-none absolute -top-1 left-1/2 -translate-x-1/2">
+      <span className="block animate-mw-heart-rise text-rose-400">
+        <Heart size={20} className="fill-current" />
+      </span>
+      <style jsx>{`
+        @keyframes mw-heart-rise {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, 0) scale(0.6);
+          }
+          25% {
+            opacity: 1;
+            transform: translate(-50%, -20px) scale(1.05);
+          }
+          100% {
+            opacity: 0;
+            transform: translate(-50%, -60px) scale(0.85);
+          }
+        }
+        :global(.animate-mw-heart-rise) {
+          animation: mw-heart-rise 1.2s ease-out forwards;
+        }
+      `}</style>
+    </span>
   );
 }
 
@@ -36,14 +151,26 @@ export function GallerySlide({ gallery }: { gallery: InvitationContent['gallery'
 // 썸네일도 같이 따라 움직이고, 썸네일을 누르면 메인이 해당 인덱스로 점프.
 // ─────────────────────────────────────────────────────────────
 
-function GallerySlider({ images }: { images: string[] }) {
+function GallerySlider({
+  images,
+  invitationId,
+  isPreview,
+  mode,
+  initialLikes,
+}: {
+  images: string[];
+  invitationId: string;
+  isPreview?: boolean;
+  mode: 'guest' | 'owner';
+  initialLikes?: Record<number, number>;
+}) {
   const [index, setIndex] = useState(0);
   const [lightbox, setLightbox] = useState(false);
   const startRef = useRef<{ x: number; y: number } | null>(null);
-  // 메인 사진에서 가벼운 탭(짧은 거리)일 땐 setIndex 호출하지 않고 라이트박스 호출.
   const movedRef = useRef(false);
   const thumbStripRef = useRef<HTMLDivElement>(null);
   const SWIPE_THRESHOLD = 30;
+  const { counts, bursts, like } = useLikes(invitationId, isPreview, initialLikes);
 
   const last = images.length - 1;
   const clamped = Math.max(0, Math.min(images.length - 1, index));
@@ -121,6 +248,14 @@ function GallerySlider({ images }: { images: string[] }) {
             {clamped + 1} / {images.length}
           </span>
         </button>
+        {/* 좌하단 하트 좋아요 버튼 — 메인 사진 단위로 카운트. */}
+        <HeartLikeButton
+          index={clamped}
+          count={counts[clamped] ?? 0}
+          burstKey={bursts[clamped]}
+          onLike={like}
+          disabled={mode === 'owner'}
+        />
       </div>
 
       {/* 하단 썸네일 스트립 — 가로 스크롤. 한 화면에 약 5장 보이도록 너비 조정. */}
@@ -164,30 +299,52 @@ function GallerySlider({ images }: { images: string[] }) {
 // 첫 진입엔 첫 사진을 자동 선택해 큰 미리보기를 보여 준다.
 // ─────────────────────────────────────────────────────────────
 
-function GalleryGrid({ images }: { images: string[] }) {
+function GalleryGrid({
+  images,
+  invitationId,
+  isPreview,
+  mode,
+  initialLikes,
+}: {
+  images: string[];
+  invitationId: string;
+  isPreview?: boolean;
+  mode: 'guest' | 'owner';
+  initialLikes?: Record<number, number>;
+}) {
   const [selected, setSelected] = useState(0);
   const [lightbox, setLightbox] = useState(false);
+  const { counts, bursts, like } = useLikes(invitationId, isPreview, initialLikes);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="relative flex flex-col gap-3">
       {/* 상단 큰 사진 — z-20 으로 배경 효과 위로 올려 사진 위에 효과가 떨어지지 않게. */}
-      <button
-        type="button"
-        onClick={() => setLightbox(true)}
-        aria-label="선택된 사진 확대"
-        className="relative z-20 aspect-[3/4] w-full overflow-hidden rounded-md bg-black/5"
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={images[selected]}
-          alt=""
-          className="h-full w-full object-cover"
-          draggable={false}
+      <div className="relative z-20">
+        <button
+          type="button"
+          onClick={() => setLightbox(true)}
+          aria-label="선택된 사진 확대"
+          className="relative block aspect-[3/4] w-full overflow-hidden rounded-md bg-black/5"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={images[selected]}
+            alt=""
+            className="h-full w-full object-cover"
+            draggable={false}
+          />
+          <span className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
+            {selected + 1} / {images.length}
+          </span>
+        </button>
+        <HeartLikeButton
+          index={selected}
+          count={counts[selected] ?? 0}
+          burstKey={bursts[selected]}
+          onLike={like}
+          disabled={mode === 'owner'}
         />
-        <span className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
-          {selected + 1} / {images.length}
-        </span>
-      </button>
+      </div>
 
       {/* 하단 그리드 — 클릭 시 상단 사진 교체. */}
       <ul className="grid grid-cols-3 gap-1">
