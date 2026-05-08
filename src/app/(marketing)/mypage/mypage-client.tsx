@@ -163,7 +163,6 @@ const MAX_INVITATIONS = 10;
 interface ConfirmModal {
   kind: 'publish' | 'delete';
   invitation: MyPageInvitation;
-  isRepublish: boolean;
 }
 
 function SavedTab({
@@ -285,26 +284,17 @@ function SavedTab({
             archiveBalance={archiveBalance}
             onArchive={handleArchive}
             onPublish={() => {
-              const isRepublish = inv.publications.some(
-                (p) => !p.revoked_at && new Date(p.expires_at) > new Date(),
-              );
-              setModal({ kind: 'publish', invitation: inv, isRepublish });
+              setModal({ kind: 'publish', invitation: inv });
             }}
-            onDelete={() =>
-              setModal({ kind: 'delete', invitation: inv, isRepublish: false })
-            }
+            onDelete={() => setModal({ kind: 'delete', invitation: inv })}
           />
         ))}
       </ul>
 
       {modal && modal.kind === 'publish' && (
         <ConfirmDialog
-          title={modal.isRepublish ? '재발행할까요?' : '지금 발행할까요?'}
-          description={
-            modal.isRepublish
-              ? '발행권 1개가 차감되고 새로운 공개 URL이 생성됩니다. 이전 URL도 만료일까지 계속 동작합니다.'
-              : '발행권 1개가 차감되고 발행 후 30일간 유효한 고유 URL이 생성됩니다. 발행 후에도 알림장은 편집할 수 있어요.'
-          }
+          title="지금 발행할까요?"
+          description="발행권 1개가 차감되고 발행 후 30일간 유효한 고유 URL이 생성됩니다. 한 번 발행하면 URL은 그대로 유지되고, 이후 편집은 같은 URL에 즉시 반영됩니다."
           confirmLabel={busyId ? '발행 중...' : '발행하기'}
           confirmVariant="default"
           busy={busyId === modal.invitation.id}
@@ -446,14 +436,18 @@ function SavedRow({
         </Button>
         {/* 혼인서약서 PDF — 발행 후에만 활성화. 발행 전엔 비활성. */}
         <CertificatePdfButton invitationId={inv.id} disabled={!hasEverPublished} />
-        <Button
-          variant="default"
-          size="sm"
-          onClick={onPublish}
-          disabled={busy}
-        >
-          {busy ? '발행 중...' : latest ? '재발행' : '발행'}
-        </Button>
+        {/* 한 번 발행되면 URL 이 고정됨 → "발행" 버튼은 미발행 상태에서만 노출.
+            발행 후 편집은 에디터에서 저장 시 publications.content 가 자동 갱신됨. */}
+        {!latest && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={onPublish}
+            disabled={busy}
+          >
+            {busy ? '발행 중...' : '발행'}
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"

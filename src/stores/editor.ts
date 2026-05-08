@@ -92,9 +92,8 @@ export const useEditorStore = create<EditorState>()(
         if (!invitationId || !content || !meta) return;
         if (status === 'saving') return;
 
-        set({ status: 'saving', lastError: null });
-        try {
-          const res = await fetch(`/api/invitations/${invitationId}`, {
+        const doPatch = async (confirmDelete: boolean) =>
+          fetch(`/api/invitations/${invitationId}`, {
             method: 'PATCH',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({
@@ -102,8 +101,35 @@ export const useEditorStore = create<EditorState>()(
               brideName: meta.brideName,
               weddingDate: meta.weddingDate,
               content,
+              confirmDeleteResponses: confirmDelete,
             }),
           });
+
+        set({ status: 'saving', lastError: null });
+        try {
+          let res = await doPatch(false);
+
+          // 409 = 발행된 알림장에서 quiz/vote 가 변경됐는데 기존 응답이 있어
+          // 사용자 확인이 필요한 경우. 모달 대신 window.confirm 으로 즉시 확인.
+          if (res.status === 409) {
+            const data = await res.json().catch(() => ({}));
+            if (data?.requiresConfirmation) {
+              const q = data.quizResponseCount ?? 0;
+              const v = data.voteResponseCount ?? 0;
+              const parts: string[] = [];
+              if (q > 0) parts.push(`퀴즈 응답 ${q}건`);
+              if (v > 0) parts.push(`투표 응답 ${v}건`);
+              const msg =
+                `이미 모인 ${parts.join(' · ')}이(가) 모두 삭제됩니다.\n` +
+                `퀴즈/투표 내용이 바뀌면 기존 응답이 어긋나기 때문이에요.\n\n계속 진행할까요?`;
+              if (typeof window === 'undefined' || !window.confirm(msg)) {
+                set({ status: 'dirty' });
+                return;
+              }
+              res = await doPatch(true);
+            }
+          }
+
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
             throw new Error(data.error ?? `HTTP ${res.status}`);
