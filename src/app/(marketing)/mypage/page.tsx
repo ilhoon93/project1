@@ -20,7 +20,9 @@ export default async function MyPage() {
   const [{ data: invs }, { data: pubs }, { data: balance }, { data: orders }] = await Promise.all([
     supabase
       .from('invitations')
-      .select('id, slug, groom_name, bride_name, wedding_date, is_published, published_at, expires_at, updated_at, created_at')
+      .select(
+        'id, slug, groom_name, bride_name, wedding_date, is_published, published_at, expires_at, updated_at, created_at, content',
+      )
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false }),
     supabase
@@ -43,6 +45,15 @@ export default async function MyPage() {
     pubsByInvitation.set(p.invitation_id, arr);
   }
 
+  // 메인 사진 썸네일용 — content.main.heroImage 만 안전하게 추출.
+  const extractHeroImage = (content: unknown): string | null => {
+    if (!content || typeof content !== 'object') return null;
+    const main = (content as { main?: unknown }).main;
+    if (!main || typeof main !== 'object') return null;
+    const hero = (main as { heroImage?: unknown }).heroImage;
+    return typeof hero === 'string' && hero ? hero : null;
+  };
+
   const invitations: MyPageInvitation[] = (invs ?? []).map((i) => ({
     id: i.id,
     slug: i.slug,
@@ -54,6 +65,7 @@ export default async function MyPage() {
     expiresAt: i.expires_at,
     updatedAt: i.updated_at,
     createdAt: i.created_at,
+    heroImage: extractHeroImage(i.content),
     publications: pubsByInvitation.get(i.id) ?? [],
   }));
 

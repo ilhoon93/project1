@@ -25,6 +25,8 @@ export interface MyPageInvitation {
   expiresAt: string | null;
   updatedAt: string;
   createdAt: string;
+  /** Main slide hero image (thumbnail). Null when not uploaded yet. */
+  heroImage: string | null;
   publications: MyPagePublication[];
 }
 
@@ -291,6 +293,8 @@ function SavedRow({
     (p) => !p.revoked_at && new Date(p.expires_at) > new Date(),
   );
   const latest = activePublications[0] ?? null;
+  // 한 번이라도 발행된 적이 있으면(만료/취소 무관) 혼인서약서 PDF 다운로드 가능.
+  const hasEverPublished = inv.publications.length > 0 || inv.isPublished;
   const title =
     inv.groomName && inv.brideName
       ? `${inv.groomName} · ${inv.brideName}`
@@ -298,43 +302,50 @@ function SavedRow({
 
   return (
     <li className="flex flex-col gap-3 rounded-lg bg-white p-4 ring-1 ring-[#D4C5B0]">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-col">
-          <h3 className="text-base font-medium text-[#3D2E1F]">{title}</h3>
-          <p className="text-xs text-muted-foreground">
-            {inv.weddingDate ?? '결혼식 날짜 미정'}
-            {' · '}최종 수정 {formatDate(inv.updatedAt)}
-          </p>
-        </div>
-        <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-xs ring-1 ${
-            latest
-              ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-              : 'bg-muted text-muted-foreground ring-border'
-          }`}
-        >
-          {latest ? '발행 중' : '미발행'}
-        </span>
-      </div>
+      <div className="flex items-start gap-3">
+        {/* 썸네일 — 메인 사진(heroImage) 가 있으면 그걸로, 없으면 placeholder 카드. */}
+        <InvitationThumbnail src={inv.heroImage} title={title} />
 
-      {latest && (
-        <div className="rounded-md bg-[#FAF7F2] px-3 py-2 text-xs">
-          <p className="text-[#5C4633]">
-            공개 URL:{' '}
-            <Link
-              href={`/${latest.slug}`}
-              className="font-mono text-[#8B7355] underline"
-              target="_blank"
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex min-w-0 flex-col">
+              <h3 className="truncate text-base font-medium text-[#3D2E1F]">{title}</h3>
+              <p className="text-xs text-muted-foreground">
+                {inv.weddingDate ?? '결혼식 날짜 미정'}
+                {' · '}최종 수정 {formatDate(inv.updatedAt)}
+              </p>
+            </div>
+            <span
+              className={`shrink-0 rounded-full px-2 py-0.5 text-xs ring-1 ${
+                latest
+                  ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                  : 'bg-muted text-muted-foreground ring-border'
+              }`}
             >
-              /{latest.slug}
-            </Link>
-          </p>
-          <p className="mt-1 text-muted-foreground">
-            {daysRemaining(latest.expires_at)}일 후 만료 ·{' '}
-            {formatDate(latest.expires_at)}까지 공개
-          </p>
+              {latest ? '발행 중' : '미발행'}
+            </span>
+          </div>
+
+          {latest && (
+            <div className="rounded-md bg-[#FAF7F2] px-3 py-2 text-xs">
+              <p className="text-[#5C4633]">
+                공개 URL:{' '}
+                <Link
+                  href={`/${latest.slug}`}
+                  className="font-mono text-[#8B7355] underline"
+                  target="_blank"
+                >
+                  /{latest.slug}
+                </Link>
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                {daysRemaining(latest.expires_at)}일 후 만료 ·{' '}
+                {formatDate(latest.expires_at)}까지 공개
+              </p>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <Button asChild variant="outline" size="sm">
@@ -348,6 +359,8 @@ function SavedRow({
         <Button asChild variant="outline" size="sm" className="hidden lg:inline-flex">
           <Link href={`/edit/${inv.id}`}>미리보기</Link>
         </Button>
+        {/* 혼인서약서 PDF — 발행 후에만 활성화. 발행 전엔 비활성. */}
+        <CertificatePdfButton invitationId={inv.id} disabled={!hasEverPublished} />
         <Button
           variant="default"
           size="sm"
@@ -383,6 +396,87 @@ function SavedRow({
         </details>
       )}
     </li>
+  );
+}
+
+// ── 썸네일 / 혼인서약서 PDF 버튼 ────────────────────────────
+
+/**
+ * 알림장 썸네일 — 메인 사진(heroImage) 이 있으면 9:16 박스에 cover 로 보여주고,
+ * 없으면 신랑 · 신부 이니셜 placeholder 카드.
+ */
+function InvitationThumbnail({ src, title }: { src: string | null; title: string }) {
+  return (
+    <div className="aspect-[9/16] w-16 shrink-0 overflow-hidden rounded-md bg-[#F4EBDC] ring-1 ring-[#D4C5B0] sm:w-20">
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt={`${title} 메인 사진`} className="h-full w-full object-cover" />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-[10px] text-[#8B7355]">
+          미리보기
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 혼인서약서 PDF 다운로드 버튼.
+ *  - 미발행(`disabled=true`) 상태에서는 hint 만 보이고 클릭 비활성.
+ *  - 발행 후엔 클릭 시 `/api/invitations/{id}/certificate` 로 PDF 를 받아 자동 다운로드.
+ */
+function CertificatePdfButton({
+  invitationId,
+  disabled,
+}: {
+  invitationId: string;
+  disabled: boolean;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [errMsg, setErrMsg] = useState<string | null>(null);
+
+  const handleDownload = async () => {
+    if (busy || disabled) return;
+    setBusy(true);
+    setErrMsg(null);
+    try {
+      const res = await fetch(`/api/invitations/${invitationId}/certificate`);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text.slice(0, 80) || `HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `marriage-certificate-${invitationId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setErrMsg(e instanceof Error ? e.message : 'PDF 다운로드 실패');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleDownload}
+        disabled={disabled || busy}
+        title={disabled ? '발행 후 다운로드 가능' : '혼인서약서 PDF 다운로드'}
+      >
+        {busy ? '준비 중...' : '혼인서약서 PDF'}
+      </Button>
+      {errMsg && (
+        <span className="mt-1 text-[10px] text-destructive">{errMsg}</span>
+      )}
+    </div>
   );
 }
 
