@@ -6,8 +6,9 @@ const BodySchema = z.object({
   invitationId: z.string().uuid(),
   visitorName: z.string().min(1).max(20),
   visitorSide: z.enum(['groom', 'bride']).optional(),
-  // base64 data URL ("data:image/png;base64,...") — kept ≤ 200 KB
-  signatureData: z.string().max(200_000).optional(),
+  // base64 data URL ("data:image/png;base64,..."). 클라이언트는 가로 600px 로
+  // 다운스케일한 PNG 를 보내므로 보통 50–150KB. 여유 있게 800KB 까지 허용.
+  signatureData: z.string().max(800_000).optional(),
   consentPersonalInfo: z.boolean(),
 });
 

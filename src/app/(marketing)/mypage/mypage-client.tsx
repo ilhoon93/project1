@@ -188,8 +188,8 @@ function SavedTab({
       const res = await fetch(`/api/publish/${id}`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      // 발행 후에도 마이페이지에 머무르며 카드 상태만 갱신.
       router.refresh();
-      router.push(`/${data.slug}`);
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : '발행 실패');
     } finally {
@@ -515,7 +515,7 @@ function UrlRow({
     }
   };
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex flex-col gap-1">
       <div className="flex flex-wrap items-center gap-2 text-[#5C4633]">
         <span className="shrink-0 font-medium">{label}</span>
         {badge && (
@@ -523,13 +523,6 @@ function UrlRow({
             {badge}
           </span>
         )}
-        <Link
-          href={href}
-          target="_blank"
-          className="min-w-0 truncate font-mono text-[#8B7355] underline"
-        >
-          {href}
-        </Link>
         <button
           type="button"
           onClick={handleCopy}
@@ -538,6 +531,13 @@ function UrlRow({
           {copied ? '복사됨' : '복사'}
         </button>
       </div>
+      <Link
+        href={href}
+        target="_blank"
+        className="block break-all font-mono text-[11px] text-[#8B7355] underline underline-offset-2"
+      >
+        {copyText}
+      </Link>
       {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
     </div>
   );
@@ -600,8 +600,14 @@ function CertificatePdfButton({
     try {
       const res = await fetch(`/api/invitations/${invitationId}/certificate`);
       if (!res.ok) {
+        // 라우트는 실패 시 JSON ({error}) 으로 응답한다. JSON 이 아니면 plaintext 사용.
+        const ct = res.headers.get('content-type') ?? '';
+        if (ct.includes('application/json')) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error ?? `HTTP ${res.status}`);
+        }
         const text = await res.text();
-        throw new Error(text.slice(0, 80) || `HTTP ${res.status}`);
+        throw new Error(text.slice(0, 200) || `HTTP ${res.status}`);
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);

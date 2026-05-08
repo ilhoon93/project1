@@ -18,19 +18,33 @@ import { createClient } from '@/lib/supabase/server';
 
 export const maxDuration = 30;
 
-// jsDelivr 의 google-fonts mirror — 안정적인 raw TTF 경로.
-const KOREAN_FONT_URL =
-  'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/notoserifkr/NotoSerifKR%5Bwght%5D.ttf';
+// jsDelivr 의 google-fonts mirror — 정적 TTF (가변 폰트는 fontkit 호환성이 불안정).
+// Nanum Gothic 은 정적 single-instance TTF 라 pdf-lib + @pdf-lib/fontkit 조합에서 안정.
+const KOREAN_FONT_URLS = [
+  'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/nanumgothic/NanumGothic-Regular.ttf',
+  'https://cdn.jsdelivr.net/gh/googlefonts/nanum-gothic@main/fonts/ttf/NanumGothic-Regular.ttf',
+];
 
 let cachedFontBytes: Uint8Array | null = null;
 
 async function loadKoreanFont(): Promise<Uint8Array> {
   if (cachedFontBytes) return cachedFontBytes;
-  const res = await fetch(KOREAN_FONT_URL);
-  if (!res.ok) throw new Error(`korean font fetch failed: ${res.status}`);
-  const buf = await res.arrayBuffer();
-  cachedFontBytes = new Uint8Array(buf);
-  return cachedFontBytes;
+  let lastErr: unknown = null;
+  for (const url of KOREAN_FONT_URLS) {
+    try {
+      const res = await fetch(url, { cache: 'force-cache' });
+      if (!res.ok) {
+        lastErr = new Error(`status ${res.status} from ${url}`);
+        continue;
+      }
+      const buf = await res.arrayBuffer();
+      cachedFontBytes = new Uint8Array(buf);
+      return cachedFontBytes;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw new Error(`korean font fetch failed: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`);
 }
 
 export async function GET(
@@ -70,12 +84,13 @@ export async function GET(
     );
   }
 
-  // 2) PDF 생성 — A4 (595 × 842 pt). 단순 테두리 + 본문 + 서명란.
-  const pdf = await PDFDocument.create();
-  pdf.registerFontkit(fontkit);
+  try {
+    // 2) PDF 생성 — A4 (595 × 842 pt). 단순 테두리 + 본문 + 서명란.
+    const pdf = await PDFDocument.create();
+    pdf.registerFontkit(fontkit);
 
-  const fontBytes = await loadKoreanFont();
-  const font = await pdf.embedFont(fontBytes, { subset: true });
+    const fontBytes = await loadKoreanFont();
+    const font = await pdf.embedFont(fontBytes, { subset: true });
 
   const page = pdf.addPage([595, 842]);
   const { width, height } = page.getSize();
@@ -225,16 +240,20 @@ export async function GET(
     rgb(0.55, 0.5, 0.45),
   );
 
-  const bytes = await pdf.save();
+    const bytes = await pdf.save();
 
-  return new NextResponse(bytes as unknown as BodyInit, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="marriage-certificate-${invitationId}.pdf"`,
-      'Cache-Control': 'no-store',
-    },
-  });
+    return new NextResponse(bytes as unknown as BodyInit, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="marriage-certificate-${invitationId}.pdf"`,
+        'Cache-Control': 'no-store',
+      },
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'PDF 생성 중 오류가 발생했습니다.';
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
 
 /**
