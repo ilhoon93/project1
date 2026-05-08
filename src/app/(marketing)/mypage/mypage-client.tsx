@@ -575,9 +575,9 @@ function ArchiveActionButton({
 // ── 썸네일 / 혼인서약서 PDF 버튼 ────────────────────────────
 
 /**
- * 혼인서약서 PDF 다운로드 버튼.
+ * 혼인서약서 버튼.
  *  - 미발행(`disabled=true`) 상태에서는 hint 만 보이고 클릭 비활성.
- *  - 발행 후엔 클릭 시 `/api/invitations/{id}/certificate` 로 PDF 를 받아 자동 다운로드.
+ *  - 발행 후엔 클릭 시 `/certificate/{id}` 페이지로 이동 (이미지 저장/인쇄 옵션 제공).
  */
 function CertificatePdfButton({
   invitationId,
@@ -586,56 +586,22 @@ function CertificatePdfButton({
   invitationId: string;
   disabled: boolean;
 }) {
-  const [busy, setBusy] = useState(false);
-  const [errMsg, setErrMsg] = useState<string | null>(null);
-
-  const handleDownload = async () => {
-    if (busy || disabled) return;
-    setBusy(true);
-    setErrMsg(null);
-    try {
-      const res = await fetch(`/api/invitations/${invitationId}/certificate`);
-      if (!res.ok) {
-        // 라우트는 실패 시 JSON ({error}) 으로 응답한다. JSON 이 아니면 plaintext 사용.
-        const ct = res.headers.get('content-type') ?? '';
-        if (ct.includes('application/json')) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error ?? `HTTP ${res.status}`);
-        }
-        const text = await res.text();
-        throw new Error(text.slice(0, 200) || `HTTP ${res.status}`);
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `marriage-certificate-${invitationId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      setErrMsg(e instanceof Error ? e.message : 'PDF 다운로드 실패');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
     <div className="flex flex-col">
       <Button
+        asChild={!disabled}
         type="button"
         variant="outline"
         size="sm"
-        onClick={handleDownload}
-        disabled={disabled || busy}
-        title={disabled ? '발행 후 다운로드 가능' : '혼인서약서 PDF 다운로드'}
+        disabled={disabled}
+        title={disabled ? '발행 후 사용 가능' : '혼인서약서 보기'}
       >
-        {busy ? '준비 중...' : '혼인서약서 PDF'}
+        {disabled ? (
+          <span>혼인서약서</span>
+        ) : (
+          <Link href={`/certificate/${invitationId}`}>혼인서약서</Link>
+        )}
       </Button>
-      {errMsg && (
-        <span className="mt-1 text-[10px] text-destructive">{errMsg}</span>
-      )}
     </div>
   );
 }
