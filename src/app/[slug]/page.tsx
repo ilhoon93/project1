@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { InvitationContentSchema } from '@/types/invitation';
 import { InvitationSlides } from '@/components/invitation/InvitationSlides';
 import { InAppBrowserGuard } from '@/components/invitation/InAppBrowserGuard';
+import { FullscreenToggle } from '@/components/invitation/FullscreenToggle';
 
 interface PageProps {
   params: { slug: string };
@@ -107,6 +108,7 @@ export default async function PublicInvitationPage({ params }: PageProps) {
   return (
     <>
       <InAppBrowserGuard />
+      <FullscreenToggle />
       <InvitationSlides
         invitationId={inv.invitation_id}
         groomName={inv.groom_name}

@@ -58,10 +58,9 @@ export const SignaturePad = forwardRef<SignaturePadHandle, Props>(function Signa
       ctx.lineWidth = 2;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      // Theme-aware stroke color — falls back to cream's fg if the CSS var
-      // hasn't been set (e.g. signature pad used outside SlideContainer).
-      const fg = getComputedStyle(wrapper).getPropertyValue('--mw-fg').trim();
-      ctx.strokeStyle = fg || '#3D2E1F';
+      // 캔버스 배경이 항상 흰색이므로 stroke 도 항상 어두운 잉크색 고정.
+      // 어두운 테마에선 --mw-fg 가 밝은 색이라 흰 배경에 안 보였던 문제 해결.
+      ctx.strokeStyle = '#1a1a1a';
     };
 
     setupCanvas();
