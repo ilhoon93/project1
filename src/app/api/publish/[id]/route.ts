@@ -30,7 +30,8 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   for (let attempt = 0; attempt < 4; attempt++) {
     const slug = generateSlug();
     const ownerToken = generateOwnerToken();
-    const { data, error } = await supabase.rpc('publish_invitation_v3', {
+    // v4 — 만료 기준이 결혼식 날짜 + 30일 (없으면 발행 + 30일).
+    const { data, error } = await supabase.rpc('publish_invitation_v4', {
       inv_id: params.id,
       new_slug: slug,
       new_owner_tok: ownerToken,

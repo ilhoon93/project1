@@ -15,9 +15,17 @@ export default async function MyPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/mypage');
 
-  // Pull saved invitations + every publication so we can render
-  // "저장 내역" with publish status and remaining days inline.
-  const [{ data: invs }, { data: pubs }, { data: balance }, { data: orders }] = await Promise.all([
+  // Pull saved invitations + every publication + balances + entitlements.
+  const [
+    { data: invs },
+    { data: pubs },
+    { data: balance },
+    { data: archiveBalance },
+    { data: orders },
+    { data: aiSnap },
+    { data: aiVideo },
+    { data: familyPack },
+  ] = await Promise.all([
     supabase
       .from('invitations')
       .select(
@@ -27,15 +35,19 @@ export default async function MyPage() {
       .order('updated_at', { ascending: false }),
     supabase
       .from('publications')
-      .select('id, invitation_id, slug, owner_token, published_at, expires_at, revoked_at')
+      .select('id, invitation_id, slug, owner_token, archived, published_at, expires_at, revoked_at')
       .eq('user_id', user.id)
       .order('published_at', { ascending: false }),
     supabase.rpc('publish_credits_balance', { uid: user.id }),
+    supabase.rpc('archive_credits_balance', { uid: user.id }),
     supabase
       .from('purchase_orders')
       .select('id, source, package_code, amount, granted_credits, naver_product_order_no, portone_payment_id, status, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
+    supabase.rpc('user_has_package', { uid: user.id, pkg_code: 'ai_snap' }),
+    supabase.rpc('user_has_package', { uid: user.id, pkg_code: 'ai_video' }),
+    supabase.rpc('user_has_package', { uid: user.id, pkg_code: 'family_pack' }),
   ]);
 
   const pubsByInvitation = new Map<string, MyPagePublication[]>();
@@ -96,7 +108,13 @@ export default async function MyPage() {
       }
       invitations={invitations}
       creditsBalance={typeof balance === 'number' ? balance : 0}
+      archiveBalance={typeof archiveBalance === 'number' ? archiveBalance : 0}
       orders={orders ?? []}
+      entitlements={{
+        aiSnap: !!aiSnap,
+        aiVideo: !!aiVideo,
+        familyPack: !!familyPack,
+      }}
     />
   );
 }

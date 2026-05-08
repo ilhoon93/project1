@@ -27,16 +27,20 @@ export const generateMetadata = async (): Promise<Metadata> => ({
 export default async function OwnerInvitationPage({ params }: PageProps) {
   const supabase = createClient();
 
-  // 발행 row 검증 — slug + owner_token 매치 필수.
+  // 발행 row 검증 — slug + owner_token 매치 필수. archived=true 면 expires_at 무시(영구).
   const { data: pub } = await supabase
     .from('publications')
     .select(
-      'id, invitation_id, slug, owner_token, groom_name, bride_name, wedding_date, content, expires_at, revoked_at',
+      'id, invitation_id, slug, owner_token, archived, groom_name, bride_name, wedding_date, content, expires_at, revoked_at',
     )
     .eq('slug', params.slug)
     .eq('owner_token', params.token)
     .maybeSingle();
   if (!pub || pub.revoked_at) notFound();
+  // 비-영구소장 + 만료 → 404 (하객용은 별도 [slug]/page.tsx 가 처리).
+  if (!pub.archived && pub.expires_at && new Date(pub.expires_at) < new Date()) {
+    notFound();
+  }
 
   const content = InvitationContentSchema.parse(pub.content ?? {});
 

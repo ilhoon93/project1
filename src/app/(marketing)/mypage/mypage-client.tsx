@@ -11,9 +11,16 @@ export interface MyPagePublication {
   invitation_id: string;
   slug: string;
   owner_token: string;
+  archived: boolean;
   published_at: string;
   expires_at: string;
   revoked_at: string | null;
+}
+
+export interface MyPageEntitlements {
+  aiSnap: boolean;
+  aiVideo: boolean;
+  familyPack: boolean;
 }
 
 const LAYOUT_LABELS: Record<string, string> = {
@@ -61,7 +68,9 @@ interface Props {
   userName: string | null;
   invitations: MyPageInvitation[];
   creditsBalance: number;
+  archiveBalance: number;
   orders: MyPageOrder[];
+  entitlements: MyPageEntitlements;
 }
 
 type Tab = 'saves' | 'credits' | 'orders';
@@ -77,7 +86,9 @@ export function MyPageClient({
   userName,
   invitations,
   creditsBalance,
+  archiveBalance,
   orders,
+  entitlements,
 }: Props) {
   const [tab, setTab] = useState<Tab>('saves');
 
@@ -87,8 +98,9 @@ export function MyPageClient({
         <p className="text-xs tracking-[0.3em] text-[#8B7355]">MY PAGE</p>
         <h1 className="text-2xl font-semibold tracking-tight">마이페이지</h1>
         <p className="text-sm text-muted-foreground">
-          {userName ?? userEmail ?? '내 계정'} · 보유 발행권{' '}
-          <span className="font-semibold text-[#3D2E1F]">{creditsBalance}</span>개
+          {userName ?? userEmail ?? '내 계정'} · 발행권{' '}
+          <span className="font-semibold text-[#3D2E1F]">{creditsBalance}</span> · 영구소장권{' '}
+          <span className="font-semibold text-[#3D2E1F]">{archiveBalance}</span>
         </p>
       </header>
 
@@ -97,15 +109,19 @@ export function MyPageClient({
           저장 내역
         </TabButton>
         <TabButton selected={tab === 'credits'} onClick={() => setTab('credits')}>
-          발행권
+          발행권 · 영구소장
         </TabButton>
         <TabButton selected={tab === 'orders'} onClick={() => setTab('orders')}>
           주문
         </TabButton>
       </nav>
 
-      {tab === 'saves' && <SavedTab invitations={invitations} />}
-      {tab === 'credits' && <CreditsTab balance={creditsBalance} />}
+      {tab === 'saves' && (
+        <SavedTab invitations={invitations} archiveBalance={archiveBalance} />
+      )}
+      {tab === 'credits' && (
+        <CreditsTab balance={creditsBalance} archiveBalance={archiveBalance} entitlements={entitlements} />
+      )}
       {tab === 'orders' && <OrdersTab orders={orders} />}
     </main>
   );
@@ -150,7 +166,13 @@ interface ConfirmModal {
   isRepublish: boolean;
 }
 
-function SavedTab({ invitations }: { invitations: MyPageInvitation[] }) {
+function SavedTab({
+  invitations,
+  archiveBalance,
+}: {
+  invitations: MyPageInvitation[];
+  archiveBalance: number;
+}) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -173,6 +195,22 @@ function SavedTab({ invitations }: { invitations: MyPageInvitation[] }) {
     } finally {
       setBusyId(null);
       setModal(null);
+    }
+  };
+
+  const handleArchive = async (publicationId: string) => {
+    if (busyId) return;
+    setBusyId(publicationId);
+    setErrorMsg(null);
+    try {
+      const res = await fetch(`/api/archive/${publicationId}`, { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      router.refresh();
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : '영구소장 적용 실패');
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -243,7 +281,9 @@ function SavedTab({ invitations }: { invitations: MyPageInvitation[] }) {
           <SavedRow
             key={inv.id}
             inv={inv}
-            busy={busyId === inv.id}
+            busy={busyId === inv.id || inv.publications.some((p) => busyId === p.id)}
+            archiveBalance={archiveBalance}
+            onArchive={handleArchive}
             onPublish={() => {
               const isRepublish = inv.publications.some(
                 (p) => !p.revoked_at && new Date(p.expires_at) > new Date(),
@@ -295,16 +335,21 @@ function SavedTab({ invitations }: { invitations: MyPageInvitation[] }) {
 function SavedRow({
   inv,
   busy,
+  archiveBalance,
+  onArchive,
   onPublish,
   onDelete,
 }: {
   inv: MyPageInvitation;
   busy: boolean;
+  archiveBalance: number;
+  onArchive: (publicationId: string) => void;
   onPublish: () => void;
   onDelete: () => void;
 }) {
+  // 영구소장된 publication 은 expires_at 무시 (소장용 URL 영구).
   const activePublications = inv.publications.filter(
-    (p) => !p.revoked_at && new Date(p.expires_at) > new Date(),
+    (p) => !p.revoked_at && (p.archived || new Date(p.expires_at) > new Date()),
   );
   const latest = activePublications[0] ?? null;
   // 한 번이라도 발행된 적이 있으면(만료/취소 무관) 혼인서약서 PDF 다운로드 가능.
@@ -367,11 +412,24 @@ function SavedRow({
                 href={`/${latest.slug}/o/${latest.owner_token}`}
                 copyText={absoluteUrl(`/${latest.slug}/o/${latest.owner_token}`)}
                 hint="메시지·서명·통계가 모두 보이는 본인 전용 URL"
+                badge={latest.archived ? '영구소장' : undefined}
               />
               <p className="text-muted-foreground">
-                {daysRemaining(latest.expires_at)}일 후 만료 ·{' '}
-                {formatDate(latest.expires_at)}까지 공개
+                {latest.archived
+                  ? '소장용 URL 은 만료 없이 영구 보관 · 하객용은 ' +
+                    `${daysRemaining(latest.expires_at)}일 후 만료 (${formatDate(latest.expires_at)})`
+                  : `${daysRemaining(latest.expires_at)}일 후 만료 · ${formatDate(latest.expires_at)}까지 공개`}
               </p>
+
+              {/* 영구소장 적용 버튼 — 미적용 publication 에만 노출. */}
+              {!latest.archived && (
+                <ArchiveActionButton
+                  publicationId={latest.id}
+                  archiveBalance={archiveBalance}
+                  busy={busy}
+                  onArchive={onArchive}
+                />
+              )}
             </div>
           )}
         </div>
@@ -441,11 +499,13 @@ function UrlRow({
   href,
   copyText,
   hint,
+  badge,
 }: {
   label: string;
   href: string;
   copyText: string;
   hint?: string;
+  badge?: string;
 }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
@@ -461,6 +521,11 @@ function UrlRow({
     <div className="flex flex-col gap-0.5">
       <div className="flex flex-wrap items-center gap-2 text-[#5C4633]">
         <span className="shrink-0 font-medium">{label}</span>
+        {badge && (
+          <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-200">
+            {badge}
+          </span>
+        )}
         <Link
           href={href}
           target="_blank"
@@ -477,6 +542,39 @@ function UrlRow({
         </button>
       </div>
       {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
+
+// ── 영구소장 적용 버튼 ─────────────────────────────────────
+
+function ArchiveActionButton({
+  publicationId,
+  archiveBalance,
+  busy,
+  onArchive,
+}: {
+  publicationId: string;
+  archiveBalance: number;
+  busy: boolean;
+  onArchive: (publicationId: string) => void;
+}) {
+  const insufficient = archiveBalance <= 0;
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-md border border-dashed border-[#D4C5B0] bg-white px-2 py-1.5">
+      <span className="text-[11px] text-muted-foreground">
+        영구소장 잔여{' '}
+        <span className="font-medium text-[#5C4633]">{archiveBalance}</span>개
+        {insufficient && ' · 패키지 구매 후 적용 가능'}
+      </span>
+      <button
+        type="button"
+        disabled={insufficient || busy}
+        onClick={() => onArchive(publicationId)}
+        className="rounded-md bg-[#8B7355] px-2.5 py-1 text-[11px] font-medium text-white transition-colors hover:bg-[#6B5740] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {busy ? '적용 중...' : '영구소장 적용'}
+      </button>
     </div>
   );
 }
@@ -564,18 +662,63 @@ function CertificatePdfButton({
 
 // ── 발행권 ─────────────────────────────────────────────────
 
-function CreditsTab({ balance }: { balance: number }) {
+function CreditsTab({
+  balance,
+  archiveBalance,
+  entitlements,
+}: {
+  balance: number;
+  archiveBalance: number;
+  entitlements: MyPageEntitlements;
+}) {
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-col items-center gap-2 rounded-lg bg-white p-8 text-center ring-1 ring-[#D4C5B0]">
-        <p className="text-xs tracking-[0.3em] text-[#8B7355]">PUBLISH CREDITS</p>
-        <p className="text-4xl font-semibold tracking-tight">{balance}</p>
-        <p className="text-xs text-muted-foreground">알림장 1개 발행 시 1개 차감됩니다.</p>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col items-center gap-1 rounded-lg bg-white p-5 text-center ring-1 ring-[#D4C5B0]">
+          <p className="text-[10px] tracking-[0.3em] text-[#8B7355]">PUBLISH</p>
+          <p className="text-3xl font-semibold tracking-tight">{balance}</p>
+          <p className="text-[11px] text-muted-foreground">발행 1회당 1개 차감</p>
+        </div>
+        <div className="flex flex-col items-center gap-1 rounded-lg bg-white p-5 text-center ring-1 ring-[#D4C5B0]">
+          <p className="text-[10px] tracking-[0.3em] text-[#8B7355]">ARCHIVE</p>
+          <p className="text-3xl font-semibold tracking-tight">{archiveBalance}</p>
+          <p className="text-[11px] text-muted-foreground">소장용 URL 영구 보관</p>
+        </div>
+      </div>
+
+      {/* 패키지 entitlement 현황 */}
+      <div className="flex flex-col gap-2 rounded-lg bg-white p-4 ring-1 ring-[#D4C5B0]">
+        <h3 className="text-sm font-medium">보유 패키지</h3>
+        <ul className="flex flex-col gap-1 text-xs">
+          <EntitlementRow label="AI 웨딩 스냅" unlocked={entitlements.aiSnap} />
+          <EntitlementRow label="AI 웨딩 영상" unlocked={entitlements.aiVideo} />
+          <EntitlementRow label="가족 패키지" unlocked={entitlements.familyPack} />
+        </ul>
+        <p className="text-[11px] text-muted-foreground">
+          한 번 구매하면 해당 기능이 영구적으로 잠금 해제됩니다. 구매 등록은 아래 카드에서.
+        </p>
       </div>
 
       <RegisterOrderCard />
       <NaverPullCard />
     </section>
+  );
+}
+
+function EntitlementRow({ label, unlocked }: { label: string; unlocked: boolean }) {
+  return (
+    <li className="flex items-center justify-between gap-2 rounded border border-[#F4EBDC] px-2.5 py-1.5">
+      <span>{label}</span>
+      <span
+        className={`rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ${
+          unlocked
+            ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+            : 'bg-muted text-muted-foreground ring-border'
+        }`}
+      >
+        {unlocked ? '잠금 해제' : '미보유'}
+      </span>
+    </li>
   );
 }
 
