@@ -22,6 +22,13 @@ interface EditorState {
    * 청첩장을 열 때, "이 기기에 저장 안 한 변경분이 있다" 인지 알려준다.
    */
   unsaved: boolean;
+  /**
+   * 마지막으로 로컬에서 편집한 시각(ms epoch). 다른 기기에서 더 나중에 저장한
+   * 본이 있으면 그쪽을 우선 사용하기 위한 비교 기준. patchSection / setMeta
+   * 가 호출될 때마다 갱신되며 save 성공 시에는 그대로 둔다 (서버 updated_at
+   * 와 동기화된 값으로 다음 hydrate 에서 재평가).
+   */
+  lastEditedAt: number | null;
 
   init: (id: string, meta: EditorMeta, content: InvitationContent) => void;
   reset: () => void;
@@ -44,6 +51,7 @@ export const useEditorStore = create<EditorState>()(
       status: 'idle',
       lastError: null,
       unsaved: false,
+      lastEditedAt: null,
 
       init: (id, meta, content) =>
         set({
@@ -53,6 +61,7 @@ export const useEditorStore = create<EditorState>()(
           status: 'idle',
           lastError: null,
           unsaved: false,
+          lastEditedAt: null,
         }),
 
       reset: () =>
@@ -63,6 +72,7 @@ export const useEditorStore = create<EditorState>()(
           status: 'idle',
           lastError: null,
           unsaved: false,
+          lastEditedAt: null,
         }),
 
       patchSection: (key, value) =>
@@ -72,6 +82,7 @@ export const useEditorStore = create<EditorState>()(
                 content: { ...state.content, [key]: value },
                 status: 'dirty',
                 unsaved: true,
+                lastEditedAt: Date.now(),
               }
             : state,
         ),
@@ -83,6 +94,7 @@ export const useEditorStore = create<EditorState>()(
                 meta: { ...state.meta, ...partial },
                 status: 'dirty',
                 unsaved: true,
+                lastEditedAt: Date.now(),
               }
             : state,
         ),
@@ -134,7 +146,10 @@ export const useEditorStore = create<EditorState>()(
             const data = await res.json().catch(() => ({}));
             throw new Error(data.error ?? `HTTP ${res.status}`);
           }
-          set({ status: 'saved', unsaved: false });
+          // 저장 직후엔 lastEditedAt 도 함께 0/null 화 — 이 기기의 다음 마운트에서
+          // 서버 updated_at 와 동률(혹은 더 작은) 상태가 되어 자연스럽게 서버
+          // 데이터를 받아들이도록.
+          set({ status: 'saved', unsaved: false, lastEditedAt: null });
         } catch (e) {
           set({
             status: 'error',
@@ -152,6 +167,7 @@ export const useEditorStore = create<EditorState>()(
         meta: state.meta,
         content: state.content,
         unsaved: state.unsaved,
+        lastEditedAt: state.lastEditedAt,
       }),
     },
   ),

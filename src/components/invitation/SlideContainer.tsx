@@ -97,16 +97,11 @@ export function SlideContainer({
   // CSS variables expose the active palette to nested slides — so they can
   // pick theme-aware colors via `text-[var(--mw-accent)]` etc instead of
   // hard-coding cream-only hexes.
-  //
-  // --mw-petals 는 CSS 에서 직접 쓰지 않고, Confetti 같은 JS 컴포넌트가
-  // getComputedStyle 로 읽어 테마 꽃잎 팔레트를 가져가는 용도. 콤마로
-  // 구분된 hex 문자열을 그대로 보낸다 (CSS Color list 가 아니므로 단순 문자열).
   const themeVars = {
     ['--mw-bg' as string]: palette.bg,
     ['--mw-fg' as string]: palette.fg,
     ['--mw-accent' as string]: palette.accent,
     ['--mw-dot' as string]: palette.dot,
-    ['--mw-petals' as string]: palette.petals.join(','),
     // 일러스트형 메인 슬라이드의 PNG 라인아트가 다크 테마에서도 잘 보이도록
     // 테마별 CSS filter 체인(크로마키 + 글로우)을 변수로 흘려 보낸다.
     ['--mw-illust-filter' as string]: palette.illustFilter ?? 'none',

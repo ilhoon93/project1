@@ -7,6 +7,14 @@ import { InvitationSlides } from '@/components/invitation/InvitationSlides';
 import { InAppBrowserGuard } from '@/components/invitation/InAppBrowserGuard';
 import { FullscreenToggle } from '@/components/invitation/FullscreenToggle';
 
+// 노트북에서 저장한 직후 모바일에서 열어도 항상 최신 publications.content 가
+// 보이도록 페이지/메타데이터 모두 캐시 우회. Supabase 클라이언트가 cookies()
+// 를 쓰기 때문에 사실상 dynamic 이지만, CDN/프록시/브라우저 단의 라우트 세그먼트
+// 캐시까지 막기 위해 명시.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
 interface PageProps {
   params: { slug: string };
 }

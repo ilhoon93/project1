@@ -15,8 +15,12 @@ export const COLOR_THEMES = [
   'pearl',
   'letterPaper', // 편지지 — 흰 바탕 + 검정 글자
   'champagne',   // 샴페인 — 웜 아이보리 + 와인 글자
+  'rose',        // 더스티 로즈 — 핑크 바탕 + 모카 글자 (로맨틱)
+  'forest',      // 포레스트 — 아이보리 + 딥 그린 (보태니컬)
+  'charcoal',    // 차콜 — 웜 오프화이트 + 차콜 + 코퍼 (모던 미니멀)
   'dusk',        // 더스크 — 다크 보랏빛
   'midnight',    // 미드나잇 — 검정 배경 + 밝은 샴페인
+  'navy',        // 네이비 — 딥 네이비 + 샴페인 골드 (클래식)
 ] as const;
 export type ColorTheme = (typeof COLOR_THEMES)[number];
 
@@ -43,15 +47,8 @@ export interface Palette {
 const PEARL_PATTERN =
   'radial-gradient(circle at 30% 20%, rgba(255,230,235,0.55) 0%, rgba(255,255,255,0) 38%), radial-gradient(circle at 75% 70%, rgba(220,235,255,0.5) 0%, rgba(255,255,255,0) 40%), radial-gradient(circle at 50% 50%, rgba(255,250,240,0.35) 0%, rgba(255,255,255,0) 60%)';
 
-// 편지지 — 펄/샴페인과 같은 다중 라디얼 광택 패턴이지만, 따뜻한 베이지/
-// 골드 톤 대신 *흰색 + 매우 옅은 쿨 그레이* 만 사용. 결과적으로 진주빛
-// 광택은 살아 있되 어떤 테마 글자색과도 충돌하지 않는 중립 톤 종이결이
-// 된다. 종이 결 라인은 거의 보이지 않을 정도로 은은하게.
-const LETTER_PAPER_PATTERN =
-  'radial-gradient(circle at 25% 22%, rgba(220,224,232,0.32) 0%, rgba(255,255,255,0) 42%), ' +
-  'radial-gradient(circle at 78% 68%, rgba(228,232,238,0.28) 0%, rgba(255,255,255,0) 45%), ' +
-  'radial-gradient(circle at 50% 90%, rgba(214,218,226,0.18) 0%, rgba(255,255,255,0) 50%), ' +
-  'repeating-linear-gradient(118deg, rgba(170,175,185,0.04) 0px, rgba(170,175,185,0.04) 1px, rgba(255,255,255,0) 1px, rgba(255,255,255,0) 6px)';
+// 편지지는 패턴 없이 평면 흰 바탕만 사용 — 모바일 환경에서 화면 밝기에
+// 따라 광택 얼룩이 회색으로 비치는 문제가 있어 BG_PATTERN 을 따로 두지 않는다.
 
 // 샴페인 — 웜 아이보리 위에 옅은 골드 광택의 부드러운 라디얼.
 const CHAMPAGNE_PATTERN =
@@ -138,16 +135,13 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     petals: ['#F5E1DA', '#E8D0C8', '#FFFFFF', '#EFD9D2'],
     bgPattern: PEARL_PATTERN,
   },
-  // 편지지 — 순백 바탕 + 매우 옅은 쿨 그레이 글자/액센트 + 진주빛 광택 패턴.
-  // 펄/샴페인처럼 다중 라디얼 광택을 깔지만 따뜻한 베이지·골드 대신 흰색과
-  // 옅은 회색만 사용해 클래식하고 정갈한 톤을 유지.
+  // 편지지 — 패턴 없는 깔끔한 순백 + 잉크 검정 글자. 결혼 청첩장 클래식 톤.
   letterPaper: {
     bg: '#FFFFFF',
-    fg: '#2A2C33',
-    accent: '#7A7E88',
-    dot: '#E4E6EC',
-    petals: ['#FFFFFF', '#F5F6F8', '#ECEEF2', '#FAFBFC'],
-    bgPattern: LETTER_PAPER_PATTERN,
+    fg: '#1A1A1A',
+    accent: '#3D3D3D',
+    dot: '#D4D4D4',
+    petals: ['#FFFFFF', '#F5F5F5', '#EAEAEA', '#FAFAFA'],
   },
   // 미드나잇 — 검정 배경 + 밝은 샴페인 글자. 모던/세련.
   midnight: {
@@ -168,6 +162,43 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     petals: ['#F5DCC4', '#E8C8A8', '#FFEFD8', '#D4B58F'],
     bgPattern: CHAMPAGNE_PATTERN,
   },
+  // 더스티 로즈 — 옅은 핑크 바탕 + 모카 브라운 글자. 따뜻하고 부드러운
+  // 로맨틱 톤. 작약·장미 같은 클래식 꽃과 잘 어울림.
+  rose: {
+    bg: '#F5E1DC',
+    fg: '#5C3D2E',
+    accent: '#B88670',
+    dot: '#E8C8B8',
+    petals: ['#FFD9CE', '#E8C8B8', '#FFFFFF', '#D4A088'],
+  },
+  // 포레스트 — 아이보리 위에 딥 그린 글자. 식물·꽃 일러스트와 자연스럽게
+  // 어울리는 보태니컬 톤. 야외/정원 컨셉 예식에 어울림.
+  forest: {
+    bg: '#F5EFE0',
+    fg: '#2D4A2B',
+    accent: '#6B8E5C',
+    dot: '#C9D2BD',
+    petals: ['#E8E2D0', '#C9D2BD', '#FFFFFF', '#B5C8A8'],
+  },
+  // 차콜 — 웜 오프화이트 + 차콜 글자 + 코퍼/구리 액센트. 모던하고 도시적인
+  // 미니멀 톤. 산세리프 폰트와 깔끔하게 매치.
+  charcoal: {
+    bg: '#F5F2ED',
+    fg: '#2A2A2D',
+    accent: '#C97D5C',
+    dot: '#D8D2C8',
+    petals: ['#F5E1D0', '#E8C8A8', '#FFFFFF', '#D4A88A'],
+  },
+  // 네이비 — 딥 네이비 배경 + 샴페인 골드 글자. 가장 클래식하고 격조 있는
+  // 웨딩 톤. 야외/저녁 예식에 잘 어울리고 모든 폰트에서 가독성이 우수.
+  navy: {
+    bg: '#0D1F3A',
+    fg: '#F5E9C8',
+    accent: '#C9A66B',
+    dot: '#2C3E5C',
+    petals: ['#E8D5A8', '#C9A66B', '#F5E9C8', '#D4AF7F'],
+    illustFilter: DARK_ILLUST_FILTER,
+  },
 };
 
 export const COLOR_THEME_LABELS: Record<ColorTheme, string> = {
@@ -181,6 +212,10 @@ export const COLOR_THEME_LABELS: Record<ColorTheme, string> = {
   letterPaper: '편지지',
   midnight: '미드나잇',
   champagne: '샴페인',
+  rose: '로즈',
+  forest: '포레스트',
+  charcoal: '차콜',
+  navy: '네이비',
 };
 
 // 'flower'/'heart'/'star' 는 글리프(2D), 'sakura'/'leaf'/'whitePetal' 은 텍스처형.
