@@ -5,9 +5,11 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { nanoid } from '@/lib/utils/nanoid';
 import { HeartClip } from '@/components/shared/HeartClip';
-
-const MAX_FILE_BYTES = 25 * 1024 * 1024;
-const ACCEPT = ['image/jpeg', 'image/png', 'image/webp'];
+import {
+  IMAGE_LIMITS,
+  compressImage,
+  validateImageFile,
+} from '@/lib/uploads';
 
 interface Props {
   /** Current image URL (already uploaded). Null/empty means no image yet. */
@@ -57,20 +59,17 @@ export function ImageUploader({
   const [stage, setStage] = useState<'idle' | 'uploading' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleFile = async (file: File) => {
+  const handleFile = async (input: File) => {
     setErrorMsg(null);
-    if (!ACCEPT.includes(file.type)) {
-      setErrorMsg('JPG, PNG, WEBP 형식만 지원됩니다.');
-      setStage('error');
-      return;
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      setErrorMsg('이미지 크기는 25MB 이하여야 합니다.');
+    const v = validateImageFile(input);
+    if (!v.ok) {
+      setErrorMsg(v.message);
       setStage('error');
       return;
     }
 
     setStage('uploading');
+    const file = await compressImage(v.file);
     const supabase = createClient();
     const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
     // path convention enforced by RLS: invitations/{invitationId}/<rest>
@@ -101,7 +100,7 @@ export function ImageUploader({
       <input
         ref={inputRef}
         type="file"
-        accept={ACCEPT.join(',')}
+        accept={IMAGE_LIMITS.acceptMime.join(',')}
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];

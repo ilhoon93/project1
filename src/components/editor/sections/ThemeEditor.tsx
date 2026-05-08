@@ -24,9 +24,7 @@ import { PetalShape } from '@/components/shared/FallingPetals';
 import { Button } from '@/components/ui/button';
 import { SectionEditor } from '../SectionEditor';
 import { TextField } from '../form-fields';
-
-const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
-const AUDIO_ACCEPT = ['audio/mpeg', 'audio/mp4', 'audio/aac', 'audio/wav', 'audio/ogg'];
+import { AUDIO_LIMITS, formatBytes } from '@/lib/uploads';
 
 export function ThemeEditor() {
   const content = useEditorStore((s) => s.content);
@@ -161,12 +159,12 @@ function BgmField({
 
   const handleFile = async (file: File) => {
     setErrorMsg(null);
-    if (!AUDIO_ACCEPT.includes(file.type)) {
-      setErrorMsg('MP3, M4A, AAC, WAV, OGG 형식만 지원됩니다.');
+    if (!AUDIO_LIMITS.acceptMime.includes(file.type as (typeof AUDIO_LIMITS.acceptMime)[number])) {
+      setErrorMsg(`${AUDIO_LIMITS.acceptExtLabel} 형식만 지원됩니다.`);
       return;
     }
-    if (file.size > MAX_AUDIO_BYTES) {
-      setErrorMsg('음악 파일은 15MB 이하여야 합니다.');
+    if (file.size > AUDIO_LIMITS.maxBytes) {
+      setErrorMsg(`음악 파일은 ${formatBytes(AUDIO_LIMITS.maxBytes)} 이하여야 합니다.`);
       return;
     }
     setBusy(true);
@@ -232,7 +230,7 @@ function BgmField({
               <input
                 ref={inputRef}
                 type="file"
-                accept={AUDIO_ACCEPT.join(',')}
+                accept={AUDIO_LIMITS.acceptMime.join(',')}
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];

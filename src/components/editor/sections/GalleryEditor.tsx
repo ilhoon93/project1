@@ -7,9 +7,11 @@ import { nanoid } from '@/lib/utils/nanoid';
 import { GALLERY_LAYOUTS } from '@/types/invitation';
 import { SectionEditor } from '../SectionEditor';
 import { Button } from '@/components/ui/button';
-
-const MAX_FILE_BYTES = 25 * 1024 * 1024;
-const ACCEPT = ['image/jpeg', 'image/png', 'image/webp'];
+import {
+  IMAGE_LIMITS,
+  compressImage,
+  validateImageFile,
+} from '@/lib/uploads';
 
 const LAYOUT_LABEL: Record<(typeof GALLERY_LAYOUTS)[number], { name: string; hint: string }> = {
   grid: { name: '그리드', hint: '바둑판 형태' },
@@ -21,7 +23,7 @@ export function GalleryEditor() {
   const invitationId = useEditorStore((s) => s.invitationId);
   const patch = useEditorStore((s) => s.patchSection);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<{ done: number; total: number } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!gallery || !invitationId) return null;
@@ -35,22 +37,20 @@ export function GalleryEditor() {
     }
     const valid: File[] = [];
     for (const f of Array.from(files).slice(0, remaining)) {
-      if (!ACCEPT.includes(f.type)) {
-        setErrorMsg('JPG, PNG, WEBP 형식만 지원됩니다.');
+      const v = validateImageFile(f);
+      if (!v.ok) {
+        setErrorMsg(v.message);
         return;
       }
-      if (f.size > MAX_FILE_BYTES) {
-        setErrorMsg('이미지 크기는 25MB 이하여야 합니다.');
-        return;
-      }
-      valid.push(f);
+      valid.push(v.file);
     }
 
-    setBusy(true);
+    setBusy({ done: 0, total: valid.length });
     const supabase = createClient();
     const uploaded: string[] = [];
     try {
-      for (const file of valid) {
+      for (let i = 0; i < valid.length; i++) {
+        const file = await compressImage(valid[i]);
         const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
         const path = `invitations/${invitationId}/gallery/${nanoid(10)}.${ext}`;
         const { error: upErr } = await supabase.storage
@@ -62,12 +62,13 @@ export function GalleryEditor() {
         }
         const { data } = supabase.storage.from('public-images').getPublicUrl(path);
         if (data?.publicUrl) uploaded.push(data.publicUrl);
+        setBusy({ done: i + 1, total: valid.length });
       }
       if (uploaded.length > 0) {
         patch('gallery', { ...gallery, images: [...gallery.images, ...uploaded] });
       }
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
 
@@ -127,7 +128,7 @@ export function GalleryEditor() {
         <input
           ref={inputRef}
           type="file"
-          accept={ACCEPT.join(',')}
+          accept={IMAGE_LIMITS.acceptMime.join(',')}
           multiple
           className="hidden"
           onChange={(e) => {
@@ -141,15 +142,19 @@ export function GalleryEditor() {
             type="button"
             variant="outline"
             size="sm"
-            disabled={busy || gallery.images.length >= 20}
+            disabled={!!busy || gallery.images.length >= 20}
             onClick={() => inputRef.current?.click()}
           >
-            {busy ? '업로드 중...' : '사진 추가'}
+            {busy ? `압축·업로드 중 (${busy.done}/${busy.total})` : '사진 추가'}
           </Button>
           <span className="text-xs text-muted-foreground">
             {gallery.images.length} / 20
           </span>
         </div>
+
+        <p className="text-xs text-muted-foreground">
+          {IMAGE_LIMITS.acceptExtLabel}, 한 장당 최대 {IMAGE_LIMITS.maxInputBytes / 1024 / 1024}MB · 자동 압축
+        </p>
 
         {errorMsg && <p className="text-xs text-destructive">{errorMsg}</p>}
 
