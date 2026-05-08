@@ -539,6 +539,7 @@ interface IllustProps {
 const ILLUST_VARIANT_LABELS: Record<IllustrationVariant, { name: string; hint: string }> = {
   arch: { name: '꽃 아치', hint: '플로럴 아치 + 손잡은 커플' },
   dance: { name: '슬로우 댄스', hint: '댄스 포즈 + 골드 스파클' },
+  hanbok: { name: '한복', hint: '전통 한복 차림의 신랑·신부' },
 };
 
 function IllustrationDesignControls({ design, onChange, greeting, onGreetingChange }: IllustProps) {
