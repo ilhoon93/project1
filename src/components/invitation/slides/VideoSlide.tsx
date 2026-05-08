@@ -71,13 +71,15 @@ export function VideoSlide({ video }: { video: InvitationContent['video'] }) {
       )}
 
       {/* 영상 컨테이너 — 헤더와 하단 인디케이터 사이의 남은 공간을 가득 차지.
-          하단 paddingBottom 으로 슬라이드 인디케이터 점들과 영상이 겹치지 않게 띄움. */}
+          하단 paddingBottom 으로 슬라이드 인디케이터 점들과 영상이 겹치지 않게 띄움.
+          영상 박스 자체에 z-20 + bg-black 을 줘서 슬라이드 z-10 의 배경 효과(별/펠탈) 가
+          영상 위로 떨어지지 않게 한다. 영상 외 영역(헤더 / 좌우 letterbox) 에는 효과가 그대로 보임. */}
       <div
         className="flex w-full flex-1 items-center justify-center"
         style={{ minHeight: 0, paddingBottom: '5cqh' }}
       >
         <div
-          className="relative overflow-hidden bg-black shadow-[0_0_60px_rgba(0,0,0,0.8)]"
+          className="relative z-20 overflow-hidden bg-black shadow-[0_0_60px_rgba(0,0,0,0.8)]"
           style={{
             aspectRatio: `${aspect}`,
             width: `min(100cqw, calc((100cqh - 10cqh) * ${aspect}))`,

@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { InvitationContent } from '@/types/invitation';
 
 export function GallerySlide({ gallery }: { gallery: InvitationContent['gallery'] }) {
-  const [lightbox, setLightbox] = useState<number | null>(null);
-
   if (gallery.images.length === 0) {
     return (
       <section className="flex min-h-full flex-col items-center justify-center gap-3 px-6 py-16">
@@ -25,65 +23,190 @@ export function GallerySlide({ gallery }: { gallery: InvitationContent['gallery'
       </header>
 
       {layout === 'grid' ? (
-        <ul className="grid grid-cols-3 gap-1">
-          {gallery.images.map((url, i) => (
+        <GalleryGrid images={gallery.images} />
+      ) : (
+        <GallerySlider images={gallery.images} />
+      )}
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 슬라이드형 — 중앙 큰 사진 + 하단 썸네일 5장. 메인 사진 좌우 스와이프 시
+// 썸네일도 같이 따라 움직이고, 썸네일을 누르면 메인이 해당 인덱스로 점프.
+// ─────────────────────────────────────────────────────────────
+
+function GallerySlider({ images }: { images: string[] }) {
+  const [index, setIndex] = useState(0);
+  const [lightbox, setLightbox] = useState(false);
+  const startRef = useRef<{ x: number; y: number } | null>(null);
+  const thumbStripRef = useRef<HTMLDivElement>(null);
+  const SWIPE_THRESHOLD = 30;
+
+  const last = images.length - 1;
+  const clamped = Math.max(0, Math.min(images.length - 1, index));
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    startRef.current = { x: t.clientX, y: t.clientY };
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const start = startRef.current;
+    startRef.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
+    if (dx > 0 && index > 0) setIndex(index - 1);
+    if (dx < 0 && index < last) setIndex(index + 1);
+  };
+
+  // 썸네일이 활성 인덱스를 자동으로 가운데로 가져오도록 스크롤 동기화.
+  useEffect(() => {
+    const strip = thumbStripRef.current;
+    if (!strip) return;
+    const el = strip.querySelector<HTMLElement>(`[data-thumb-index="${clamped}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, [clamped]);
+
+  return (
+    <div data-noswipe className="flex flex-col gap-3">
+      {/* 중앙 큰 사진 — 사용자가 좌우 스와이프 가능. 클릭 시 라이트박스. */}
+      <button
+        type="button"
+        onClick={() => setLightbox(true)}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        aria-label={`사진 ${clamped + 1} / ${images.length} 확대`}
+        className="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-black/5"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={images[clamped]}
+          alt=""
+          className="h-full w-full object-cover"
+          draggable={false}
+        />
+        {/* 인덱스 표시 — 우하단 작은 알약 */}
+        <span className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
+          {clamped + 1} / {images.length}
+        </span>
+      </button>
+
+      {/* 하단 썸네일 스트립 — 가로 스크롤. 한 화면에 약 5장 보이도록 너비 조정.
+          touch-action pan-x 로 가로 스크롤 + 외부 슬라이드 컨테이너의 세로 스와이프
+          모두 자연스럽게 동작. */}
+      <div
+        ref={thumbStripRef}
+        className="-mx-2 flex snap-x snap-mandatory gap-1.5 overflow-x-auto px-2 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        style={{ touchAction: 'pan-x pan-y' }}
+      >
+        {images.map((url, i) => {
+          const active = i === clamped;
+          return (
+            <button
+              key={`${url}-${i}`}
+              type="button"
+              data-thumb-index={i}
+              onClick={() => setIndex(i)}
+              aria-label={`${i + 1}번째 사진으로`}
+              className={`relative aspect-square shrink-0 snap-center overflow-hidden rounded transition-all ${
+                active
+                  ? 'ring-2 ring-[var(--mw-accent)] ring-offset-2 ring-offset-transparent'
+                  : 'opacity-60 hover:opacity-100'
+              }`}
+              style={{ width: 'calc((100% - 4 * 0.375rem) / 5)' }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
+            </button>
+          );
+        })}
+      </div>
+
+      {lightbox && (
+        <Lightbox src={images[clamped]} onClose={() => setLightbox(false)} />
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 그리드형 — 상단에 선택 사진 크게 + 하단에 그리드. 사진 클릭 시 상단 사진 교체.
+// 첫 진입엔 첫 사진을 자동 선택해 큰 미리보기를 보여 준다.
+// ─────────────────────────────────────────────────────────────
+
+function GalleryGrid({ images }: { images: string[] }) {
+  const [selected, setSelected] = useState(0);
+  const [lightbox, setLightbox] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* 상단 큰 사진 */}
+      <button
+        type="button"
+        onClick={() => setLightbox(true)}
+        aria-label="선택된 사진 확대"
+        className="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-black/5"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={images[selected]}
+          alt=""
+          className="h-full w-full object-cover"
+          draggable={false}
+        />
+        <span className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
+          {selected + 1} / {images.length}
+        </span>
+      </button>
+
+      {/* 하단 그리드 — 클릭 시 상단 사진 교체. data-noswipe 으로 외부 슬라이드 컨테이너의
+          세로 스와이프와 분리되지는 않고 (그리드는 가로/세로 어디로 스와이프해도 페이지 변경
+          되어도 무방), 그리드 안에서는 스크롤 안 함. */}
+      <ul className="grid grid-cols-3 gap-1">
+        {images.map((url, i) => {
+          const active = i === selected;
+          return (
             <li key={`${url}-${i}`}>
               <button
                 type="button"
-                onClick={() => setLightbox(i)}
-                className="block aspect-square w-full overflow-hidden"
-                aria-label={`사진 ${i + 1} 확대`}
+                onClick={() => setSelected(i)}
+                aria-label={`${i + 1}번째 사진 선택`}
+                className={`block aspect-square w-full overflow-hidden transition-all ${
+                  active
+                    ? 'ring-2 ring-[var(--mw-accent)] ring-offset-1 ring-offset-transparent'
+                    : ''
+                }`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
               </button>
             </li>
-          ))}
-        </ul>
-      ) : (
-        // slide layout — horizontally scrolling row of larger photos.
-        // data-noswipe tells SlideContainer to ignore touches that start here
-        // so the user can swipe through gallery photos without flipping the
-        // outer slide deck.
-        <div
-          data-noswipe
-          className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2 [touch-action:pan-x_pan-y]"
-        >
-          {gallery.images.map((url, i) => (
-            <button
-              key={`${url}-${i}`}
-              type="button"
-              onClick={() => setLightbox(i)}
-              aria-label={`사진 ${i + 1} 확대`}
-              className="relative aspect-[3/4] w-64 flex-shrink-0 snap-center overflow-hidden rounded-md"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={url}
-                alt=""
-                className="h-full w-full object-cover"
-                loading="lazy"
-              />
-            </button>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </ul>
 
-      {lightbox !== null && (
-        <button
-          type="button"
-          onClick={() => setLightbox(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4"
-          aria-label="닫기"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={gallery.images[lightbox]}
-            alt=""
-            className="max-h-full max-w-full object-contain"
-          />
-        </button>
+      {lightbox && (
+        <Lightbox src={images[selected]} onClose={() => setLightbox(false)} />
       )}
-    </section>
+    </div>
+  );
+}
+
+function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4"
+      aria-label="닫기"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="" className="max-h-full max-w-full object-contain" />
+    </button>
   );
 }

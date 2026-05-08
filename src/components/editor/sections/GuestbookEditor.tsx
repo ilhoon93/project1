@@ -21,7 +21,7 @@ export function GuestbookEditor() {
     >
       <div className="flex flex-col gap-3">
         <PresetTextArea
-          label="신랑신부의 인사말 (모두에게 보입니다)"
+          label="신랑신부의 인사말"
           value={guestbook.coupleMessage}
           maxLength={300}
           rows={3}
