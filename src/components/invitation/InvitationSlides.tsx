@@ -143,7 +143,10 @@ export function InvitationSlides({
         content.account.groomFather.length > 0 ||
         content.account.groomMother.length > 0 ||
         content.account.brideFather.length > 0 ||
-        content.account.brideMother.length > 0) ? (
+        content.account.brideMother.length > 0 ||
+        // 등록된 계좌가 없어도 안내문구만 있으면 슬라이드 노출
+        // (예: "축의금은 정중히 사양합니다" 안내).
+        content.account.guide.trim().length > 0) ? (
         <AccountSlide account={content.account} />
       ) : null,
     closing: <ClosingSlide message={content.closing} />,

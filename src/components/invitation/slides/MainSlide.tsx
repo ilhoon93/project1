@@ -324,8 +324,10 @@ function PosterFullImageSlide({
         </PositionedBox>
       )}
 
-      {/* 하단 축하하기 / 누적 카운트 */}
-      <div className="absolute bottom-12 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center">
+      {/* 하단 축하하기 / 누적 카운트 — bottom-16 (64px) 이상 유지해 진행 바(bottom-5=20px)
+          와 ≥40px 간격 확보. 사용자가 축하하기 버튼을 누르려다 진행 바가 잘못 눌리는
+          일 방지. */}
+      <div className="absolute bottom-16 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center">
         <CelebrationFooter
           mode={mode}
           cheersCount={cheersCount}
@@ -508,8 +510,8 @@ function IllustrationSlide({
       {/* 6) 하단 spacer — 인사말 길이와 무관하게 축하하기 자리를 비워둠 */}
       <div style={{ flex: '1 1 0', minHeight: '6cqh' }} />
 
-      {/* 7) 하단 축하하기 / 누적 카운트 — absolute 로 위치 고정 */}
-      <div className="absolute bottom-0 left-1/2 z-20 -translate-x-1/2" style={{ marginBottom: '4cqh' }}>
+      {/* 7) 하단 축하하기 / 누적 카운트 — bottom-16 으로 진행 바와 ≥40px 간격 확보 */}
+      <div className="absolute bottom-16 left-1/2 z-20 -translate-x-1/2">
         <CelebrationFooter
           mode={mode}
           cheersCount={cheersCount}
@@ -702,7 +704,7 @@ function LegacyMainSlide({
         )}
       </div>
 
-      <div className="absolute bottom-12 left-1/2 z-20 flex w-full -translate-x-1/2 flex-col items-center gap-4 px-10">
+      <div className="absolute bottom-16 left-1/2 z-20 flex w-full -translate-x-1/2 flex-col items-center gap-4 px-10">
         <CelebrationFooter
           mode={mode}
           cheersCount={cheersCount}
@@ -886,8 +888,8 @@ function FrameSlide({
       {/* 5) 하단 spacer */}
       <div style={{ flex: '1 1 0', minHeight: '5cqh' }} />
 
-      {/* 6) 축하하기 / 누적 카운트 — absolute 로 고정 */}
-      <div className="absolute bottom-0 left-1/2 z-20 -translate-x-1/2" style={{ marginBottom: '4cqh' }}>
+      {/* 6) 축하하기 / 누적 카운트 — bottom-16 으로 진행 바와 ≥40px 간격 확보 */}
+      <div className="absolute bottom-16 left-1/2 z-20 -translate-x-1/2">
         <CelebrationFooter
           mode={mode}
           cheersCount={cheersCount}
