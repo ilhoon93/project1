@@ -43,24 +43,37 @@ export function PresetTextArea({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   // 버튼 기준으로 절대 좌표를 계산해 portal 패널 위치를 잡는다.
-  const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [panelPos, setPanelPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+  } | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
   // 위치 계산 — open 일 때마다 buttonRef bounding rect 기반으로 갱신.
+  // 화면 아래 공간이 부족하면 자동으로 버튼 위쪽에 띄운다 (flip up).
   useLayoutEffect(() => {
     if (!open) return;
     const recalc = () => {
       const btn = buttonRef.current;
       if (!btn) return;
       const r = btn.getBoundingClientRect();
-      // 버튼 아래 4px gap. 폭은 패널을 18rem 정도로 충분히 잡되, 화면을 벗어나지 않도록
-      // 우측 정렬을 우선하고 좌측 limit 으로 보정.
       const desiredWidth = Math.min(320, window.innerWidth - 16);
       let left = r.right - desiredWidth;
       if (left < 8) left = 8;
-      setPanelPos({ top: r.bottom + 4, left, width: desiredWidth });
+
+      // 가용 높이 — 위/아래 공간 중 더 큰 쪽에 띄우고, 패널 maxHeight 도 그 공간에 맞춤.
+      const GAP = 4;
+      const PADDING = 8;
+      const spaceBelow = window.innerHeight - r.bottom - GAP - PADDING;
+      const spaceAbove = r.top - GAP - PADDING;
+      const placeAbove = spaceBelow < 200 && spaceAbove > spaceBelow;
+      const maxH = Math.max(160, Math.min(384, placeAbove ? spaceAbove : spaceBelow));
+      const top = placeAbove ? r.top - GAP - maxH : r.bottom + GAP;
+      setPanelPos({ top, left, width: desiredWidth, maxHeight: maxH });
     };
     recalc();
     window.addEventListener('resize', recalc);
@@ -143,7 +156,7 @@ export function PresetTextArea({
             top: panelPos.top,
             left: panelPos.left,
             width: panelPos.width,
-            maxHeight: 'min(60vh, 24rem)',
+            maxHeight: panelPos.maxHeight,
             overflowY: 'auto',
           }}
         >
