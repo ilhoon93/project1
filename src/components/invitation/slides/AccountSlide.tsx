@@ -29,13 +29,23 @@ export function AccountSlide({ account }: { account: InvitationContent['account'
   const groups = side === 'groom' ? groomGroups : brideGroups;
   const showSideTabs = groomGroups.length > 0 && brideGroups.length > 0;
 
-  // If only one side has accounts, force-select it so the empty side isn't
-  // shown by accident.
+  // 계좌가 한쪽도 등록되지 않은 케이스 — 안내문구만 있으면 그것만 가운데에 표시한다
+  // (예: "축의금은 정중히 사양합니다"). 안내문구도 없으면 기존 fallback.
   if (!showSideTabs && groomGroups.length === 0 && brideGroups.length === 0) {
+    const hasGuide = account.guide.trim().length > 0;
     return (
-      <section className="flex min-h-full flex-col items-center justify-center gap-3 px-6 py-16">
-        <h2 className="text-xl font-light">마음 전하실 곳</h2>
-        <p className="text-sm opacity-70">등록된 계좌가 없습니다</p>
+      <section className="flex min-h-full flex-col items-center justify-center gap-4 px-6 py-16">
+        <header className="text-center">
+          <p className="text-xs tracking-[0.3em] opacity-70">ACCOUNT</p>
+          <h2 className="mt-2 text-xl font-light">마음 전하실 곳</h2>
+        </header>
+        {hasGuide ? (
+          <p className="max-w-md whitespace-pre-line text-center text-sm leading-relaxed opacity-90">
+            {account.guide}
+          </p>
+        ) : (
+          <p className="text-sm opacity-70">등록된 계좌가 없습니다</p>
+        )}
       </section>
     );
   }
