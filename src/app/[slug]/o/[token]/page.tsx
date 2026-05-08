@@ -2,8 +2,9 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { InvitationContentSchema } from '@/types/invitation';
+import { InvitationContentSchema, type InvitationContent } from '@/types/invitation';
 import { InvitationSlides } from '@/components/invitation/InvitationSlides';
+import { FullscreenToggle } from '@/components/invitation/FullscreenToggle';
 
 interface PageProps {
   params: { slug: string; token: string };
@@ -92,23 +93,49 @@ export default async function OwnerInvitationPage({ params }: PageProps) {
     galleryLikes[row.image_index] = row.like_count;
   }
 
+  return <OwnerView invitationId={invitationId} pub={pub} content={content} cheersCount={cheers?.cheers_count ?? 0} galleryLikes={galleryLikes} quizPicks={(quizPicks ?? []) as OwnerQuizPick[]} votePicks={(votePicks ?? []) as OwnerVotePick[]} messages={(messages ?? []) as OwnerMessage[]} signatures={ownerSignatures} />;
+}
+
+/**
+ * 소장용 뷰 — 모바일은 풀스크린, 노트북/태블릿(>= md)은 화면 가운데에 9:16 박스로
+ * 가둬 보여준다. 큰 모니터에서 가로로 늘어진 알림장이 어색해 보이는 문제 해결.
+ * scoped=true 로 InvitationSlides 가 vw/dvh 가 아닌 부모 박스 기준으로 렌더되며
+ * 슬라이드 스와이프(터치/마우스 드래그) 도 박스 내부에서 정상 동작.
+ */
+function OwnerView(props: {
+  invitationId: string;
+  pub: { groom_name: string; bride_name: string; wedding_date: string | null };
+  content: InvitationContent;
+  cheersCount: number;
+  galleryLikes: Record<number, number>;
+  quizPicks: OwnerQuizPick[];
+  votePicks: OwnerVotePick[];
+  messages: OwnerMessage[];
+  signatures: OwnerSignature[];
+}) {
   return (
-    <InvitationSlides
-      invitationId={invitationId}
-      groomName={pub.groom_name}
-      brideName={pub.bride_name}
-      weddingDate={pub.wedding_date}
-      content={content}
-      mode="owner"
-      ownerData={{
-        cheersCount: cheers?.cheers_count ?? 0,
-        galleryLikes,
-        quizPicks: (quizPicks ?? []) as OwnerQuizPick[],
-        votePicks: (votePicks ?? []) as OwnerVotePick[],
-        messages: (messages ?? []) as OwnerMessage[],
-        signatures: ownerSignatures,
-      }}
-    />
+    <div className="flex min-h-[100dvh] w-full items-center justify-center bg-neutral-950 md:p-6">
+      <FullscreenToggle />
+      <div className="relative h-[100dvh] w-full overflow-hidden bg-black md:h-[min(92dvh,calc(100vw*16/9))] md:max-h-[min(92dvh,900px)] md:w-[min(92vw,calc(92dvh*9/16))] md:max-w-[506px] md:rounded-2xl md:shadow-2xl">
+        <InvitationSlides
+          invitationId={props.invitationId}
+          groomName={props.pub.groom_name}
+          brideName={props.pub.bride_name}
+          weddingDate={props.pub.wedding_date}
+          content={props.content}
+          mode="owner"
+          scoped
+          ownerData={{
+            cheersCount: props.cheersCount,
+            galleryLikes: props.galleryLikes,
+            quizPicks: props.quizPicks,
+            votePicks: props.votePicks,
+            messages: props.messages,
+            signatures: props.signatures,
+          }}
+        />
+      </div>
+    </div>
   );
 }
 

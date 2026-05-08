@@ -281,6 +281,23 @@ const koreanFontVariables = [
 export const metadata: Metadata = {
   title: '우리다운 — 우리 다운 결혼 알림장',
   description: '우리 다운 결혼 알림장과 AI 화보를 한 곳에서',
+  // iOS / Android 가 "홈 화면에 추가" 시 standalone 모드 (브라우저 chrome 없이) 로 띄움.
+  // 일반 브라우저 탭에선 무시되므로 부작용 없음.
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: '우리다운',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  // 노치/홈 인디케이터 영역까지 활용 — 9:16 풀블리드.
+  viewportFit: 'cover' as const,
 };
 
 export default function RootLayout({

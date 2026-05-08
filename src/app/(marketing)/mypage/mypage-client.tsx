@@ -389,14 +389,16 @@ function SavedRow({
 
           {latest && (
             <div className="flex flex-col gap-2 rounded-md bg-[#FAF7F2] px-3 py-2 text-xs">
+              {/* href 에는 ?fs=1 을 붙여 마이페이지에서 미리보기로 열 때 첫 탭에서
+                  자동 fullscreen 진입. copyText 는 깨끗한 URL — 외부 공유용. */}
               <UrlRow
                 label="하객용"
-                href={`/${latest.slug}`}
+                href={`/${latest.slug}?fs=1`}
                 copyText={absoluteUrl(`/${latest.slug}`)}
               />
               <UrlRow
                 label="신랑신부 소장용"
-                href={`/${latest.slug}/o/${latest.owner_token}`}
+                href={`/${latest.slug}/o/${latest.owner_token}?fs=1`}
                 copyText={absoluteUrl(`/${latest.slug}/o/${latest.owner_token}`)}
                 hint="메시지·서명·통계가 모두 보이는 본인 전용 URL"
                 badge={latest.archived ? '영구소장' : undefined}
