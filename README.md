@@ -88,9 +88,9 @@
 | 코드 | 이름 | 가격 | 지급 |
 | --- | --- | --- | --- |
 | `basic` | 기본 발행권 | 9,900원 | 발행권 +2 |
-| `archive_basic` | 영구소장 | 14,900원 | 영구소장권 +2 (소장용 URL 영구 보관) |
+| `archive_basic` | 영구소장 | 3,000원 | 영구소장권 +2 (소장용 URL 영구 보관) |
 | `ai_snap` | AI 웨딩 스냅 | 19,900원 | AI 컨셉 이미지 기능 잠금 해제 (entitlement) |
-| `ai_video` | AI 웨딩 영상 | 29,900원 | AI 영상 기능 잠금 해제 (entitlement) |
+| `ai_video` | AI 웨딩 영상 | 19,900원 | AI 영상 기능 잠금 해제 (entitlement) |
 | `family_pack` | 가족 패키지 | 9,900원 | 가족 정보·가족별 슬라이드 (entitlement) |
 
 - 발행권/영구소장권은 **ledger 테이블**(누적 ±)로 관리.
