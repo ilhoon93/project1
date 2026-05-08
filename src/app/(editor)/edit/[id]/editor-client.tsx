@@ -25,16 +25,11 @@ interface Props {
 }
 
 // 자동 저장 주기를 길게 가져간다 — 사용자는 수동 "저장" 버튼이 주된 경로이고,
-// 60초 백그라운드 저장은 사고로 탭이 닫혔을 때를 위한 안전망이다. 자주 쓰면
-// 글자 한 자에 PATCH 가 폭주해 미리보기 스트림이 끊긴다.
-const AUTOSAVE_DEBOUNCE_MS = 60_000;
-
 type Tab = 'edit' | 'ai';
 
 export function EditorClient({ invitationId, meta, content }: Props) {
   const init = useEditorStore((s) => s.init);
   const status = useEditorStore((s) => s.status);
-  const save = useEditorStore((s) => s.save);
   const [tab, setTab] = useState<Tab>('edit');
 
   // Hydrate the store with server-provided data on first mount.
@@ -68,13 +63,9 @@ export function EditorClient({ invitationId, meta, content }: Props) {
     init(invitationId, meta, content);
   }, [invitationId, meta, content, init]);
 
-  // Debounced auto-save: when status flips to 'dirty', schedule a save.
-  // 60초 — 백그라운드 안전망. 즉시 저장은 툴바의 "저장" 버튼.
-  useEffect(() => {
-    if (status !== 'dirty') return;
-    const t = setTimeout(() => void save(), AUTOSAVE_DEBOUNCE_MS);
-    return () => clearTimeout(t);
-  }, [status, save]);
+  // 자동 저장 제거 — 사용자 의도와 무관하게 저장이 일어나는 문제 때문에 전부 빼고
+  // "저장" 버튼 클릭 시에만 PATCH 가 발생하도록 한다. 미저장 변경은 beforeunload
+  // 경고 + status 표시("저장 안 됨") 로 사용자에게 알림.
 
   // 보유 패키지 entitlement — AI/가족 탭 노출 분기 기준.
   // AI 이미지 탭은 ai_snap 미보유 사용자에게도 "무료 1회" 가 있어 항상 보이지만,
