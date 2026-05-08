@@ -29,19 +29,30 @@ export function EditorToolbar({ invitationId }: { invitationId: string }) {
   const router = useRouter();
   const [navigating, setNavigating] = useState(false);
 
-  // Preview must always show the latest edits — if the user clicks before
-  // autosave's 2s debounce fires, the server still has stale content and the
-  // preview misses what they just typed. So flush a save first, then navigate.
-  const handlePreview = async () => {
+  // 미리보기는 그냥 이동만 — 자동 저장 제거. 저장이 필요하면 사용자가 "저장"
+  // 버튼을 명시적으로 누른 뒤 미리보기로 이동하도록 dirty 상태 안내.
+  const handlePreview = () => {
     if (navigating) return;
-    setNavigating(true);
-    try {
-      if (status === 'dirty' || status === 'saving' || status === 'error') {
-        await save();
-      }
-    } finally {
-      router.push(`/preview/${invitationId}`);
+    if (status === 'dirty') {
+      const ok = window.confirm(
+        '저장하지 않은 변경사항이 있어요. 미리보기에는 저장된 내용만 반영됩니다. 그래도 미리보기로 이동할까요?',
+      );
+      if (!ok) return;
     }
+    setNavigating(true);
+    router.push(`/preview/${invitationId}`);
+  };
+
+  // 마이페이지 이동 — 미저장 변경이 있으면 confirm 으로 한 번 더 묻는다.
+  // 저장은 사용자가 명시적으로 "저장" 버튼을 눌러야만 발생.
+  const handleGoMypage = () => {
+    if (status === 'dirty') {
+      const ok = window.confirm(
+        '저장하지 않은 변경사항이 있어요. 마이페이지로 이동하면 변경사항이 사라집니다. 이동할까요?',
+      );
+      if (!ok) return;
+    }
+    router.push('/mypage');
   };
 
   return (
@@ -60,18 +71,26 @@ export function EditorToolbar({ invitationId }: { invitationId: string }) {
       </div>
 
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={() => void save()} disabled={status === 'saving'}>
+        <Button variant="ghost" size="sm" onClick={handleGoMypage}>
+          마이페이지
+        </Button>
+        <Button
+          variant="default"
+          size="sm"
+          onClick={() => void save()}
+          disabled={status === 'saving' || status === 'idle' || status === 'saved'}
+        >
           저장
         </Button>
         {/* lg 이상에서는 좌측 패널이 실시간 미리보기 역할이라 별도 버튼 불필요 */}
         <Button
           variant="outline"
           size="sm"
-          onClick={() => void handlePreview()}
+          onClick={handlePreview}
           disabled={navigating || status === 'saving'}
           className="lg:hidden"
         >
-          {navigating ? '저장 중...' : '미리보기'}
+          {navigating ? '이동 중...' : '미리보기'}
         </Button>
       </div>
     </header>
