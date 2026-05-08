@@ -5,9 +5,11 @@ import { createClient } from '@/lib/supabase/client';
 import { AI_CONCEPTS, CONCEPT_KEYS, type ConceptKey } from '@/lib/fal/concepts';
 import { Button } from '@/components/ui/button';
 import { nanoid } from '@/lib/utils/nanoid';
-
-const MAX_FILE_BYTES = 25 * 1024 * 1024;
-const ACCEPT = ['image/jpeg', 'image/png', 'image/webp'];
+import {
+  IMAGE_LIMITS,
+  compressImage,
+  validateImageFile,
+} from '@/lib/uploads';
 
 // 폴링 주기/한도 — fal.ai gpt-image-1 은 보통 25–60초. 5초 간격 × 최대 60회(=5분) 면 안전.
 const POLL_INTERVAL_MS = 5_000;
@@ -102,18 +104,16 @@ export function AIImageGenerator() {
     safeRemove(sessionStorage, ACTIVE_REQUEST_KEY);
   };
 
-  const handleFile = async (file: File) => {
+  const handleFile = async (input: File) => {
     setErrorMsg(null);
-    if (!ACCEPT.includes(file.type)) {
-      setErrorMsg('JPG, PNG, WEBP 형식만 지원됩니다.');
-      return;
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      setErrorMsg('이미지 크기는 25MB 이하여야 합니다.');
+    const v = validateImageFile(input);
+    if (!v.ok) {
+      setErrorMsg(v.message);
       return;
     }
 
     setStage('uploading');
+    const file = await compressImage(v.file);
     const supabase = createClient();
     const {
       data: { user },
@@ -337,7 +337,7 @@ export function AIImageGenerator() {
       <input
         ref={inputRef}
         type="file"
-        accept={ACCEPT.join(',')}
+        accept={IMAGE_LIMITS.acceptMime.join(',')}
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];

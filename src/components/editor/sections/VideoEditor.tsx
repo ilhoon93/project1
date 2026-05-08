@@ -7,9 +7,7 @@ import { nanoid } from '@/lib/utils/nanoid';
 import { SectionEditor } from '../SectionEditor';
 import { TextField } from '../form-fields';
 import { Button } from '@/components/ui/button';
-
-const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
-const ACCEPT = ['video/mp4', 'video/webm', 'video/quicktime'];
+import { VIDEO_LIMITS, validateVideoFile } from '@/lib/uploads';
 
 function isYouTubeUrl(url: string) {
   return /(?:youtube\.com|youtu\.be)/i.test(url);
@@ -24,19 +22,16 @@ export function VideoEditor() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   if (!video || !invitationId) return null;
 
-  const handleFile = async (file: File) => {
+  const handleFile = async (input: File) => {
     setErrorMsg(null);
-    if (!ACCEPT.includes(file.type)) {
-      setErrorMsg('MP4, WebM, MOV 형식만 지원됩니다.');
-      return;
-    }
-    if (file.size > MAX_VIDEO_BYTES) {
-      setErrorMsg('영상 크기는 50MB 이하여야 합니다.');
-      return;
-    }
-
     setBusy(true);
     try {
+      const v = await validateVideoFile(input);
+      if (!v.ok) {
+        setErrorMsg(v.message);
+        return;
+      }
+      const file = v.file;
       const supabase = createClient();
       const ext = file.name.split('.').pop()?.toLowerCase() || 'mp4';
       const path = `invitations/${invitationId}/video/${nanoid(10)}.${ext}`;
@@ -94,7 +89,7 @@ export function VideoEditor() {
           <input
             ref={inputRef}
             type="file"
-            accept={ACCEPT.join(',')}
+            accept={VIDEO_LIMITS.acceptMime.join(',')}
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -113,7 +108,7 @@ export function VideoEditor() {
             {busy ? '업로드 중...' : '영상 파일 선택'}
           </Button>
           <p className="text-xs text-muted-foreground">
-            MP4 · WebM · MOV, 최대 50MB
+            {VIDEO_LIMITS.acceptExtLabel}, 최대 {VIDEO_LIMITS.maxBytes / 1024 / 1024}MB · {VIDEO_LIMITS.maxDurationSec}초 이내 · 원본 화질 그대로 업로드
           </p>
         </div>
 
