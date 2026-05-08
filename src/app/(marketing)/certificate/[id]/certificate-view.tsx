@@ -79,11 +79,11 @@ export function CertificateView({
         scale: 2,
         useCORS: true,
         logging: false,
-        // width/height 명시 — 측정한 박스 사이즈와 정확히 일치시켜 미리보기 = PNG.
-        width: node.clientWidth,
-        height: node.clientHeight,
-        windowWidth: node.clientWidth,
-        windowHeight: node.clientHeight,
+        // width/height/window* 옵션을 명시하면 일부 브라우저에서 캔버스가 잘못
+        // 계산되어 콘텐츠가 좌상단에 치우치는 문제 발생. 기본값(요소 자체 크기)에
+        // 맡기는 게 가장 안정적. scroll 도 0 으로 맞춰 오프셋 제거.
+        scrollX: 0,
+        scrollY: -window.scrollY,
       });
       const dataUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
@@ -100,14 +100,19 @@ export function CertificateView({
     }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     document.body.setAttribute('data-printing', 'cert');
     const cleanup = () => {
       document.body.removeAttribute('data-printing');
       window.removeEventListener('afterprint', cleanup);
     };
     window.addEventListener('afterprint', cleanup);
-    requestAnimationFrame(() => window.print());
+    // CSS 적용 → cert-print-target 이 210mm 로 확장 → ResizeObserver 가 새 width
+    // 를 감지 → setState → React re-render → 인라인 px 값들이 mm 기준으로
+    // 다시 계산되어야 하므로 짧게 대기 후 print 다이얼로그 호출.
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise((r) => setTimeout(r, 80));
+    window.print();
   };
 
   const dateText = weddingDate ? formatKoreanDate(weddingDate) : '';
@@ -331,7 +336,11 @@ export function CertificateView({
         </article>
       </div>
 
-      {/* 인쇄 격리 + A4 풀 사이즈 출력 */}
+      {/* 인쇄 격리 — visibility 기반.
+          marketing layout 의 header (마이페이지/로그아웃 버튼) 가 cert-shell 의
+          ancestor 라서 display:none 으로는 못 가린다. 모든 요소를 일단
+          visibility:hidden 처리한 뒤 cert-print-target 과 그 자손만 보이게 하면
+          ancestor 들의 box 는 자리만 차지하고 시각적으로는 사라짐. */}
       <style jsx global>{`
         @media print {
           @page {
@@ -341,25 +350,25 @@ export function CertificateView({
         }
         body[data-printing='cert'] {
           background: #fff !important;
-          margin: 0 !important;
-          padding: 0 !important;
         }
-        body[data-printing='cert'] > *:not(.cert-shell) {
-          display: none !important;
+        body[data-printing='cert'] * {
+          visibility: hidden !important;
+          box-shadow: none !important;
         }
-        body[data-printing='cert'] .cert-shell {
-          background: #fff !important;
-          padding: 0 !important;
-          margin: 0 !important;
-          min-height: 0 !important;
-        }
-        body[data-printing='cert'] .cert-shell > *:not(.cert-print-target) {
-          display: none !important;
+        body[data-printing='cert'] .cert-print-target,
+        body[data-printing='cert'] .cert-print-target * {
+          visibility: visible !important;
         }
         body[data-printing='cert'] .cert-print-target {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
           width: 210mm !important;
-          max-width: 210mm !important;
+          height: 297mm !important;
+          max-width: none !important;
           margin: 0 !important;
+          padding: 0 !important;
+          background: #fff !important;
         }
         body[data-printing='cert'] .cert-page {
           width: 210mm !important;

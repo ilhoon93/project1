@@ -389,16 +389,16 @@ function SavedRow({
 
           {latest && (
             <div className="flex flex-col gap-2 rounded-md bg-[#FAF7F2] px-3 py-2 text-xs">
-              {/* href 에는 ?fs=1 을 붙여 마이페이지에서 미리보기로 열 때 첫 탭에서
-                  자동 fullscreen 진입. copyText 는 깨끗한 URL — 외부 공유용. */}
+              {/* href 는 깨끗한 path. UrlRow 가 클릭 시 브라우저별로 fullscreen
+                  진입 방식을 분기 (Chrome/FF: 같은 탭+즉시 / Safari: 새 탭+첫탭). */}
               <UrlRow
                 label="하객용"
-                href={`/${latest.slug}?fs=1`}
+                href={`/${latest.slug}`}
                 copyText={absoluteUrl(`/${latest.slug}`)}
               />
               <UrlRow
                 label="신랑신부 소장용"
-                href={`/${latest.slug}/o/${latest.owner_token}?fs=1`}
+                href={`/${latest.slug}/o/${latest.owner_token}`}
                 copyText={absoluteUrl(`/${latest.slug}/o/${latest.owner_token}`)}
                 hint="메시지·서명·통계가 모두 보이는 본인 전용 URL"
                 badge={latest.archived ? '영구소장' : undefined}
@@ -510,6 +510,33 @@ function UrlRow({
       // ignore
     }
   };
+
+  // 하이브리드 fullscreen 진입:
+  //   - Chrome / Firefox: 같은 탭에서 navigate + click 시점에 즉시 requestFullscreen
+  //     (브라우저가 same-origin navigate 시 fullscreen 상태 유지)
+  //   - Safari (iOS 포함): navigate 시 fullscreen 강제 종료되므로 새 탭 열고
+  //     ?fs=1 로 첫 탭 진입 패턴 사용 (FullscreenToggle 이 처리)
+  const handleOpen = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    if (typeof window === 'undefined') return;
+    const ua = window.navigator.userAgent;
+    const isSafari =
+      /^((?!chrome|android|crios|fxios|edg|opr).)*safari/i.test(ua) ||
+      /iPad|iPhone|iPod/.test(ua);
+
+    if (isSafari) {
+      window.open(`${href}?fs=1`, '_blank', 'noopener');
+      return;
+    }
+
+    // Chrome / Firefox 등 — 같은 탭에서 fullscreen + navigate.
+    const enterFullscreen = document.documentElement.requestFullscreen?.();
+    if (enterFullscreen && typeof enterFullscreen.then === 'function') {
+      enterFullscreen.catch(() => {});
+    }
+    window.location.href = href;
+  };
+
   return (
     <div className="flex flex-col gap-1">
       <div className="flex flex-wrap items-center gap-2 text-[#5C4633]">
@@ -529,7 +556,7 @@ function UrlRow({
       </div>
       <Link
         href={href}
-        target="_blank"
+        onClick={handleOpen}
         className="block break-all font-mono text-[11px] text-[#8B7355] underline underline-offset-2"
       >
         {copyText}
