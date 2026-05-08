@@ -1,18 +1,20 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
  * 추천 문구를 콤보박스처럼 펼쳐 고를 수 있는 텍스트 영역.
  *
- * - 폰트 콤보박스(MainEditor 의 TitleTextCombobox/FontPicker) 와 같은 패턴
- * - 추천 문구 항목을 클릭하면 즉시 textarea 에 채워지고 패널 닫힘
- * - 마음에 안 들면 그대로 textarea 에서 자유롭게 편집 가능
- *
- * 외부 클릭 / ESC 로도 패널이 닫힌다. 항목이 길어도 panel 자체가 스크롤되지 않게
- * max-h + overflow-y-auto 를 제공.
+ * 동작 핵심:
+ *  - "추천 문구" 버튼 바로 아래에서 패널이 열린다 (textarea 아래가 아님).
+ *  - 패널은 portal 로 document.body 에 붙어 부모의 overflow / z-index 와
+ *    무관하게 잘리지 않고 모두 보인다.
+ *  - 항목 사이에는 명확한 구분선 + 적당한 padding 으로 가독성 확보.
+ *  - 외부 클릭 / ESC / scroll / resize 시 자동 닫힘. 위치도 매번 재계산.
+ *  - 마음에 안 들면 textarea 에서 자유롭게 편집 가능.
  */
 export function PresetTextArea({
   label,
@@ -38,13 +40,46 @@ export function PresetTextArea({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  // 버튼 기준으로 절대 좌표를 계산해 portal 패널 위치를 잡는다.
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [mounted, setMounted] = useState(false);
 
+  useEffect(() => setMounted(true), []);
+
+  // 위치 계산 — open 일 때마다 buttonRef bounding rect 기반으로 갱신.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const recalc = () => {
+      const btn = buttonRef.current;
+      if (!btn) return;
+      const r = btn.getBoundingClientRect();
+      // 버튼 아래 4px gap. 폭은 패널을 18rem 정도로 충분히 잡되, 화면을 벗어나지 않도록
+      // 우측 정렬을 우선하고 좌측 limit 으로 보정.
+      const desiredWidth = Math.min(320, window.innerWidth - 16);
+      let left = r.right - desiredWidth;
+      if (left < 8) left = 8;
+      setPanelPos({ top: r.bottom + 4, left, width: desiredWidth });
+    };
+    recalc();
+    window.addEventListener('resize', recalc);
+    window.addEventListener('scroll', recalc, true);
+    return () => {
+      window.removeEventListener('resize', recalc);
+      window.removeEventListener('scroll', recalc, true);
+    };
+  }, [open]);
+
+  // 외부 클릭 / ESC 닫기.
   useEffect(() => {
+    if (!open) return;
     const onDown = (e: MouseEvent | TouchEvent) => {
-      const node = wrapRef.current;
-      if (!node) return;
-      if (e.target instanceof Node && node.contains(e.target)) return;
+      const btn = buttonRef.current;
+      const panel = panelRef.current;
+      const target = e.target instanceof Node ? e.target : null;
+      if (target && btn?.contains(target)) return;
+      if (target && panel?.contains(target)) return;
       setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
@@ -58,7 +93,7 @@ export function PresetTextArea({
       document.removeEventListener('touchstart', onDown);
       document.removeEventListener('keydown', onKey);
     };
-  }, []);
+  }, [open]);
 
   return (
     <div className={cn('flex flex-col gap-1.5 text-sm', className)}>
@@ -70,6 +105,7 @@ export function PresetTextArea({
           <span />
         )}
         <button
+          ref={buttonRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
@@ -84,23 +120,34 @@ export function PresetTextArea({
         </button>
       </div>
 
-      <div ref={wrapRef} className="relative">
-        <textarea
-          value={value}
-          rows={rows}
-          maxLength={maxLength}
-          placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value)}
-          // 콤보박스 본체 — 일반 TextAreaField 와 동일한 스타일.
-          className="min-h-[80px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/30"
-        />
+      <textarea
+        value={value}
+        rows={rows}
+        maxLength={maxLength}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className="min-h-[80px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/30"
+      />
 
-        {open && (
-          <ul
-            role="listbox"
-            aria-label={presetLabel}
-            className="absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-md border border-input bg-background shadow-lg"
-          >
+      {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+
+      {/* 패널 — body 로 portal 해 부모 overflow 와 무관하게 보인다.
+          위치는 useLayoutEffect 에서 버튼 rect 기준으로 매번 갱신. */}
+      {mounted && open && panelPos && createPortal(
+        <div
+          ref={panelRef}
+          role="listbox"
+          aria-label={presetLabel}
+          className="fixed z-[200] overflow-hidden rounded-md border border-input bg-background shadow-xl"
+          style={{
+            top: panelPos.top,
+            left: panelPos.left,
+            width: panelPos.width,
+            maxHeight: 'min(60vh, 24rem)',
+            overflowY: 'auto',
+          }}
+        >
+          <ul className="flex flex-col divide-y divide-input/70">
             {presets.map((preset, i) => {
               const selected = preset === value;
               return (
@@ -113,7 +160,7 @@ export function PresetTextArea({
                       onChange(preset);
                       setOpen(false);
                     }}
-                    className={`flex w-full flex-col items-start gap-0.5 whitespace-pre-line border-b border-input/40 px-3 py-2 text-left text-[13px] leading-relaxed transition-colors last:border-b-0 ${
+                    className={`flex w-full whitespace-pre-line px-3 py-3 text-left text-[13px] leading-relaxed transition-colors ${
                       selected
                         ? 'bg-foreground text-background'
                         : 'text-foreground hover:bg-muted'
@@ -125,10 +172,9 @@ export function PresetTextArea({
               );
             })}
           </ul>
-        )}
-      </div>
-
-      {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }

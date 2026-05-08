@@ -126,7 +126,6 @@ export function SlideContainer({
           : {}),
       }}
     >
-      <FallingPetals type={petalType} colors={palette.petals} />
       {bgmUrl && !scoped && <BgmPlayer url={bgmUrl} color={palette.accent} />}
 
       <motion.div
@@ -153,6 +152,10 @@ export function SlideContainer({
             style={{ containerType: 'size' }}
           >
             {slide}
+            {/* 배경 효과 — 각 슬라이드 박스 안에 z-10 으로 깔아둔다.
+                슬라이드 콘텐츠(z-auto) 위에 펠탈/별빛이 떨어지지만, VideoSlide 처럼
+                z-20 이상을 설정한 요소(영상 컨테이너)는 효과 위로 올라와 가려짐. */}
+            <FallingPetals type={petalType} colors={palette.petals} />
           </div>
         ))}
       </motion.div>
