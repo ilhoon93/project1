@@ -890,19 +890,19 @@ function FrameImage({
   //   portrait  (aspect < 1): 1:1 정사각형 + object-cover + imagePosition 으로 크롭.
   //                            상하는 슬라이드(테마) 배경 그대로 노출.
   // imageAspect 가 null(로드 전 / 이미지 없음) 이면 정사각형 + cover 폴백.
+  // 좌/우 여백은 두지 않음 (슬라이드 폭을 100% 차지) — 사용자 요청. 상하는 letterbox.
   const isLandscape = (imageAspect ?? 1) >= 1;
   const containerAspect = isLandscape ? imageAspect ?? 1 : 1;
   const fitClass = isLandscape ? 'object-contain' : 'object-cover';
   return (
-    <div className="flex w-full shrink-0 items-center justify-center" style={{ paddingInline: '4cqw' }}>
+    <div className="flex w-full shrink-0 items-center justify-center">
       <div
-        className="relative w-full max-w-sm overflow-hidden"
+        className="relative w-full overflow-hidden"
         style={{
           aspectRatio: `${containerAspect}`,
           // landscape: contain 모드라 이미지 옆에 빈 공간 거의 없음. portrait: square 안 잘린 이미지 영역.
           // 어느 쪽이든 컨테이너 배경은 테마 배경색을 그대로 깔아 둠.
           backgroundColor: 'var(--mw-bg, #1a1a1a)',
-          boxShadow: '0 12px 30px rgba(0,0,0,0.18)',
         }}
       >
         {src ? (

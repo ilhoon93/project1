@@ -335,6 +335,12 @@ export const ParentSchema = z.object({
   deceased: z.boolean().default(false),
 });
 
+// 기본정보 슬라이드의 4가지 하위 영역 — 사용자가 순서를 바꿀 수 있게 했다.
+// 저장값에 알 수 없는 키가 들어 있거나 일부 키가 빠져 있어도 reconcileBasicSubOrder
+// 에서 안전하게 보정한다.
+export const BASIC_SUB_KEYS = ['family', 'date', 'greeting', 'quote'] as const;
+export type BasicSubKey = (typeof BASIC_SUB_KEYS)[number];
+
 export const BasicInfoSectionSchema = z
   .object({
     enabled: z.boolean().default(true),
@@ -366,6 +372,8 @@ export const BasicInfoSectionSchema = z
         brideMother: { name: '', deceased: false },
       }),
     showDate: z.boolean().default(true),
+    // 하위 영역 표시 순서. 저장 시 일부가 빠져도 reconcileBasicSubOrder 가 채워줌.
+    subOrder: z.array(z.string()).default([...BASIC_SUB_KEYS]),
   })
   .default({
     enabled: true,
@@ -379,7 +387,28 @@ export const BasicInfoSectionSchema = z
       brideMother: { name: '', deceased: false },
     },
     showDate: true,
+    subOrder: [...BASIC_SUB_KEYS],
   });
+
+/**
+ * 저장된 subOrder 를 정규화 — 알 수 없는 키 제거 + 빠진 키를 끝에 보충.
+ * (theme 의 reconcilePageOrder 와 동일한 패턴.)
+ */
+export function reconcileBasicSubOrder(stored: readonly string[]): BasicSubKey[] {
+  const known = new Set<string>(BASIC_SUB_KEYS);
+  const seen = new Set<string>();
+  const ordered: BasicSubKey[] = [];
+  for (const key of stored) {
+    if (known.has(key) && !seen.has(key)) {
+      ordered.push(key as BasicSubKey);
+      seen.add(key);
+    }
+  }
+  for (const key of BASIC_SUB_KEYS) {
+    if (!seen.has(key)) ordered.push(key);
+  }
+  return ordered;
+}
 
 export const StoryChapterSchema = z.object({
   // Free-form title — guidance text shown via placeholder ("첫 만남", "고백", "프로포즈" 등).
