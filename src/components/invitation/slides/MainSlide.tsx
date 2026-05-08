@@ -554,7 +554,7 @@ function IllustrationImage({
   variant,
 }: {
   src: string;
-  variant: 'arch' | 'dance';
+  variant: 'arch' | 'dance' | 'hanbok';
 }) {
   const [errored, setErrored] = useState(false);
 
@@ -666,11 +666,23 @@ function LegacyMainSlide({
         {layout === 'illustration' && <CoupleIllustration />}
 
         {layout === 'text' ? (
-          <h1 className="flex flex-col items-center gap-3 text-4xl font-light leading-tight">
-            <span>{groomName}</span>
-            <span className="h-px w-12 bg-current opacity-50" />
-            <span>{brideName}</span>
-          </h1>
+          <div className="flex flex-col items-center gap-4">
+            {/* 텍스트형 상단 데코 — 꽃 일러스트. 투명 배경 PNG 라 모든 테마와 어울림.
+                다크 테마에선 일러스트 글로우 필터(--mw-illust-filter) 가 자동 적용. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/illustrations/text-flower.png"
+              alt=""
+              aria-hidden
+              className="h-20 w-auto object-contain"
+              style={{ filter: 'var(--mw-illust-filter)' }}
+            />
+            <h1 className="flex flex-col items-center gap-3 text-4xl font-light leading-tight">
+              <span>{groomName}</span>
+              <span className="h-px w-12 bg-current opacity-50" />
+              <span>{brideName}</span>
+            </h1>
+          </div>
         ) : layout === 'illustration' ? (
           <h1 className="flex items-baseline gap-3 text-2xl font-light">
             <span>{groomName}</span>

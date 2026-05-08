@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { InvitationContent } from '@/types/invitation';
+import { VideoPlayer } from '../VideoPlayer';
 
 export function VideoSlide({ video }: { video: InvitationContent['video'] }) {
   // 영상의 가로/세로 비율 — self-hosted 는 metadata 로 직접 측정,
@@ -95,17 +96,10 @@ export function VideoSlide({ video }: { video: InvitationContent['video'] }) {
               allowFullScreen
             />
           ) : (
-            <video
+            <VideoPlayer
               src={video.url}
-              controls
-              className="absolute inset-0 h-full w-full object-contain"
-              preload="metadata"
-              onLoadedMetadata={(e) => {
-                const el = e.currentTarget;
-                if (el.videoWidth > 0 && el.videoHeight > 0) {
-                  setVideoAspect(el.videoWidth / el.videoHeight);
-                }
-              }}
+              className="absolute inset-0"
+              onMeta={(aspect) => setVideoAspect(aspect)}
             />
           )}
         </div>

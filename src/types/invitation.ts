@@ -147,15 +147,16 @@ export type PosterDesign = z.infer<typeof PosterDesignSchema>;
 
 // ── 일러스트형 디자인 ─────────────────────────────────────
 //
-// 일러스트형은 두 가지 서브 베리언트(arch / dance)를 제공한다.
+// 일러스트형은 세 가지 서브 베리언트(arch / dance / hanbok)를 제공한다.
 //   - arch  : 꽃 아치 아래 손 잡고 걷는 신랑·신부
 //   - dance : 댄스 포즈의 신랑·신부 + 골드 스파클
+//   - hanbok: 한복 차림의 신랑·신부 (전통혼례 톤)
 //
 // 폰트는 첨부 이미지(Playfair Display)에 맞춰 고정. 색상과 문구만
 // 풀이미지형처럼 사용자가 변경 가능. 날짜·이름 박스는 토글 가능하지만
 // 위치는 고정 레이아웃을 따른다 (드래그 슬라이더 없음).
 
-export const ILLUSTRATION_VARIANTS = ['arch', 'dance'] as const;
+export const ILLUSTRATION_VARIANTS = ['arch', 'dance', 'hanbok'] as const;
 export type IllustrationVariant = (typeof ILLUSTRATION_VARIANTS)[number];
 
 export const IllustrationDesignSchema = z
