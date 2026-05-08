@@ -40,6 +40,8 @@ function GallerySlider({ images }: { images: string[] }) {
   const [index, setIndex] = useState(0);
   const [lightbox, setLightbox] = useState(false);
   const startRef = useRef<{ x: number; y: number } | null>(null);
+  // 메인 사진에서 가벼운 탭(짧은 거리)일 땐 setIndex 호출하지 않고 라이트박스 호출.
+  const movedRef = useRef(false);
   const thumbStripRef = useRef<HTMLDivElement>(null);
   const SWIPE_THRESHOLD = 30;
 
@@ -49,6 +51,15 @@ function GallerySlider({ images }: { images: string[] }) {
   const onTouchStart = (e: React.TouchEvent) => {
     const t = e.touches[0];
     startRef.current = { x: t.clientX, y: t.clientY };
+    movedRef.current = false;
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    const start = startRef.current;
+    if (!start) return;
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - start.x) > 8 || Math.abs(t.clientY - start.y) > 8) {
+      movedRef.current = true;
+    }
   };
   const onTouchEnd = (e: React.TouchEvent) => {
     const start = startRef.current;
@@ -63,42 +74,56 @@ function GallerySlider({ images }: { images: string[] }) {
   };
 
   // 썸네일이 활성 인덱스를 자동으로 가운데로 가져오도록 스크롤 동기화.
+  // scrollIntoView 는 모든 ancestor 스크롤 컨테이너를 함께 움직여 슬라이드 컨테이너의
+  // transform 위치를 흔드는 부작용이 있어, scrollLeft 를 직접 계산해 strip 만 움직인다.
   useEffect(() => {
     const strip = thumbStripRef.current;
     if (!strip) return;
     const el = strip.querySelector<HTMLElement>(`[data-thumb-index="${clamped}"]`);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    }
+    if (!el) return;
+    const stripRect = strip.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const desiredCenter = stripRect.left + strip.clientWidth / 2;
+    const elCenter = elRect.left + el.offsetWidth / 2;
+    const offset = elCenter - desiredCenter;
+    if (Math.abs(offset) < 1) return;
+    strip.scrollTo({ left: strip.scrollLeft + offset, behavior: 'smooth' });
   }, [clamped]);
 
   return (
+    // data-noswipe — SlideContainer 의 슬라이드 전환 스와이프와 분리. 갤러리 안 좌우 스와이프
+    // 는 메인 사진 자체에서만 동작하고 슬라이드 전환에는 영향 주지 않도록 한다.
     <div data-noswipe className="flex flex-col gap-3">
-      {/* 중앙 큰 사진 — 사용자가 좌우 스와이프 가능. 클릭 시 라이트박스. */}
-      <button
-        type="button"
-        onClick={() => setLightbox(true)}
+      {/* 중앙 큰 사진 — 좌우 스와이프 가능. 단순 탭은 라이트박스 오픈.
+          z-20 으로 슬라이드의 z-10 배경 효과(별빛/펠탈) 위로 올려 사진 위에는 효과가 떨어지지 않게. */}
+      <div
         onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        aria-label={`사진 ${clamped + 1} / ${images.length} 확대`}
-        className="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-black/5"
+        className="relative z-20"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={images[clamped]}
-          alt=""
-          className="h-full w-full object-cover"
-          draggable={false}
-        />
-        {/* 인덱스 표시 — 우하단 작은 알약 */}
-        <span className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
-          {clamped + 1} / {images.length}
-        </span>
-      </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (!movedRef.current) setLightbox(true);
+          }}
+          aria-label={`사진 ${clamped + 1} / ${images.length} 확대`}
+          className="relative block aspect-[3/4] w-full overflow-hidden rounded-md bg-black/5"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={images[clamped]}
+            alt=""
+            className="h-full w-full object-cover"
+            draggable={false}
+          />
+          <span className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
+            {clamped + 1} / {images.length}
+          </span>
+        </button>
+      </div>
 
-      {/* 하단 썸네일 스트립 — 가로 스크롤. 한 화면에 약 5장 보이도록 너비 조정.
-          touch-action pan-x 로 가로 스크롤 + 외부 슬라이드 컨테이너의 세로 스와이프
-          모두 자연스럽게 동작. */}
+      {/* 하단 썸네일 스트립 — 가로 스크롤. 한 화면에 약 5장 보이도록 너비 조정. */}
       <div
         ref={thumbStripRef}
         className="-mx-2 flex snap-x snap-mandatory gap-1.5 overflow-x-auto px-2 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -115,7 +140,7 @@ function GallerySlider({ images }: { images: string[] }) {
               aria-label={`${i + 1}번째 사진으로`}
               className={`relative aspect-square shrink-0 snap-center overflow-hidden rounded transition-all ${
                 active
-                  ? 'ring-2 ring-[var(--mw-accent)] ring-offset-2 ring-offset-transparent'
+                  ? 'ring-1 ring-[var(--mw-accent)] ring-offset-1 ring-offset-transparent'
                   : 'opacity-60 hover:opacity-100'
               }`}
               style={{ width: 'calc((100% - 4 * 0.375rem) / 5)' }}
@@ -145,12 +170,12 @@ function GalleryGrid({ images }: { images: string[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* 상단 큰 사진 */}
+      {/* 상단 큰 사진 — z-20 으로 배경 효과 위로 올려 사진 위에 효과가 떨어지지 않게. */}
       <button
         type="button"
         onClick={() => setLightbox(true)}
         aria-label="선택된 사진 확대"
-        className="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-black/5"
+        className="relative z-20 aspect-[3/4] w-full overflow-hidden rounded-md bg-black/5"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -164,9 +189,7 @@ function GalleryGrid({ images }: { images: string[] }) {
         </span>
       </button>
 
-      {/* 하단 그리드 — 클릭 시 상단 사진 교체. data-noswipe 으로 외부 슬라이드 컨테이너의
-          세로 스와이프와 분리되지는 않고 (그리드는 가로/세로 어디로 스와이프해도 페이지 변경
-          되어도 무방), 그리드 안에서는 스크롤 안 함. */}
+      {/* 하단 그리드 — 클릭 시 상단 사진 교체. */}
       <ul className="grid grid-cols-3 gap-1">
         {images.map((url, i) => {
           const active = i === selected;
@@ -178,7 +201,7 @@ function GalleryGrid({ images }: { images: string[] }) {
                 aria-label={`${i + 1}번째 사진 선택`}
                 className={`block aspect-square w-full overflow-hidden transition-all ${
                   active
-                    ? 'ring-2 ring-[var(--mw-accent)] ring-offset-1 ring-offset-transparent'
+                    ? 'ring-1 ring-[var(--mw-accent)] ring-offset-1 ring-offset-transparent'
                     : ''
                 }`}
               >
