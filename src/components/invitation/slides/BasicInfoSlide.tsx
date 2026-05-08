@@ -1,4 +1,8 @@
-import type { InvitationContent } from '@/types/invitation';
+import {
+  reconcileBasicSubOrder,
+  type BasicSubKey,
+  type InvitationContent,
+} from '@/types/invitation';
 
 interface Props {
   basic: InvitationContent['basic'];
@@ -20,6 +24,9 @@ export function BasicInfoSlide({ basic, groomName, brideName, weddingDate }: Pro
   const hasNames = hasGroomName || hasBrideName;
   const hasFamily = familyOn && (groomFamily || brideFamily);
 
+  // 사용자가 에디터에서 정한 순서 그대로. 빈 키는 reconcile 이 자동 보충.
+  const order = reconcileBasicSubOrder(basic.subOrder);
+
   // If everything inside is off/empty, render a quiet placeholder so the slide
   // doesn't appear as a blank panel.
   if (!hasQuote && !hasGreeting && !hasNames && !hasFamily && !showDate) {
@@ -30,6 +37,50 @@ export function BasicInfoSlide({ basic, groomName, brideName, weddingDate }: Pro
     );
   }
 
+  const renderSub = (key: BasicSubKey) => {
+    if (key === 'quote' && hasQuote) {
+      return (
+        <blockquote
+          key={key}
+          className="mx-auto max-w-md text-sm italic leading-relaxed opacity-90"
+        >
+          “{basic.quote.text}”
+        </blockquote>
+      );
+    }
+    if (key === 'greeting' && hasGreeting) {
+      return (
+        <p
+          key={key}
+          className="mx-auto max-w-md whitespace-pre-line text-sm leading-relaxed opacity-90"
+        >
+          {basic.greeting.text}
+        </p>
+      );
+    }
+    if (key === 'family' && (hasNames || hasFamily)) {
+      return (
+        <NamesSection
+          key={key}
+          familyOn={familyOn}
+          groomFamily={groomFamily}
+          brideFamily={brideFamily}
+          groomName={groomName}
+          brideName={brideName}
+        />
+      );
+    }
+    if (key === 'date' && showDate && weddingDate) {
+      return (
+        <div key={key} className="flex flex-col items-center gap-1">
+          <p className="text-xs tracking-[0.3em] opacity-70">WEDDING DAY</p>
+          <p className="text-base tracking-widest">{formatDate(weddingDate)}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <section className="flex min-h-full flex-col gap-10 px-6 py-16 text-center">
       <header className="flex flex-col items-center gap-1.5">
@@ -37,36 +88,7 @@ export function BasicInfoSlide({ basic, groomName, brideName, weddingDate }: Pro
         <h2 className="text-xl font-light">우리 결혼합니다</h2>
       </header>
 
-      {/* Order: 글귀 → 인사말 → 이름 → 날짜 */}
-
-      {hasQuote && (
-        <blockquote className="mx-auto max-w-md text-sm italic leading-relaxed opacity-90">
-          “{basic.quote.text}”
-        </blockquote>
-      )}
-
-      {hasGreeting && (
-        <p className="mx-auto max-w-md whitespace-pre-line text-sm leading-relaxed opacity-90">
-          {basic.greeting.text}
-        </p>
-      )}
-
-      {(hasNames || hasFamily) && (
-        <NamesSection
-          familyOn={familyOn}
-          groomFamily={groomFamily}
-          brideFamily={brideFamily}
-          groomName={groomName}
-          brideName={brideName}
-        />
-      )}
-
-      {showDate && weddingDate && (
-        <div className="flex flex-col items-center gap-1">
-          <p className="text-xs tracking-[0.3em] opacity-70">WEDDING DAY</p>
-          <p className="text-base tracking-widest">{formatDate(weddingDate)}</p>
-        </div>
-      )}
+      {order.map((k) => renderSub(k))}
     </section>
   );
 }
