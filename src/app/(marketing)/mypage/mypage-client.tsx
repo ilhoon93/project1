@@ -4,15 +4,25 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { COLOR_THEME_LABELS, type ColorTheme } from '@/lib/theme';
 
 export interface MyPagePublication {
   id: string;
   invitation_id: string;
   slug: string;
+  owner_token: string;
   published_at: string;
   expires_at: string;
   revoked_at: string | null;
 }
+
+const LAYOUT_LABELS: Record<string, string> = {
+  poster: '포스터',
+  frame: '액자프레임',
+  polaroid: '액자프레임 (폴라로이드)',
+  illustration: '일러스트',
+  text: '텍스트',
+};
 
 export interface MyPageInvitation {
   id: string;
@@ -27,6 +37,10 @@ export interface MyPageInvitation {
   createdAt: string;
   /** Main slide hero image (thumbnail). Null when not uploaded yet. */
   heroImage: string | null;
+  /** 메인 화면 레이아웃 키 (poster / frame / illustration / text 등). */
+  layout: string | null;
+  /** 디자인 색상 테마 키 (cream / sky / lavender 등). */
+  colorTheme: string | null;
   publications: MyPagePublication[];
 }
 
@@ -314,6 +328,21 @@ function SavedRow({
                 {inv.weddingDate ?? '결혼식 날짜 미정'}
                 {' · '}최종 수정 {formatDate(inv.updatedAt)}
               </p>
+              {/* 레이아웃 + 디자인 색 — 작은 메타 라벨로 한 줄 표시. */}
+              {(inv.layout || inv.colorTheme) && (
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+                  {inv.layout && (
+                    <span className="rounded-full bg-[#F4EBDC] px-2 py-0.5 text-[#5C4633]">
+                      {LAYOUT_LABELS[inv.layout] ?? inv.layout}
+                    </span>
+                  )}
+                  {inv.colorTheme && (
+                    <span className="rounded-full bg-[#F4EBDC] px-2 py-0.5 text-[#5C4633]">
+                      {COLOR_THEME_LABELS[inv.colorTheme as ColorTheme] ?? inv.colorTheme}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             <span
               className={`shrink-0 rounded-full px-2 py-0.5 text-xs ring-1 ${
@@ -327,18 +356,19 @@ function SavedRow({
           </div>
 
           {latest && (
-            <div className="rounded-md bg-[#FAF7F2] px-3 py-2 text-xs">
-              <p className="text-[#5C4633]">
-                공개 URL:{' '}
-                <Link
-                  href={`/${latest.slug}`}
-                  className="font-mono text-[#8B7355] underline"
-                  target="_blank"
-                >
-                  /{latest.slug}
-                </Link>
-              </p>
-              <p className="mt-1 text-muted-foreground">
+            <div className="flex flex-col gap-2 rounded-md bg-[#FAF7F2] px-3 py-2 text-xs">
+              <UrlRow
+                label="하객용"
+                href={`/${latest.slug}`}
+                copyText={absoluteUrl(`/${latest.slug}`)}
+              />
+              <UrlRow
+                label="신랑신부 소장용"
+                href={`/${latest.slug}/o/${latest.owner_token}`}
+                copyText={absoluteUrl(`/${latest.slug}/o/${latest.owner_token}`)}
+                hint="메시지·서명·통계가 모두 보이는 본인 전용 URL"
+              />
+              <p className="text-muted-foreground">
                 {daysRemaining(latest.expires_at)}일 후 만료 ·{' '}
                 {formatDate(latest.expires_at)}까지 공개
               </p>
@@ -396,6 +426,58 @@ function SavedRow({
         </details>
       )}
     </li>
+  );
+}
+
+// ── URL 표시 + 복사 버튼 ────────────────────────────────────
+
+function absoluteUrl(path: string): string {
+  if (typeof window !== 'undefined') return `${window.location.origin}${path}`;
+  return path;
+}
+
+function UrlRow({
+  label,
+  href,
+  copyText,
+  hint,
+}: {
+  label: string;
+  href: string;
+  copyText: string;
+  hint?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(copyText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // ignore
+    }
+  };
+  return (
+    <div className="flex flex-col gap-0.5">
+      <div className="flex flex-wrap items-center gap-2 text-[#5C4633]">
+        <span className="shrink-0 font-medium">{label}</span>
+        <Link
+          href={href}
+          target="_blank"
+          className="min-w-0 truncate font-mono text-[#8B7355] underline"
+        >
+          {href}
+        </Link>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="ml-auto rounded-md border border-[#D4C5B0] bg-white px-2 py-0.5 text-[10px] font-medium text-[#5C4633] hover:bg-[#FAF7F2]"
+        >
+          {copied ? '복사됨' : '복사'}
+        </button>
+      </div>
+      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+    </div>
   );
 }
 

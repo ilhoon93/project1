@@ -290,6 +290,7 @@ export type Database = {
           invitation_id: string;
           user_id: string;
           slug: string;
+          owner_token: string;
           groom_name: string;
           bride_name: string;
           wedding_date: string | null;
@@ -305,6 +306,7 @@ export type Database = {
           invitation_id: string;
           user_id: string;
           slug: string;
+          owner_token: string;
           groom_name: string;
           bride_name: string;
           wedding_date?: string | null;
@@ -316,6 +318,34 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['publications']['Insert']>;
+        Relationships: [];
+      };
+      invitation_cheers: {
+        Row: {
+          invitation_id: string;
+          cheers_count: number;
+          updated_at: string;
+        };
+        Insert: {
+          invitation_id: string;
+          cheers_count?: number;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['invitation_cheers']['Insert']>;
+        Relationships: [];
+      };
+      gallery_likes: {
+        Row: {
+          invitation_id: string;
+          image_index: number;
+          like_count: number;
+        };
+        Insert: {
+          invitation_id: string;
+          image_index: number;
+          like_count?: number;
+        };
+        Update: Partial<Database['public']['Tables']['gallery_likes']['Insert']>;
         Relationships: [];
       };
       naver_accounts: {
@@ -374,6 +404,18 @@ export type Database = {
       publish_invitation_v2: {
         Args: { inv_id: string; new_slug: string };
         Returns: Json;
+      };
+      publish_invitation_v3: {
+        Args: { inv_id: string; new_slug: string; new_owner_tok: string };
+        Returns: Json;
+      };
+      bump_cheers: {
+        Args: { inv_id: string };
+        Returns: number;
+      };
+      bump_gallery_like: {
+        Args: { inv_id: string; img_idx: number };
+        Returns: number;
       };
       publish_credits_balance: {
         Args: { uid: string };

@@ -14,6 +14,21 @@ import { GuestbookSlide } from './slides/GuestbookSlide';
 import { AccountSlide } from './slides/AccountSlide';
 import { ClosingSlide } from './slides/ClosingSlide';
 
+export interface OwnerData {
+  cheersCount: number;
+  galleryLikes: Record<number, number>;
+  quizPicks: { question_index: number; selected_option: number; is_correct: boolean }[];
+  votePicks: { question_index: number; selected_option: number }[];
+  messages: { id: string; visitor_name: string | null; message: string; created_at: string }[];
+  signatures: {
+    id: string;
+    visitor_name: string | null;
+    visitor_side: 'groom' | 'bride' | null;
+    signature_data_url: string | null;
+    created_at: string;
+  }[];
+}
+
 interface Props {
   invitationId: string;
   groomName: string;
@@ -26,6 +41,9 @@ interface Props {
    * 좌측 미리보기 패널처럼 화면 일부에 띄울 때 사용.
    */
   scoped?: boolean;
+  /** owner 모드 — 신랑신부 전용 소장용 뷰. quiz/vote 통계, 방명록·서명 모음 표시. */
+  mode?: 'guest' | 'owner';
+  ownerData?: OwnerData;
 }
 
 export function InvitationSlides({
@@ -36,6 +54,8 @@ export function InvitationSlides({
   content,
   isPreview,
   scoped,
+  mode = 'guest',
+  ownerData,
 }: Props) {
   const storyHasContent = content.story.chapters.some(
     (c) => c.title.trim() || c.text.trim() || c.image,
@@ -50,11 +70,15 @@ export function InvitationSlides({
   const slidesByKey: Record<SectionKey, ReactNode | null> = {
     main: (
       <MainSlide
+        invitationId={invitationId}
         groomName={groomName}
         brideName={brideName}
         weddingDate={weddingDate}
         main={content.main}
+        isPreview={isPreview}
         scoped={scoped}
+        mode={mode}
+        cheersCount={ownerData?.cheersCount ?? 0}
       />
     ),
     basic: content.basic.enabled ? (
@@ -69,24 +93,47 @@ export function InvitationSlides({
       content.story.enabled && storyHasContent ? (
         <StorySlide story={content.story} />
       ) : null,
-    gallery: content.gallery.enabled ? <GallerySlide gallery={content.gallery} /> : null,
+    gallery: content.gallery.enabled ? (
+      <GallerySlide
+        gallery={content.gallery}
+        invitationId={invitationId}
+        isPreview={isPreview}
+        mode={mode}
+        initialLikes={ownerData?.galleryLikes}
+      />
+    ) : null,
     video:
       content.video.enabled && content.video.url ? (
         <VideoSlide video={content.video} />
       ) : null,
     quiz:
       content.quiz.enabled && quizHasPlayable ? (
-        <QuizSlide quiz={content.quiz} invitationId={invitationId} isPreview={isPreview} />
+        <QuizSlide
+          quiz={content.quiz}
+          invitationId={invitationId}
+          isPreview={isPreview}
+          mode={mode}
+          ownerPicks={ownerData?.quizPicks}
+        />
       ) : null,
     vote:
       content.vote.enabled && voteHasPlayable ? (
-        <VoteSlide vote={content.vote} invitationId={invitationId} isPreview={isPreview} />
+        <VoteSlide
+          vote={content.vote}
+          invitationId={invitationId}
+          isPreview={isPreview}
+          mode={mode}
+          ownerPicks={ownerData?.votePicks}
+        />
       ) : null,
     guestbook: content.guestbook.enabled ? (
       <GuestbookSlide
         guestbook={content.guestbook}
         invitationId={invitationId}
         isPreview={isPreview}
+        mode={mode}
+        ownerMessages={ownerData?.messages}
+        ownerSignatures={ownerData?.signatures}
       />
     ) : null,
     account:
