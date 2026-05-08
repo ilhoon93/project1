@@ -41,7 +41,8 @@ export default async function CertificatePage({ params }: PageProps) {
 
   const slug = pubs?.[0]?.slug ?? null;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? '';
-  const invitationUrl = slug ? `${baseUrl}/${slug}` : null;
+  const invitationPath = slug ? `/${slug}` : null;
+  const invitationUrl = slug && baseUrl ? `${baseUrl}${invitationPath}` : null;
 
   return (
     <CertificateView
@@ -49,6 +50,7 @@ export default async function CertificatePage({ params }: PageProps) {
       brideName={inv.bride_name || '신부'}
       weddingDate={inv.wedding_date}
       invitationUrl={invitationUrl}
+      invitationPath={invitationPath}
     />
   );
 }
