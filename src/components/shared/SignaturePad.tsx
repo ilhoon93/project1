@@ -105,8 +105,22 @@ export const SignaturePad = forwardRef<SignaturePadHandle, Props>(function Signa
 
   useImperativeHandle(ref, () => ({
     toDataURL: () => {
-      if (isEmpty || !canvasRef.current) return null;
-      return canvasRef.current.toDataURL('image/png');
+      const src = canvasRef.current;
+      if (isEmpty || !src) return null;
+      // Retina(DPR×2~3) 비트맵을 그대로 직렬화하면 200KB+ 가 되어 서버 한도에 걸리므로,
+      // 최대 가로 600px 의 작은 캔버스로 다운스케일 후 PNG 로 직렬화한다.
+      const MAX_W = 600;
+      const ratio = src.height / src.width;
+      const outW = Math.min(MAX_W, src.width);
+      const outH = Math.round(outW * ratio);
+      const out = document.createElement('canvas');
+      out.width = outW;
+      out.height = outH;
+      const ctx = out.getContext('2d');
+      if (!ctx) return src.toDataURL('image/png');
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(src, 0, 0, outW, outH);
+      return out.toDataURL('image/png');
     },
     clear: () => {
       const canvas = canvasRef.current;
