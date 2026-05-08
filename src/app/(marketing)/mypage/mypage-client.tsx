@@ -361,10 +361,7 @@ function SavedRow({
 
   return (
     <li className="flex flex-col gap-3 rounded-lg bg-white p-4 ring-1 ring-[#D4C5B0]">
-      <div className="flex items-start gap-3">
-        {/* 썸네일 — 메인 사진(heroImage) 가 있으면 그걸로, 없으면 placeholder 카드. */}
-        <InvitationThumbnail src={inv.heroImage} title={title} />
-
+      <div className="flex flex-col gap-2">
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex items-start justify-between gap-2">
             <div className="flex min-w-0 flex-col">
@@ -580,25 +577,6 @@ function ArchiveActionButton({
 }
 
 // ── 썸네일 / 혼인서약서 PDF 버튼 ────────────────────────────
-
-/**
- * 알림장 썸네일 — 메인 사진(heroImage) 이 있으면 9:16 박스에 cover 로 보여주고,
- * 없으면 신랑 · 신부 이니셜 placeholder 카드.
- */
-function InvitationThumbnail({ src, title }: { src: string | null; title: string }) {
-  return (
-    <div className="aspect-[9/16] w-16 shrink-0 overflow-hidden rounded-md bg-[#F4EBDC] ring-1 ring-[#D4C5B0] sm:w-20">
-      {src ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={`${title} 메인 사진`} className="h-full w-full object-cover" />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center text-[10px] text-[#8B7355]">
-          미리보기
-        </div>
-      )}
-    </div>
-  );
-}
 
 /**
  * 혼인서약서 PDF 다운로드 버튼.

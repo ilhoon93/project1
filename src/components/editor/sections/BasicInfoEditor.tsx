@@ -2,8 +2,8 @@
 
 import { useEditorStore } from '@/stores/editor';
 import { SectionEditor } from '../SectionEditor';
-import { TextField } from '../form-fields';
-import { PresetTextArea } from '../PresetTextArea';
+import { TextField, TextAreaField } from '../form-fields';
+import { PresetPickerButton } from '../PresetTextArea';
 import { BASIC_GREETING_PRESETS, QUOTE_PRESETS } from '@/lib/presets';
 import {
   reconcileBasicSubOrder,
@@ -43,6 +43,25 @@ export function BasicInfoEditor() {
   const renderSub = (key: BasicSubKey, i: number) => {
     const isFirst = i === 0;
     const isLast = i === order.length - 1;
+    // 인사말 / 글귀는 SubHeader 우측(토글 옆) 에 추천 버튼을 배치한다.
+    const presetSlot =
+      key === 'greeting' ? (
+        <PresetPickerButton
+          label="추천 인사말"
+          presets={BASIC_GREETING_PRESETS}
+          value={basic.greeting.text}
+          onPick={(next) => set({ ...basic, greeting: { ...basic.greeting, text: next } })}
+          size="xs"
+        />
+      ) : key === 'quote' ? (
+        <PresetPickerButton
+          label="추천 글귀"
+          presets={QUOTE_PRESETS}
+          value={basic.quote.text}
+          onPick={(next) => set({ ...basic, quote: { ...basic.quote, text: next } })}
+          size="xs"
+        />
+      ) : null;
     const header = (
       <SubHeader
         title={SUB_LABELS[key]}
@@ -51,6 +70,7 @@ export function BasicInfoEditor() {
         isFirst={isFirst}
         isLast={isLast}
         onMove={(dir) => moveSub(key, dir)}
+        action={presetSlot}
       />
     );
 
@@ -136,17 +156,15 @@ export function BasicInfoEditor() {
       return (
         <SubBox key={key} header={header}>
           {basic.greeting.enabled && (
-            <PresetTextArea
+            <TextAreaField
               label=""
               value={basic.greeting.text}
               maxLength={500}
               rows={4}
               placeholder="저희 결혼식에 함께해주세요. (결혼식이 따로 없을 경우 그 사실을 적어주셔도 됩니다)"
-              onChange={(next) =>
-                set({ ...basic, greeting: { ...basic.greeting, text: next } })
+              onChange={(e) =>
+                set({ ...basic, greeting: { ...basic.greeting, text: e.target.value } })
               }
-              presets={BASIC_GREETING_PRESETS}
-              presetLabel="추천 인사말"
             />
           )}
         </SubBox>
@@ -156,17 +174,15 @@ export function BasicInfoEditor() {
     return (
       <SubBox key={key} header={header}>
         {basic.quote.enabled && (
-          <PresetTextArea
+          <TextAreaField
             label=""
             value={basic.quote.text}
             maxLength={200}
             rows={2}
             placeholder="짧은 한 줄 글귀를 적어주세요"
-            onChange={(next) =>
-              set({ ...basic, quote: { ...basic.quote, text: next } })
+            onChange={(e) =>
+              set({ ...basic, quote: { ...basic.quote, text: e.target.value } })
             }
-            presets={QUOTE_PRESETS}
-            presetLabel="추천 글귀"
           />
         )}
       </SubBox>
@@ -229,6 +245,7 @@ function SubHeader({
   isFirst,
   isLast,
   onMove,
+  action,
 }: {
   title: string;
   enabled: boolean;
@@ -236,34 +253,40 @@ function SubHeader({
   isFirst: boolean;
   isLast: boolean;
   onMove: (dir: -1 | 1) => void;
+  /** 토글 좌측에 배치되는 추가 액션(예: 추천 문구 버튼). */
+  action?: React.ReactNode;
 }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <div className="flex items-center gap-1">
+      <div className="flex min-w-0 items-center gap-1">
         <ArrowButton label={`${title} 위로`} disabled={isFirst} onClick={() => onMove(-1)}>
           ↑
         </ArrowButton>
         <ArrowButton label={`${title} 아래로`} disabled={isLast} onClick={() => onMove(1)}>
           ↓
         </ArrowButton>
-        <h3 className="ml-2 text-sm font-medium">{title}</h3>
+        <h3 className="ml-2 truncate text-sm font-medium">{title}</h3>
       </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={enabled}
-        aria-label={`${title} 사용 여부`}
-        onClick={() => onToggle(!enabled)}
-        className={`inline-flex h-5 w-9 shrink-0 items-center overflow-hidden rounded-full p-0.5 transition-colors ${
-          enabled ? 'bg-primary' : 'bg-muted-foreground/30'
-        }`}
-      >
-        <span
-          className={`block h-4 w-4 rounded-full bg-background shadow-sm transition-transform ${
-            enabled ? 'translate-x-4' : 'translate-x-0'
+      <div className="flex shrink-0 items-center gap-1.5">
+        {/* 추천 문구 버튼 — 토글 바로 옆 */}
+        {action}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={enabled}
+          aria-label={`${title} 사용 여부`}
+          onClick={() => onToggle(!enabled)}
+          className={`inline-flex h-5 w-9 shrink-0 items-center overflow-hidden rounded-full p-0.5 transition-colors ${
+            enabled ? 'bg-primary' : 'bg-muted-foreground/30'
           }`}
-        />
-      </button>
+        >
+          <span
+            className={`block h-4 w-4 rounded-full bg-background shadow-sm transition-transform ${
+              enabled ? 'translate-x-4' : 'translate-x-0'
+            }`}
+          />
+        </button>
+      </div>
     </div>
   );
 }
