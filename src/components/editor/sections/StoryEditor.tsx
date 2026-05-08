@@ -24,7 +24,7 @@ export function StoryEditor() {
   };
 
   const addChapter = () => {
-    if (story.chapters.length >= 8) return;
+    if (story.chapters.length >= 5) return;
     setChapters([...story.chapters, { title: '', text: '' }]);
   };
 
@@ -43,7 +43,7 @@ export function StoryEditor() {
   return (
     <SectionEditor
       title="우리 이야기"
-      description="제목 · 사진 · 내용을 자유롭게 (최대 8개)"
+      description="제목 · 사진 · 내용을 자유롭게 (최대 5개)"
       toggle={{
         enabled: story.enabled,
         onChange: (next) => patch('story', { ...story, enabled: next }),
@@ -133,7 +133,7 @@ export function StoryEditor() {
           variant="outline"
           size="sm"
           onClick={addChapter}
-          disabled={story.chapters.length >= 8}
+          disabled={story.chapters.length >= 5}
         >
           챕터 추가
         </Button>

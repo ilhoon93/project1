@@ -420,7 +420,7 @@ export const StoryChapterSchema = z.object({
 export const StorySectionSchema = z
   .object({
     enabled: z.boolean().default(true),
-    chapters: z.array(StoryChapterSchema).max(8).default([]),
+    chapters: z.array(StoryChapterSchema).max(5).default([]),
   })
   .default({
     enabled: true,

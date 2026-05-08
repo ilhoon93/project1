@@ -22,7 +22,8 @@ import {
   type TitleFontKey,
 } from '@/lib/theme';
 import { SectionEditor } from '../SectionEditor';
-import { TextAreaField } from '../form-fields';
+import { PresetTextArea } from '../PresetTextArea';
+import { MAIN_GREETING_PRESETS } from '@/lib/presets';
 import { ImageUploader } from '../ImageUploader';
 
 // picker 에는 4가지 상위 레이아웃만 노출한다. 'polaroid' 는 구버전 데이터
@@ -210,13 +211,15 @@ export function MainEditor() {
         {/* 포스터/일러스트/액자프레임 은 각 디자인 패널 내부 "인사말" 그룹에서 작성.
             텍스트 레이아웃만 디자인 패널이 없어 여기서 그대로 노출. */}
         {!isPoster && !isIllustration && !isFrame && (
-          <TextAreaField
+          <PresetTextArea
             label="인사말"
             value={main.greeting}
             maxLength={500}
             rows={4}
             placeholder="저희 두 사람의 약속을 함께 축복해주세요"
-            onChange={(e) => patch('main', { ...main, greeting: e.target.value })}
+            onChange={(next) => patch('main', { ...main, greeting: next })}
+            presets={MAIN_GREETING_PRESETS}
+            presetLabel="추천 인사말"
           />
         )}
       </div>
@@ -467,13 +470,15 @@ function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: 
                 onChange({ ...design, messageBox: { ...design.messageBox, position } })
               }
             />
-            <TextAreaField
+            <PresetTextArea
               label="인사말 내용"
               value={greeting}
               maxLength={500}
               rows={4}
               placeholder="저희 두 사람의 약속을 함께 축복해주세요"
-              onChange={(e) => onGreetingChange(e.target.value)}
+              onChange={onGreetingChange}
+              presets={MAIN_GREETING_PRESETS}
+              presetLabel="추천 인사말"
             />
           </>
         )}
@@ -732,13 +737,15 @@ function IllustrationDesignControls({ design, onChange, greeting, onGreetingChan
             />
           </>
         )}
-        <TextAreaField
+        <PresetTextArea
           label="인사말 내용"
           value={greeting}
           maxLength={500}
           rows={4}
           placeholder="저희 두 사람의 약속을 함께 축복해주세요"
-          onChange={(e) => onGreetingChange(e.target.value)}
+          onChange={onGreetingChange}
+          presets={MAIN_GREETING_PRESETS}
+          presetLabel="추천 인사말"
         />
       </Group>
     </div>
@@ -986,13 +993,15 @@ function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: F
                 onChange({ ...design, messageBox: { ...design.messageBox, offsetY } })
               }
             />
-            <TextAreaField
+            <PresetTextArea
               label="인사말 내용"
               value={greeting}
               maxLength={500}
               rows={4}
               placeholder="저희 두 사람의 약속을 함께 축복해주세요"
-              onChange={(e) => onGreetingChange(e.target.value)}
+              onChange={onGreetingChange}
+              presets={MAIN_GREETING_PRESETS}
+              presetLabel="추천 인사말"
             />
           </>
         )}
