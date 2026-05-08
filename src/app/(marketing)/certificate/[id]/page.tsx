@@ -42,12 +42,18 @@ export default async function CertificatePage({ params }: PageProps) {
   const slug = pubs?.[0]?.slug ?? null;
   const invitationPath = slug ? `/${slug}` : null;
 
+  // QR 코드용 절대 URL — 배포 환경(NEXT_PUBLIC_BASE_URL)이 있으면 그것을 우선 사용.
+  // 로컬 개발 환경에선 비어 있을 수 있고, 그 경우 클라이언트가 window.location.origin
+  // 을 폴백으로 쓰도록 빈 문자열을 내려준다 (localhost QR 스캔 방지가 목적).
+  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL ?? '').replace(/\/$/, '');
+
   return (
     <CertificateView
       groomName={inv.groom_name || '신랑'}
       brideName={inv.bride_name || '신부'}
       weddingDate={inv.wedding_date}
       invitationPath={invitationPath}
+      baseUrl={baseUrl}
     />
   );
 }

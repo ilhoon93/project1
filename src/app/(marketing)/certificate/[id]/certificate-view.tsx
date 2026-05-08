@@ -11,6 +11,12 @@ interface Props {
   weddingDate: string | null;
   /** 모바일 알림장의 슬러그 path (예: '/abcdef'). origin 은 클라이언트가 붙임. */
   invitationPath: string | null;
+  /**
+   * 배포 환경의 절대 base URL (예: 'https://woori-daun.com').
+   * 비어 있으면 클라이언트가 window.location.origin 을 폴백으로 사용.
+   * QR 코드가 'localhost' 로 임베드되는 것을 막기 위해 우선 적용한다.
+   */
+  baseUrl: string;
 }
 
 const VOWS: string[] = [
@@ -28,29 +34,36 @@ const VOWS: string[] = [
  *   - 서약문 → 날짜 → 신랑/신부 서명 (청연체) → 하단 QR 순서
  *   - 중앙 신랑·신부 이름 큰 글씨 섹션 제거 (서명란이 그 역할)
  *
- * 화면 ↔ 이미지 저장 일관성:
- *   html2canvas 가 CSS Container Query 단위(cqw) 를 지원하지 않아
- *   스크린/캡처 결과가 어긋났던 문제를 해결하기 위해 박스 width 를 ResizeObserver
- *   로 측정 후 모든 사이즈를 px 기반 인라인 스타일로 적용.
+ * 화면 ↔ 이미지 저장 ↔ PDF 일관성:
+ *   - 화면: ResizeObserver 로 측정한 px 기반 인라인 스타일.
+ *   - 이미지 저장: 위 DOM 을 html2canvas 로 그대로 캡처.
+ *   - PDF: 같은 캔버스를 pdf-lib 로 A4 페이지에 임베드.
+ *   브라우저 print 다이얼로그(@media print + visibility:hidden) 방식은
+ *   모바일 Safari/Chrome 의 "PDF 로 저장" 흐름에서 헤더/버튼이 같이 캡처되고
+ *   빈 2 페이지가 추가되는 문제가 있어 폐기. 캔버스 기반은 페이지 외부 요소가
+ *   절대 들어갈 일이 없고 이미지 저장과 픽셀 단위로 동일한 결과를 보장.
  */
 export function CertificateView({
   groomName,
   brideName,
   weddingDate,
   invitationPath,
+  baseUrl,
 }: Props) {
   const router = useRouter();
   const certRef = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(420);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<null | 'image' | 'pdf'>(null);
   const [qrValue, setQrValue] = useState<string | null>(null);
 
-  // QR — 마이페이지의 하객용 URL과 동일한 origin 사용 (서버에서 절대 URL 만들면
-  // localhost 같은 잘못된 값이 들어갈 수 있어 클라이언트 window.location.origin 만 신뢰).
+  // QR — 서버에서 내려온 baseUrl 이 있으면 우선 사용. localhost / 개발 IP 환경에서
+  // window.location.origin 을 그대로 쓰면 하객이 QR 을 찍었을 때 접근 불가 URL
+  // (localhost:3000 등) 로 연결되므로, 배포 origin 을 강제 우선시한다.
   useEffect(() => {
     if (!invitationPath || typeof window === 'undefined') return;
-    setQrValue(`${window.location.origin}${invitationPath}`);
-  }, [invitationPath]);
+    const origin = baseUrl && baseUrl.length > 0 ? baseUrl : window.location.origin;
+    setQrValue(`${origin}${invitationPath}`);
+  }, [invitationPath, baseUrl]);
 
   // ResizeObserver — cert 박스 width 를 측정해 px 단위 스케일 기준값으로 사용.
   useLayoutEffect(() => {
@@ -69,50 +82,101 @@ export function CertificateView({
   /** 박스 width 의 N% 에 해당하는 px 값. cqw 와 동일한 의미. */
   const px = (cqw: number) => (cqw / 100) * w;
 
-  const handleSaveImage = async () => {
+  /** 인쇄/저장용 캔버스를 만든다 — 이미지/PDF 양쪽이 공유. */
+  const renderCanvas = async (): Promise<HTMLCanvasElement> => {
     const node = certRef.current;
-    if (!node || busy) return;
-    setBusy(true);
+    if (!node) throw new Error('cert node not ready');
+    return await html2canvas(node, {
+      backgroundColor: '#ffffff',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      // width/height/window* 옵션을 명시하면 일부 브라우저에서 캔버스가 잘못
+      // 계산되어 콘텐츠가 좌상단에 치우치는 문제 발생. 기본값(요소 자체 크기)에
+      // 맡기는 게 가장 안정적. scroll 도 0 으로 맞춰 오프셋 제거.
+      scrollX: 0,
+      scrollY: -window.scrollY,
+    });
+  };
+
+  const triggerDownload = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // 사파리에서 즉시 revoke 하면 다운로드가 취소되는 케이스가 있어 약간 지연.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const handleSaveImage = async () => {
+    if (busy) return;
+    setBusy('image');
     try {
-      const canvas = await html2canvas(node, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        // width/height/window* 옵션을 명시하면 일부 브라우저에서 캔버스가 잘못
-        // 계산되어 콘텐츠가 좌상단에 치우치는 문제 발생. 기본값(요소 자체 크기)에
-        // 맡기는 게 가장 안정적. scroll 도 0 으로 맞춰 오프셋 제거.
-        scrollX: 0,
-        scrollY: -window.scrollY,
-      });
-      const dataUrl = canvas.toDataURL('image/png');
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = `marriage-vow-${groomName}-${brideName}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      const canvas = await renderCanvas();
+      const blob: Blob = await new Promise((resolve, reject) =>
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error('canvas toBlob failed'))),
+          'image/png',
+        ),
+      );
+      triggerDownload(blob, `marriage-vow-${groomName}-${brideName}.png`);
     } catch (err) {
       console.error(err);
       alert('이미지 저장 중 오류가 발생했습니다.');
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
 
-  const handlePrint = async () => {
-    document.body.setAttribute('data-printing', 'cert');
-    const cleanup = () => {
-      document.body.removeAttribute('data-printing');
-      window.removeEventListener('afterprint', cleanup);
-    };
-    window.addEventListener('afterprint', cleanup);
-    // CSS 적용 → cert-print-target 이 210mm 로 확장 → ResizeObserver 가 새 width
-    // 를 감지 → setState → React re-render → 인라인 px 값들이 mm 기준으로
-    // 다시 계산되어야 하므로 짧게 대기 후 print 다이얼로그 호출.
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    await new Promise((r) => setTimeout(r, 80));
-    window.print();
+  const handleSavePdf = async () => {
+    if (busy) return;
+    setBusy('pdf');
+    try {
+      const canvas = await renderCanvas();
+      // pdf-lib 는 SSR/Node 모듈 로드를 피하려고 동적 import — 클라이언트 번들에
+      // 포함되어 자동 코드 스플릿됨.
+      const { PDFDocument } = await import('pdf-lib');
+      const pdf = await PDFDocument.create();
+      // A4 (210 × 297mm) — pdf-lib 단위는 pt (1mm = 2.83465pt).
+      const A4_W = 595.28;
+      const A4_H = 841.89;
+      const page = pdf.addPage([A4_W, A4_H]);
+
+      const pngBytes = await new Promise<Uint8Array>((resolve, reject) => {
+        canvas.toBlob(async (blob) => {
+          if (!blob) return reject(new Error('canvas toBlob failed'));
+          const buf = await blob.arrayBuffer();
+          resolve(new Uint8Array(buf));
+        }, 'image/png');
+      });
+      const png = await pdf.embedPng(pngBytes);
+
+      // 캔버스 종횡비를 유지한 채 A4 안에 'contain' 으로 맞춤.
+      // 화면 cert 의 aspectRatio 가 210/297 이라 사실상 위/아래 여백 없이 꽉 참.
+      const cw = png.width;
+      const ch = png.height;
+      const scale = Math.min(A4_W / cw, A4_H / ch);
+      const drawW = cw * scale;
+      const drawH = ch * scale;
+      const x = (A4_W - drawW) / 2;
+      const y = (A4_H - drawH) / 2;
+      page.drawImage(png, { x, y, width: drawW, height: drawH });
+
+      const bytes = await pdf.save();
+      // pdf.save() 는 Uint8Array 를 반환 — Blob 으로 감싸 다운로드.
+      // ArrayBuffer 뷰 (SharedArrayBuffer 가능성) 를 BlobPart 로 안전하게 전달하기
+      // 위해 새 Uint8Array(bytes) 로 분리 복사 후 전달.
+      const blob = new Blob([new Uint8Array(bytes)], { type: 'application/pdf' });
+      triggerDownload(blob, `marriage-vow-${groomName}-${brideName}.pdf`);
+    } catch (err) {
+      console.error(err);
+      alert('PDF 저장 중 오류가 발생했습니다.');
+    } finally {
+      setBusy(null);
+    }
   };
 
   const dateText = weddingDate ? formatKoreanDate(weddingDate) : '';
@@ -132,23 +196,24 @@ export function CertificateView({
           <button
             type="button"
             onClick={handleSaveImage}
-            disabled={busy}
+            disabled={busy !== null}
             className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium text-stone-800 hover:bg-stone-50 disabled:opacity-50"
           >
-            {busy ? '저장 중...' : '이미지 저장'}
+            {busy === 'image' ? '저장 중...' : '이미지 저장'}
           </button>
           <button
             type="button"
-            onClick={handlePrint}
-            className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
+            onClick={handleSavePdf}
+            disabled={busy !== null}
+            className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800 disabled:opacity-50"
           >
-            인쇄 / PDF
+            {busy === 'pdf' ? '생성 중...' : 'PDF 저장'}
           </button>
         </div>
       </div>
 
       <div
-        className="cert-print-target mx-auto"
+        className="mx-auto"
         style={{ width: '100%', maxWidth: 'min(92vw, 420px)' }}
       >
         <article
@@ -335,48 +400,6 @@ export function CertificateView({
           </div>
         </article>
       </div>
-
-      {/* 인쇄 격리 — visibility 기반.
-          marketing layout 의 header (마이페이지/로그아웃 버튼) 가 cert-shell 의
-          ancestor 라서 display:none 으로는 못 가린다. 모든 요소를 일단
-          visibility:hidden 처리한 뒤 cert-print-target 과 그 자손만 보이게 하면
-          ancestor 들의 box 는 자리만 차지하고 시각적으로는 사라짐. */}
-      <style jsx global>{`
-        @media print {
-          @page {
-            size: A4;
-            margin: 0;
-          }
-        }
-        body[data-printing='cert'] {
-          background: #fff !important;
-        }
-        body[data-printing='cert'] * {
-          visibility: hidden !important;
-          box-shadow: none !important;
-        }
-        body[data-printing='cert'] .cert-print-target,
-        body[data-printing='cert'] .cert-print-target * {
-          visibility: visible !important;
-        }
-        body[data-printing='cert'] .cert-print-target {
-          position: fixed !important;
-          top: 0 !important;
-          left: 0 !important;
-          width: 210mm !important;
-          height: 297mm !important;
-          max-width: none !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          background: #fff !important;
-        }
-        body[data-printing='cert'] .cert-page {
-          width: 210mm !important;
-          height: 297mm !important;
-          box-shadow: none !important;
-          page-break-after: avoid;
-        }
-      `}</style>
     </div>
   );
 }
