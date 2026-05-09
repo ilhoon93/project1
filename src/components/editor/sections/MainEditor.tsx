@@ -544,7 +544,7 @@ const ILLUST_VARIANT_LABELS: Record<IllustrationVariant, { name: string; hint: s
   arch: { name: '꽃 아치', hint: '플로럴 아치 + 손잡은 커플' },
   dance: { name: '슬로우 댄스', hint: '댄스 포즈 + 골드 스파클' },
   hanbok: { name: '한복', hint: '전통 한복 차림의 신랑·신부' },
-  ani: { name: '애니', hint: '귀여운 일러스트 스타일' },
+  ani: { name: '애니메이션', hint: '귀여운 일러스트 스타일' },
 };
 
 function IllustrationDesignControls({ design, onChange, greeting, onGreetingChange }: IllustProps) {
@@ -856,7 +856,8 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
         />
       </Group>
 
-      {/* 날짜 — 토글 + 글자 크기/상하 위치 */}
+      {/* 날짜 — 토글 + 글자 크기/상하 위치. 풀너비 데코 위로 올릴 수 있도록
+          상하 위치 범위를 ±50cqh 로 확장. */}
       <Group
         label="날짜"
         toggle={{
@@ -866,7 +867,7 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
         }}
       >
         <p className="text-xs text-muted-foreground">
-          데코 아래 표시됩니다. 폰트·색상은 전체 디자인을 따릅니다.
+          데코 아래에 기본 위치. 상하 위치 슬라이더로 데코 위까지 올릴 수 있어요.
         </p>
         {design.dateBox.enabled && (
           <>
@@ -883,8 +884,8 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
             <SliderRow
               label="상하 위치"
               value={design.dateBox.offsetY}
-              min={-10}
-              max={10}
+              min={-50}
+              max={50}
               leftHint="상"
               rightHint="하"
               onChange={(offsetY) =>
@@ -895,7 +896,7 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
         )}
       </Group>
 
-      {/* 이름 — 토글 + 글자 크기/상하 위치 */}
+      {/* 이름 — 토글 + 정렬(한 줄/두 줄) + 순서(신부 먼저) + 글자 크기/상하 위치 */}
       <Group
         label="이름"
         toggle={{
@@ -905,10 +906,43 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
         }}
       >
         <p className="text-xs text-muted-foreground">
-          신랑·신부 이름이 데코 아래 표시됩니다.
+          데코 아래에 기본 위치. 상하 위치로 데코 위까지 올릴 수 있고, 신랑·신부
+          접두어는 표시되지 않습니다.
         </p>
         {design.nameBox.enabled && (
           <>
+            {/* 정렬 — 한 줄(신랑 · 신부) vs 두 줄(위·아래 중앙 정렬) */}
+            <div className="flex flex-col gap-1.5 text-xs">
+              <span className="text-muted-foreground">정렬</span>
+              <div className="grid grid-cols-2 gap-2">
+                <NameLayoutButton
+                  selected={design.nameBox.layout === 'inline'}
+                  onClick={() =>
+                    onChange({ ...design, nameBox: { ...design.nameBox, layout: 'inline' } })
+                  }
+                  title="한 줄"
+                  hint="신랑 · 신부"
+                />
+                <NameLayoutButton
+                  selected={design.nameBox.layout === 'stack'}
+                  onClick={() =>
+                    onChange({ ...design, nameBox: { ...design.nameBox, layout: 'stack' } })
+                  }
+                  title="위·아래"
+                  hint={'신랑\n신부'}
+                />
+              </div>
+            </div>
+
+            <ToggleRow
+              label="신부 이름 먼저"
+              hint="신부 → 신랑 순서로 표시"
+              checked={design.nameBox.brideFirst}
+              onChange={(v) =>
+                onChange({ ...design, nameBox: { ...design.nameBox, brideFirst: v } })
+              }
+            />
+
             <SliderRow
               label="글자 크기"
               value={design.nameBox.fontSize}
@@ -922,8 +956,8 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
             <SliderRow
               label="상하 위치"
               value={design.nameBox.offsetY}
-              min={-10}
-              max={10}
+              min={-50}
+              max={50}
               leftHint="상"
               rightHint="하"
               onChange={(offsetY) =>
@@ -944,7 +978,7 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
         }}
       >
         <p className="text-xs text-muted-foreground">
-          제목 바로 아래 부제 자리에 표시됩니다.
+          제목 바로 아래 부제 자리. 상하 위치로 데코 위까지 내릴 수 있어요.
         </p>
         {design.messageBox.enabled && (
           <>
@@ -961,8 +995,8 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
             <SliderRow
               label="상하 위치"
               value={design.messageBox.offsetY}
-              min={-10}
-              max={10}
+              min={-50}
+              max={50}
               leftHint="상"
               rightHint="하"
               onChange={(offsetY) =>
@@ -983,6 +1017,41 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
         />
       </Group>
     </div>
+  );
+}
+
+// 텍스트형 이름 정렬 옵션 버튼 — "한 줄" / "위·아래" 두 가지 중 선택.
+function NameLayoutButton({
+  selected,
+  onClick,
+  title,
+  hint,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  title: string;
+  hint: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={`flex flex-col items-center gap-0.5 rounded-md border px-2 py-2 text-[11px] transition-colors ${
+        selected
+          ? 'border-foreground bg-foreground text-background'
+          : 'border-input bg-background text-foreground hover:bg-muted'
+      }`}
+    >
+      <span className="font-medium">{title}</span>
+      <span
+        className={`whitespace-pre-line text-center text-[10px] leading-snug ${
+          selected ? 'opacity-80' : 'text-muted-foreground'
+        }`}
+      >
+        {hint}
+      </span>
+    </button>
   );
 }
 

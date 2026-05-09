@@ -12,7 +12,7 @@
 | `illust-arch.png` | `arch` | 꽃 아치 + 손잡고 걷는 신랑·신부 |
 | `illust-dance.png` | `dance` | 댄스 포즈 + 골드 스파클·하트 |
 | `illust-hanbok.png` | `hanbok` | 전통 한복 차림의 신랑·신부 |
-| `illust-ani.png` | `ani` | 귀여운 애니풍 일러스트 |
+| `illust-ani.png` | `ani` | 귀여운 애니메이션 스타일 일러스트 |
 
 ### 텍스트형 (가운데 작은 데코 일러스트)
 
