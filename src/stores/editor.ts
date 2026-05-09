@@ -29,8 +29,21 @@ interface EditorState {
    * 와 동기화된 값으로 다음 hydrate 에서 재평가).
    */
   lastEditedAt: number | null;
+  /**
+   * 마지막 성공한 save 직후의 서버 invitations.updated_at (ISO 문자열).
+   * 다음 hydrate 에서 page 의 serverUpdatedAt prop 과 비교해, 우리 마지막
+   * 저장이 prop 이상이면 prop 이 Next.js Router Cache 의 stale 데이터일
+   * 가능성이 높다고 보고 로컬을 유지한다 — 저장 → 미리보기 → 뒤로가기 시
+   * 캐시된 옛 RSC 가 store 를 덮어쓰는 회귀 방지. init 시에도 함께 갱신.
+   */
+  lastSavedServerTs: string | null;
 
-  init: (id: string, meta: EditorMeta, content: InvitationContent) => void;
+  init: (
+    id: string,
+    meta: EditorMeta,
+    content: InvitationContent,
+    serverUpdatedAt: string | null,
+  ) => void;
   reset: () => void;
 
   patchSection: <K extends keyof InvitationContent>(
@@ -52,8 +65,9 @@ export const useEditorStore = create<EditorState>()(
       lastError: null,
       unsaved: false,
       lastEditedAt: null,
+      lastSavedServerTs: null,
 
-      init: (id, meta, content) =>
+      init: (id, meta, content, serverUpdatedAt) =>
         set({
           invitationId: id,
           meta,
@@ -62,6 +76,7 @@ export const useEditorStore = create<EditorState>()(
           lastError: null,
           unsaved: false,
           lastEditedAt: null,
+          lastSavedServerTs: serverUpdatedAt,
         }),
 
       reset: () =>
@@ -73,6 +88,7 @@ export const useEditorStore = create<EditorState>()(
           lastError: null,
           unsaved: false,
           lastEditedAt: null,
+          lastSavedServerTs: null,
         }),
 
       patchSection: (key, value) =>
@@ -146,10 +162,20 @@ export const useEditorStore = create<EditorState>()(
             const data = await res.json().catch(() => ({}));
             throw new Error(data.error ?? `HTTP ${res.status}`);
           }
-          // 저장 직후엔 lastEditedAt 도 함께 0/null 화 — 이 기기의 다음 마운트에서
+          // PATCH 응답에서 서버 updated_at 을 받아 lastSavedServerTs 에 기록.
+          // 다음 hydrate 가 이 값을 page 의 serverUpdatedAt prop 과 비교해
+          // Router Cache 의 stale RSC 가 로컬을 덮어쓰는 사고를 막는다.
+          const data = await res.json().catch(() => ({} as { invitation?: { updated_at?: string } }));
+          const updatedAt = data?.invitation?.updated_at ?? null;
+          // 저장 직후엔 lastEditedAt 도 함께 null 화 — 이 기기의 다음 마운트에서
           // 서버 updated_at 와 동률(혹은 더 작은) 상태가 되어 자연스럽게 서버
           // 데이터를 받아들이도록.
-          set({ status: 'saved', unsaved: false, lastEditedAt: null });
+          set({
+            status: 'saved',
+            unsaved: false,
+            lastEditedAt: null,
+            lastSavedServerTs: updatedAt,
+          });
         } catch (e) {
           set({
             status: 'error',
@@ -168,6 +194,7 @@ export const useEditorStore = create<EditorState>()(
         content: state.content,
         unsaved: state.unsaved,
         lastEditedAt: state.lastEditedAt,
+        lastSavedServerTs: state.lastSavedServerTs,
       }),
     },
   ),

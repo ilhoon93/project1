@@ -41,15 +41,21 @@ export function EditorClient({
 
   // Hydrate the store with server-provided data on first mount.
   //
-  // 정책 (다른 기기 ↔ 같은 기기 모두 정확히 처리):
+  // 정책 (다른 기기 / 같은 기기 / Router Cache stale 까지 모두 정확히 처리):
   //   1) 청첩장 ID 가 다르거나 로컬에 데이터가 없음 → 서버 데이터로 초기화.
   //   2) 같은 청첩장 + 미저장 편집(unsaved=true) 이면 로컬 lastEditedAt 와 서버
   //      updated_at 을 비교:
   //        - 서버가 더 최신 → 다른 기기에서 저장된 내용이 있음 → 서버 우선.
-  //          (이 기기의 미저장 편집은 폐기. 일반적으로 원치 않는 손실이지만,
-  //           "수정한 게 즉시 보여야 한다" 는 사용자 요구가 더 우선.)
   //        - 로컬이 더 최신 → /preview 다녀온 케이스 등 → 로컬 보존.
-  //   3) 같은 청첩장 + 저장 완료(unsaved=false) → 서버 데이터로 초기화.
+  //   3) 같은 청첩장 + 저장 완료(unsaved=false) 일 때:
+  //        a) 우리 마지막 저장의 서버 updated_at(lastSavedServerTs) 가
+  //           prop.serverUpdatedAt 이상이면 — 즉 서버가 우리 마지막 저장 이후
+  //           바뀌지 않았는데 prop 이 그보다 작거나 같다는 뜻 — prop 은 Router
+  //           Cache 의 stale RSC 일 가능성이 높다. 로컬 유지 (사용자가 방금
+  //           저장한 내용을 캐시로 덮어쓰는 회귀 차단).
+  //        b) 그 외(prop 이 더 최신) → 다른 기기에서 저장된 더 최신본이 있으니
+  //           서버 데이터로 초기화.
+  //   4) 그 외 → 서버 데이터로 초기화.
   //
   // 로컬 content 는 현재 스키마로 한 번 reparse 해 신규 필드도 기본값으로 채운다.
   const hydrated = useRef(false);
@@ -59,25 +65,30 @@ export function EditorClient({
     const current = useEditorStore.getState();
     const sameInvitation = current.invitationId === invitationId && current.content;
 
-    if (sameInvitation && current.unsaved) {
-      const localTs = current.lastEditedAt ?? 0;
-      const serverTs = serverUpdatedAt ? new Date(serverUpdatedAt).getTime() : 0;
-      // 시계 어긋남(기기간) 보정 — 1 분 이내 동률은 로컬 우선 (사용자 작업 보호).
-      const localIsNewer = localTs > serverTs + 60_000;
-      if (localIsNewer) {
-        try {
-          const reparsed = InvitationContentSchema.parse(current.content);
-          if (JSON.stringify(reparsed) !== JSON.stringify(current.content)) {
-            useEditorStore.setState({ content: reparsed });
-          }
-          return;
-        } catch {
-          // 로컬 데이터가 스키마와 맞지 않으면 안전하게 서버 데이터로 폴백.
+    const localContent = current.content;
+    if (sameInvitation && localContent) {
+      const propTs = serverUpdatedAt ? new Date(serverUpdatedAt).getTime() : 0;
+
+      // (2) 미저장 편집 — 1 분 이내 동률은 로컬 우선 (시계 어긋남 보정).
+      if (current.unsaved) {
+        const localEditTs = current.lastEditedAt ?? 0;
+        if (localEditTs > propTs + 60_000) {
+          if (keepLocalContent(localContent)) return;
         }
       }
+
+      // (3a) 저장 완료 + 우리의 마지막 저장이 prop 의 server updated_at 이상.
+      //      prop 이 stale Router Cache 일 가능성이 높음 → 로컬 유지.
+      const lastSavedTs = current.lastSavedServerTs
+        ? new Date(current.lastSavedServerTs).getTime()
+        : 0;
+      if (lastSavedTs > 0 && lastSavedTs >= propTs) {
+        if (keepLocalContent(localContent)) return;
+      }
     }
-    // 신규 청첩장 / 저장 완료 / 서버가 더 최신 → 모두 서버 데이터로 초기화.
-    init(invitationId, meta, content);
+
+    // (1)/(3b)/(4) — 신규 / 다른 청첩장 / 서버가 더 최신 → 서버 데이터로 초기화.
+    init(invitationId, meta, content, serverUpdatedAt);
   }, [invitationId, meta, content, init, serverUpdatedAt]);
 
   // 자동 저장 제거 — 사용자 의도와 무관하게 저장이 일어나는 문제 때문에 전부 빼고
@@ -184,6 +195,22 @@ export function EditorClient({
       </div>
     </div>
   );
+}
+
+/**
+ * 로컬 content 를 현재 스키마로 reparse 해서 신규 필드 기본값을 채운 뒤 store 에
+ * 반영. 스키마와 안 맞으면 false 를 돌려 호출 측이 서버 데이터로 폴백하게 한다.
+ */
+function keepLocalContent(content: InvitationContent): boolean {
+  try {
+    const reparsed = InvitationContentSchema.parse(content);
+    if (JSON.stringify(reparsed) !== JSON.stringify(content)) {
+      useEditorStore.setState({ content: reparsed });
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function PackageBadge({ children }: { children: React.ReactNode }) {
