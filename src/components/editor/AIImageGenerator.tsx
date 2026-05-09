@@ -11,7 +11,7 @@ import {
   validateImageFile,
 } from '@/lib/uploads';
 
-// 폴링 주기/한도 — fal.ai gpt-image-1 은 보통 25–60초. 5초 간격 × 최대 60회(=5분) 면 안전.
+// 폴링 주기/한도 — openai/gpt-image-2 는 보통 20–60초. 5초 간격 × 최대 60회(=5분) 면 안전.
 const POLL_INTERVAL_MS = 5_000;
 const MAX_POLL_ATTEMPTS = 60;
 
@@ -420,7 +420,7 @@ export function AIImageGenerator() {
           )}
           {isProgressing && (
             <p className="text-[11px] text-muted-foreground">
-              평균 30–90초 정도 걸립니다. 페이지를 닫아도 사용량은 결과 저장 시점에만 차감되니 안심하세요.
+              평균 20–60초 정도 걸립니다. 페이지를 닫아도 사용량은 결과 저장 시점에만 차감되니 안심하세요.
             </p>
           )}
         </div>
