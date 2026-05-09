@@ -906,7 +906,7 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
         }}
       >
         <p className="text-xs text-muted-foreground">
-          데코 아래에 기본 위치. 상하 위치로 데코 위까지 올릴 수 있고, "신랑/신부"
+          데코 아래에 기본 위치. 상하 위치로 데코 위까지 올릴 수 있고, 신랑·신부
           접두어는 표시되지 않습니다.
         </p>
         {design.nameBox.enabled && (

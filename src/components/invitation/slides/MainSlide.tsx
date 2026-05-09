@@ -240,7 +240,9 @@ function PosterFullImageSlide({
           : undefined
       }
     >
-      {/* 배경 이미지 */}
+      {/* 배경 이미지 — 사용자가 업로드한 임의 URL 이라 next/image 의 도메인 화이트리스트
+          를 적용하기 어렵다. eslint-disable 로 경고만 억제. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={main.heroImage!}
         alt=""
@@ -791,6 +793,7 @@ function LegacyMainSlide({
     <section className="relative flex h-full min-h-full items-center justify-center px-6 py-10 text-center">
       {overlay && (
         <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={main.heroImage!}
             alt=""
@@ -822,6 +825,7 @@ function LegacyMainSlide({
           // 하단 신랑·신부 이름은 사용자 요청으로 제거.
           <div className="relative rotate-[-3deg] rounded-none bg-white p-3 pb-3 shadow-xl">
             {hasImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={main.heroImage!} alt="" className="h-80 w-64 object-cover" />
             ) : (
               <div className="grid h-80 w-64 place-items-center bg-gradient-br from-stone-200 to-stone-300 text-3xl text-stone-400">
