@@ -3,7 +3,6 @@
 import { useEditorStore } from '@/stores/editor';
 import { type AccountPartyKey } from '@/types/invitation';
 import { SectionEditor } from '../SectionEditor';
-import { TextField } from '../form-fields';
 import { PresetTextArea } from '../PresetTextArea';
 import { ACCOUNT_GUIDE_PRESETS } from '@/lib/presets';
 import { Button } from '@/components/ui/button';
@@ -62,7 +61,7 @@ export function AccountEditor() {
         onChange: (next) => patch('account', { ...account, enabled: next }),
       }}
     >
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-5">
         <PresetTextArea
           label="안내문구"
           value={account.guide}
@@ -74,8 +73,12 @@ export function AccountEditor() {
           presetLabel="추천 안내문구"
         />
 
-        {/* 👇 신랑 측 */}
-        <div className="flex flex-col gap-4">
+        {/* 안내문구는 상단에 1번만 — 각 PartyEditor 의 빈 상태 메시지 중복 제거. */}
+        <p className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          ※ 계좌를 추가하지 않은 항목은 알림장에 표시되지 않습니다.
+        </p>
+
+        <div className="flex flex-col gap-3">
           <h3 className="text-sm font-semibold">신랑 측</h3>
           {groomKeys.map((party) => (
             <PartyEditor
@@ -88,8 +91,7 @@ export function AccountEditor() {
           ))}
         </div>
 
-        {/* 👇 신부 측 */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           <h3 className="text-sm font-semibold">신부 측</h3>
           {brideKeys.map((party) => (
             <PartyEditor
@@ -126,69 +128,70 @@ function PartyEditor({
 
   const addRow = () => {
     if (list.length >= 3) return;
-    // defaultHolder 가 있으면 해당 사람의 이름을 자동 매핑.
     onChange([...list, { ...EMPTY, holder: defaultHolder }]);
   };
 
   const removeAt = (i: number) => onChange(list.filter((_, idx) => idx !== i));
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border bg-muted/20 p-4">
+    <div className="flex flex-col gap-2 rounded-md border bg-background p-3">
       {/* 헤더 */}
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-muted-foreground">{label}</h4>
+      <div className="flex items-center justify-between gap-2">
+        <h4 className="text-sm font-medium">{label}</h4>
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={addRow}
           disabled={list.length >= 3}
+          className="h-7 px-2 text-xs"
         >
-          + 계좌 추가
+          + 추가
         </Button>
       </div>
 
-      {list.length === 0 && (
-        <p className="text-xs text-muted-foreground">
-          계좌를 추가하지 않으면 이 항목은 표시되지 않습니다.
-        </p>
-      )}
-
-      {/* 👇 핵심: 세로 입력 구조 */}
+      {/* 계좌 입력 행 — 라벨 분리된 3 행 카드 대신 한 줄(은행 / 계좌번호 / 예금주)
+          로 압축. 삭제는 우측 X 버튼으로. 모바일에서 좁아지면 자연스럽게
+          flex-wrap 으로 다음 줄로 내려간다. */}
       {list.map((acct, i) => (
         <div
           key={i}
-          className="flex flex-col gap-2 rounded-md border bg-white p-3"
+          className="flex flex-wrap items-center gap-1.5 rounded border border-input/60 bg-muted/30 p-1.5"
         >
-          <TextField
-            label="은행"
+          <input
+            type="text"
             value={acct.bank}
             maxLength={20}
-            placeholder="국민"
+            placeholder="은행"
+            aria-label="은행"
             onChange={(e) => updateAt(i, { ...acct, bank: e.target.value })}
+            className="h-8 w-20 min-w-0 shrink-0 rounded border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
           />
-
-          <TextField
-            label="계좌번호"
+          <input
+            type="text"
             value={acct.number}
             maxLength={30}
+            placeholder="계좌번호"
+            aria-label="계좌번호"
             onChange={(e) => updateAt(i, { ...acct, number: e.target.value })}
+            className="h-8 min-w-0 flex-1 rounded border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
           />
-
-          <TextField
-            label="예금주"
+          <input
+            type="text"
             value={acct.holder}
             maxLength={20}
-            placeholder={defaultHolder || '홍길동'}
+            placeholder={defaultHolder || '예금주'}
+            aria-label="예금주"
             onChange={(e) => updateAt(i, { ...acct, holder: e.target.value })}
+            className="h-8 w-24 min-w-0 shrink-0 rounded border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
           />
-
           <button
             type="button"
+            aria-label="삭제"
             onClick={() => removeAt(i)}
-            className="self-end text-xs text-destructive hover:underline"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
           >
-            삭제
+            ×
           </button>
         </div>
       ))}

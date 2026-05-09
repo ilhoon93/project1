@@ -344,18 +344,6 @@ function PetalIcon({ type, accent }: { type: PetalType; accent: string }) {
       </span>
     );
   }
-  // 반딧불 — 작은 발광 점 미리보기. drop-shadow 글로우로 실제 효과 분위기.
-  if (type === 'firefly') {
-    return (
-      <span
-        className="inline-block h-2 w-2 rounded-full align-middle"
-        style={{
-          backgroundColor: accent,
-          boxShadow: `0 0 6px 1px ${accent}`,
-        }}
-      />
-    );
-  }
   // 보케 — 큰 블러 원 미리보기. radial-gradient + blur 로 실제 효과 톤 일치.
   if (type === 'bokeh') {
     return (

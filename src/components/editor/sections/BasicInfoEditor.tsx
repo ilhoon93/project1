@@ -345,6 +345,9 @@ function CompactNameField({
   value: string;
   onChange: (v: string) => void;
 }) {
+  // 부모님 입력칸(ParentField)은 우측에 故 체크박스(약 36~40px) 가 붙어 있어서
+  // input 의 실제 폭이 그만큼 좁다. 신랑/신부 입력칸은 故 체크박스가 없지만
+  // 시각적으로 같은 폭을 유지하도록 같은 너비의 invisible 스페이서를 둔다.
   return (
     <div className="flex items-center gap-2">
       <span className="w-16 shrink-0 text-xs text-muted-foreground">{label}</span>
@@ -355,6 +358,11 @@ function CompactNameField({
         onChange={(e) => onChange(e.target.value)}
         className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
       />
+      {/* 故 체크박스 자리 — invisible 더미. ParentField 의 라벨과 같은 구조/너비. */}
+      <span aria-hidden className="flex shrink-0 items-center gap-1 text-xs invisible">
+        <span className="inline-block h-3 w-3" />
+        故
+      </span>
     </div>
   );
 }
