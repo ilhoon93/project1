@@ -10,6 +10,11 @@ interface PageProps {
   params: { slug: string; token: string };
 }
 
+// 같은 이유로 캐시 우회 — 다른 기기에서 저장한 최신 본이 즉시 반영되도록.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
 /**
  * 소장용(owner) 뷰 라우트.
  * `/{slug}/o/{owner_token}` — slug + token 둘 다 일치해야만 진입.

@@ -2,39 +2,24 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-// 컨페티 색상 정책:
-//   - 어떤 테마에서도 위화감 없도록 *중립톤*(흰/아이보리/연한 베이지)을 베이스로,
-//     현재 테마의 꽃잎 팔레트를 일부 섞어 분위기를 살짝만 맞춘다.
-//   - 너무 과도하게 테마색만 따라가면 꽃가루 느낌이 사라지므로 비율은
-//     중립 ~60% / 테마 ~40% 수준으로 유지.
-//   - 테마 팔레트는 SlideContainer 가 노출하는 `--mw-petals` 변수에서
-//     JS 가 직접 읽는다(쉼표로 join 된 hex 문자열).
-const NEUTRAL_COLORS = [
+// 부드러운 톤 위주의 결혼식 팔레트. 채도가 너무 높은 색은 빼서
+// "꽃가루" 라기보다 색종이 느낌이 나도록.
+//
+// 테마별 색상 동적 매칭은 시도해봤으나 (a) 진주/편지지 같은 옅은 테마에선
+// 배경과 섞여 잘 안 보이고 (b) 짙은 테마에선 과하게 단색이 되어 특색이
+// 사라지는 트레이드오프가 있어 폐기. 어느 테마에서도 두루 잘 보이는
+// 따뜻한 핑크 / 피치 / 아이보리 고정 팔레트가 가장 안정적.
+const COLORS = [
+  '#F4D9D0',
+  '#E8C2B8',
+  '#FFD1D9',
+  '#FFE4E1',
+  '#D4B5A0',
+  '#F1E0D6',
+  '#E8D5A0',
+  '#F5E1DA',
   '#FFFFFF',
-  '#FAF8F2',
-  '#F4EFE5',
-  '#EFE7D9',
-  '#F8F1E6',
 ];
-
-/** `--mw-petals` 변수에서 테마 꽃잎 hex 배열을 추출. 변수가 없으면 빈 배열. */
-function readThemePetals(node: Element | null): string[] {
-  if (!node || typeof window === 'undefined') return [];
-  const raw = getComputedStyle(node).getPropertyValue('--mw-petals').trim();
-  if (!raw) return [];
-  return raw
-    .split(',')
-    .map((s) => s.trim())
-    .filter((s) => /^#?[0-9a-fA-F]{3,8}$/.test(s.replace('#', '')) || /^[a-zA-Z]+$/.test(s));
-}
-
-/** 중립 + 테마 팔레트를 6:4 비율로 섞어 컨페티 색상 풀을 만든다. */
-function buildPalette(themePetals: readonly string[]): string[] {
-  if (themePetals.length === 0) return NEUTRAL_COLORS;
-  // 중립 5색 + 테마 색을 4번 정도 반복해 ~ 6:(4*N) 비율. 테마가 4색이면 5:8 ≈ 38% 테마,
-  // 5색일 땐 5:10 ≈ 33% 테마 — "조금씩만" 어울리는 비율.
-  return [...NEUTRAL_COLORS, ...themePetals, ...themePetals];
-}
 
 const PIECE_COUNT = 130;
 // 1단계: 화면 양쪽 상단 모서리에서 안쪽으로 짧게 "터지는" 구간.
@@ -108,27 +93,14 @@ export function Confetti({
   scoped?: boolean;
 }) {
   const [active, setActive] = useState(false);
-  const rootRef = useRef<HTMLDivElement | null>(null);
   // 레이아웃 전환 등으로 Confetti 가 새로 마운트될 때, 같은 trigger 값에 대해
   // 한 번 더 발화하는 사고를 막기 위해 마운트 시점의 trigger 값으로 초기화.
   // 사용자가 새로 "축하하기" 를 누르면 trigger 값이 Date.now() 로 바뀌어
   // 이 ref 와 다르기 때문에 정상 발화. 같은 값으로 다시 마운트된 경우만 무시.
   const lastFiredRef = useRef<number | null>(trigger);
 
-  // 발화할 때 한번만 결정된 색 팔레트. 컨페티가 떠 있는 동안 사용자가 테마를
-  // 바꿔도 진행 중인 컨페티 색이 중간에 깜빡이지 않도록 trigger 시점에 고정.
-  const paletteRef = useRef<string[]>(NEUTRAL_COLORS);
-
   const pieces = useMemo<Piece[]>(() => {
     void trigger;
-    // useMemo 는 render 단계에서 실행되므로 ref 가 아직 안 잡혀 있을 수 있어,
-    // 첫 발화 시점에는 document.body 를 폴백으로 본다 (어차피 SlideContainer
-    // 가 거기까지 변수를 흘려 보내지는 않으므로 NEUTRAL_COLORS 로 떨어짐).
-    if (typeof window !== 'undefined' && trigger != null) {
-      const probe = rootRef.current?.parentElement ?? document.body;
-      paletteRef.current = buildPalette(readThemePetals(probe));
-    }
-    const palette = paletteRef.current;
     return Array.from({ length: PIECE_COUNT }, (_, i) => {
       const shape = pickShape();
       const baseSize = 6 + Math.random() * 6;
@@ -157,7 +129,7 @@ export function Confetti({
         scatterY,
         swayPx: 12 + Math.random() * 28,
         swayDir: Math.random() > 0.5 ? 1 : -1,
-        color: palette[Math.floor(Math.random() * palette.length)],
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
         rotate: Math.random() * 360,
         flipDuration: 900 + Math.random() * 1800,
         size: baseSize,
@@ -194,7 +166,6 @@ export function Confetti({
 
   return (
     <div
-      ref={rootRef}
       aria-hidden
       className={`pointer-events-none z-40 overflow-hidden ${
         scoped ? 'absolute inset-0' : 'fixed inset-0'

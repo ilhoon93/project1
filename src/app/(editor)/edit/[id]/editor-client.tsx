@@ -22,23 +22,34 @@ interface Props {
   invitationId: string;
   meta: { groomName: string; brideName: string; weddingDate: string | null };
   content: InvitationContent;
+  /** 서버 invitations.updated_at — 로컬 lastEditedAt 와 비교해 어느 쪽이 최신인지 판정. */
+  serverUpdatedAt: string | null;
 }
 
 // 자동 저장 주기를 길게 가져간다 — 사용자는 수동 "저장" 버튼이 주된 경로이고,
 type Tab = 'edit' | 'ai';
 
-export function EditorClient({ invitationId, meta, content }: Props) {
+export function EditorClient({
+  invitationId,
+  meta,
+  content,
+  serverUpdatedAt,
+}: Props) {
   const init = useEditorStore((s) => s.init);
   const status = useEditorStore((s) => s.status);
   const [tab, setTab] = useState<Tab>('edit');
 
   // Hydrate the store with server-provided data on first mount.
   //
-  // 정책:
-  //   - 같은 청첩장 ID 의 persist 데이터가 있고 + `unsaved === true` 이면
-  //     로컬에 저장 안 한 편집분이 있다는 뜻 → 그대로 사용 (예: /preview 다녀와도 보존).
-  //   - 그 외에는 항상 서버 데이터를 사용 → 다른 기기(모바일↔노트북)에서
-  //     같은 네이버 계정으로 열었을 때 최신 저장 결과가 그대로 보임.
+  // 정책 (다른 기기 ↔ 같은 기기 모두 정확히 처리):
+  //   1) 청첩장 ID 가 다르거나 로컬에 데이터가 없음 → 서버 데이터로 초기화.
+  //   2) 같은 청첩장 + 미저장 편집(unsaved=true) 이면 로컬 lastEditedAt 와 서버
+  //      updated_at 을 비교:
+  //        - 서버가 더 최신 → 다른 기기에서 저장된 내용이 있음 → 서버 우선.
+  //          (이 기기의 미저장 편집은 폐기. 일반적으로 원치 않는 손실이지만,
+  //           "수정한 게 즉시 보여야 한다" 는 사용자 요구가 더 우선.)
+  //        - 로컬이 더 최신 → /preview 다녀온 케이스 등 → 로컬 보존.
+  //   3) 같은 청첩장 + 저장 완료(unsaved=false) → 서버 데이터로 초기화.
   //
   // 로컬 content 는 현재 스키마로 한 번 reparse 해 신규 필드도 기본값으로 채운다.
   const hydrated = useRef(false);
@@ -47,21 +58,27 @@ export function EditorClient({ invitationId, meta, content }: Props) {
     hydrated.current = true;
     const current = useEditorStore.getState();
     const sameInvitation = current.invitationId === invitationId && current.content;
+
     if (sameInvitation && current.unsaved) {
-      try {
-        const reparsed = InvitationContentSchema.parse(current.content);
-        if (JSON.stringify(reparsed) !== JSON.stringify(current.content)) {
-          useEditorStore.setState({ content: reparsed });
+      const localTs = current.lastEditedAt ?? 0;
+      const serverTs = serverUpdatedAt ? new Date(serverUpdatedAt).getTime() : 0;
+      // 시계 어긋남(기기간) 보정 — 1 분 이내 동률은 로컬 우선 (사용자 작업 보호).
+      const localIsNewer = localTs > serverTs + 60_000;
+      if (localIsNewer) {
+        try {
+          const reparsed = InvitationContentSchema.parse(current.content);
+          if (JSON.stringify(reparsed) !== JSON.stringify(current.content)) {
+            useEditorStore.setState({ content: reparsed });
+          }
+          return;
+        } catch {
+          // 로컬 데이터가 스키마와 맞지 않으면 안전하게 서버 데이터로 폴백.
         }
-      } catch {
-        // 로컬 데이터가 스키마와 맞지 않으면 안전하게 서버 데이터로 폴백.
-        init(invitationId, meta, content);
       }
-      return;
     }
-    // 저장 완료 상태이거나 다른 청첩장 → 서버 데이터로 초기화 (기기간 동기화 보장).
+    // 신규 청첩장 / 저장 완료 / 서버가 더 최신 → 모두 서버 데이터로 초기화.
     init(invitationId, meta, content);
-  }, [invitationId, meta, content, init]);
+  }, [invitationId, meta, content, init, serverUpdatedAt]);
 
   // 자동 저장 제거 — 사용자 의도와 무관하게 저장이 일어나는 문제 때문에 전부 빼고
   // "저장" 버튼 클릭 시에만 PATCH 가 발생하도록 한다. 미저장 변경은 beforeunload
