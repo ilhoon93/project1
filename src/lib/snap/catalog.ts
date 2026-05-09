@@ -43,12 +43,12 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
   },
   {
     id: 'meadow-spring',
-    label: '봄날 초원',
-    hint: '푸른 하늘 + 야생화',
+    label: '야외 가든',
+    hint: '사이프러스 배경 + 잔디 + 자연광',
     category: 'outdoor',
     image: '/wedding-snap/catalog/meadow-spring.jpg',
     promptHint:
-      'Wide open meadow under bright blue sky, wildflowers, soft natural daylight. Groom: navy blue tuxedo. Bride: ivory chiffon A-line dress. Romantic outdoor mood.',
+      'Outdoor garden with tall cypress/pine trees as backdrop, well-kept lawn in foreground, soft overcast natural lighting. Groom: black formal suit with white shirt and black tie. Bride: ivory satin off-shoulder A-line wedding dress holding small bouquet. Full-body standing pose, classic Korean studio outdoor wedding aesthetic.',
   },
   {
     id: 'hanok-courtyard',

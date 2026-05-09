@@ -1,8 +1,8 @@
 /*
  * 한글 웹폰트 로딩 정책
  *
- * - 명조 / 본고딕 / 고운바탕 / Gaegu / Dokdo / 나눔고딕 / 나눔손글씨
- *   펜·붓 / 송명 → src/app/layout.tsx 에서 next/font/google 로
+ * - 명조 / 본고딕 / 고운바탕 / Gaegu / Dokdo / 나눔고딕 / 송명
+ *   → src/app/layout.tsx 에서 next/font/google 로
  *   빌드타임 자체 호스팅 (CSS @import 미사용, /_next/static/ 에서 서빙).
  *
  * - 제주명조 → next/font/google 14.2 에 함수가 아직 노출되지 않아

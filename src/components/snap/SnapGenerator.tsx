@@ -10,6 +10,7 @@ import {
 } from '@/lib/uploads';
 import { Button } from '@/components/ui/button';
 import type { SnapCatalogItem } from '@/lib/snap/catalog';
+import { CatalogThumbnail } from '@/components/snap/CatalogThumbnail';
 
 // 폴링 — gpt-image-2 medium 은 보통 20–60초.
 const POLL_INTERVAL_MS = 5_000;
@@ -290,27 +291,7 @@ export function SnapGenerator({ catalog }: Props) {
                     : 'border-[#E8DCC9] hover:border-[#8B7355]'
                 } ${isProgressing ? 'opacity-60' : ''}`}
               >
-                <div className="grid aspect-[3/4] w-full place-items-center bg-[#F5EDE0]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={item.image}
-                    alt={item.label}
-                    className="block h-full w-full object-contain"
-                    onError={(e) => {
-                      const target = e.currentTarget;
-                      target.style.display = 'none';
-                      const fb = target.nextElementSibling as HTMLElement | null;
-                      if (fb) fb.style.display = 'flex';
-                    }}
-                  />
-                  <div
-                    className="hidden h-full w-full flex-col items-center justify-center px-2 text-center text-[10px] text-[#8B7355]"
-                    style={{ display: 'none' }}
-                  >
-                    <span className="mb-1">📷</span>
-                    <span className="font-mono">{item.image}</span>
-                  </div>
-                </div>
+                <CatalogThumbnail src={item.image} alt={item.label} />
                 <div className="p-2">
                   <p className="text-xs font-medium text-[#3D2E1F]">{item.label}</p>
                   <p className="mt-0.5 text-[10px] text-[#8B7355]">{item.hint}</p>

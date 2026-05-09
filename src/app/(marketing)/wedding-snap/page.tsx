@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { SNAP_CATALOG } from '@/lib/snap/catalog';
+import { CatalogThumbnail } from '@/components/snap/CatalogThumbnail';
 
 export const metadata: Metadata = {
   title: 'AI 웨딩스냅 — 우리다운',
@@ -52,29 +53,7 @@ function CatalogPreview() {
             key={item.id}
             className="overflow-hidden rounded-md border border-[#E8DCC9] bg-white"
           >
-            <div className="grid aspect-[3/4] w-full place-items-center bg-[#F5EDE0]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={item.image}
-                alt={item.label}
-                className="block h-full w-full object-contain"
-                onError={(e) => {
-                  // 카탈로그 이미지가 아직 업로드 안 됐으면 placeholder 안내.
-                  const target = e.currentTarget;
-                  target.style.display = 'none';
-                  const fallback = target.nextElementSibling as HTMLElement | null;
-                  if (fallback) fallback.style.display = 'flex';
-                }}
-              />
-              <div
-                className="hidden h-full w-full flex-col items-center justify-center px-2 text-center text-[10px] text-[#8B7355]"
-                style={{ display: 'none' }}
-              >
-                <span className="mb-1">📷</span>
-                <span className="font-mono">{item.image}</span>
-                <span className="mt-1 opacity-70">샘플 이미지 추가 필요</span>
-              </div>
-            </div>
+            <CatalogThumbnail src={item.image} alt={item.label} />
             <div className="p-2.5">
               <p className="text-xs font-medium text-[#3D2E1F]">{item.label}</p>
               <p className="mt-0.5 text-[10px] text-[#8B7355]">{item.hint}</p>
