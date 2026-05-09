@@ -571,15 +571,25 @@ function TextLayoutSlide({
   const titleColor = design.title.color || 'currentColor';
   const decoSrc = `/illustrations/text-${design.variant}.png`;
 
+  // 이름 정렬/순서 — brideFirst 면 신부, 신랑 순. layout 'stack' 이면 위·아래 두 줄.
+  // "신랑/신부" 접두어는 표시하지 않는다 (사용자 요청).
+  const firstName = design.nameBox.brideFirst ? brideName : groomName;
+  const secondName = design.nameBox.brideFirst ? groomName : brideName;
+  const nameTransform = design.nameBox.offsetY
+    ? `translateY(${design.nameBox.offsetY}cqh)`
+    : undefined;
+
   return (
     <section
       className="relative flex h-full min-h-full w-full flex-col items-center overflow-hidden text-center"
     >
       {/* 1) 상단 영역 — 영문 제목 + 인사말. 일러스트형과 같은
           flex:1 + justify-end + overflow-hidden 패턴이라 인사말이 길어져도
-          데코·이름·날짜 자리는 흔들리지 않는다. */}
+          데코·이름·날짜 자리는 흔들리지 않는다.
+          messageBox.offsetY 는 ±50cqh 까지 허용 — 데코 이미지 위로 내려가서
+          오버레이될 수 있도록 한다. (z-10 으로 데코 위에 배치) */}
       <div
-        className="flex w-full flex-col items-center justify-end overflow-hidden px-6"
+        className="relative z-10 flex w-full flex-col items-center justify-end overflow-visible px-6"
         style={{ flex: '1 1 0', minHeight: 0, paddingTop: '4cqh', paddingBottom: '2.5cqh' }}
       >
         <h1
@@ -610,45 +620,51 @@ function TextLayoutSlide({
         )}
       </div>
 
-      {/* 2) 데코 — 꽃/편지 등 텍스트형 일러스트. 일러스트형의 메인 일러스트와
-          같은 자리/같은 라인아트 톤. 다크 테마에선 --mw-illust-filter 가
-          자동 적용되어 밝은 배경처럼 보이도록 invert/glow 처리. */}
-      <div className="flex w-full max-w-sm shrink-0 items-center justify-center px-6">
+      {/* 2) 데코 — 꽃/편지 등 텍스트형 일러스트. 슬라이드 폭을 가득 채워(좌우
+          여백 0) 풀너비로 깔린다. 다크 테마에선 --mw-illust-filter 가 자동
+          적용되어 밝은 배경처럼 보이도록 invert/glow 처리. */}
+      <div className="flex w-full shrink-0 items-center justify-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={decoSrc}
           alt=""
           aria-hidden
-          className="block h-auto w-2/3 max-w-[14rem] select-none object-contain"
+          className="block h-auto w-full select-none object-cover"
           draggable={false}
           style={{ filter: 'var(--mw-illust-filter, none)' }}
         />
       </div>
 
-      {/* 3) 이미지 하단 디바이더 — 일러스트형과 동일 컴포넌트 재사용. */}
-      <IllustDivider />
-
-      {/* 4) 이름 — 디바이더 아래 충분한 간격 + offsetY 미세 조정. */}
+      {/* 3) 이름 — 풀너비 데코 아래 자리. offsetY (±50cqh) 로 데코 위쪽까지
+          끌어올릴 수 있어 사용자가 자유롭게 배치 가능. z-10 으로 데코 위에. */}
       {design.nameBox.enabled && (
-        <p
-          className="shrink-0 font-light tracking-wide"
+        <div
+          className="relative z-10 flex shrink-0 flex-col items-center font-light tracking-wide"
           style={{
             fontFamily: 'inherit',
             fontSize: `${design.nameBox.fontSize}px`,
             marginTop: '2.2cqh',
-            transform: design.nameBox.offsetY
-              ? `translateY(${design.nameBox.offsetY}cqh)`
-              : undefined,
+            transform: nameTransform,
           }}
         >
-          신랑 {groomName} · 신부 {brideName}
-        </p>
+          {design.nameBox.layout === 'stack' ? (
+            <>
+              <span className="leading-tight">{firstName}</span>
+              <span className="leading-tight">{secondName}</span>
+            </>
+          ) : (
+            <span>
+              {firstName} · {secondName}
+            </span>
+          )}
+        </div>
       )}
 
-      {/* 5) 날짜 — 이름 바로 아래. 일러스트형과 같은 Playfair 폰트로 통일. */}
+      {/* 4) 날짜 — 이름 바로 아래. 일러스트형과 같은 Playfair 폰트로 통일.
+          offsetY (±50cqh) 로 데코 위쪽까지 자유롭게 이동 가능. z-10. */}
       {design.dateBox.enabled && weddingDate && (
         <p
-          className="shrink-0 tracking-[0.2em]"
+          className="relative z-10 shrink-0 tracking-[0.2em]"
           style={{
             fontFamily: PLAYFAIR,
             fontSize: `${design.dateBox.fontSize}px`,
@@ -662,7 +678,7 @@ function TextLayoutSlide({
         </p>
       )}
 
-      {/* 6) 하단 spacer — 인사말 길이와 무관하게 축하하기 자리를 비워둠 */}
+      {/* 5) 하단 spacer — 인사말 길이와 무관하게 축하하기 자리를 비워둠 */}
       <div style={{ flex: '1 1 0', minHeight: '6cqh' }} />
 
       <div className="absolute bottom-16 left-1/2 z-20 -translate-x-1/2">

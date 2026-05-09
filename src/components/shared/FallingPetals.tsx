@@ -63,9 +63,11 @@ export function FallingPetals({
       Array.from({ length: count }, (_, i) => ({
         id: i,
         left: Math.random() * 100,
-        // 전반적으로 약 30% 정도 작아진 사이즈 — 이전 14~30px → 10~22px.
-        // 글리프(❀ ♥ ★) 와 텍스처(꽃잎/단풍잎) 모두 동일하게 적용된다.
-        size: 10 + Math.random() * 12,
+        // 글리프(❀ ♥ ★) 와 텍스처(꽃잎/단풍잎) 공통 사이즈 범위.
+        // 별빛(starlight)·보케(bokeh) 는 별도 렌더 분기라 영향 없음.
+        // 최소 크기는 그대로(10px), 최대만 22→17px 로 축소해 떨어지는
+        // 개체가 화면에서 너무 커 보이지 않도록 함.
+        size: 10 + Math.random() * 7,
         delay: Math.random() * 12,
         duration: 9 + Math.random() * 7,
         drift: -40 + Math.random() * 80,

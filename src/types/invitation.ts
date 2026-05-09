@@ -224,6 +224,10 @@ export type IllustrationDesign = z.infer<typeof IllustrationDesignSchema>;
 export const TEXT_VARIANTS = ['flower', 'letter'] as const;
 export type TextVariant = (typeof TEXT_VARIANTS)[number];
 
+// 이름 정렬 방식 — 한 줄(가운데 점 구분) vs 위·아래(스택, 중앙 정렬).
+export const TEXT_NAME_LAYOUTS = ['inline', 'stack'] as const;
+export type TextNameLayout = (typeof TEXT_NAME_LAYOUTS)[number];
+
 export const TextDesignSchema = z
   .object({
     variant: z.enum(TEXT_VARIANTS).default('flower'),
@@ -240,25 +244,32 @@ export const TextDesignSchema = z
         fontSize: 34,
         offsetY: 0,
       }),
+    // 데코 이미지가 풀너비로 깔리는 텍스트형에선 이름·날짜·인사말이 이미지
+    // 위로 올라가거나 아래로 내려가야 자연스럽기 때문에 offsetY 범위를
+    // ±10 → ±50 cqh 로 크게 넓힌다 (1 cqh = 슬라이드 높이의 1%).
     dateBox: z
       .object({
         enabled: z.boolean().default(true),
         fontSize: z.number().min(11).max(22).default(15),
-        offsetY: z.number().min(-10).max(10).default(0),
+        offsetY: z.number().min(-50).max(50).default(0),
       })
       .default({ enabled: true, fontSize: 15, offsetY: 0 }),
     nameBox: z
       .object({
         enabled: z.boolean().default(true),
         fontSize: z.number().min(12).max(24).default(16),
-        offsetY: z.number().min(-10).max(10).default(0),
+        offsetY: z.number().min(-50).max(50).default(0),
+        // 'inline' = 한 줄 가운데 점 구분, 'stack' = 위·아래 두 줄 중앙 정렬.
+        layout: z.enum(TEXT_NAME_LAYOUTS).default('inline'),
+        // true 면 신부 이름을 먼저, 신랑 이름을 뒤로 배치.
+        brideFirst: z.boolean().default(false),
       })
-      .default({ enabled: true, fontSize: 16, offsetY: 0 }),
+      .default({ enabled: true, fontSize: 16, offsetY: 0, layout: 'inline', brideFirst: false }),
     messageBox: z
       .object({
         enabled: z.boolean().default(true),
         fontSize: z.number().min(11).max(20).default(13),
-        offsetY: z.number().min(-10).max(10).default(0),
+        offsetY: z.number().min(-50).max(50).default(0),
       })
       .default({ enabled: true, fontSize: 13, offsetY: 0 }),
   })
@@ -266,7 +277,13 @@ export const TextDesignSchema = z
     variant: 'flower',
     title: { text: TITLE_TEXT_PRESETS[0], color: 'currentColor', fontSize: 34, offsetY: 0 },
     dateBox: { enabled: true, fontSize: 15, offsetY: 0 },
-    nameBox: { enabled: true, fontSize: 16, offsetY: 0 },
+    nameBox: {
+      enabled: true,
+      fontSize: 16,
+      offsetY: 0,
+      layout: 'inline',
+      brideFirst: false,
+    },
     messageBox: { enabled: true, fontSize: 13, offsetY: 0 },
   });
 
