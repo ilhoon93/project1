@@ -5,10 +5,21 @@
 
 ## 필요한 파일
 
+### 일러스트형 (메인 슬라이드 가운데 큰 일러스트)
+
 | 파일 | 베리언트 | 설명 |
 | --- | --- | --- |
 | `illust-arch.png` | `arch` | 꽃 아치 + 손잡고 걷는 신랑·신부 |
 | `illust-dance.png` | `dance` | 댄스 포즈 + 골드 스파클·하트 |
+| `illust-hanbok.png` | `hanbok` | 전통 한복 차림의 신랑·신부 |
+| `illust-ani.png` | `ani` | 귀여운 애니풍 일러스트 |
+
+### 텍스트형 (가운데 작은 데코 일러스트)
+
+| 파일 | 베리언트 | 설명 |
+| --- | --- | --- |
+| `text-flower.png` | `flower` | 라인 아트 꽃다발 |
+| `text-letter.png` | `letter` | 편지·봉투 일러스트 |
 
 ## ⚠️ 반드시 투명 배경 PNG
 

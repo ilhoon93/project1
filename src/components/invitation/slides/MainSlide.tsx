@@ -5,10 +5,12 @@ import {
   FrameDesignSchema,
   IllustrationDesignSchema,
   PosterDesignSchema,
+  TextDesignSchema,
   type InvitationContent,
   type FrameDesign,
   type PosterDesign,
   type IllustrationDesign,
+  type TextDesign,
 } from '@/types/invitation';
 import { TITLE_FONT_OPTIONS } from '@/lib/theme';
 import { Confetti } from '@/components/shared/Confetti';
@@ -542,13 +544,14 @@ function IllustrationSlide({
 
 // ─────────────────────────────────────────────────────────────
 // 텍스트형 슬라이드 — 일러스트형과 같은 골격(제목 → 인사말 → 데코 →
-// 디바이더 → 이름 → 날짜)을 따르되, 일러스트 자리에 text-flower.png
-// 를 두고 디자인 컨트롤(IllustrationDesign 같은) 없이 합리적인 기본값을
-// 그대로 쓰는 변형.
+// 디바이더 → 이름 → 날짜)을 따른다. 디자인 컨트롤(TextDesign)을 통해
+// 제목 문구·색상·크기·상하 위치, 인사말/이름/날짜의 토글·크기·상하 위치,
+// 그리고 가운데 데코 일러스트(flower / letter) 변형을 선택할 수 있다.
 //
 // 기존 LegacyMainSlide 의 단순한 "꽃 PNG + 이름·날짜" 레이아웃에서
 // 일러스트형과 동일한 디자인 시그니처(영문 타이틀·디바이더·중앙 정렬
-// 인사말)로 격상해 사용자 요청을 만족.
+// 인사말)로 격상해 사용자가 텍스트형에서도 일러스트형과 같은 수준으로
+// 디테일을 조정할 수 있게 한다.
 // ─────────────────────────────────────────────────────────────
 
 function TextLayoutSlide({
@@ -562,6 +565,12 @@ function TextLayoutSlide({
   mode,
   cheersCount,
 }: PosterProps) {
+  // 구버전 데이터에 textDesign 이 없을 수도 있어 안전하게 기본값 폴백.
+  const design: TextDesign = main.textDesign ?? TextDesignSchema.parse(undefined);
+
+  const titleColor = design.title.color || 'currentColor';
+  const decoSrc = `/illustrations/text-${design.variant}.png`;
+
   return (
     <section
       className="relative flex h-full min-h-full w-full flex-col items-center overflow-hidden text-center"
@@ -575,27 +584,39 @@ function TextLayoutSlide({
       >
         <h1
           className="font-bold leading-tight"
-          style={{ fontFamily: PLAYFAIR, fontSize: '34px' }}
+          style={{
+            fontFamily: PLAYFAIR,
+            color: titleColor,
+            fontSize: `${design.title.fontSize}px`,
+            transform: design.title.offsetY ? `translateY(${design.title.offsetY}cqh)` : undefined,
+          }}
         >
-          We are getting married
+          {design.title.text}
         </h1>
-        {main.greeting && (
+        {design.messageBox.enabled && main.greeting && (
           <p
             className="max-w-md whitespace-pre-line leading-relaxed opacity-80"
-            style={{ fontFamily: 'inherit', fontSize: '13px', marginTop: '1.4cqh' }}
+            style={{
+              fontFamily: 'inherit',
+              fontSize: `${design.messageBox.fontSize}px`,
+              marginTop: '1.4cqh',
+              transform: design.messageBox.offsetY
+                ? `translateY(${design.messageBox.offsetY}cqh)`
+                : undefined,
+            }}
           >
             {main.greeting}
           </p>
         )}
       </div>
 
-      {/* 2) 데코 — 꽃 일러스트. 일러스트형의 메인 일러스트와 같은 자리/같은
-          라인아트 톤. 다크 테마에선 --mw-illust-filter 가 자동 적용되어
-          밝은 배경처럼 보이도록 invert/glow 처리. */}
+      {/* 2) 데코 — 꽃/편지 등 텍스트형 일러스트. 일러스트형의 메인 일러스트와
+          같은 자리/같은 라인아트 톤. 다크 테마에선 --mw-illust-filter 가
+          자동 적용되어 밝은 배경처럼 보이도록 invert/glow 처리. */}
       <div className="flex w-full max-w-sm shrink-0 items-center justify-center px-6">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/illustrations/text-flower.png"
+          src={decoSrc}
           alt=""
           aria-hidden
           className="block h-auto w-2/3 max-w-[14rem] select-none object-contain"
@@ -607,19 +628,35 @@ function TextLayoutSlide({
       {/* 3) 이미지 하단 디바이더 — 일러스트형과 동일 컴포넌트 재사용. */}
       <IllustDivider />
 
-      {/* 4) 이름 — 디바이더 아래 충분한 간격. */}
-      <p
-        className="shrink-0 font-light tracking-wide"
-        style={{ fontFamily: 'inherit', fontSize: '16px', marginTop: '2.2cqh' }}
-      >
-        신랑 {groomName} · 신부 {brideName}
-      </p>
+      {/* 4) 이름 — 디바이더 아래 충분한 간격 + offsetY 미세 조정. */}
+      {design.nameBox.enabled && (
+        <p
+          className="shrink-0 font-light tracking-wide"
+          style={{
+            fontFamily: 'inherit',
+            fontSize: `${design.nameBox.fontSize}px`,
+            marginTop: '2.2cqh',
+            transform: design.nameBox.offsetY
+              ? `translateY(${design.nameBox.offsetY}cqh)`
+              : undefined,
+          }}
+        >
+          신랑 {groomName} · 신부 {brideName}
+        </p>
+      )}
 
       {/* 5) 날짜 — 이름 바로 아래. 일러스트형과 같은 Playfair 폰트로 통일. */}
-      {weddingDate && (
+      {design.dateBox.enabled && weddingDate && (
         <p
           className="shrink-0 tracking-[0.2em]"
-          style={{ fontFamily: PLAYFAIR, fontSize: '15px', marginTop: '0.8cqh' }}
+          style={{
+            fontFamily: PLAYFAIR,
+            fontSize: `${design.dateBox.fontSize}px`,
+            marginTop: '0.8cqh',
+            transform: design.dateBox.offsetY
+              ? `translateY(${design.dateBox.offsetY}cqh)`
+              : undefined,
+          }}
         >
           {formatDateForIllust(weddingDate)}
         </p>
@@ -671,7 +708,7 @@ function IllustrationImage({
   variant,
 }: {
   src: string;
-  variant: 'arch' | 'dance' | 'hanbok';
+  variant: 'arch' | 'dance' | 'hanbok' | 'ani';
 }) {
   const [errored, setErrored] = useState(false);
 
