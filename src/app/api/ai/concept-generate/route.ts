@@ -59,11 +59,17 @@ export async function POST(req: Request) {
   }
 
   // 4. fal.ai 큐에 제출 → request_id 반환.
+  // quality 'medium' / image_size 'portrait_4_3' 명시 — fal default(high/square)
+  // 에 맡기지 않고 비용·결과 톤을 코드에서 통제.
+  //   medium 1024×1536: 출력 ~1,584 토큰 → ~$0.05/회 (high 대비 ≈1/4)
+  //   결혼사진은 세로 구도가 자연스러워 portrait 고정.
   let requestId: string;
   try {
     requestId = await submitImageEdit({
       imageUrl: input.photoUrl,
       prompt: buildConceptPrompt(input.concept),
+      quality: 'medium',
+      imageSize: 'portrait_4_3',
     });
   } catch (e) {
     console.error('[ai/concept-generate] fal.queue.submit error', e);

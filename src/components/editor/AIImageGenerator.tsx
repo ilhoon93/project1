@@ -308,12 +308,16 @@ export function AIImageGenerator() {
         {resultUrl && (
           <div className="flex flex-col gap-2 rounded-md border bg-muted/20 p-3">
             <span className="text-xs font-medium text-muted-foreground">지난 번 생성된 이미지</span>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={resultUrl}
-              alt="이전 생성 결과"
-              className="aspect-[3/4] w-full max-w-[260px] rounded object-cover"
-            />
+            {/* 전체 이미지가 잘리지 않게 contain 사용 — aspect-box 안에서 비율 유지하며
+                남는 공간은 배경(checker tone)으로 채움. */}
+            <div className="grid aspect-[3/4] w-full max-w-[260px] place-items-center overflow-hidden rounded bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={resultUrl}
+                alt="이전 생성 결과"
+                className="block h-full w-full object-contain"
+              />
+            </div>
             <Button
               type="button"
               size="sm"
@@ -364,8 +368,15 @@ export function AIImageGenerator() {
 
       {(stage === 'photo-ready' || isProgressing) && photoUrl && (
         <div className="flex flex-col gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photoUrl} alt="원본 사진" className="h-32 w-full rounded object-cover" />
+          {/* 업로드한 원본 사진 — 잘림 없이 전체가 보이도록 contain. h-32 박스 안에 비율 유지. */}
+          <div className="grid h-32 w-full place-items-center overflow-hidden rounded bg-muted">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={photoUrl}
+              alt="원본 사진"
+              className="block h-full w-full object-contain"
+            />
+          </div>
 
           <div>
             <p className="mb-1.5 text-xs font-medium">컨셉 선택</p>
@@ -431,12 +442,15 @@ export function AIImageGenerator() {
           <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
             ✨ 생성 완료
           </span>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={resultUrl}
-            alt="AI 생성 결과"
-            className="aspect-[3/4] w-full max-w-[260px] rounded object-cover"
-          />
+          {/* 결과 이미지 — 잘림 없이 전체가 보이도록 contain. */}
+          <div className="grid aspect-[3/4] w-full max-w-[260px] place-items-center overflow-hidden rounded bg-muted">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={resultUrl}
+              alt="AI 생성 결과"
+              className="block h-full w-full object-contain"
+            />
+          </div>
           <div className="flex gap-2">
             <Button type="button" size="sm" onClick={() => void handleDownload(resultUrl)}>
               다운로드

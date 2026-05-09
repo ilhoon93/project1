@@ -24,6 +24,20 @@ function ensureConfigured() {
 
 const GPT_IMAGE_MODEL = 'openai/gpt-image-2/edit';
 
+// quality: 'low' | 'medium' | 'high' | 'auto' — fal default 는 'high'.
+//   high: 출력 ~4,160 토큰(1024²) → ~$0.13/회. 디테일 가장 많음.
+//   medium: 출력 ~1,056 토큰(1024²) → ~$0.04/회. 인페인팅에선 종종 충분.
+//   low: 출력 ~272 토큰 → ~$0.01/회. 거친 결과.
+// image_size: fal 매핑 — 'square_hd' = 1024², 'portrait_4_3' = 1024×1536,
+//   'landscape_4_3' = 1536×1024 등. 결혼사진은 보통 portrait.
+export type GptImageQuality = 'low' | 'medium' | 'high' | 'auto';
+export type GptImageSize =
+  | 'square_hd'
+  | 'portrait_4_3'
+  | 'portrait_16_9'
+  | 'landscape_4_3'
+  | 'landscape_16_9';
+
 interface GptImageEditResult {
   images: { url: string; content_type?: string }[];
 }
@@ -32,6 +46,8 @@ interface GptImageEditResult {
 export async function submitImageEdit(input: {
   imageUrl: string;
   prompt: string;
+  quality?: GptImageQuality;
+  imageSize?: GptImageSize;
 }): Promise<string> {
   ensureConfigured();
   const { request_id } = await fal.queue.submit(GPT_IMAGE_MODEL, {
@@ -39,6 +55,8 @@ export async function submitImageEdit(input: {
       image_urls: [input.imageUrl],
       prompt: input.prompt,
       num_images: 1,
+      ...(input.quality ? { quality: input.quality } : {}),
+      ...(input.imageSize ? { image_size: input.imageSize } : {}),
     },
   });
   if (!request_id) throw new Error('fal.queue.submit returned no request_id');
