@@ -6,20 +6,30 @@ import { PETAL_GLYPHS, PETAL_IS_TEXTURE, type PetalType } from '@/lib/theme';
 const PETAL_COUNT = 14;
 const DEFAULT_COLORS = ['#F4D9D0', '#E8C2B8', '#F1E0D6', '#D4B5A0'];
 
-// 세로로 길쭉한 꽃잎(흰 꽃잎, 단풍잎)은 텍스처 박스가 정사각형이지만 SVG
-// 자체가 세로 비율이 커서 화면에서 더 커 보인다. 타입별로 크기 보정 계수를
-// 둬 화면에서 일관되게 작은 비율로 보이도록 한다.
+// 세로로 길쭉한 꽃잎(흰 꽃잎)은 텍스처 박스가 정사각형이지만 SVG 자체가 세로
+// 비율이 커서 화면에서 더 커 보인다. 타입별로 크기 보정 계수를 둬 화면에서
+// 일관되게 작은 비율로 보이도록 한다. 단풍잎은 🍁 이모지 글리프라 폰트
+// 사이즈에 따라 자연스럽게 스케일되므로 별도 보정 불필요(=1).
 const PETAL_SIZE_SCALE: Record<PetalType, number> = {
   flower: 1,
   heart: 1,
   star: 1,
+  snow: 1,
+  meadow: 1,
   sakura: 1,
-  leaf: 0.75,
+  leaf: 1,
   whitePetal: 0.7,
-  // starlight 는 자체 렌더 분기를 쓰지만 PetalType 모든 키를 채워야 하므로 더미 1.
+  // firefly/bokeh/starlight 은 자체 렌더 분기를 쓰지만 PetalType 모든 키를
+  // 채워야 하므로 더미 1.
+  firefly: 1,
+  bokeh: 1,
   starlight: 1,
   none: 1,
 };
+
+// '꽃가루' (meadow) 효과에서 piece 마다 무작위로 선택될 글리프 풀.
+// 모양이 살짝씩 달라 단조로움을 깨고 풍성한 꽃가루 느낌을 만든다.
+const MEADOW_GLYPHS = ['❀', '✿', '❁', '✾', '❃', '❋', '✻'] as const;
 
 interface Petal {
   id: number;
@@ -32,6 +42,8 @@ interface Petal {
   rotate: number;
   /** sparkle 펄스 시점 — 조각마다 미세하게 다른 시작점을 줘서 한꺼번에 반짝거리지 않게 */
   sparkleDelay: number;
+  /** meadow 처럼 piece 별로 다른 글리프를 쓰는 효과 전용 — 미지정이면 type 기본 글리프. */
+  glyph?: string;
 }
 
 interface Props {
@@ -69,13 +81,24 @@ export function FallingPetals({
         color: palette[Math.floor(Math.random() * palette.length)],
         rotate: Math.random() * 360,
         sparkleDelay: Math.random() * 2.4,
+        // meadow 는 piece 마다 다른 글리프 — 그 외 타입은 undefined 로 기본 글리프 사용.
+        glyph:
+          type === 'meadow'
+            ? MEADOW_GLYPHS[Math.floor(Math.random() * MEADOW_GLYPHS.length)]
+            : undefined,
       })),
-    [count, palette],
+    [count, palette, type],
   );
 
   if (type === 'none') return null;
   if (type === 'starlight') {
     return <Starlight palette={palette} />;
+  }
+  if (type === 'firefly') {
+    return <Firefly palette={palette} />;
+  }
+  if (type === 'bokeh') {
+    return <Bokeh palette={palette} />;
   }
   const isTexture = PETAL_IS_TEXTURE[type];
   const glyph = PETAL_GLYPHS[type];
@@ -122,7 +145,7 @@ export function FallingPetals({
                 lineHeight: 1,
               }}
             >
-              {isTexture ? <PetalShape type={type} color={p.color} /> : glyph}
+              {isTexture ? <PetalShape type={type} color={p.color} /> : (p.glyph ?? glyph)}
             </span>
           </span>
         );
@@ -214,35 +237,7 @@ export function PetalShape({ type, color }: { type: PetalType; color: string }) 
     );
   }
 
-  if (type === 'leaf') {
-    return (
-      <svg viewBox="0 0 40 40" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-        <defs>
-          <radialGradient id={gradId} cx="35%" cy="30%" r="80%">
-            <stop offset="0%" stopColor="#FFE0AA" stopOpacity="0.95" />
-            <stop offset="55%" stopColor={color} stopOpacity="0.95" />
-            <stop offset="100%" stopColor="#7A3015" stopOpacity="0.85" />
-          </radialGradient>
-        </defs>
-        {/* 단풍잎 5엽 + 잎맥 */}
-        <g fill={`url(#${gradId})`} stroke="rgba(80,30,10,0.35)" strokeWidth="0.4">
-          <path d="M20 4 L24 14 L34 12 L27 21 L34 30 L23 28 L20 38 L17 28 L6 30 L13 21 L6 12 L16 14 Z" />
-        </g>
-        <g
-          stroke="rgba(80,30,10,0.5)"
-          strokeWidth="0.5"
-          fill="none"
-          strokeLinecap="round"
-        >
-          <path d="M20 6 L20 36" />
-          <path d="M20 14 L28 12" />
-          <path d="M20 14 L12 12" />
-          <path d="M20 22 L30 24" />
-          <path d="M20 22 L10 24" />
-        </g>
-      </svg>
-    );
-  }
+  // 'leaf' 는 더 이상 SVG 텍스처가 아닌 🍁 이모지 글리프로 처리 — 분기 삭제.
 
   if (type === 'whitePetal') {
     // 한 잎짜리 흰 꽃잎. 벚꽃 한 장 같은 자연스러운 형태:
@@ -446,6 +441,194 @@ function Starlight({ palette }: { palette: readonly string[] }) {
           50% {
             opacity: 1;
             transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) scale(1.15);
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 반딧불 — 작은 발광점이 화면 위에서 천천히 표류 + 깜빡임. starlight 와 달리
+// 트레일/오로라 없이 *작고 따뜻한 점* 위주. 저녁/야외 컨셉에 잘 어울림.
+// ─────────────────────────────────────────────────────────────
+
+interface Bug {
+  id: number;
+  startX: number;
+  startY: number;
+  /** drift 거리 — 표류 패턴은 keyframes 안에서 cqw/cqh 단위로 처리. */
+  driftX: number;
+  driftY: number;
+  size: number;
+  delay: number;
+  duration: number;
+  pulseDelay: number;
+  pulseDuration: number;
+  color: string;
+}
+
+function Firefly({ palette }: { palette: readonly string[] }) {
+  const bugs = useMemo<Bug[]>(
+    () =>
+      // 작은 발광점 ~22 개 — 너무 많으면 시끄러워지고 적으면 빈 느낌.
+      Array.from({ length: 22 }, (_, i) => ({
+        id: i,
+        startX: Math.random() * 100,
+        startY: Math.random() * 100,
+        // 한 사이클 동안 cqw/cqh 단위로 살짝 표류. 너무 크면 휙 하고 날아가는
+        // 느낌이라 ±15 정도로 부드럽게.
+        driftX: -15 + Math.random() * 30,
+        driftY: -15 + Math.random() * 30,
+        // 5 ~ 9px — 점광원이라 작아도 drop-shadow 글로우로 잘 보인다.
+        size: 5 + Math.random() * 4,
+        delay: Math.random() * 4,
+        duration: 7 + Math.random() * 5,
+        pulseDelay: Math.random() * 2.6,
+        pulseDuration: 1.8 + Math.random() * 1.4,
+        color: palette[Math.floor(Math.random() * palette.length)],
+      })),
+    [palette],
+  );
+
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
+    >
+      {bugs.map((b) => (
+        <span
+          key={b.id}
+          className="firefly"
+          style={{
+            left: `${b.startX}%`,
+            top: `${b.startY}%`,
+            width: `${b.size}px`,
+            height: `${b.size}px`,
+            backgroundColor: b.color,
+            boxShadow: `0 0 ${b.size * 1.4}px ${b.size * 0.4}px ${hexAlpha(b.color, 0.7)}`,
+            ['--drift-x' as never]: `${b.driftX}cqw`,
+            ['--drift-y' as never]: `${b.driftY}cqh`,
+            animation: `
+              firefly-drift ${b.duration}s ease-in-out ${b.delay}s infinite alternate,
+              firefly-pulse ${b.pulseDuration}s ease-in-out ${b.pulseDelay}s infinite
+            `,
+          }}
+        />
+      ))}
+
+      <style jsx>{`
+        .firefly {
+          position: absolute;
+          border-radius: 50%;
+          transform: translate(-50%, -50%);
+          will-change: transform, opacity;
+          opacity: 0.25;
+        }
+        @keyframes firefly-drift {
+          0% {
+            transform: translate(-50%, -50%);
+          }
+          100% {
+            transform: translate(
+              calc(-50% + var(--drift-x)),
+              calc(-50% + var(--drift-y))
+            );
+          }
+        }
+        @keyframes firefly-pulse {
+          0%, 100% {
+            opacity: 0.2;
+            filter: brightness(0.85);
+          }
+          50% {
+            opacity: 1;
+            filter: brightness(1.4);
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 보케 — 큰 블러 원이 화면 곳곳에 페이드 인/아웃. starlight 의 오로라와 비슷
+// 하지만 별/빛살 없이 *순수 부드러운 빛방울* 만 — 더 조용하고 드림라이트
+// 사진 보케 효과에 가깝게.
+// ─────────────────────────────────────────────────────────────
+
+interface BokehBlob {
+  id: number;
+  left: number;
+  top: number;
+  /** % 단위 — 슬라이드 컨테이너 기준 (cqw/cqh). 너무 크면 단색 얼룩이 됨. */
+  size: number;
+  delay: number;
+  duration: number;
+  color: string;
+  /** 일부는 더 진하게, 일부는 옅게. 기본 0.3 ~ 0.55 사이. */
+  peakOpacity: number;
+}
+
+function Bokeh({ palette }: { palette: readonly string[] }) {
+  const blobs = useMemo<BokehBlob[]>(
+    () =>
+      // 8 개 정도 — 더 많으면 전체적으로 뿌예져서 콘텐츠가 흐려진다.
+      Array.from({ length: 8 }, (_, i) => ({
+        id: i,
+        left: 5 + Math.random() * 90,
+        top: 5 + Math.random() * 90,
+        size: 18 + Math.random() * 20,
+        delay: Math.random() * 6,
+        duration: 7 + Math.random() * 5,
+        color: palette[i % palette.length],
+        peakOpacity: 0.3 + Math.random() * 0.25,
+      })),
+    [palette],
+  );
+
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
+    >
+      {blobs.map((b) => (
+        <span
+          key={b.id}
+          className="bokeh"
+          style={{
+            left: `${b.left}%`,
+            top: `${b.top}%`,
+            width: `${b.size}cqw`,
+            height: `${b.size}cqw`,
+            background: `radial-gradient(circle, ${hexAlpha(b.color, b.peakOpacity)} 0%, ${hexAlpha(b.color, b.peakOpacity * 0.4)} 45%, transparent 75%)`,
+            animationDelay: `${b.delay}s`,
+            animationDuration: `${b.duration}s`,
+          }}
+        />
+      ))}
+
+      <style jsx>{`
+        .bokeh {
+          position: absolute;
+          border-radius: 50%;
+          transform: translate(-50%, -50%) scale(0.85);
+          opacity: 0;
+          mix-blend-mode: screen;
+          filter: blur(22px);
+          animation-name: bokeh-pulse;
+          animation-iteration-count: infinite;
+          animation-timing-function: ease-in-out;
+          will-change: opacity, transform;
+        }
+        @keyframes bokeh-pulse {
+          0%, 100% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.85);
+          }
+          50% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.1);
           }
         }
       `}</style>

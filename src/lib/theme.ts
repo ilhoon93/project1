@@ -218,31 +218,40 @@ export const COLOR_THEME_LABELS: Record<ColorTheme, string> = {
   navy: '네이비',
 };
 
-// 'flower'/'heart'/'star' 는 글리프(2D), 'sakura'/'leaf'/'whitePetal' 은 텍스처형.
-// 'whitePetal' 은 photo-realistic 에 가까운 SVG로 한 잎씩 흩날리는 흰 꽃잎.
+// 'flower'/'heart'/'star'/'snow'/'leaf'/'meadow' 는 글리프(이모지/문자) 효과,
+// 'sakura'/'whitePetal' 은 SVG 텍스처. 'firefly'/'bokeh'/'starlight' 은
+// "떨어지는" 효과가 아니라 화면 위에서 펄스/페이드/표류하는 별도 분기.
 export const PETAL_TYPES = [
   'flower',
   'heart',
   'star',
+  'snow',         // ❄ — 눈송이
+  'meadow',       // ❀✿❁✾… 모양 다양한 꽃가루 모음
   'sakura',
   'leaf',
   'whitePetal',
-  // 별빛 — 위 6종처럼 "떨어지는" 효과가 아니라 화면 전체에 깔리는
-  // 트윙클 + 가끔 가로지르는 별똥별 조합. FallingPetals 가 type==='starlight'
-  // 일 때 별도 렌더 분기를 탄다.
-  'starlight',
+  'firefly',      // 반딧불 — 작은 발광점이 천천히 표류 + 깜빡임
+  'bokeh',        // 보케 — 큰 블러 원이 페이드 인/아웃
+  'starlight',    // 별빛 — 트윙클 + 오로라 (기존)
   'none',
 ] as const;
 export type PetalType = (typeof PETAL_TYPES)[number];
 
-/** 글리프형(폰트 문자) 효과만 매핑. SVG형은 FallingPetals 컴포넌트 내부에서 직접 그림. */
+/** 글리프형(폰트 문자) 효과만 매핑. SVG형/특수 분기는 FallingPetals 컴포넌트가 직접 그림. */
 export const PETAL_GLYPHS: Record<PetalType, string> = {
   flower: '❀',
   heart: '♥',
   star: '★',
+  snow: '❄',
+  // meadow 는 여러 글리프 중에서 piece 마다 무작위 선택 — 여기엔 picker
+  // 미리보기에 보일 대표 글리프를 두고, 실제 낙하 시점엔 FallingPetals 가
+  // 자체 풀에서 뽑아 쓴다.
+  meadow: '✿',
   sakura: '',
-  leaf: '',
+  leaf: '🍁',
   whitePetal: '',
+  firefly: '',
+  bokeh: '',
   starlight: '',
   none: '',
 };
@@ -251,9 +260,13 @@ export const PETAL_LABELS: Record<PetalType, string> = {
   flower: '꽃잎',
   heart: '하트',
   star: '별',
+  snow: '눈송이',
+  meadow: '꽃가루',
   sakura: '벚꽃잎 (질감)',
-  leaf: '단풍잎 (질감)',
+  leaf: '단풍잎',
   whitePetal: '흰 꽃잎 (실사풍)',
+  firefly: '반딧불',
+  bokeh: '보케 (드림라이트)',
   starlight: '별빛 (오로라)',
   none: '없음',
 };
@@ -263,10 +276,14 @@ export const PETAL_IS_TEXTURE: Record<PetalType, boolean> = {
   flower: false,
   heart: false,
   star: false,
+  snow: false,
+  meadow: false,
   sakura: true,
-  leaf: true,
+  leaf: false,
   whitePetal: true,
-  // starlight 는 자체 렌더 분기를 사용하므로 텍스처 분기에 들어가지 않는다.
+  // firefly/bokeh/starlight 은 자체 렌더 분기를 사용.
+  firefly: false,
+  bokeh: false,
   starlight: false,
   none: false,
 };
