@@ -11,42 +11,18 @@ function ensureConfigured() {
   configured = true;
 }
 
-export interface NanoBananaEditResult {
-  images: { url: string; content_type?: string }[];
-  description?: string;
-}
-
-/**
- * Edit an image with the nano-banana model.
- * Returns the first image URL (fal.ai CDN — short-lived, must be re-stored).
- */
-export async function editImage(input: {
-  imageUrl: string;
-  prompt: string;
-}): Promise<string> {
-  ensureConfigured();
-  const result = await fal.subscribe('fal-ai/nano-banana/edit', {
-    input: {
-      image_urls: [input.imageUrl],
-      prompt: input.prompt,
-      num_images: 1,
-    },
-  });
-  const data = result.data as NanoBananaEditResult;
-  const url = data.images?.[0]?.url;
-  if (!url) throw new Error('fal.ai returned no image');
-  return url;
-}
-
 // ─────────────────────────────────────────────────────────────
-// chatGPT 2.0 (OpenAI gpt-image / fal-ai/gpt-image-1/edit-image) — 큐 모드
+// OpenAI gpt-image-2 (fal.ai 호스팅) — 큐 모드
 //
 // fal.subscribe 는 작업이 끝날 때까지 함수가 블록되어 60초 + α 가 걸릴 수 있다.
 // Vercel Hobby 의 60s 제한과 충돌하므로 `fal.queue.submit / status / result` 로
 // 분리해 사용한다. 한 번의 함수 호출은 1–5초로 짧고, 클라이언트가 폴링한다.
+//
+// fal.ai 의 OpenAI 파트너 모델은 'fal-ai/' 가 아닌 'openai/' 네임스페이스를 쓴다.
+// 입출력 스키마는 fal 표준 — 입력 image_urls/prompt, 출력 data.images[0].url.
 // ─────────────────────────────────────────────────────────────
 
-const GPT_IMAGE_MODEL = 'fal-ai/gpt-image-1/edit-image';
+const GPT_IMAGE_MODEL = 'openai/gpt-image-2/edit';
 
 interface GptImageEditResult {
   images: { url: string; content_type?: string }[];
