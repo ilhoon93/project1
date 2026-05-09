@@ -150,23 +150,44 @@ function PartyEditor({
         </Button>
       </div>
 
-      {/* 계좌 입력 행 — 라벨 분리된 3 행 카드 대신 한 줄(은행 / 계좌번호 / 예금주)
-          로 압축. 삭제는 우측 X 버튼으로. 모바일에서 좁아지면 자연스럽게
-          flex-wrap 으로 다음 줄로 내려간다. */}
+      {/* 계좌 입력 — 2 줄 레이아웃.
+            1) 은행(한글 6자) + 예금주(한글 6자) + × 삭제
+            2) 계좌번호(숫자 20자 정도)
+          좁은 모바일 화면에서도 가독성/터치 영역을 확보하기 위해 한 줄에
+          모두 욱여넣기보다는 분리. */}
       {list.map((acct, i) => (
         <div
           key={i}
-          className="flex flex-wrap items-center gap-1.5 rounded border border-input/60 bg-muted/30 p-1.5"
+          className="flex flex-col gap-1.5 rounded border border-input/60 bg-muted/30 p-2"
         >
-          <input
-            type="text"
-            value={acct.bank}
-            maxLength={20}
-            placeholder="은행"
-            aria-label="은행"
-            onChange={(e) => updateAt(i, { ...acct, bank: e.target.value })}
-            className="h-8 w-20 min-w-0 shrink-0 rounded border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-          />
+          <div className="flex items-center gap-1.5">
+            <input
+              type="text"
+              value={acct.bank}
+              maxLength={20}
+              placeholder="은행"
+              aria-label="은행"
+              onChange={(e) => updateAt(i, { ...acct, bank: e.target.value })}
+              className="h-8 w-24 min-w-0 shrink-0 rounded border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+            />
+            <input
+              type="text"
+              value={acct.holder}
+              maxLength={20}
+              placeholder={defaultHolder || '예금주'}
+              aria-label="예금주"
+              onChange={(e) => updateAt(i, { ...acct, holder: e.target.value })}
+              className="h-8 w-24 min-w-0 shrink-0 rounded border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+            />
+            <button
+              type="button"
+              aria-label="삭제"
+              onClick={() => removeAt(i)}
+              className="ml-auto grid h-8 w-8 shrink-0 place-items-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            >
+              ×
+            </button>
+          </div>
           <input
             type="text"
             value={acct.number}
@@ -174,25 +195,8 @@ function PartyEditor({
             placeholder="계좌번호"
             aria-label="계좌번호"
             onChange={(e) => updateAt(i, { ...acct, number: e.target.value })}
-            className="h-8 min-w-0 flex-1 rounded border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+            className="h-8 w-full min-w-0 rounded border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
           />
-          <input
-            type="text"
-            value={acct.holder}
-            maxLength={20}
-            placeholder={defaultHolder || '예금주'}
-            aria-label="예금주"
-            onChange={(e) => updateAt(i, { ...acct, holder: e.target.value })}
-            className="h-8 w-24 min-w-0 shrink-0 rounded border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-          />
-          <button
-            type="button"
-            aria-label="삭제"
-            onClick={() => removeAt(i)}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-          >
-            ×
-          </button>
         </div>
       ))}
     </div>

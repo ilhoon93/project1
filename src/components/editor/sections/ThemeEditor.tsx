@@ -65,19 +65,27 @@ export function ThemeEditor() {
           </div>
         </Field>
 
-        {/* 떨어지는 효과 */}
+        {/* 떨어지는 효과.
+            picker 아이콘 색은 *실제 알림장에서 보이는 색* 과 일치시키기 위해
+            테마 petals[0] 을 우선 쓰고, 그 외엔 accent 폴백. 편지지 테마는
+            글자/액센트가 검정이지만 실제 효과는 분홍(petals[0]=#FFD1D9) 으로
+            깔리기 때문에, accent 만 쓰면 picker 와 실제가 어긋남. */}
         <Field label="배경 효과" hint="2D 글리프 또는 질감(텍스처) 효과를 고르세요">
           <div className="flex flex-wrap gap-2">
-            {PETAL_TYPES.map((t) => (
-              <Choice
-                key={t}
-                selected={theme.petalType === t}
-                onClick={() => setTheme({ ...theme, petalType: t })}
-              >
-                <PetalIcon type={t} accent={THEME_PALETTES[theme.colorTheme].accent} />
-                <span>{PETAL_LABELS[t]}</span>
-              </Choice>
-            ))}
+            {PETAL_TYPES.map((t) => {
+              const pal = THEME_PALETTES[theme.colorTheme];
+              const iconColor = pal.petals[0] ?? pal.accent;
+              return (
+                <Choice
+                  key={t}
+                  selected={theme.petalType === t}
+                  onClick={() => setTheme({ ...theme, petalType: t })}
+                >
+                  <PetalIcon type={t} accent={iconColor} />
+                  <span>{PETAL_LABELS[t]}</span>
+                </Choice>
+              );
+            })}
           </div>
         </Field>
 
