@@ -63,6 +63,35 @@ export async function submitImageEdit(input: {
   return request_id;
 }
 
+/**
+ * 다중 이미지 입력 모드 — gpt-image-2/edit 의 image_urls 가 배열을 받는 점을 활용.
+ * 웨딩스냅 합성에서 [신랑얼굴, 신부얼굴, 카탈로그 마스터샘플] 3장을 한번에 넘기고
+ * prompt 로 "image 1 face → groom, image 2 face → bride, compose like image 3"
+ * 식으로 역할을 명시한다. 단일 입력보다 face fidelity 와 구도 일관성이 좋아진다.
+ */
+export async function submitMultiImageEdit(input: {
+  imageUrls: string[];
+  prompt: string;
+  quality?: GptImageQuality;
+  imageSize?: GptImageSize;
+}): Promise<string> {
+  ensureConfigured();
+  if (input.imageUrls.length === 0) {
+    throw new Error('submitMultiImageEdit: imageUrls must not be empty');
+  }
+  const { request_id } = await fal.queue.submit(GPT_IMAGE_MODEL, {
+    input: {
+      image_urls: input.imageUrls,
+      prompt: input.prompt,
+      num_images: 1,
+      ...(input.quality ? { quality: input.quality } : {}),
+      ...(input.imageSize ? { image_size: input.imageSize } : {}),
+    },
+  });
+  if (!request_id) throw new Error('fal.queue.submit returned no request_id');
+  return request_id;
+}
+
 export type FalQueueStatus = 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
 
 /** 큐 작업 상태 조회 (0.5–1초). */

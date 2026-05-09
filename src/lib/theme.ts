@@ -298,6 +298,10 @@ export const FONT_KEYS = [
   'songMyung',
   // 손글씨 / 캘리 계열
   'handwritten',
+  // nanumPen / nanumBrush 는 picker 에서 숨김 처리(HIDDEN_FONT_KEYS) 되어 있고,
+  // 로더(layout.tsx) 도 제거됐다. 키 자체는 FONT_KEYS 에 남겨 기존 저장된
+  // 알림장(theme.font 값) 이 z.enum 검증에서 깨지지 않게 함. family 는 폴백 한글
+  // 손글씨 폰트로 매핑.
   'nanumPen',
   'nanumBrush',
   'kimjungchul',
@@ -373,13 +377,16 @@ export const FONT_OPTIONS: Record<FontKey, FontOption> = {
 
   // ── 손글씨 / 캘리 ────────────────────────────────────
   handwritten: { label: '손글씨', family: "var(--font-gaegu), cursive" }, // 히든
+  // 두 폰트는 picker 에서 제외(HIDDEN) + layout.tsx 의 next/font/google 로더도
+  // 제거. 기존 저장 데이터가 'nanumPen' / 'nanumBrush' 를 가져도 zod 통과하도록
+  // 키만 보존하고 family 는 가장 가까운 한글 손글씨 폰트로 폴백.
   nanumPen: {
     label: '나눔손글씨 펜',
-    family: "var(--font-nanum-pen), cursive",
+    family: "var(--font-gaegu), cursive",
   },
   nanumBrush: {
     label: '나눔손글씨 붓',
-    family: "var(--font-nanum-brush), cursive",
+    family: "var(--font-gowun-batang), serif",
   },
   kyobo2025lyb: {
     // HIDDEN — 활성화 시 family: "var(--font-kyobo-2025lyb), cursive"
@@ -513,8 +520,10 @@ export const TITLE_TEXT_PRESETS = [
 export const HIDDEN_FONT_KEYS = new Set<FontKey>([
   'dokdo',
   'handwritten',
-  'sans'
-
+  'sans',
+  // 사용자 요청으로 picker 에서 제외 — 키/family 폴백은 보존(기존 저장 데이터 호환).
+  'nanumPen',
+  'nanumBrush',
 ]);
 
 /** picker 에 노출되는 키만 모아둔 배열 — 편집기는 이 목록만 보여준다. */

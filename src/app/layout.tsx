@@ -8,9 +8,7 @@ import {
   Gowun_Batang,
   Great_Vibes,
   Montserrat,
-  Nanum_Brush_Script,
   Nanum_Gothic,
-  Nanum_Pen_Script,
   Noto_Sans_KR,
   Noto_Serif_KR,
   Pinyon_Script,
@@ -91,19 +89,6 @@ const nanumGothic = Nanum_Gothic({
   display: 'swap',
 });
 
-const nanumBrushScript = Nanum_Brush_Script({
-  subsets: ['latin'],
-  weight: ['400'],
-  variable: '--font-nanum-brush',
-  display: 'swap',
-});
-
-const nanumPenScript = Nanum_Pen_Script({
-  subsets: ['latin'],
-  weight: ['400'],
-  variable: '--font-nanum-pen',
-  display: 'swap',
-});
 
 const songMyung = Song_Myung({
   subsets: ['latin'],
@@ -251,8 +236,6 @@ const koreanFontVariables = [
   gaegu.variable,
   dokdo.variable,
   nanumGothic.variable,
-  nanumBrushScript.variable,
-  nanumPenScript.variable,
   songMyung.variable,
   // 위 LOCAL KOREAN FONTS 블록 활성화 시 같이 추가:
   nanumSquare.variable,
