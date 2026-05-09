@@ -136,12 +136,15 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     bgPattern: PEARL_PATTERN,
   },
   // 편지지 — 패턴 없는 깔끔한 순백 + 잉크 검정 글자. 결혼 청첩장 클래식 톤.
+  // 배경 효과 색은 흰 바탕에서 잘 보이도록 *부드러운 분홍 톤* 으로 — 하얀
+  // 꽃잎/눈송이 글리프는 흰 바탕에서 사실상 안 보이는 문제 해결. 글자/액센트
+  // 자체는 검정 잉크 톤이라 핑크 효과가 청첩장 분위기와 자연스럽게 어울림.
   letterPaper: {
     bg: '#FFFFFF',
     fg: '#1A1A1A',
     accent: '#3D3D3D',
     dot: '#D4D4D4',
-    petals: ['#FFFFFF', '#F5F5F5', '#EAEAEA', '#FAFAFA'],
+    petals: ['#FFD1D9', '#FFC0CB', '#FFE4EC', '#F4C2C8'],
   },
   // 미드나잇 — 검정 배경 + 밝은 샴페인 글자. 모던/세련.
   midnight: {
@@ -218,21 +221,22 @@ export const COLOR_THEME_LABELS: Record<ColorTheme, string> = {
   navy: '네이비',
 };
 
-// 'flower'/'heart'/'star'/'snow'/'leaf'/'meadow' 는 글리프(이모지/문자) 효과,
-// 'sakura'/'whitePetal' 은 SVG 텍스처. 'firefly'/'bokeh'/'starlight' 은
-// "떨어지는" 효과가 아니라 화면 위에서 펄스/페이드/표류하는 별도 분기.
+// 'flower'/'heart'/'star'/'snow' 는 글리프(이모지/문자) 효과,
+// 'sakura'/'leaf'/'whitePetal' 은 SVG 텍스처. 'bokeh'/'starlight' 은
+// "떨어지는" 효과가 아니라 화면 위에서 페이드되는 별도 분기.
+//
+// leaf 는 🍁 모양을 따르는 SVG 로 구현 — 이모지 글리프는 색이 고정이라
+// 테마 색을 못 받지만, SVG 는 currentColor 로 채워 테마 팔레트가 그대로 적용됨.
 export const PETAL_TYPES = [
   'flower',
   'heart',
   'star',
   'snow',         // ❄ — 눈송이
-  'meadow',       // ❀✿❁✾… 모양 다양한 꽃가루 모음
   'sakura',
-  'leaf',
+  'leaf',         // 🍁 모양 SVG (테마 색상 반영)
   'whitePetal',
-  'firefly',      // 반딧불 — 작은 발광점이 천천히 표류 + 깜빡임
   'bokeh',        // 보케 — 큰 블러 원이 페이드 인/아웃
-  'starlight',    // 별빛 — 트윙클 + 오로라 (기존)
+  'starlight',    // 별빛 — 트윙클 + 오로라
   'none',
 ] as const;
 export type PetalType = (typeof PETAL_TYPES)[number];
@@ -243,14 +247,9 @@ export const PETAL_GLYPHS: Record<PetalType, string> = {
   heart: '♥',
   star: '★',
   snow: '❄',
-  // meadow 는 여러 글리프 중에서 piece 마다 무작위 선택 — 여기엔 picker
-  // 미리보기에 보일 대표 글리프를 두고, 실제 낙하 시점엔 FallingPetals 가
-  // 자체 풀에서 뽑아 쓴다.
-  meadow: '✿',
   sakura: '',
-  leaf: '🍁',
+  leaf: '',
   whitePetal: '',
-  firefly: '',
   bokeh: '',
   starlight: '',
   none: '',
@@ -261,11 +260,9 @@ export const PETAL_LABELS: Record<PetalType, string> = {
   heart: '하트',
   star: '별',
   snow: '눈송이',
-  meadow: '꽃가루',
   sakura: '벚꽃잎 (질감)',
   leaf: '단풍잎',
   whitePetal: '흰 꽃잎 (실사풍)',
-  firefly: '반딧불',
   bokeh: '보케 (드림라이트)',
   starlight: '별빛 (오로라)',
   none: '없음',
@@ -277,12 +274,10 @@ export const PETAL_IS_TEXTURE: Record<PetalType, boolean> = {
   heart: false,
   star: false,
   snow: false,
-  meadow: false,
   sakura: true,
-  leaf: false,
+  leaf: true,
   whitePetal: true,
-  // firefly/bokeh/starlight 은 자체 렌더 분기를 사용.
-  firefly: false,
+  // bokeh/starlight 은 자체 렌더 분기를 사용.
   bokeh: false,
   starlight: false,
   none: false,

@@ -8,28 +8,21 @@ const DEFAULT_COLORS = ['#F4D9D0', '#E8C2B8', '#F1E0D6', '#D4B5A0'];
 
 // 세로로 길쭉한 꽃잎(흰 꽃잎)은 텍스처 박스가 정사각형이지만 SVG 자체가 세로
 // 비율이 커서 화면에서 더 커 보인다. 타입별로 크기 보정 계수를 둬 화면에서
-// 일관되게 작은 비율로 보이도록 한다. 단풍잎은 🍁 이모지 글리프라 폰트
-// 사이즈에 따라 자연스럽게 스케일되므로 별도 보정 불필요(=1).
+// 일관되게 작은 비율로 보이도록 한다.
 const PETAL_SIZE_SCALE: Record<PetalType, number> = {
   flower: 1,
   heart: 1,
   star: 1,
   snow: 1,
-  meadow: 1,
   sakura: 1,
-  leaf: 1,
+  leaf: 0.85,
   whitePetal: 0.7,
-  // firefly/bokeh/starlight 은 자체 렌더 분기를 쓰지만 PetalType 모든 키를
-  // 채워야 하므로 더미 1.
-  firefly: 1,
+  // bokeh/starlight 은 자체 렌더 분기를 쓰지만 PetalType 모든 키를 채워야
+  // 하므로 더미 1.
   bokeh: 1,
   starlight: 1,
   none: 1,
 };
-
-// '꽃가루' (meadow) 효과에서 piece 마다 무작위로 선택될 글리프 풀.
-// 모양이 살짝씩 달라 단조로움을 깨고 풍성한 꽃가루 느낌을 만든다.
-const MEADOW_GLYPHS = ['❀', '✿', '❁', '✾', '❃', '❋', '✻'] as const;
 
 interface Petal {
   id: number;
@@ -42,8 +35,6 @@ interface Petal {
   rotate: number;
   /** sparkle 펄스 시점 — 조각마다 미세하게 다른 시작점을 줘서 한꺼번에 반짝거리지 않게 */
   sparkleDelay: number;
-  /** meadow 처럼 piece 별로 다른 글리프를 쓰는 효과 전용 — 미지정이면 type 기본 글리프. */
-  glyph?: string;
 }
 
 interface Props {
@@ -81,21 +72,13 @@ export function FallingPetals({
         color: palette[Math.floor(Math.random() * palette.length)],
         rotate: Math.random() * 360,
         sparkleDelay: Math.random() * 2.4,
-        // meadow 는 piece 마다 다른 글리프 — 그 외 타입은 undefined 로 기본 글리프 사용.
-        glyph:
-          type === 'meadow'
-            ? MEADOW_GLYPHS[Math.floor(Math.random() * MEADOW_GLYPHS.length)]
-            : undefined,
       })),
-    [count, palette, type],
+    [count, palette],
   );
 
   if (type === 'none') return null;
   if (type === 'starlight') {
     return <Starlight palette={palette} />;
-  }
-  if (type === 'firefly') {
-    return <Firefly palette={palette} />;
   }
   if (type === 'bokeh') {
     return <Bokeh palette={palette} />;
@@ -145,7 +128,7 @@ export function FallingPetals({
                 lineHeight: 1,
               }}
             >
-              {isTexture ? <PetalShape type={type} color={p.color} /> : (p.glyph ?? glyph)}
+              {isTexture ? <PetalShape type={type} color={p.color} /> : glyph}
             </span>
           </span>
         );
@@ -237,7 +220,46 @@ export function PetalShape({ type, color }: { type: PetalType; color: string }) 
     );
   }
 
-  // 'leaf' 는 더 이상 SVG 텍스처가 아닌 🍁 이모지 글리프로 처리 — 분기 삭제.
+  if (type === 'leaf') {
+    // 🍁 (캐나다 단풍잎) 실루엣을 단순화한 11점 path. 각 piece 의 color 가
+    // gradient 어디나 적용되도록 두 stop 모두 같은 색의 진하기 차이로 구성.
+    // 이모지 글리프와 달리 SVG 라 currentColor / 팔레트 색을 그대로 받는다.
+    const stem = darken(color, 0.35);
+    return (
+      <svg viewBox="0 0 40 44" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <radialGradient id={gradId} cx="50%" cy="42%" r="55%">
+            <stop offset="0%" stopColor={lighten(color, 0.18)} stopOpacity="1" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.92" />
+          </radialGradient>
+        </defs>
+        {/* 잎 본체 — 5엽 형태의 🍁 실루엣 (11 점). */}
+        <path
+          fill={`url(#${gradId})`}
+          stroke={darken(color, 0.25)}
+          strokeWidth="0.4"
+          strokeLinejoin="round"
+          d="M20 3 L23 11 L31 8 L28 16 L36 17 L29 22 L33 30 L24 27 L22 35 L20 33 L18 35 L16 27 L7 30 L11 22 L4 17 L12 16 L9 8 L17 11 Z"
+        />
+        {/* 잎맥 — color 보다 살짝 어두운 톤으로 가운데/대각선 잎맥 4 줄. */}
+        <g
+          stroke={darken(color, 0.3)}
+          strokeWidth="0.45"
+          fill="none"
+          strokeLinecap="round"
+          opacity="0.55"
+        >
+          <path d="M20 33 L20 7" />
+          <path d="M20 17 L28 14" />
+          <path d="M20 17 L12 14" />
+          <path d="M20 24 L29 24" />
+          <path d="M20 24 L11 24" />
+        </g>
+        {/* 줄기 — 잎 본체 아래 짧게. */}
+        <line x1="20" y1="33" x2="20" y2="42" stroke={stem} strokeWidth="1.1" strokeLinecap="round" />
+      </svg>
+    );
+  }
 
   if (type === 'whitePetal') {
     // 한 잎짜리 흰 꽃잎. 벚꽃 한 장 같은 자연스러운 형태:
@@ -449,109 +471,6 @@ function Starlight({ palette }: { palette: readonly string[] }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 반딧불 — 작은 발광점이 화면 위에서 천천히 표류 + 깜빡임. starlight 와 달리
-// 트레일/오로라 없이 *작고 따뜻한 점* 위주. 저녁/야외 컨셉에 잘 어울림.
-// ─────────────────────────────────────────────────────────────
-
-interface Bug {
-  id: number;
-  startX: number;
-  startY: number;
-  /** drift 거리 — 표류 패턴은 keyframes 안에서 cqw/cqh 단위로 처리. */
-  driftX: number;
-  driftY: number;
-  size: number;
-  delay: number;
-  duration: number;
-  pulseDelay: number;
-  pulseDuration: number;
-  color: string;
-}
-
-function Firefly({ palette }: { palette: readonly string[] }) {
-  const bugs = useMemo<Bug[]>(
-    () =>
-      // 작은 발광점 ~22 개 — 너무 많으면 시끄러워지고 적으면 빈 느낌.
-      Array.from({ length: 22 }, (_, i) => ({
-        id: i,
-        startX: Math.random() * 100,
-        startY: Math.random() * 100,
-        // 한 사이클 동안 cqw/cqh 단위로 살짝 표류. 너무 크면 휙 하고 날아가는
-        // 느낌이라 ±15 정도로 부드럽게.
-        driftX: -15 + Math.random() * 30,
-        driftY: -15 + Math.random() * 30,
-        // 5 ~ 9px — 점광원이라 작아도 drop-shadow 글로우로 잘 보인다.
-        size: 5 + Math.random() * 4,
-        delay: Math.random() * 4,
-        duration: 7 + Math.random() * 5,
-        pulseDelay: Math.random() * 2.6,
-        pulseDuration: 1.8 + Math.random() * 1.4,
-        color: palette[Math.floor(Math.random() * palette.length)],
-      })),
-    [palette],
-  );
-
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
-    >
-      {bugs.map((b) => (
-        <span
-          key={b.id}
-          className="firefly"
-          style={{
-            left: `${b.startX}%`,
-            top: `${b.startY}%`,
-            width: `${b.size}px`,
-            height: `${b.size}px`,
-            backgroundColor: b.color,
-            boxShadow: `0 0 ${b.size * 1.4}px ${b.size * 0.4}px ${hexAlpha(b.color, 0.7)}`,
-            ['--drift-x' as never]: `${b.driftX}cqw`,
-            ['--drift-y' as never]: `${b.driftY}cqh`,
-            animation: `
-              firefly-drift ${b.duration}s ease-in-out ${b.delay}s infinite alternate,
-              firefly-pulse ${b.pulseDuration}s ease-in-out ${b.pulseDelay}s infinite
-            `,
-          }}
-        />
-      ))}
-
-      <style jsx>{`
-        .firefly {
-          position: absolute;
-          border-radius: 50%;
-          transform: translate(-50%, -50%);
-          will-change: transform, opacity;
-          opacity: 0.25;
-        }
-        @keyframes firefly-drift {
-          0% {
-            transform: translate(-50%, -50%);
-          }
-          100% {
-            transform: translate(
-              calc(-50% + var(--drift-x)),
-              calc(-50% + var(--drift-y))
-            );
-          }
-        }
-        @keyframes firefly-pulse {
-          0%, 100% {
-            opacity: 0.2;
-            filter: brightness(0.85);
-          }
-          50% {
-            opacity: 1;
-            filter: brightness(1.4);
-          }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
 // 보케 — 큰 블러 원이 화면 곳곳에 페이드 인/아웃. starlight 의 오로라와 비슷
 // 하지만 별/빛살 없이 *순수 부드러운 빛방울* 만 — 더 조용하고 드림라이트
 // 사진 보케 효과에 가깝게.
@@ -657,6 +576,34 @@ function SparkleStar() {
       <circle cx="12" cy="12" r="0.9" />
     </svg>
   );
+}
+
+/** "#RRGGBB" 를 비율만큼 흰색 쪽으로 보간 (factor 0=원본, 1=흰색). */
+function lighten(hex: string, factor: number): string {
+  const m = /^#([0-9a-fA-F]{6})$/.exec(hex);
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 0xff;
+  const g = (n >> 8) & 0xff;
+  const b = n & 0xff;
+  const lr = Math.round(r + (255 - r) * factor);
+  const lg = Math.round(g + (255 - g) * factor);
+  const lb = Math.round(b + (255 - b) * factor);
+  return `#${((lr << 16) | (lg << 8) | lb).toString(16).padStart(6, '0')}`;
+}
+
+/** "#RRGGBB" 를 비율만큼 검정 쪽으로 보간 (factor 0=원본, 1=검정). */
+function darken(hex: string, factor: number): string {
+  const m = /^#([0-9a-fA-F]{6})$/.exec(hex);
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 0xff;
+  const g = (n >> 8) & 0xff;
+  const b = n & 0xff;
+  const dr = Math.round(r * (1 - factor));
+  const dg = Math.round(g * (1 - factor));
+  const db = Math.round(b * (1 - factor));
+  return `#${((dr << 16) | (dg << 8) | db).toString(16).padStart(6, '0')}`;
 }
 
 /** "#RRGGBB" → "rgba(...)" 헬퍼. 잘못된 입력이면 원본 그대로 돌려줘 무시되게 함. */
