@@ -156,7 +156,7 @@ export type PosterDesign = z.infer<typeof PosterDesignSchema>;
 // 풀이미지형처럼 사용자가 변경 가능. 날짜·이름 박스는 토글 가능하지만
 // 위치는 고정 레이아웃을 따른다 (드래그 슬라이더 없음).
 
-export const ILLUSTRATION_VARIANTS = ['arch', 'dance', 'hanbok'] as const;
+export const ILLUSTRATION_VARIANTS = ['arch', 'dance', 'hanbok', 'ani'] as const;
 export type IllustrationVariant = (typeof ILLUSTRATION_VARIANTS)[number];
 
 export const IllustrationDesignSchema = z
@@ -211,6 +211,83 @@ export const IllustrationDesignSchema = z
   });
 
 export type IllustrationDesign = z.infer<typeof IllustrationDesignSchema>;
+
+// ── 텍스트형 디자인 ──────────────────────────────────────
+//
+// 텍스트형은 가운데 데코 일러스트(꽃 / 편지 등)와 영문 제목을 조합한
+// 미니멀 레이아웃이다. 일러스트형과 같은 컨트롤(제목·이름·날짜·인사말의
+// 토글/크기/상하 위치)을 노출하되, 가운데 데코 자리에 들어갈 PNG 만
+// variant 로 선택한다.
+//   - flower : 기존 text-flower.png — 라인 아트 꽃다발
+//   - letter : text-letter.png       — 봉투/편지 일러스트
+
+export const TEXT_VARIANTS = ['flower', 'letter'] as const;
+export type TextVariant = (typeof TEXT_VARIANTS)[number];
+
+// 이름 정렬 방식 — 한 줄(가운데 점 구분) vs 위·아래(스택, 중앙 정렬).
+export const TEXT_NAME_LAYOUTS = ['inline', 'stack'] as const;
+export type TextNameLayout = (typeof TEXT_NAME_LAYOUTS)[number];
+
+export const TextDesignSchema = z
+  .object({
+    variant: z.enum(TEXT_VARIANTS).default('flower'),
+    title: z
+      .object({
+        text: z.string().max(60).default(TITLE_TEXT_PRESETS[0]), // "We are getting married"
+        color: z.string().max(32).default('currentColor'),
+        fontSize: z.number().min(22).max(48).default(34),
+        offsetY: z.number().min(-10).max(10).default(0),
+      })
+      .default({
+        text: TITLE_TEXT_PRESETS[0],
+        color: 'currentColor',
+        fontSize: 34,
+        offsetY: 0,
+      }),
+    // 데코 이미지가 풀너비로 깔리는 텍스트형에선 이름·날짜·인사말이 이미지
+    // 위로 올라가거나 아래로 내려가야 자연스럽기 때문에 offsetY 범위를
+    // ±10 → ±50 cqh 로 크게 넓힌다 (1 cqh = 슬라이드 높이의 1%).
+    dateBox: z
+      .object({
+        enabled: z.boolean().default(true),
+        fontSize: z.number().min(11).max(22).default(15),
+        offsetY: z.number().min(-50).max(50).default(0),
+      })
+      .default({ enabled: true, fontSize: 15, offsetY: 0 }),
+    nameBox: z
+      .object({
+        enabled: z.boolean().default(true),
+        fontSize: z.number().min(12).max(24).default(16),
+        offsetY: z.number().min(-50).max(50).default(0),
+        // 'inline' = 한 줄 가운데 점 구분, 'stack' = 위·아래 두 줄 중앙 정렬.
+        layout: z.enum(TEXT_NAME_LAYOUTS).default('inline'),
+        // true 면 신부 이름을 먼저, 신랑 이름을 뒤로 배치.
+        brideFirst: z.boolean().default(false),
+      })
+      .default({ enabled: true, fontSize: 16, offsetY: 0, layout: 'inline', brideFirst: false }),
+    messageBox: z
+      .object({
+        enabled: z.boolean().default(true),
+        fontSize: z.number().min(11).max(20).default(13),
+        offsetY: z.number().min(-50).max(50).default(0),
+      })
+      .default({ enabled: true, fontSize: 13, offsetY: 0 }),
+  })
+  .default({
+    variant: 'flower',
+    title: { text: TITLE_TEXT_PRESETS[0], color: 'currentColor', fontSize: 34, offsetY: 0 },
+    dateBox: { enabled: true, fontSize: 15, offsetY: 0 },
+    nameBox: {
+      enabled: true,
+      fontSize: 16,
+      offsetY: 0,
+      layout: 'inline',
+      brideFirst: false,
+    },
+    messageBox: { enabled: true, fontSize: 13, offsetY: 0 },
+  });
+
+export type TextDesign = z.infer<typeof TextDesignSchema>;
 
 // ── 액자프레임 디자인 ────────────────────────────────────
 //
@@ -317,6 +394,7 @@ export const MainSectionSchema = z.preprocess(
       aiUsed: z.boolean().default(false),
       posterDesign: PosterDesignSchema,
       illustrationDesign: IllustrationDesignSchema,
+      textDesign: TextDesignSchema,
       frameDesign: FrameDesignSchema,
     })
     .default({
@@ -325,6 +403,7 @@ export const MainSectionSchema = z.preprocess(
       aiUsed: false,
       posterDesign: PosterDesignSchema.parse(undefined),
       illustrationDesign: IllustrationDesignSchema.parse(undefined),
+      textDesign: TextDesignSchema.parse(undefined),
       frameDesign: FrameDesignSchema.parse(undefined),
     }),
 );

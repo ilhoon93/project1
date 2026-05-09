@@ -5,10 +5,12 @@ import {
   FrameDesignSchema,
   IllustrationDesignSchema,
   PosterDesignSchema,
+  TextDesignSchema,
   type InvitationContent,
   type FrameDesign,
   type PosterDesign,
   type IllustrationDesign,
+  type TextDesign,
 } from '@/types/invitation';
 import { TITLE_FONT_OPTIONS } from '@/lib/theme';
 import { Confetti } from '@/components/shared/Confetti';
@@ -238,7 +240,9 @@ function PosterFullImageSlide({
           : undefined
       }
     >
-      {/* 배경 이미지 */}
+      {/* 배경 이미지 — 사용자가 업로드한 임의 URL 이라 next/image 의 도메인 화이트리스트
+          를 적용하기 어렵다. eslint-disable 로 경고만 억제. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={main.heroImage!}
         alt=""
@@ -542,13 +546,14 @@ function IllustrationSlide({
 
 // ─────────────────────────────────────────────────────────────
 // 텍스트형 슬라이드 — 일러스트형과 같은 골격(제목 → 인사말 → 데코 →
-// 디바이더 → 이름 → 날짜)을 따르되, 일러스트 자리에 text-flower.png
-// 를 두고 디자인 컨트롤(IllustrationDesign 같은) 없이 합리적인 기본값을
-// 그대로 쓰는 변형.
+// 디바이더 → 이름 → 날짜)을 따른다. 디자인 컨트롤(TextDesign)을 통해
+// 제목 문구·색상·크기·상하 위치, 인사말/이름/날짜의 토글·크기·상하 위치,
+// 그리고 가운데 데코 일러스트(flower / letter) 변형을 선택할 수 있다.
 //
 // 기존 LegacyMainSlide 의 단순한 "꽃 PNG + 이름·날짜" 레이아웃에서
 // 일러스트형과 동일한 디자인 시그니처(영문 타이틀·디바이더·중앙 정렬
-// 인사말)로 격상해 사용자 요청을 만족.
+// 인사말)로 격상해 사용자가 텍스트형에서도 일러스트형과 같은 수준으로
+// 디테일을 조정할 수 있게 한다.
 // ─────────────────────────────────────────────────────────────
 
 function TextLayoutSlide({
@@ -562,70 +567,120 @@ function TextLayoutSlide({
   mode,
   cheersCount,
 }: PosterProps) {
+  // 구버전 데이터에 textDesign 이 없을 수도 있어 안전하게 기본값 폴백.
+  const design: TextDesign = main.textDesign ?? TextDesignSchema.parse(undefined);
+
+  const titleColor = design.title.color || 'currentColor';
+  const decoSrc = `/illustrations/text-${design.variant}.png`;
+
+  // 이름 정렬/순서 — brideFirst 면 신부, 신랑 순. layout 'stack' 이면 위·아래 두 줄.
+  // "신랑/신부" 접두어는 표시하지 않는다 (사용자 요청).
+  const firstName = design.nameBox.brideFirst ? brideName : groomName;
+  const secondName = design.nameBox.brideFirst ? groomName : brideName;
+  const nameTransform = design.nameBox.offsetY
+    ? `translateY(${design.nameBox.offsetY}cqh)`
+    : undefined;
+
   return (
     <section
       className="relative flex h-full min-h-full w-full flex-col items-center overflow-hidden text-center"
     >
       {/* 1) 상단 영역 — 영문 제목 + 인사말. 일러스트형과 같은
           flex:1 + justify-end + overflow-hidden 패턴이라 인사말이 길어져도
-          데코·이름·날짜 자리는 흔들리지 않는다. */}
+          데코·이름·날짜 자리는 흔들리지 않는다.
+          messageBox.offsetY 는 ±50cqh 까지 허용 — 데코 이미지 위로 내려가서
+          오버레이될 수 있도록 한다. (z-10 으로 데코 위에 배치) */}
       <div
-        className="flex w-full flex-col items-center justify-end overflow-hidden px-6"
+        className="relative z-10 flex w-full flex-col items-center justify-end overflow-visible px-6"
         style={{ flex: '1 1 0', minHeight: 0, paddingTop: '4cqh', paddingBottom: '2.5cqh' }}
       >
         <h1
           className="font-bold leading-tight"
-          style={{ fontFamily: PLAYFAIR, fontSize: '34px' }}
+          style={{
+            fontFamily: PLAYFAIR,
+            color: titleColor,
+            fontSize: `${design.title.fontSize}px`,
+            transform: design.title.offsetY ? `translateY(${design.title.offsetY}cqh)` : undefined,
+          }}
         >
-          We are getting married
+          {design.title.text}
         </h1>
-        {main.greeting && (
+        {design.messageBox.enabled && main.greeting && (
           <p
             className="max-w-md whitespace-pre-line leading-relaxed opacity-80"
-            style={{ fontFamily: 'inherit', fontSize: '13px', marginTop: '1.4cqh' }}
+            style={{
+              fontFamily: 'inherit',
+              fontSize: `${design.messageBox.fontSize}px`,
+              marginTop: '1.4cqh',
+              transform: design.messageBox.offsetY
+                ? `translateY(${design.messageBox.offsetY}cqh)`
+                : undefined,
+            }}
           >
             {main.greeting}
           </p>
         )}
       </div>
 
-      {/* 2) 데코 — 꽃 일러스트. 일러스트형의 메인 일러스트와 같은 자리/같은
-          라인아트 톤. 다크 테마에선 --mw-illust-filter 가 자동 적용되어
-          밝은 배경처럼 보이도록 invert/glow 처리. */}
-      <div className="flex w-full max-w-sm shrink-0 items-center justify-center px-6">
+      {/* 2) 데코 — 꽃/편지 등 텍스트형 일러스트. 슬라이드 폭을 가득 채워(좌우
+          여백 0) 풀너비로 깔린다. 다크 테마에선 --mw-illust-filter 가 자동
+          적용되어 밝은 배경처럼 보이도록 invert/glow 처리. */}
+      <div className="flex w-full shrink-0 items-center justify-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/illustrations/text-flower.png"
+          src={decoSrc}
           alt=""
           aria-hidden
-          className="block h-auto w-2/3 max-w-[14rem] select-none object-contain"
+          className="block h-auto w-full select-none object-cover"
           draggable={false}
           style={{ filter: 'var(--mw-illust-filter, none)' }}
         />
       </div>
 
-      {/* 3) 이미지 하단 디바이더 — 일러스트형과 동일 컴포넌트 재사용. */}
-      <IllustDivider />
+      {/* 3) 이름 — 풀너비 데코 아래 자리. offsetY (±50cqh) 로 데코 위쪽까지
+          끌어올릴 수 있어 사용자가 자유롭게 배치 가능. z-10 으로 데코 위에. */}
+      {design.nameBox.enabled && (
+        <div
+          className="relative z-10 flex shrink-0 flex-col items-center font-light tracking-wide"
+          style={{
+            fontFamily: 'inherit',
+            fontSize: `${design.nameBox.fontSize}px`,
+            marginTop: '2.2cqh',
+            transform: nameTransform,
+          }}
+        >
+          {design.nameBox.layout === 'stack' ? (
+            <>
+              <span className="leading-tight">{firstName}</span>
+              <span className="leading-tight">{secondName}</span>
+            </>
+          ) : (
+            <span>
+              {firstName} · {secondName}
+            </span>
+          )}
+        </div>
+      )}
 
-      {/* 4) 이름 — 디바이더 아래 충분한 간격. */}
-      <p
-        className="shrink-0 font-light tracking-wide"
-        style={{ fontFamily: 'inherit', fontSize: '16px', marginTop: '2.2cqh' }}
-      >
-        신랑 {groomName} · 신부 {brideName}
-      </p>
-
-      {/* 5) 날짜 — 이름 바로 아래. 일러스트형과 같은 Playfair 폰트로 통일. */}
-      {weddingDate && (
+      {/* 4) 날짜 — 이름 바로 아래. 일러스트형과 같은 Playfair 폰트로 통일.
+          offsetY (±50cqh) 로 데코 위쪽까지 자유롭게 이동 가능. z-10. */}
+      {design.dateBox.enabled && weddingDate && (
         <p
-          className="shrink-0 tracking-[0.2em]"
-          style={{ fontFamily: PLAYFAIR, fontSize: '15px', marginTop: '0.8cqh' }}
+          className="relative z-10 shrink-0 tracking-[0.2em]"
+          style={{
+            fontFamily: PLAYFAIR,
+            fontSize: `${design.dateBox.fontSize}px`,
+            marginTop: '0.8cqh',
+            transform: design.dateBox.offsetY
+              ? `translateY(${design.dateBox.offsetY}cqh)`
+              : undefined,
+          }}
         >
           {formatDateForIllust(weddingDate)}
         </p>
       )}
 
-      {/* 6) 하단 spacer — 인사말 길이와 무관하게 축하하기 자리를 비워둠 */}
+      {/* 5) 하단 spacer — 인사말 길이와 무관하게 축하하기 자리를 비워둠 */}
       <div style={{ flex: '1 1 0', minHeight: '6cqh' }} />
 
       <div className="absolute bottom-16 left-1/2 z-20 -translate-x-1/2">
@@ -671,7 +726,7 @@ function IllustrationImage({
   variant,
 }: {
   src: string;
-  variant: 'arch' | 'dance' | 'hanbok';
+  variant: 'arch' | 'dance' | 'hanbok' | 'ani';
 }) {
   const [errored, setErrored] = useState(false);
 
@@ -738,6 +793,7 @@ function LegacyMainSlide({
     <section className="relative flex h-full min-h-full items-center justify-center px-6 py-10 text-center">
       {overlay && (
         <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={main.heroImage!}
             alt=""
@@ -769,6 +825,7 @@ function LegacyMainSlide({
           // 하단 신랑·신부 이름은 사용자 요청으로 제거.
           <div className="relative rotate-[-3deg] rounded-none bg-white p-3 pb-3 shadow-xl">
             {hasImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={main.heroImage!} alt="" className="h-80 w-64 object-cover" />
             ) : (
               <div className="grid h-80 w-64 place-items-center bg-gradient-br from-stone-200 to-stone-300 text-3xl text-stone-400">

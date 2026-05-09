@@ -5,12 +5,16 @@ import { ChevronDown } from 'lucide-react';
 import {
   ILLUSTRATION_VARIANTS,
   FRAME_VARIANTS,
+  TEXT_VARIANTS,
   PosterDesignSchema,
   IllustrationDesignSchema,
+  TextDesignSchema,
   FrameDesignSchema,
   type PosterDesign,
   type IllustrationDesign,
   type IllustrationVariant,
+  type TextDesign,
+  type TextVariant,
   type FrameDesign,
   type FrameVariant,
 } from '@/types/invitation';
@@ -77,14 +81,17 @@ export function MainEditor() {
   const showImagePicker = layout !== 'text' && layout !== 'illustration';
   const isPoster = layout === 'poster';
   const isIllustration = layout === 'illustration';
+  const isText = layout === 'text';
   const isFrame = isFrameLayout(layout);
   const design = main.posterDesign;
   const illust = main.illustrationDesign;
+  const text = main.textDesign;
   const frame = main.frameDesign;
 
   const patchDesign = (next: PosterDesign) => patch('main', { ...main, posterDesign: next });
   const patchIllust = (next: IllustrationDesign) =>
     patch('main', { ...main, illustrationDesign: next });
+  const patchText = (next: TextDesign) => patch('main', { ...main, textDesign: next });
   const patchFrame = (next: FrameDesign) => patch('main', { ...main, frameDesign: next });
 
   return (
@@ -199,6 +206,15 @@ export function MainEditor() {
           />
         )}
 
+        {isText && text && (
+          <TextDesignControls
+            design={text}
+            onChange={patchText}
+            greeting={main.greeting}
+            onGreetingChange={(greeting) => patch('main', { ...main, greeting })}
+          />
+        )}
+
         {isFrame && frame && (
           <FrameDesignControls
             design={frame}
@@ -208,20 +224,8 @@ export function MainEditor() {
           />
         )}
 
-        {/* 포스터/일러스트/액자프레임 은 각 디자인 패널 내부 "인사말" 그룹에서 작성.
-            텍스트 레이아웃만 디자인 패널이 없어 여기서 그대로 노출. */}
-        {!isPoster && !isIllustration && !isFrame && (
-          <PresetTextArea
-            label="인사말"
-            value={main.greeting}
-            maxLength={500}
-            rows={4}
-            placeholder="저희 두 사람의 약속을 함께 축복해주세요"
-            onChange={(next) => patch('main', { ...main, greeting: next })}
-            presets={MAIN_GREETING_PRESETS}
-            presetLabel="추천 인사말"
-          />
-        )}
+        {/* 포스터/일러스트/텍스트/액자프레임 은 각 디자인 패널 내부 "인사말" 그룹에서 작성.
+            여기에서는 폴백 인사말 입력란을 노출하지 않는다. */}
       </div>
     </SectionEditor>
   );
@@ -540,6 +544,7 @@ const ILLUST_VARIANT_LABELS: Record<IllustrationVariant, { name: string; hint: s
   arch: { name: '꽃 아치', hint: '플로럴 아치 + 손잡은 커플' },
   dance: { name: '슬로우 댄스', hint: '댄스 포즈 + 골드 스파클' },
   hanbok: { name: '한복', hint: '전통 한복 차림의 신랑·신부' },
+  ani: { name: '애니메이션', hint: '귀여운 일러스트 스타일' },
 };
 
 function IllustrationDesignControls({ design, onChange, greeting, onGreetingChange }: IllustProps) {
@@ -750,6 +755,303 @@ function IllustrationDesignControls({ design, onChange, greeting, onGreetingChan
         />
       </Group>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 텍스트형 디자인 컨트롤 — 일러스트형과 같은 골격(제목·이름·날짜·인사말)
+// + 가운데 데코 일러스트(꽃 / 편지) 변형 선택
+// ─────────────────────────────────────────────────────────────
+
+interface TextProps {
+  design: TextDesign;
+  onChange: (next: TextDesign) => void;
+  greeting: string;
+  onGreetingChange: (next: string) => void;
+}
+
+const TEXT_VARIANT_LABELS: Record<TextVariant, { name: string; hint: string }> = {
+  flower: { name: '꽃', hint: '플로럴 라인 아트' },
+  letter: { name: '편지', hint: '편지·봉투 일러스트' },
+};
+
+function TextDesignControls({ design, onChange, greeting, onGreetingChange }: TextProps) {
+  const handleReset = () => {
+    // variant 는 "타입" 선택이라 보존, 디자인 항목만 기본값으로.
+    const defaults = TextDesignSchema.parse(undefined);
+    onChange({ ...defaults, variant: design.variant });
+  };
+  return (
+    <div className="flex flex-col gap-5 rounded-md border border-input bg-muted/20 p-3">
+      <DesignPanelHeader title="텍스트형 디자인" onReset={handleReset} />
+
+      {/* 데코 변형 선택 */}
+      <Group label="데코 일러스트">
+        <div className="grid grid-cols-2 gap-2">
+          {TEXT_VARIANTS.map((key) => {
+            const selected = design.variant === key;
+            const meta = TEXT_VARIANT_LABELS[key];
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onChange({ ...design, variant: key })}
+                aria-pressed={selected}
+                className={`flex flex-col items-center gap-1 rounded-md border px-2 py-3 text-xs transition-colors ${
+                  selected
+                    ? 'border-foreground bg-foreground text-background'
+                    : 'border-input bg-background text-foreground hover:bg-muted'
+                }`}
+              >
+                <span className="font-medium">{meta.name}</span>
+                <span className={selected ? 'opacity-80' : 'text-muted-foreground'}>
+                  {meta.hint}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </Group>
+
+      {/* 제목 텍스트 — 폰트는 Playfair Display 고정, 문구·색상·크기·상하 위치 조정 */}
+      <Group label="제목 텍스트">
+        <TitleTextCombobox
+          value={design.title.text}
+          onChange={(text) =>
+            onChange({ ...design, title: { ...design.title, text } })
+          }
+        />
+        <p className="text-xs text-muted-foreground">
+          폰트는 텍스트형의 분위기에 맞춰 Playfair Display 로 고정됩니다.
+        </p>
+        <ColorPicker
+          label="색상"
+          value={design.title.color}
+          onChange={(color) =>
+            onChange({ ...design, title: { ...design.title, color } })
+          }
+          presets={TITLE_COLOR_PRESETS}
+          allowThemeDefault
+        />
+        <SliderRow
+          label="글자 크기"
+          value={design.title.fontSize}
+          min={22}
+          max={48}
+          unit="px"
+          onChange={(fontSize) =>
+            onChange({ ...design, title: { ...design.title, fontSize } })
+          }
+        />
+        <SliderRow
+          label="상하 위치"
+          value={design.title.offsetY}
+          min={-10}
+          max={10}
+          leftHint="상"
+          rightHint="하"
+          onChange={(offsetY) =>
+            onChange({ ...design, title: { ...design.title, offsetY } })
+          }
+        />
+      </Group>
+
+      {/* 날짜 — 토글 + 글자 크기/상하 위치. 풀너비 데코 위로 올릴 수 있도록
+          상하 위치 범위를 ±50cqh 로 확장. */}
+      <Group
+        label="날짜"
+        toggle={{
+          checked: design.dateBox.enabled,
+          onChange: (v) =>
+            onChange({ ...design, dateBox: { ...design.dateBox, enabled: v } }),
+        }}
+      >
+        <p className="text-xs text-muted-foreground">
+          데코 아래에 기본 위치. 상하 위치 슬라이더로 데코 위까지 올릴 수 있어요.
+        </p>
+        {design.dateBox.enabled && (
+          <>
+            <SliderRow
+              label="글자 크기"
+              value={design.dateBox.fontSize}
+              min={11}
+              max={22}
+              unit="px"
+              onChange={(fontSize) =>
+                onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
+              }
+            />
+            <SliderRow
+              label="상하 위치"
+              value={design.dateBox.offsetY}
+              min={-50}
+              max={50}
+              leftHint="상"
+              rightHint="하"
+              onChange={(offsetY) =>
+                onChange({ ...design, dateBox: { ...design.dateBox, offsetY } })
+              }
+            />
+          </>
+        )}
+      </Group>
+
+      {/* 이름 — 토글 + 정렬(한 줄/두 줄) + 순서(신부 먼저) + 글자 크기/상하 위치 */}
+      <Group
+        label="이름"
+        toggle={{
+          checked: design.nameBox.enabled,
+          onChange: (v) =>
+            onChange({ ...design, nameBox: { ...design.nameBox, enabled: v } }),
+        }}
+      >
+        <p className="text-xs text-muted-foreground">
+          데코 아래에 기본 위치. 상하 위치로 데코 위까지 올릴 수 있고, 신랑·신부
+          접두어는 표시되지 않습니다.
+        </p>
+        {design.nameBox.enabled && (
+          <>
+            {/* 정렬 — 한 줄(신랑 · 신부) vs 두 줄(위·아래 중앙 정렬) */}
+            <div className="flex flex-col gap-1.5 text-xs">
+              <span className="text-muted-foreground">정렬</span>
+              <div className="grid grid-cols-2 gap-2">
+                <NameLayoutButton
+                  selected={design.nameBox.layout === 'inline'}
+                  onClick={() =>
+                    onChange({ ...design, nameBox: { ...design.nameBox, layout: 'inline' } })
+                  }
+                  title="한 줄"
+                  hint="신랑 · 신부"
+                />
+                <NameLayoutButton
+                  selected={design.nameBox.layout === 'stack'}
+                  onClick={() =>
+                    onChange({ ...design, nameBox: { ...design.nameBox, layout: 'stack' } })
+                  }
+                  title="위·아래"
+                  hint={'신랑\n신부'}
+                />
+              </div>
+            </div>
+
+            <ToggleRow
+              label="신부 이름 먼저"
+              hint="신부 → 신랑 순서로 표시"
+              checked={design.nameBox.brideFirst}
+              onChange={(v) =>
+                onChange({ ...design, nameBox: { ...design.nameBox, brideFirst: v } })
+              }
+            />
+
+            <SliderRow
+              label="글자 크기"
+              value={design.nameBox.fontSize}
+              min={12}
+              max={24}
+              unit="px"
+              onChange={(fontSize) =>
+                onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
+              }
+            />
+            <SliderRow
+              label="상하 위치"
+              value={design.nameBox.offsetY}
+              min={-50}
+              max={50}
+              leftHint="상"
+              rightHint="하"
+              onChange={(offsetY) =>
+                onChange({ ...design, nameBox: { ...design.nameBox, offsetY } })
+              }
+            />
+          </>
+        )}
+      </Group>
+
+      {/* 인사말 — 토글 + 글자 크기/상하 위치 + 본문 입력 */}
+      <Group
+        label="인사말"
+        toggle={{
+          checked: design.messageBox.enabled,
+          onChange: (v) =>
+            onChange({ ...design, messageBox: { ...design.messageBox, enabled: v } }),
+        }}
+      >
+        <p className="text-xs text-muted-foreground">
+          제목 바로 아래 부제 자리. 상하 위치로 데코 위까지 내릴 수 있어요.
+        </p>
+        {design.messageBox.enabled && (
+          <>
+            <SliderRow
+              label="글자 크기"
+              value={design.messageBox.fontSize}
+              min={11}
+              max={20}
+              unit="px"
+              onChange={(fontSize) =>
+                onChange({ ...design, messageBox: { ...design.messageBox, fontSize } })
+              }
+            />
+            <SliderRow
+              label="상하 위치"
+              value={design.messageBox.offsetY}
+              min={-50}
+              max={50}
+              leftHint="상"
+              rightHint="하"
+              onChange={(offsetY) =>
+                onChange({ ...design, messageBox: { ...design.messageBox, offsetY } })
+              }
+            />
+          </>
+        )}
+        <PresetTextArea
+          label="인사말 내용"
+          value={greeting}
+          maxLength={500}
+          rows={4}
+          placeholder="저희 두 사람의 약속을 함께 축복해주세요"
+          onChange={onGreetingChange}
+          presets={MAIN_GREETING_PRESETS}
+          presetLabel="추천 인사말"
+        />
+      </Group>
+    </div>
+  );
+}
+
+// 텍스트형 이름 정렬 옵션 버튼 — "한 줄" / "위·아래" 두 가지 중 선택.
+function NameLayoutButton({
+  selected,
+  onClick,
+  title,
+  hint,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  title: string;
+  hint: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={`flex flex-col items-center gap-0.5 rounded-md border px-2 py-2 text-[11px] transition-colors ${
+        selected
+          ? 'border-foreground bg-foreground text-background'
+          : 'border-input bg-background text-foreground hover:bg-muted'
+      }`}
+    >
+      <span className="font-medium">{title}</span>
+      <span
+        className={`whitespace-pre-line text-center text-[10px] leading-snug ${
+          selected ? 'opacity-80' : 'text-muted-foreground'
+        }`}
+      >
+        {hint}
+      </span>
+    </button>
   );
 }
 
