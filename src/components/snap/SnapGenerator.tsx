@@ -911,51 +911,92 @@ function StatusCard({
   freeActivationAvailable: boolean;
   onDiscardAnchor: () => void;
 }) {
+  // 인라인 큰 미리보기 토글 — 한 행짜리 status 안에 넣으면 답답해서 카드 아래로
+  // 펼친다. 새 탭 열기 옵션도 같이 제공해 사용자가 원본 해상도로 비교 가능.
+  const [expanded, setExpanded] = useState(false);
+
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-3">
-      <div className="flex items-center gap-2 text-xs text-[#5C4633]">
-        <span className="rounded-full bg-white px-2 py-0.5 ring-1 ring-[#D4C5B0]">스냅 크레딧</span>
-        <span className="font-semibold text-[#3D2E1F]">
-          {snapBalance === null ? '…' : `${snapBalance} 개`}
-        </span>
-        {snapBalance !== null && snapBalance < 1 && (
-          <a
-            href="/mypage?tab=snap"
-            className="text-[11px] text-[#8B7355] underline underline-offset-2 hover:text-[#3D2E1F]"
-          >
-            패키지 구매
-          </a>
-        )}
-      </div>
-      <div className="flex flex-1 items-center gap-2 text-xs text-[#5C4633]">
-        <span className="rounded-full bg-white px-2 py-0.5 ring-1 ring-[#D4C5B0]">앵커</span>
-        {anchorUrl ? (
-          <>
-            <span className="inline-flex h-8 w-6 overflow-hidden rounded border border-[#D4C5B0]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={anchorUrl} alt="앵커" className="h-full w-full object-cover" />
-            </span>
-            <span className="font-medium text-emerald-700">저장됨</span>
-            <button
-              type="button"
-              onClick={onDiscardAnchor}
-              className="ml-auto text-[11px] text-[#8B7355] underline underline-offset-2 hover:text-red-600"
-            >
-              폐기
-            </button>
-          </>
-        ) : (
-          <span className="text-[#8B7355]">
-            아직 없음
-            {freeActivationAvailable && (
-              <>
-                {' '}
-                · <span className="font-medium text-emerald-700">첫 batch 무료</span>
-              </>
-            )}
+    <div className="flex flex-col gap-3 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 text-xs text-[#5C4633]">
+          <span className="rounded-full bg-white px-2 py-0.5 ring-1 ring-[#D4C5B0]">스냅 크레딧</span>
+          <span className="font-semibold text-[#3D2E1F]">
+            {snapBalance === null ? '…' : `${snapBalance} 개`}
           </span>
-        )}
+          {snapBalance !== null && snapBalance < 1 && (
+            <a
+              href="/mypage?tab=snap"
+              className="text-[11px] text-[#8B7355] underline underline-offset-2 hover:text-[#3D2E1F]"
+            >
+              패키지 구매
+            </a>
+          )}
+        </div>
+        <div className="flex flex-1 items-center gap-2 text-xs text-[#5C4633]">
+          <span className="rounded-full bg-white px-2 py-0.5 ring-1 ring-[#D4C5B0]">앵커</span>
+          {anchorUrl ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                title={expanded ? '미리보기 접기' : '크게 보기'}
+                className="inline-flex h-10 w-8 overflow-hidden rounded border border-[#D4C5B0] transition-transform hover:scale-105"
+                aria-expanded={expanded}
+                aria-label={expanded ? '앵커 미리보기 접기' : '앵커 크게 보기'}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={anchorUrl} alt="앵커" className="h-full w-full object-cover" />
+              </button>
+              <span className="font-medium text-emerald-700">저장됨</span>
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="text-[11px] text-[#8B7355] underline underline-offset-2 hover:text-[#3D2E1F]"
+              >
+                {expanded ? '접기' : '크게 보기'}
+              </button>
+              <a
+                href={anchorUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] text-[#8B7355] underline underline-offset-2 hover:text-[#3D2E1F]"
+              >
+                새 탭
+              </a>
+              <button
+                type="button"
+                onClick={onDiscardAnchor}
+                className="ml-auto text-[11px] text-[#8B7355] underline underline-offset-2 hover:text-red-600"
+              >
+                폐기
+              </button>
+            </>
+          ) : (
+            <span className="text-[#8B7355]">
+              아직 없음
+              {freeActivationAvailable && (
+                <>
+                  {' '}
+                  · <span className="font-medium text-emerald-700">첫 batch 무료</span>
+                </>
+              )}
+            </span>
+          )}
+        </div>
       </div>
+
+      {/* 인라인 큰 미리보기 — 앵커 보유 + 펼침 상태일 때만. */}
+      {anchorUrl && expanded && (
+        <div className="flex flex-col gap-2">
+          <div className="mx-auto w-full max-w-[280px] overflow-hidden rounded border border-[#D4C5B0] bg-white">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={anchorUrl} alt="저장된 앵커" className="block h-auto w-full object-contain" />
+          </div>
+          <p className="text-center text-[10px] text-[#8B7355]">
+            저장된 앵커 · 모든 카탈로그 생성에 자동 적용됩니다
+          </p>
+        </div>
+      )}
     </div>
   );
 }
