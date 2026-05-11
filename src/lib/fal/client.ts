@@ -118,3 +118,37 @@ export async function getImageEditResult(requestId: string): Promise<string> {
   if (!url) throw new Error('fal.queue.result returned no image url');
   return url;
 }
+
+// ─────────────────────────────────────────────────────────────
+// 업스케일러 — fal-ai/clarity-upscaler
+//
+// 결과물 다운로드 시 인쇄/액자용 고해상도로 한 번에 키우기 위해. 1024×1536
+// 입력을 2x 키워 2048×3072 정도. medium 카탈로그 대비 비용은 약 1/5 (≈$0.02).
+// 동기 모드 (subscribe) — 보통 5–15초 → API route 가 직접 기다린다.
+// ─────────────────────────────────────────────────────────────
+
+const UPSCALER_MODEL = 'fal-ai/clarity-upscaler';
+
+interface ClarityUpscalerResult {
+  image: { url: string; content_type?: string };
+}
+
+/** 동기 모드로 한 번에 업스케일 결과 URL 반환 (5–15초). */
+export async function runUpscale(input: {
+  imageUrl: string;
+  /** 배율 (1.5 ~ 4). 기본 2. */
+  upscaleFactor?: number;
+}): Promise<string> {
+  ensureConfigured();
+  const result = await fal.subscribe(UPSCALER_MODEL, {
+    input: {
+      image_url: input.imageUrl,
+      upscale_factor: input.upscaleFactor ?? 2,
+      // fal default 들 — clarity-upscaler 는 prompt 가 없어도 동작.
+    },
+  });
+  const data = result.data as ClarityUpscalerResult;
+  const url = data.image?.url;
+  if (!url) throw new Error('clarity-upscaler returned no image url');
+  return url;
+}

@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { COLOR_THEME_LABELS, type ColorTheme } from '@/lib/theme';
 
@@ -69,11 +69,15 @@ interface Props {
   invitations: MyPageInvitation[];
   creditsBalance: number;
   archiveBalance: number;
+  /** AI 웨딩스냅 크레딧 잔액 (snap_credits_ledger 합). */
+  snapCreditsBalance: number;
   orders: MyPageOrder[];
   entitlements: MyPageEntitlements;
 }
 
 type Tab = 'saves' | 'credits' | 'orders' | 'snap';
+
+const VALID_TABS: Tab[] = ['saves', 'snap', 'credits', 'orders'];
 
 const SOURCE_LABEL: Record<MyPageOrder['source'], string> = {
   portone: '앱 내 결제 (PortOne)',
@@ -87,10 +91,25 @@ export function MyPageClient({
   invitations,
   creditsBalance,
   archiveBalance,
+  snapCreditsBalance,
   orders,
   entitlements,
 }: Props) {
-  const [tab, setTab] = useState<Tab>('saves');
+  const searchParams = useSearchParams();
+  const initialTab: Tab = (() => {
+    const t = searchParams.get('tab');
+    return t && (VALID_TABS as string[]).includes(t) ? (t as Tab) : 'saves';
+  })();
+  const [tab, setTab] = useState<Tab>(initialTab);
+
+  // ?tab=snap 같은 deep-link 가 후속 navigation 으로 들어와도 따라가게.
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t && (VALID_TABS as string[]).includes(t) && t !== tab) {
+      setTab(t as Tab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6">
@@ -122,7 +141,9 @@ export function MyPageClient({
       {tab === 'saves' && (
         <SavedTab invitations={invitations} archiveBalance={archiveBalance} />
       )}
-      {tab === 'snap' && <SnapTab entitlements={entitlements} />}
+      {tab === 'snap' && (
+        <SnapTab entitlements={entitlements} snapCreditsBalance={snapCreditsBalance} />
+      )}
       {tab === 'credits' && (
         <CreditsTab balance={creditsBalance} archiveBalance={archiveBalance} entitlements={entitlements} />
       )}
@@ -133,26 +154,83 @@ export function MyPageClient({
 
 // ── AI 웨딩스냅 ──────────────────────────────────────────────
 
-function SnapTab({ entitlements }: { entitlements: MyPageEntitlements }) {
+interface SnapPackageTier {
+  code: 'snap_20' | 'snap_50' | 'snap_100';
+  name: string;
+  credits: number;
+  price: number;
+  perImage: number;
+  highlight?: string;
+  bonus?: string;
+}
+
+const SNAP_PACKAGES: SnapPackageTier[] = [
+  {
+    code: 'snap_20',
+    name: '스타터',
+    credits: 20,
+    price: 19900,
+    perImage: 995,
+    highlight: '청첩장 메인 + 베스트샷 몇 장만 필요할 때',
+  },
+  {
+    code: 'snap_50',
+    name: '베스트',
+    credits: 50,
+    price: 39900,
+    perImage: 798,
+    highlight: '카탈로그 풀 활용 · 가성비 최고',
+  },
+  {
+    code: 'snap_100',
+    name: '풀패키지',
+    credits: 100,
+    price: 69900,
+    perImage: 699,
+    bonus: '영구소장권 1개 포함',
+  },
+];
+
+function SnapTab({
+  entitlements,
+  snapCreditsBalance,
+}: {
+  entitlements: MyPageEntitlements;
+  snapCreditsBalance: number;
+}) {
+  const hasCredits = snapCreditsBalance > 0;
+
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2 rounded-lg bg-white p-5 ring-1 ring-[#D4C5B0]">
+      {/* 잔액 + 빠른 진입 */}
+      <div className="flex flex-col gap-3 rounded-lg bg-white p-5 ring-1 ring-[#D4C5B0]">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-sm font-medium text-[#3D2E1F]">AI 웨딩스냅</h2>
           <span
             className={`rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ${
-              entitlements.aiSnap
+              hasCredits || entitlements.aiSnap
                 ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
                 : 'bg-muted text-muted-foreground ring-border'
             }`}
           >
-            {entitlements.aiSnap ? '잠금 해제' : '미보유'}
+            {hasCredits
+              ? '잠금 해제'
+              : entitlements.aiSnap
+                ? '레거시 잠금 해제'
+                : '미보유'}
           </span>
         </div>
+        <div className="flex items-baseline gap-2">
+          <p className="text-3xl font-semibold tracking-tight text-[#3D2E1F]">
+            {snapCreditsBalance}
+          </p>
+          <p className="text-xs text-[#8B7355]">스냅 크레딧 잔여 · 1장당 1 차감</p>
+        </div>
         <p className="text-xs leading-relaxed text-[#5C4633]">
-          신랑·신부 셀카 한 장씩이면 카탈로그의 베스트샷을 우리 얼굴로
-          합성해드려요. 키·몸무게를 함께 입력하면 전신 비율까지 자연스럽게
-          반영됩니다.
+          신랑·신부 사진을 한 번만 잘 잡아두는 <strong>앵커 단계 (4장 후보 中 1장 선택)</strong> 가
+          첫 batch <span className="text-emerald-700">무료</span>로 제공되고, 이후 카탈로그
+          50컷 풀에서 원하는 컷을 1장씩 차감해 만듭니다. 키·몸무게를 같이 입력하면 전신
+          비율이 자연스럽게 반영돼요.
         </p>
         <div className="mt-1 flex flex-wrap gap-2">
           <Link
@@ -168,13 +246,62 @@ function SnapTab({ entitlements }: { entitlements: MyPageEntitlements }) {
             카탈로그 둘러보기
           </Link>
         </div>
-        {!entitlements.aiSnap && (
-          <p className="mt-1 text-[11px] text-[#8B7355]">
-            MVP 테스트 모드 — 결제 없이 1컷씩 시험 생성 가능. 정식 패키지를
-            구매하면 20장 카탈로그가 모두 잠금 해제됩니다.
-          </p>
-        )}
       </div>
+
+      {/* 패키지 라인업 */}
+      <div className="flex flex-col gap-3 rounded-lg bg-white p-5 ring-1 ring-[#D4C5B0]">
+        <h3 className="text-sm font-medium text-[#3D2E1F]">패키지 라인업</h3>
+        <p className="text-[11px] text-[#8B7355]">
+          실제 웨딩스튜디오 대비 1–3% 가격으로 50가지 컷을 우리 얼굴로 만들 수
+          있어요. 결제는 PortOne · 네이버 스마트스토어 양쪽 지원, 아래 &ldquo;발행권 ·
+          영구소장&rdquo; 탭 또는 스마트스토어 주문번호 등록을 통해 진행됩니다.
+        </p>
+        <ul className="flex flex-col gap-2">
+          {SNAP_PACKAGES.map((p) => (
+            <li
+              key={p.code}
+              className={`flex flex-col gap-1 rounded-md border p-3 text-xs ${
+                p.code === 'snap_50' ? 'border-[#3D2E1F] bg-[#FAF7F2]' : 'border-[#E8DCC9] bg-white'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-[#3D2E1F]">{p.name}</span>
+                  {p.code === 'snap_50' && (
+                    <span className="rounded-full bg-[#3D2E1F] px-2 py-0.5 text-[10px] font-medium text-white">
+                      추천
+                    </span>
+                  )}
+                </div>
+                <span className="text-sm font-semibold text-[#3D2E1F]">
+                  {p.price.toLocaleString()}원
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2 text-[#5C4633]">
+                <span>스냅 크레딧 {p.credits}개</span>
+                <span className="text-[10px] text-[#8B7355]">컷당 {p.perImage}원</span>
+              </div>
+              {p.highlight && <p className="text-[11px] text-[#8B7355]">{p.highlight}</p>}
+              {p.bonus && (
+                <p className="text-[11px] text-emerald-700">+ {p.bonus}</p>
+              )}
+            </li>
+          ))}
+        </ul>
+        <p className="text-[10px] text-[#8B7355]">
+          ⓘ 결제 후 크레딧은 자동 적립됩니다. 만료 없음. 환불은 결제 채널 정책을
+          따릅니다. 첫 앵커 batch (스튜디오 4종 framing) 는 무료, 재생성은 4
+          크레딧 차감.
+        </p>
+      </div>
+
+      {entitlements.aiSnap && !hasCredits && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-900">
+          이전에 구매하신 AI 웨딩스냅 패키지는 새 크레딧 모델로 자동 전환되어
+          <strong> 20 스냅 크레딧</strong>이 적립되었습니다. 잔액이 0 이면 위 패키지를
+          추가 구매해 주세요.
+        </div>
+      )}
     </section>
   );
 }

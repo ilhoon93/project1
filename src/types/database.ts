@@ -284,6 +284,70 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['publish_credits_ledger']['Insert']>;
         Relationships: [];
       };
+      snap_credits_ledger: {
+        Row: {
+          id: string;
+          user_id: string;
+          delta: number;
+          reason:
+            | 'purchase'
+            | 'consume'
+            | 'refund'
+            | 'legacy_migration'
+            | 'admin_grant'
+            | 'admin_revoke';
+          ref_table: string | null;
+          ref_id: string | null;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          delta: number;
+          reason:
+            | 'purchase'
+            | 'consume'
+            | 'refund'
+            | 'legacy_migration'
+            | 'admin_grant'
+            | 'admin_revoke';
+          ref_table?: string | null;
+          ref_id?: string | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['snap_credits_ledger']['Insert']>;
+        Relationships: [];
+      };
+      snap_anchors: {
+        Row: {
+          user_id: string;
+          image_url: string | null;
+          source_mode: 'selfies' | 'couple';
+          groom_height_cm: number | null;
+          groom_weight_kg: number | null;
+          bride_height_cm: number | null;
+          bride_weight_kg: number | null;
+          last_batch_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          image_url?: string | null;
+          source_mode: 'selfies' | 'couple';
+          groom_height_cm?: number | null;
+          groom_weight_kg?: number | null;
+          bride_height_cm?: number | null;
+          bride_weight_kg?: number | null;
+          last_batch_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['snap_anchors']['Insert']>;
+        Relationships: [];
+      };
       publications: {
         Row: {
           id: string;
@@ -438,6 +502,18 @@ export type Database = {
       publish_credits_balance: {
         Args: { uid: string };
         Returns: number;
+      };
+      snap_credits_balance: {
+        Args: { uid: string };
+        Returns: number;
+      };
+      consume_snap_credit: {
+        Args: { p_user_id: string; p_note?: string | null };
+        Returns: Json;
+      };
+      refund_snap_credit: {
+        Args: { p_user_id: string; p_note?: string | null; p_ref_id?: string | null };
+        Returns: void;
       };
       grant_purchase_credits: {
         Args: {
