@@ -22,11 +22,12 @@ export interface AnchorTemplate {
  * 균등 조명, 자연스러운 미소. 사용자별 변동은 framingHint 로만 준다.
  *
  * 표정은 Duchenne 미소 (눈가 주름 + 입꼬리 살짝 올림) 를 명시해 "포즈 사진"
- * 느낌이 아닌 진짜 행복해 보이는 표정을 유도한다. 조명/그림자 통합 표현도
- * 베이스라인에 미리 넣어 framingHint 별로 중복 없이 일관성 유지.
+ * 느낌이 아닌 진짜 행복해 보이는 표정을 유도한다. 조명/그림자 통합 표현과
+ * 해부학적 비율(머리:몸 = 1/7~1/8) 도 베이스라인에 미리 넣어 framingHint
+ * 별로 중복 명시 없이 일관성 유지.
  */
 export const ANCHOR_BASELINE =
-  'Clean indoor studio with seamless neutral gray backdrop, two-source softbox lighting from front-left and front-right with a subtle floor pickup creating a soft natural shadow under the subjects, polished floor that gently reflects the lighting, editorial wedding portrait atmosphere. Groom: black peak-lapel tuxedo with white shirt and black bow tie. Bride: ivory A-line wedding dress with off-shoulder neckline and lace bodice. Expressions: both share a genuine, relaxed smile — eyes slightly crinkled (Duchenne smile), corners of the mouth gently lifted, soft natural happiness, never staged or forced. Lighting wraps softly around shoulders and hair so the subjects feel integrated with the backdrop — no cut-out or paste-in look.';
+  'Clean indoor studio with seamless neutral gray backdrop, two-source softbox lighting from front-left and front-right with a subtle floor pickup creating a soft natural shadow under the subjects, polished floor that gently reflects the lighting, editorial wedding portrait atmosphere. Groom: black peak-lapel tuxedo with white shirt and black bow tie. Bride: ivory A-line wedding dress with off-shoulder neckline and lace bodice. Expressions: both share a genuine, relaxed smile — eyes slightly crinkled (Duchenne smile), corners of the mouth gently lifted, soft natural happiness, never staged or forced. The whole image is captured by a single physical camera at the location — same exposure, white balance, contrast curve, micro-grain across subjects and background. Lighting wraps softly around shoulders and hair so the subjects feel integrated with the backdrop, no cut-out or paste-in look. Anatomically realistic proportions — head height is roughly 1/7 to 1/8 of total body height (natural adult ratio), shoulders about 2x head width, neck-to-shoulder transition smooth and realistic. Do NOT enlarge or zoom into the face for half-body, three-quarter, or full-body framings — the face is rendered at the natural size for the chosen camera distance.';
 
 export const ANCHOR_TEMPLATES: AnchorTemplate[] = [
   {
@@ -39,19 +40,19 @@ export const ANCHOR_TEMPLATES: AnchorTemplate[] = [
     id: 'halfbody',
     label: '반신 사선',
     framingHint:
-      'Waist-up half-body portrait, three-quarter (~30°) camera angle, both subjects gently leaning toward each other with a natural soft smile. Hands visible naturally — bride may hold a small bouquet, groom\'s hand resting at his side or gently on the bride\'s back. Soft rim light wraps around the shoulder closest to camera so the silhouette blends into the backdrop — explicitly NO sharp outline, NO cutout halo, NO color fringing along shoulders, hair, or the bouquet edge.',
+      "Waist-up half-body portrait, three-quarter (~30°) camera angle, both subjects gently leaning toward each other with a natural soft smile. Hands visible naturally — bride may hold a small bouquet, groom's hand resting at his side or gently on the bride's back. Camera distance is realistic for a waist-up portrait shot on a 50–85mm lens — face occupies its natural head-to-torso proportion, NOT enlarged, NOT zoomed, NOT scaled up to emphasize identity. Soft rim light wraps around the shoulder closest to camera so the silhouette blends into the backdrop — explicitly NO sharp outline, NO cutout halo, NO color fringing along shoulders, hair, or the bouquet edge. A subtle environmental color cast from the backdrop bounces softly onto skin and clothing so subjects belong in the light.",
   },
   {
     id: 'fullbody',
     label: '전신 정면',
     framingHint:
-      'Full-body standing portrait, frontal camera at eye level, both subjects facing the camera and standing naturally close together with a warm relaxed smile. Full attire visible from head to floor including shoes and the dress hem. Crucial integration cues: a subtle ambient-occlusion contact shadow where shoes meet the floor, a soft directional shadow on the backdrop behind the couple matching the softbox direction, dress hem gently touching the floor (not floating). Subjects must look planted in the scene — NEVER like a cut-out paste-in on a flat backdrop. Generous headroom and floor space.',
+      'Full-body standing portrait, frontal camera at eye level positioned far enough that the entire couple fits in frame from head to floor (typical 35–50mm full-length lens distance). Face occupies approximately 1/8 of the total frame height — the face is the identity reference, NOT the focal scale; it is one element of the whole figure. Both subjects facing the camera and standing naturally close together with a warm relaxed smile. Full attire visible from head to floor including shoes and the dress hem. Crucial integration cues: a subtle ambient-occlusion contact shadow where shoes meet the floor, a soft directional shadow on the backdrop behind the couple matching the softbox direction, the dress hem gently touching the floor (never floating, never magically lifted). Backdrop bounce light gently tints the clothing edges. Subjects must look planted in the scene — NEVER like a cut-out paste-in on a flat backdrop. Generous headroom and floor space.',
   },
   {
     id: 'threequarter',
     label: '3/4 미소',
     framingHint:
-      'Three-quarter length portrait (knee-up), slight side angle (~20°), bride angled slightly toward groom with a soft natural smile, groom looking warmly at the bride or at the camera with an easy grin. Relaxed posture, hands and waist naturally placed.',
+      'Three-quarter length portrait (knee-up), slight side angle (~20°), bride angled slightly toward groom with a soft natural smile, groom looking warmly at the bride or at the camera with an easy grin. Relaxed posture, hands and waist naturally placed. Camera framed for a knee-up shot on a portrait lens — face at natural size for this distance, NOT zoomed or enlarged. Soft rim light along the camera-side shoulder for natural integration with the backdrop.',
   },
 ];
 

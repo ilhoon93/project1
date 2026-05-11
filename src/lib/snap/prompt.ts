@@ -146,16 +146,26 @@ export function buildSnapPrompt(input: SnapPromptInput | string): string {
  */
 /**
  * 앵커 전용 NATURAL INTEGRATION 섹션 — half-body / full-body 처럼 신체가
- * 많이 보이는 framing 에서 자주 발생하는 "오려붙인 paste-in" 룩을 적극 차단.
+ * 많이 보이는 framing 에서 자주 발생하는 두 가지 실패 모드를 적극 차단:
+ *   1) 머리 비대증 — face fidelity 강조 때문에 모델이 얼굴을 zoom 해서 그림
+ *   2) paste-in 룩  — 인물·배경이 따로 그려진 합성처럼 보임
  * NEGATIVES 와 별도로 양성 instruction 으로 한 번 더 강조.
  */
 const ANCHOR_INTEGRATION = [
   '',
+  'ANATOMICAL PROPORTIONS — critical for half-body, three-quarter, and full-body framings:',
+  '- Head height is roughly 1/7 to 1/8 of total body height (natural adult ratio). Shoulders about 2x head width.',
+  '- DO NOT enlarge, zoom into, or up-scale the face when the target framing is anything other than a tight chest-up close-up. The face is the IDENTITY reference, NOT the focal scale.',
+  '- Neck-to-shoulder transition must be smooth and realistic — no oversized head perched on a smaller body, no shrunken torso.',
+  '- Maintain the natural face size for the camera distance implied by the framing (50–85mm portrait lens for half-body, 35–50mm for full-body).',
+  '',
   'NATURAL INTEGRATION — top priority for half-body and full-body framings:',
-  '- Subjects MUST look photographed inside the scene, not pasted on top of it.',
-  '- Apply uniform studio lighting and a single consistent color grade across the whole frame.',
+  '- Subjects MUST look photographed inside the scene by a single physical camera — not pasted on top of it.',
+  '- Apply uniform studio lighting, a single consistent color grade, identical micro-grain, identical contrast curve, and identical white balance across subjects and background. There is one camera, one exposure.',
   '- Re-light hair, skin, and clothing so the light direction and softness match the backdrop softboxes.',
   '- Add a soft light wrap (rim light) on shoulders, hair edges, and the bouquet so silhouettes blend with the backdrop.',
+  '- Allow soft natural imperfection at the edges of hair and clothing — flyaway strands, fabric falloff, light scatter — instead of perfectly clean cutout edges.',
+  '- A subtle environmental color cast from the backdrop bounces softly onto skin and clothing edges so subjects belong in the light.',
   '- For half-body or longer: add a subtle directional shadow on the backdrop behind the couple, matching the softbox direction.',
   '- For full-body: add a soft ambient-occlusion contact shadow where shoes meet the polished floor, and a slight floor reflection beneath them. The dress hem should rest on the floor, never float.',
   '- Edges where hair, clothing, the bouquet, or the dress veil meet the background must be soft and natural — no sharp masks, no halos, no color fringing.',
@@ -174,15 +184,16 @@ export function buildAnchorPromptSelfies(
     '',
     `Scene & framing: ${baselineSceneHint}`,
     '',
-    'CRITICAL FACE FIDELITY:',
-    "- Reproduce the groom's face from Image 1 (eye shape, nose bridge, jawline, skin tone/texture, hair style/color) with very high fidelity — this anchor will be used as reference for many follow-up portraits.",
-    "- Reproduce the bride's face from Image 2 the same way.",
+    'IDENTITY FIDELITY (match identity, not scale):',
+    "- Match the groom's identity from Image 1 (eye shape, nose bridge, jawline, skin tone/texture, hair style/color) precisely — but render the face at the anatomically correct size for the chosen framing. Identity, NOT scale.",
+    "- Match the bride's identity from Image 2 the same way.",
     '- Do NOT blend the two faces. Assign Image 1 face → groom, Image 2 face → bride.',
+    '- Do NOT enlarge or up-scale the face in order to make the identity more obvious — preserve natural head-to-body proportions.',
     ...bodySection,
     ...ANCHOR_INTEGRATION,
     ...NEGATIVES,
     '',
-    'Style: Professional wedding photography, photorealistic, cinematic, sharp on faces.',
+    'Style: Professional wedding photography, photorealistic, cinematic. Faces are sharp but rendered at natural anatomical size.',
   ].join('\n');
 }
 
@@ -197,15 +208,16 @@ export function buildAnchorPromptCouple(
     '',
     `Scene & framing: ${baselineSceneHint}`,
     '',
-    'IDENTITY & POSE FIDELITY (from Image 1):',
-    '- Faces must match Image 1 with very high fidelity — this anchor will be reused for many follow-up portraits.',
-    "- Replace casual / everyday outfits with the wedding attire specified in the scene, but keep the couple's natural pose and interaction.",
+    'IDENTITY & POSE FIDELITY (match identity, not scale):',
+    '- Match the faces from Image 1 precisely — but render them at the anatomically correct size for the chosen framing. Identity, NOT scale.',
+    "- Replace casual / everyday outfits with the wedding attire specified in the scene, but keep the couple's natural pose, body proportions, and interaction.",
     '- Keep camera angle and framing close to the requested anchor framing above.',
+    '- Do NOT enlarge or up-scale the faces to emphasize identity — preserve natural head-to-body proportions implied by the framing.',
     ...bodySection,
     ...ANCHOR_INTEGRATION,
     ...NEGATIVES,
     '',
-    'Style: Professional wedding photography, photorealistic, cinematic, sharp on faces.',
+    'Style: Professional wedding photography, photorealistic, cinematic. Faces are sharp but rendered at natural anatomical size.',
   ].join('\n');
 }
 
