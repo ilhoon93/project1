@@ -123,13 +123,16 @@ export function SnapGenerator({ catalog }: Props) {
   const isAnchorBusy = anchorStage === 'submitting' || anchorStage === 'polling' || anchorStage === 'saving';
 
   // ── 초기 로드 — 현재 앵커 + 크레딧 잔액 ───────────────────
+  // cache: 'no-store' 가 핵심 — 그렇지 않으면 브라우저가 첫 진입 응답("앵커
+  // 없음") 을 캐시해서, 앵커 저장 후 뒤로가기/다시 진입 시에도 같은 응답을
+  // 돌려주고 앵커가 사라진 것처럼 보인다.
   useEffect(() => {
     let canceled = false;
     (async () => {
       try {
         const [a, e] = await Promise.all([
-          fetch('/api/snap/anchor').then((r) => (r.ok ? r.json() : null)),
-          fetch('/api/me/entitlements').then((r) => (r.ok ? r.json() : null)),
+          fetch('/api/snap/anchor', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)),
+          fetch('/api/me/entitlements', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)),
         ]);
         if (canceled) return;
         if (a?.anchor) {
@@ -335,7 +338,12 @@ export function SnapGenerator({ catalog }: Props) {
       });
       const { data, text } = await parseRes(res);
       if (!res.ok) {
-        throw new Error((data?.error as string | undefined) ?? text.slice(0, 80) ?? `HTTP ${res.status}`);
+        const base = (data?.error as string | undefined) ?? text.slice(0, 80) ?? `HTTP ${res.status}`;
+        // 서버가 PG 에러 디테일을 함께 돌려주면 사용자에게도 표시 (운영 중 마이그
+        // 레이션 미적용 등을 빠르게 발견하기 위함).
+        const detail = data?.detail as string | undefined;
+        const code = data?.code as string | undefined;
+        throw new Error(detail ? `${base}\n원인: ${detail}${code ? ` (${code})` : ''}` : base);
       }
       const url = data?.url as string | undefined;
       if (!url) throw new Error('서버가 저장 URL을 돌려주지 않았습니다.');
@@ -697,7 +705,7 @@ export function SnapGenerator({ catalog }: Props) {
           </div>
 
           {anchorErr && (
-            <p role="alert" className="mt-3 text-xs text-red-600">
+            <p role="alert" className="mt-3 whitespace-pre-line text-xs text-red-600">
               {anchorErr}
             </p>
           )}
