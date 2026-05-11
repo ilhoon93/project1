@@ -144,6 +144,24 @@ export function buildSnapPrompt(input: SnapPromptInput | string): string {
  * 카탈로그 단계 reference 로 재사용할 깨끗한 베이스라인 컷을 만든다.
  * baselineSceneHint 에 ANCHOR_BASELINE + framingHint 를 합쳐 전달.
  */
+/**
+ * 앵커 전용 NATURAL INTEGRATION 섹션 — half-body / full-body 처럼 신체가
+ * 많이 보이는 framing 에서 자주 발생하는 "오려붙인 paste-in" 룩을 적극 차단.
+ * NEGATIVES 와 별도로 양성 instruction 으로 한 번 더 강조.
+ */
+const ANCHOR_INTEGRATION = [
+  '',
+  'NATURAL INTEGRATION — top priority for half-body and full-body framings:',
+  '- Subjects MUST look photographed inside the scene, not pasted on top of it.',
+  '- Apply uniform studio lighting and a single consistent color grade across the whole frame.',
+  '- Re-light hair, skin, and clothing so the light direction and softness match the backdrop softboxes.',
+  '- Add a soft light wrap (rim light) on shoulders, hair edges, and the bouquet so silhouettes blend with the backdrop.',
+  '- For half-body or longer: add a subtle directional shadow on the backdrop behind the couple, matching the softbox direction.',
+  '- For full-body: add a soft ambient-occlusion contact shadow where shoes meet the polished floor, and a slight floor reflection beneath them. The dress hem should rest on the floor, never float.',
+  '- Edges where hair, clothing, the bouquet, or the dress veil meet the background must be soft and natural — no sharp masks, no halos, no color fringing.',
+  '- Match the depth of field of the subjects with the background falloff; no mismatched sharpness.',
+];
+
 export function buildAnchorPromptSelfies(
   baselineSceneHint: string,
   body?: { groom?: BodyMetrics; bride?: BodyMetrics },
@@ -161,10 +179,7 @@ export function buildAnchorPromptSelfies(
     "- Reproduce the bride's face from Image 2 the same way.",
     '- Do NOT blend the two faces. Assign Image 1 face → groom, Image 2 face → bride.',
     ...bodySection,
-    '',
-    'NATURAL INTEGRATION:',
-    '- Apply uniform studio lighting and color grading across the whole frame.',
-    '- Soft natural edges where faces meet hair/clothing — no sharp cutout look.',
+    ...ANCHOR_INTEGRATION,
     ...NEGATIVES,
     '',
     'Style: Professional wedding photography, photorealistic, cinematic, sharp on faces.',
@@ -184,13 +199,10 @@ export function buildAnchorPromptCouple(
     '',
     'IDENTITY & POSE FIDELITY (from Image 1):',
     '- Faces must match Image 1 with very high fidelity — this anchor will be reused for many follow-up portraits.',
-    '- Replace casual / everyday outfits with the wedding attire specified in the scene, but keep the couple\'s natural pose and interaction.',
+    "- Replace casual / everyday outfits with the wedding attire specified in the scene, but keep the couple's natural pose and interaction.",
     '- Keep camera angle and framing close to the requested anchor framing above.',
     ...bodySection,
-    '',
-    'NATURAL INTEGRATION:',
-    '- Apply uniform studio lighting and color grading.',
-    '- Soft natural edges around hair / clothing — no cutout look.',
+    ...ANCHOR_INTEGRATION,
     ...NEGATIVES,
     '',
     'Style: Professional wedding photography, photorealistic, cinematic, sharp on faces.',

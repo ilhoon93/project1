@@ -24,12 +24,18 @@ const SaveSchema = z.object({
 
 export const maxDuration = 30;
 
+// 사용자별로 자주 바뀌고 캐시되면 안 되는 응답 — 브라우저/CDN 모두 캐시 금지.
+const NO_STORE_HEADERS = {
+  'cache-control': 'no-store, no-cache, must-revalidate',
+} as const;
+
 export async function GET() {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: NO_STORE_HEADERS });
 
   const admin = createAdminClient();
   const { data } = await admin
@@ -40,11 +46,14 @@ export async function GET() {
     .eq('user_id', user.id)
     .maybeSingle();
 
-  return NextResponse.json({
-    anchor: data ?? null,
-    // 무료 활성화 quota — 행 자체가 없을 때만 사용 가능.
-    freeActivationAvailable: !data,
-  });
+  return NextResponse.json(
+    {
+      anchor: data ?? null,
+      // 무료 활성화 quota — 행 자체가 없을 때만 사용 가능.
+      freeActivationAvailable: !data,
+    },
+    { headers: NO_STORE_HEADERS },
+  );
 }
 
 export async function POST(req: Request) {
@@ -92,30 +101,51 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '앵커 저장에 실패했습니다.' }, { status: 500 });
   }
 
-  // 3. snap_anchors 갱신. row 가 이미 generate 단계에서 upsert 됐다고 기대하지만,
-  //    혹시 없으면 (예: 직접 POST) 안전하게 upsert.
+  // 3. snap_anchors 갱신 — single-path upsert.
+  //    행이 있으면 source_mode / last_batch_at 은 generate 시점 값을 보존,
+  //    없으면 (직접 POST 등 예외 케이스) selfies + now 로 기본값.
   const admin = createAdminClient();
-  const { error: upErr } = await admin
+  const { data: existing, error: fetchErr } = await admin
     .from('snap_anchors')
-    .update({ image_url: publicUrl, updated_at: new Date().toISOString() })
-    .eq('user_id', user.id);
-  if (upErr) {
-    // generate 를 거치지 않은 직접 호출 케이스 — 행이 없다. source_mode 정보가
-    // 없으므로 selfies 로 가정.
-    console.warn('[snap/anchor save] update miss, falling back to upsert', upErr);
-    const { error: fallbackErr } = await admin.from('snap_anchors').upsert(
+    .select('source_mode, last_batch_at')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (fetchErr) {
+    console.error('[snap/anchor save] fetch existing error', fetchErr);
+    return NextResponse.json(
       {
-        user_id: user.id,
-        image_url: publicUrl,
-        source_mode: 'selfies',
-        last_batch_at: new Date().toISOString(),
+        error: '앵커 메타 조회에 실패했습니다.',
+        detail: fetchErr.message,
+        code: fetchErr.code ?? null,
       },
-      { onConflict: 'user_id' },
+      { status: 500 },
     );
-    if (fallbackErr) {
-      console.error('[snap/anchor save] upsert fallback error', fallbackErr);
-      return NextResponse.json({ error: '앵커 메타 저장에 실패했습니다.' }, { status: 500 });
-    }
+  }
+
+  const upsertPayload = {
+    user_id: user.id,
+    image_url: publicUrl,
+    source_mode: existing?.source_mode ?? ('selfies' as const),
+    last_batch_at: existing?.last_batch_at ?? new Date().toISOString(),
+  };
+
+  const { error: upsertErr } = await admin
+    .from('snap_anchors')
+    .upsert(upsertPayload, { onConflict: 'user_id' });
+
+  if (upsertErr) {
+    console.error('[snap/anchor save] upsert error', upsertErr, { payload: upsertPayload });
+    // 실제 원인을 클라이언트에 노출 — 마이그레이션 미적용 / RLS / 스키마 문제 등을
+    // 운영에서 빠르게 찾기 위함. 민감 정보 없음 (PG 에러 메시지 + 코드).
+    return NextResponse.json(
+      {
+        error: '앵커 메타 저장에 실패했습니다.',
+        detail: upsertErr.message,
+        code: upsertErr.code ?? null,
+        hint: upsertErr.hint ?? null,
+      },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({ url: publicUrl });
