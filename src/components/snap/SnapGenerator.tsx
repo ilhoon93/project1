@@ -17,8 +17,7 @@ import { ANCHOR_TEMPLATES } from '@/lib/snap/anchor-templates';
 const POLL_INTERVAL_MS = 5_000;
 const MAX_POLL_ATTEMPTS = 60;
 
-type FaceSlot = 'groom' | 'bride' | 'couple';
-type InputMode = 'selfies' | 'couple';
+type InputMode = 'selfies1' | 'selfies3' | 'couple';
 
 type Stage =
   | 'idle'
@@ -44,16 +43,22 @@ const HEIGHT_RANGE = { min: 140, max: 210 };
 const WEIGHT_RANGE = { min: 35, max: 150 };
 
 const emptyFace = (): FaceState => ({ url: null, preview: null, uploading: false });
+const emptyFaceTriple = (): [FaceState, FaceState, FaceState] => [
+  emptyFace(),
+  emptyFace(),
+  emptyFace(),
+];
+
+const ANGLE_LABELS = ['정면', '좌 45°', '우 45°'] as const;
 
 interface AnchorInfo {
   imageUrl: string | null;
-  sourceMode: InputMode | null;
+  sourceMode: string | null;
 }
 
 interface AnchorCandidate {
   templateId: string;
   requestId: string;
-  /** fal CDN URL — short-lived, but enough for "pick within minutes" UX. */
   resultUrl: string | null;
   status: 'pending' | 'in-progress' | 'done' | 'error';
 }
@@ -84,15 +89,18 @@ async function parseRes(res: Response) {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export function SnapGenerator({ catalog }: Props) {
-  const [mode, setMode] = useState<InputMode>('selfies');
+  // 입력 모드 — 셀카 1장씩 (디폴트) / 셀카 3장씩 (정면+좌45°+우45°) / 커플 사진.
+  // 모드를 바꿔도 이미 업로드한 사진은 유지하고, 사용하지 않는 슬롯만 무시.
+  const [mode, setMode] = useState<InputMode>('selfies1');
 
-  const [groom, setGroom] = useState<FaceState>(emptyFace);
-  const [bride, setBride] = useState<FaceState>(emptyFace);
+  // 신랑/신부 얼굴은 항상 3-슬롯 배열로 보관. 모드에 따라 보이는 갯수만 다름.
+  const [groomFaces, setGroomFaces] = useState<[FaceState, FaceState, FaceState]>(emptyFaceTriple);
+  const [brideFaces, setBrideFaces] = useState<[FaceState, FaceState, FaceState]>(emptyFaceTriple);
   const [couple, setCouple] = useState<FaceState>(emptyFace);
   const [groomBody, setGroomBody] = useState<BodyForm>({ heightCm: '', weightKg: '' });
   const [brideBody, setBrideBody] = useState<BodyForm>({ heightCm: '', weightKg: '' });
 
-  // ── 앵커 상태 ─────────────────────────────────────────────
+  // 앵커 상태
   const [anchor, setAnchor] = useState<AnchorInfo | null>(null);
   const [anchorBatch, setAnchorBatch] = useState<AnchorCandidate[] | null>(null);
   const [anchorStage, setAnchorStage] = useState<
@@ -102,30 +110,33 @@ export function SnapGenerator({ catalog }: Props) {
   const [anchorFreeAvail, setAnchorFreeAvail] = useState<boolean>(true);
   const [snapBalance, setSnapBalance] = useState<number | null>(null);
 
-  // ── 카탈로그 생성 상태 ────────────────────────────────────
+  // 카탈로그 생성 상태
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [stage, setStage] = useState<Stage>('idle');
   const [progressNote, setProgressNote] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
 
-  // ── 업스케일 상태 ────────────────────────────────────────
-  const [upscaledUrl, setUpscaledUrl] = useState<string | null>(null);
-  const [upscaling, setUpscaling] = useState(false);
-  const [upscaleErr, setUpscaleErr] = useState<string | null>(null);
-
-  const groomInputRef = useRef<HTMLInputElement>(null);
-  const brideInputRef = useRef<HTMLInputElement>(null);
-  const coupleInputRef = useRef<HTMLInputElement>(null);
+  // 각 슬롯에 1개씩의 hidden file input — useRef 9개는 번거로워 click 핸들러 안에
+  // 직접 input 생성/트리거 방식으로 변환. (groomFront / groomLeft / groomRight /
+  // brideFront / brideLeft / brideRight / couple)
+  const groomRefs = [
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+  ];
+  const brideRefs = [
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+  ];
+  const coupleRef = useRef<HTMLInputElement>(null);
 
   const isProgressing =
     stage === 'submitting' || stage === 'queued' || stage === 'in-progress' || stage === 'finalizing';
   const isAnchorBusy = anchorStage === 'submitting' || anchorStage === 'polling' || anchorStage === 'saving';
 
-  // ── 초기 로드 — 현재 앵커 + 크레딧 잔액 ───────────────────
-  // cache: 'no-store' 가 핵심 — 그렇지 않으면 브라우저가 첫 진입 응답("앵커
-  // 없음") 을 캐시해서, 앵커 저장 후 뒤로가기/다시 진입 시에도 같은 응답을
-  // 돌려주고 앵커가 사라진 것처럼 보인다.
+  // 초기 로드 — 현재 앵커 + 크레딧 잔액. cache: 'no-store' 가 핵심.
   useEffect(() => {
     let canceled = false;
     (async () => {
@@ -138,9 +149,8 @@ export function SnapGenerator({ catalog }: Props) {
         if (a?.anchor) {
           setAnchor({
             imageUrl: (a.anchor.image_url as string | null) ?? null,
-            sourceMode: (a.anchor.source_mode as InputMode | null) ?? null,
+            sourceMode: (a.anchor.source_mode as string | null) ?? null,
           });
-          // 저장된 체형 가이드가 있으면 폼에 미리 채워준다.
           if (a.anchor.groom_height_cm && a.anchor.groom_weight_kg) {
             setGroomBody({
               heightCm: String(a.anchor.groom_height_cm),
@@ -165,21 +175,39 @@ export function SnapGenerator({ catalog }: Props) {
     };
   }, []);
 
-  const setFace = (slot: FaceSlot, next: FaceState) => {
-    if (slot === 'groom') setGroom(next);
-    else if (slot === 'bride') setBride(next);
-    else setCouple(next);
+  // 셀카 슬롯 N개 (모드 기준).
+  const numAngles = mode === 'selfies3' ? 3 : 1;
+
+  const setGroomFaceAt = (idx: number, next: FaceState) => {
+    setGroomFaces((cur) => {
+      const arr = [...cur] as [FaceState, FaceState, FaceState];
+      arr[idx] = next;
+      return arr;
+    });
+  };
+  const setBrideFaceAt = (idx: number, next: FaceState) => {
+    setBrideFaces((cur) => {
+      const arr = [...cur] as [FaceState, FaceState, FaceState];
+      arr[idx] = next;
+      return arr;
+    });
   };
 
-  const handleFaceUpload = async (slot: FaceSlot, file: File) => {
+  const handleFaceUpload = async (
+    slot: 'groom' | 'bride' | 'couple',
+    idx: number,
+    file: File,
+  ) => {
     setErrorMsg(null);
     const v = validateImageFile(file);
     if (!v.ok) {
       setErrorMsg(v.message);
       return;
     }
-
-    setFace(slot, { url: null, preview: URL.createObjectURL(v.file), uploading: true });
+    const pending: FaceState = { url: null, preview: URL.createObjectURL(v.file), uploading: true };
+    if (slot === 'groom') setGroomFaceAt(idx, pending);
+    else if (slot === 'bride') setBrideFaceAt(idx, pending);
+    else setCouple(pending);
 
     const compressed = await compressImage(v.file);
     const supabase = createClient();
@@ -188,19 +216,25 @@ export function SnapGenerator({ catalog }: Props) {
     } = await supabase.auth.getUser();
     if (!user) {
       setErrorMsg('로그인이 필요합니다.');
-      setFace(slot, emptyFace());
+      if (slot === 'groom') setGroomFaceAt(idx, emptyFace());
+      else if (slot === 'bride') setBrideFaceAt(idx, emptyFace());
+      else setCouple(emptyFace());
       return;
     }
 
     const ext = compressed.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const path = `${user.id}/snap/${slot}-${nanoid(10)}.${ext}`;
+    const subfolder =
+      slot === 'couple' ? 'couple' : `${slot}-${idx === 0 ? 'frontal' : idx === 1 ? 'left45' : 'right45'}`;
+    const path = `${user.id}/snap/${subfolder}-${nanoid(10)}.${ext}`;
 
     const { error: upErr } = await supabase.storage
       .from('private-uploads')
       .upload(path, compressed, { contentType: compressed.type, upsert: false });
     if (upErr) {
       setErrorMsg(`업로드 실패: ${upErr.message}`);
-      setFace(slot, emptyFace());
+      if (slot === 'groom') setGroomFaceAt(idx, emptyFace());
+      else if (slot === 'bride') setBrideFaceAt(idx, emptyFace());
+      else setCouple(emptyFace());
       return;
     }
 
@@ -209,43 +243,62 @@ export function SnapGenerator({ catalog }: Props) {
       .createSignedUrl(path, 60 * 60);
     if (signErr || !signed?.signedUrl) {
       setErrorMsg('업로드한 이미지를 읽을 수 없습니다.');
-      setFace(slot, emptyFace());
+      if (slot === 'groom') setGroomFaceAt(idx, emptyFace());
+      else if (slot === 'bride') setBrideFaceAt(idx, emptyFace());
+      else setCouple(emptyFace());
       return;
     }
 
-    setFace(slot, { url: signed.signedUrl, preview: signed.signedUrl, uploading: false });
+    const ready: FaceState = { url: signed.signedUrl, preview: signed.signedUrl, uploading: false };
+    if (slot === 'groom') setGroomFaceAt(idx, ready);
+    else if (slot === 'bride') setBrideFaceAt(idx, ready);
+    else setCouple(ready);
   };
 
-  // ── 앵커 batch 4장 제출 ───────────────────────────────────
-  const inputsReady = mode === 'selfies' ? !!groom.url && !!bride.url : !!couple.url;
-
-  const handleGenerateAnchorBatch = async () => {
-    if (isAnchorBusy) return;
-    if (!inputsReady) {
-      setAnchorErr(mode === 'selfies' ? '얼굴 사진을 모두 업로드하세요.' : '커플 사진을 업로드하세요.');
-      return;
+  // 모드에 맞는 입력이 모두 준비됐는지.
+  const selfiesReady = (() => {
+    for (let i = 0; i < numAngles; i += 1) {
+      if (!groomFaces[i].url || !brideFaces[i].url) return false;
     }
+    return true;
+  })();
+  const inputsReady = mode === 'couple' ? !!couple.url : selfiesReady;
+
+  // 앵커 batch 생성 가능 여부 — 셀카 모드에서만, 입력 모두 준비됨.
+  const canGenerateAnchor = mode !== 'couple' && inputsReady && !isAnchorBusy;
+
+  // 카탈로그 생성 가능 여부:
+  //  - couple 모드: couple.url + selectedId 만 있으면 OK (앵커 영향 없음)
+  //  - selfies 모드: 앵커 있으면 selectedId 만, 없으면 selfies inputs 도 필요
+  const canGenerateCatalog = (() => {
+    if (!selectedId || isProgressing) return false;
+    if (mode === 'couple') return !!couple.url;
+    if (anchor?.imageUrl) return true;
+    return selfiesReady;
+  })();
+
+  // 페이로드 추출 헬퍼.
+  const collectGroomUrls = (): string[] =>
+    groomFaces.slice(0, numAngles).map((f) => f.url).filter((u): u is string => !!u);
+  const collectBrideUrls = (): string[] =>
+    brideFaces.slice(0, numAngles).map((f) => f.url).filter((u): u is string => !!u);
+
+  // ── 앵커 batch 4장 제출 ───────────────────────────────────
+  const handleGenerateAnchorBatch = async () => {
+    if (isAnchorBusy || mode === 'couple' || !inputsReady) return;
     setAnchorErr(null);
     setAnchorStage('submitting');
 
     const groomBodyValid = parseBody(groomBody);
     const brideBodyValid = parseBody(brideBody);
 
-    const payload =
-      mode === 'couple'
-        ? {
-            mode: 'couple' as const,
-            couplePhotoUrl: couple.url,
-            ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
-            ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
-          }
-        : {
-            mode: 'selfies' as const,
-            groomFaceUrl: groom.url,
-            brideFaceUrl: bride.url,
-            ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
-            ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
-          };
+    const payload = {
+      mode: 'selfies' as const,
+      groomFaceUrls: collectGroomUrls(),
+      brideFaceUrls: collectBrideUrls(),
+      ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
+      ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
+    };
 
     try {
       const res = await fetch('/api/snap/anchor/generate', {
@@ -255,7 +308,8 @@ export function SnapGenerator({ catalog }: Props) {
       });
       const { data, text } = await parseRes(res);
       if (!res.ok) {
-        throw new Error((data?.error as string | undefined) ?? text.slice(0, 80) ?? `HTTP ${res.status}`);
+        const base = (data?.error as string | undefined) ?? text.slice(0, 80) ?? `HTTP ${res.status}`;
+        throw new Error(base);
       }
       const ids = data?.requestIds as Array<{ templateId: string; requestId: string }> | undefined;
       if (!ids?.length) throw new Error('서버가 요청 ID를 돌려주지 않았습니다.');
@@ -266,7 +320,7 @@ export function SnapGenerator({ catalog }: Props) {
         status: 'pending',
       }));
       setAnchorBatch(batch);
-      setAnchorFreeAvail(false); // 무료 활성화는 한 번만.
+      setAnchorFreeAvail(false);
       setAnchorStage('polling');
       void pollAnchorBatch(batch);
     } catch (e) {
@@ -276,7 +330,6 @@ export function SnapGenerator({ catalog }: Props) {
   };
 
   const pollAnchorBatch = async (batch: AnchorCandidate[]) => {
-    // 모든 후보가 done 또는 error 가 될 때까지 5초 간격 폴링.
     let attempts = 0;
     const current = batch.slice();
     while (attempts < MAX_POLL_ATTEMPTS) {
@@ -287,7 +340,6 @@ export function SnapGenerator({ catalog }: Props) {
         setAnchorStage('ready');
         return;
       }
-
       try {
         const statuses = await Promise.all(
           remaining.map(async (c) => {
@@ -319,7 +371,6 @@ export function SnapGenerator({ catalog }: Props) {
       } catch {
         // 일시 오류 — 다음 라운드에 재시도.
       }
-
       await sleep(POLL_INTERVAL_MS);
     }
     setAnchorErr('앵커 생성이 너무 오래 걸려 중단했습니다.');
@@ -339,15 +390,13 @@ export function SnapGenerator({ catalog }: Props) {
       const { data, text } = await parseRes(res);
       if (!res.ok) {
         const base = (data?.error as string | undefined) ?? text.slice(0, 80) ?? `HTTP ${res.status}`;
-        // 서버가 PG 에러 디테일을 함께 돌려주면 사용자에게도 표시 (운영 중 마이그
-        // 레이션 미적용 등을 빠르게 발견하기 위함).
         const detail = data?.detail as string | undefined;
         const code = data?.code as string | undefined;
         throw new Error(detail ? `${base}\n원인: ${detail}${code ? ` (${code})` : ''}` : base);
       }
       const url = data?.url as string | undefined;
       if (!url) throw new Error('서버가 저장 URL을 돌려주지 않았습니다.');
-      setAnchor({ imageUrl: url, sourceMode: mode });
+      setAnchor({ imageUrl: url, sourceMode: 'selfies' });
       setAnchorBatch(null);
       setAnchorStage('idle');
     } catch (e) {
@@ -361,19 +410,13 @@ export function SnapGenerator({ catalog }: Props) {
     try {
       await fetch('/api/snap/anchor', { method: 'DELETE' });
       setAnchor(null);
-      setAnchorFreeAvail(false); // 폐기해도 무료 활성화는 부활하지 않음.
+      setAnchorFreeAvail(false);
     } catch {
       setAnchorErr('앵커 폐기에 실패했습니다.');
     }
   };
 
   // ── 카탈로그 생성 ────────────────────────────────────────
-  const canGenerateCatalog =
-    !!selectedId &&
-    !isProgressing &&
-    // 앵커가 있으면 inputs 안 받아도 됨. 없으면 직결 모드 inputs 필요.
-    (!!anchor?.imageUrl || inputsReady);
-
   const pollUntilDone = async (requestId: string, catalogId: string) => {
     let attempts = 0;
     while (attempts < MAX_POLL_ATTEMPTS) {
@@ -437,35 +480,41 @@ export function SnapGenerator({ catalog }: Props) {
 
   const handleGenerateCatalog = async () => {
     if (!selectedId) return;
+    if (!canGenerateCatalog) return;
+
     setStage('submitting');
     setErrorMsg(null);
     setResultUrl(null);
-    setUpscaledUrl(null);
-    setUpscaleErr(null);
     setProgressNote('AI 작업을 큐에 제출하는 중...');
 
     const groomBodyValid = parseBody(groomBody);
     const brideBodyValid = parseBody(brideBody);
 
-    // 앵커가 있으면 anchor 모드, 없으면 사용자 입력 모드 그대로.
-    const payload = anchor?.imageUrl
-      ? { mode: 'anchor' as const, catalogId: selectedId }
-      : mode === 'couple'
-        ? {
-            mode: 'couple' as const,
-            couplePhotoUrl: couple.url,
-            catalogId: selectedId,
-            ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
-            ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
-          }
-        : {
-            mode: 'selfies' as const,
-            groomFaceUrl: groom.url,
-            brideFaceUrl: bride.url,
-            catalogId: selectedId,
-            ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
-            ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
-          };
+    // 모드별 페이로드:
+    //  - couple: 명시적으로 mode='couple' 보내 서버가 앵커 무시하게.
+    //  - selfies + 앵커 있음: mode='anchor' 로 서버가 앵커 reference 사용.
+    //  - selfies + 앵커 없음: mode='selfies' + 셀카 url 배열.
+    let payload: Record<string, unknown>;
+    if (mode === 'couple') {
+      payload = {
+        mode: 'couple',
+        couplePhotoUrl: couple.url,
+        catalogId: selectedId,
+        ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
+        ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
+      };
+    } else if (anchor?.imageUrl) {
+      payload = { mode: 'anchor', catalogId: selectedId };
+    } else {
+      payload = {
+        mode: 'selfies',
+        groomFaceUrls: collectGroomUrls(),
+        brideFaceUrls: collectBrideUrls(),
+        catalogId: selectedId,
+        ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
+        ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
+      };
+    }
 
     try {
       const res = await fetch('/api/snap/generate', {
@@ -494,31 +543,20 @@ export function SnapGenerator({ catalog }: Props) {
     }
   };
 
-  // ── 업스케일 ──────────────────────────────────────────────
-  const handleUpscale = async () => {
-    if (!resultUrl || upscaling) return;
-    setUpscaling(true);
-    setUpscaleErr(null);
-    try {
-      const res = await fetch('/api/snap/upscale', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ imageUrl: resultUrl }),
-      });
-      const { data, text } = await parseRes(res);
-      if (!res.ok) {
-        throw new Error((data?.error as string | undefined) ?? text.slice(0, 80) ?? `HTTP ${res.status}`);
-      }
-      setUpscaledUrl((data?.url as string | undefined) ?? null);
-    } catch (e) {
-      setUpscaleErr(e instanceof Error ? e.message : '고화질 변환 실패');
-    } finally {
-      setUpscaling(false);
-    }
-  };
-
-  // ── 헬퍼 ─────────────────────────────────────────────────
+  // 헬퍼
   const selectedCatalog = selectedId ? catalog.find((c) => c.id === selectedId) ?? null : null;
+
+  // 셀카 모드 + 앵커 보유 = 사진 업로드/체형 입력 섹션 숨김 (이미 잠겨 있음).
+  const showSelfieInputs = mode !== 'couple' && !anchor?.imageUrl;
+  const showCoupleInputs = mode === 'couple';
+  const showAnchorBuilder = mode !== 'couple' && !anchor?.imageUrl;
+
+  // 카탈로그 생성 시 어떤 경로를 탈지 — UI 안내용.
+  const pathHint = (() => {
+    if (mode === 'couple') return '커플 사진 기반 (앵커 영향 없음)';
+    if (anchor?.imageUrl) return '저장된 앵커 기반';
+    return mode === 'selfies3' ? '셀카 3장씩 직결' : '셀카 1장씩 직결';
+  })();
 
   return (
     <div className="mt-6 flex flex-col gap-6">
@@ -530,115 +568,150 @@ export function SnapGenerator({ catalog }: Props) {
         onDiscardAnchor={handleDiscardAnchor}
       />
 
-      {/* 1. 입력 모드 + 업로드 — 앵커가 없을 때만 노출. 앵커 있으면 사진은 다시 안 받아도 됨. */}
-      {!anchor?.imageUrl && (
-        <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
-          <h2 className="text-sm font-medium text-[#3D2E1F]">1. 사진 업로드</h2>
-
-          <div
-            role="tablist"
-            aria-label="입력 방식"
-            className="mt-3 inline-flex rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-0.5 text-xs"
+      {/* 1. 입력 모드 + 업로드 */}
+      <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
+        <h2 className="text-sm font-medium text-[#3D2E1F]">1. 사진 업로드</h2>
+        <div
+          role="tablist"
+          aria-label="입력 방식"
+          className="mt-3 inline-flex flex-wrap rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-0.5 text-xs"
+        >
+          <ModeToggleButton
+            selected={mode === 'selfies1'}
+            disabled={isProgressing || isAnchorBusy}
+            onClick={() => setMode('selfies1')}
           >
-            <ModeToggleButton
-              selected={mode === 'selfies'}
+            셀카 1장씩
+          </ModeToggleButton>
+          <ModeToggleButton
+            selected={mode === 'selfies3'}
+            disabled={isProgressing || isAnchorBusy}
+            onClick={() => setMode('selfies3')}
+          >
+            셀카 3장씩 (정면+좌+우, 권장)
+          </ModeToggleButton>
+          <ModeToggleButton
+            selected={mode === 'couple'}
+            disabled={isProgressing || isAnchorBusy}
+            onClick={() => setMode('couple')}
+          >
+            커플 사진 1장
+          </ModeToggleButton>
+        </div>
+
+        {/* 모드별 안내 */}
+        {mode === 'selfies1' && (
+          <p className="mt-3 text-xs text-[#8B7355]">
+            정면 클로즈업 사진을 한 장씩 올려주세요. 1장만 사용하므로 빠르고 간편한
+            기본 옵션 — 측면/3-quarter 카탈로그 컷에서 정체성이 살짝 흔들릴 수 있어요.
+          </p>
+        )}
+        {mode === 'selfies3' && (
+          <p className="mt-3 text-xs text-[#8B7355]">
+            정면 + 좌 45° + 우 45° 사진을 각 3장씩 올려주세요. 모델이 3D 얼굴을 더
+            정확히 잡아 측면 컷에서도 정체성이 안정적입니다. <strong>권장 옵션</strong>.
+          </p>
+        )}
+        {mode === 'couple' && (
+          <p className="mt-3 text-xs text-[#8B7355]">
+            두 사람이 함께 찍힌 정면 사진을 1장 올려주세요. <strong>커플 사진 모드는
+            앵커 영향을 받지 않습니다</strong> — 사용자 포즈/체형/상호작용을 그대로
+            유지하고 카탈로그의 의상·배경·조명만 입혀 드려요.
+          </p>
+        )}
+
+        {/* 셀카 입력 영역 */}
+        {showSelfieInputs && (
+          <div className="mt-3 flex flex-col gap-4">
+            <AngleRow
+              personLabel="신랑 얼굴"
+              numAngles={numAngles}
+              faces={groomFaces}
+              refs={groomRefs}
               disabled={isProgressing || isAnchorBusy}
-              onClick={() => setMode('selfies')}
-            >
-              셀카 2장 (권장)
-            </ModeToggleButton>
-            <ModeToggleButton
-              selected={mode === 'couple'}
+            />
+            <AngleRow
+              personLabel="신부 얼굴"
+              numAngles={numAngles}
+              faces={brideFaces}
+              refs={brideRefs}
               disabled={isProgressing || isAnchorBusy}
-              onClick={() => setMode('couple')}
-            >
-              커플 사진 1장
-            </ModeToggleButton>
+            />
+            {/* hidden file inputs */}
+            {([0, 1, 2] as const).map((idx) => (
+              <input
+                key={`groom-${idx}`}
+                ref={groomRefs[idx]}
+                type="file"
+                accept={IMAGE_LIMITS.acceptMime.join(',')}
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void handleFaceUpload('groom', idx, f);
+                  e.target.value = '';
+                }}
+              />
+            ))}
+            {([0, 1, 2] as const).map((idx) => (
+              <input
+                key={`bride-${idx}`}
+                ref={brideRefs[idx]}
+                type="file"
+                accept={IMAGE_LIMITS.acceptMime.join(',')}
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void handleFaceUpload('bride', idx, f);
+                  e.target.value = '';
+                }}
+              />
+            ))}
           </div>
+        )}
 
-          {mode === 'selfies' ? (
-            <>
-              <p className="mt-3 text-xs text-[#8B7355]">
-                정면 클로즈업 사진을 한 장씩 올려주세요. 얼굴이 또렷할수록 합성이 정확합니다.
-              </p>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <FaceUploader
-                  label="신랑 얼굴"
-                  face={groom}
-                  disabled={isProgressing || isAnchorBusy}
-                  onPick={() => groomInputRef.current?.click()}
-                />
-                <FaceUploader
-                  label="신부 얼굴"
-                  face={bride}
-                  disabled={isProgressing || isAnchorBusy}
-                  onPick={() => brideInputRef.current?.click()}
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="mt-3 text-xs text-[#8B7355]">
-                두 사람이 함께 찍힌 정면 사진을 1장 올려주세요. 포즈·체형은 그대로
-                유지하고 카탈로그의 의상·배경·조명만 입혀 드려요.
-              </p>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <FaceUploader
-                  label="커플 사진"
-                  face={couple}
-                  disabled={isProgressing || isAnchorBusy}
-                  onPick={() => coupleInputRef.current?.click()}
-                  wide
-                />
-              </div>
-            </>
-          )}
+        {/* 셀카 모드 + 앵커 보유 = 잠긴 상태 안내 */}
+        {mode !== 'couple' && anchor?.imageUrl && (
+          <p className="mt-3 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-3 text-xs text-[#5C4633]">
+            ✓ 앵커가 저장되어 있어 사진을 다시 업로드할 필요가 없어요. 새로 만들려면
+            위 상태 카드의 &ldquo;폐기&rdquo; 를 누르세요 (다음 batch 는 4 크레딧).
+          </p>
+        )}
 
-          <input
-            ref={groomInputRef}
-            type="file"
-            accept={IMAGE_LIMITS.acceptMime.join(',')}
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void handleFaceUpload('groom', f);
-              e.target.value = '';
-            }}
-          />
-          <input
-            ref={brideInputRef}
-            type="file"
-            accept={IMAGE_LIMITS.acceptMime.join(',')}
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void handleFaceUpload('bride', f);
-              e.target.value = '';
-            }}
-          />
-          <input
-            ref={coupleInputRef}
-            type="file"
-            accept={IMAGE_LIMITS.acceptMime.join(',')}
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void handleFaceUpload('couple', f);
-              e.target.value = '';
-            }}
-          />
-        </section>
-      )}
+        {/* 커플 입력 영역 */}
+        {showCoupleInputs && (
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <FaceUploader
+              label="커플 사진"
+              face={couple}
+              disabled={isProgressing || isAnchorBusy}
+              onPick={() => coupleRef.current?.click()}
+              wide
+            />
+            <input
+              ref={coupleRef}
+              type="file"
+              accept={IMAGE_LIMITS.acceptMime.join(',')}
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void handleFaceUpload('couple', 0, f);
+                e.target.value = '';
+              }}
+            />
+          </div>
+        )}
+      </section>
 
-      {/* 1-b. 키 / 몸무게 (선택) */}
-      {!anchor?.imageUrl && (
+      {/* 1-b. 키 / 몸무게 (선택) — 앵커 없거나 커플 모드일 때 노출 */}
+      {(showSelfieInputs || showCoupleInputs) && (
         <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
           <h2 className="text-sm font-medium text-[#3D2E1F]">
             1-1. 키 · 몸무게 <span className="text-[10px] text-[#8B7355]">(선택)</span>
           </h2>
           <p className="mt-1 text-xs text-[#8B7355]">
-            전신 / 반신 컷의 비율을 맞추는 데 사용돼요. 앵커를 만들 때 함께 저장되어
-            카탈로그 모든 컷에 일관되게 적용됩니다. 비워두면 카탈로그 기본 체형으로.
+            전신 / 반신 컷의 비율을 맞추는 데 사용돼요. 키 {HEIGHT_RANGE.min}–
+            {HEIGHT_RANGE.max}cm · 몸무게 {WEIGHT_RANGE.min}–{WEIGHT_RANGE.max}kg
+            범위. 비워두면 카탈로그 기본 체형으로 합성됩니다.
           </p>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <BodyFields
@@ -657,8 +730,8 @@ export function SnapGenerator({ catalog }: Props) {
         </section>
       )}
 
-      {/* 2. 앵커 — 만들기 / 선택 / 보유 표시 */}
-      {!anchor?.imageUrl && (
+      {/* 2. 앵커 만들기 — 셀카 모드 + 앵커 미보유에서만 */}
+      {showAnchorBuilder && (
         <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
           <h2 className="text-sm font-medium text-[#3D2E1F]">2. 앵커 만들기</h2>
           <p className="mt-1 text-xs text-[#8B7355]">
@@ -683,7 +756,7 @@ export function SnapGenerator({ catalog }: Props) {
             <Button
               type="button"
               onClick={() => void handleGenerateAnchorBatch()}
-              disabled={isAnchorBusy || !inputsReady}
+              disabled={!canGenerateAnchor}
             >
               {anchorStage === 'submitting'
                 ? '제출 중...'
@@ -699,7 +772,7 @@ export function SnapGenerator({ catalog }: Props) {
             </Button>
             {!inputsReady && (
               <span className="text-xs text-[#8B7355]">
-                {mode === 'selfies' ? '얼굴 사진을 모두 업로드하세요' : '커플 사진을 업로드하세요'}
+                {mode === 'selfies3' ? '신랑/신부 각 3장씩 업로드' : '신랑/신부 각 1장씩 업로드'}
               </span>
             )}
           </div>
@@ -764,11 +837,10 @@ export function SnapGenerator({ catalog }: Props) {
 
       {/* 3. 카탈로그 선택 */}
       <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
-        <h2 className="text-sm font-medium text-[#3D2E1F]">
-          {anchor?.imageUrl ? '2. 카탈로그 컷 선택' : '3. 카탈로그 컷 선택'}
-        </h2>
+        <h2 className="text-sm font-medium text-[#3D2E1F]">카탈로그 컷 선택</h2>
         <p className="mt-1 text-xs text-[#8B7355]">
-          마음에 드는 컷을 하나 골라주세요. 1장당 스냅 크레딧 1개가 차감됩니다.
+          마음에 드는 컷을 하나 골라주세요. 1장당 스냅 크레딧 1개가 차감됩니다.{' '}
+          <span className="text-[10px] text-[#8B7355]">· 현재 경로: {pathHint}</span>
         </p>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {catalog.map((item) => {
@@ -799,9 +871,7 @@ export function SnapGenerator({ catalog }: Props) {
 
       {/* 4. 생성 */}
       <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
-        <h2 className="text-sm font-medium text-[#3D2E1F]">
-          {anchor?.imageUrl ? '3. 생성' : '4. 생성'}
-        </h2>
+        <h2 className="text-sm font-medium text-[#3D2E1F]">생성</h2>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Button type="button" onClick={() => void handleGenerateCatalog()} disabled={!canGenerateCatalog}>
             {stage === 'submitting'
@@ -816,11 +886,15 @@ export function SnapGenerator({ catalog }: Props) {
           </Button>
           {!canGenerateCatalog && stage === 'idle' && (
             <span className="text-xs text-[#8B7355]">
-              {!anchor?.imageUrl && !inputsReady
-                ? '사진을 업로드하세요'
-                : !selectedId
-                  ? '카탈로그 컷을 선택하세요'
-                  : null}
+              {mode === 'couple' && !couple.url
+                ? '커플 사진을 업로드하세요'
+                : mode !== 'couple' && !anchor?.imageUrl && !selfiesReady
+                  ? mode === 'selfies3'
+                    ? '신랑/신부 각 3장씩 업로드'
+                    : '신랑/신부 각 1장씩 업로드'
+                  : !selectedId
+                    ? '카탈로그 컷을 선택하세요'
+                    : null}
             </span>
           )}
         </div>
@@ -837,7 +911,7 @@ export function SnapGenerator({ catalog }: Props) {
         )}
       </section>
 
-      {/* 5. 결과 — 비교 뷰 + 업스케일 */}
+      {/* 5. 결과 — 비교 뷰. 업스케일은 얼굴 변형 문제로 제거. */}
       {stage === 'done' && resultUrl && (
         <section className="rounded-md border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900 dark:bg-emerald-900/10">
           <h2 className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
@@ -856,24 +930,19 @@ export function SnapGenerator({ catalog }: Props) {
             />
             <ComparePane
               caption="생성 결과"
-              src={upscaledUrl ?? resultUrl}
+              src={resultUrl}
               alt="생성된 웨딩스냅"
-              hint={upscaledUrl ? '고화질 (2x)' : '우리 얼굴로 합성됨'}
+              hint="우리 얼굴로 합성됨"
             />
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button
               type="button"
               size="sm"
-              onClick={() => window.open(upscaledUrl ?? resultUrl, '_blank', 'noopener')}
+              onClick={() => window.open(resultUrl, '_blank', 'noopener')}
             >
               새 탭에서 열기
             </Button>
-            {!upscaledUrl && (
-              <Button type="button" size="sm" variant="outline" onClick={() => void handleUpscale()} disabled={upscaling}>
-                {upscaling ? '고화질 변환 중...' : '고화질 다운로드 (무료, 5–15초)'}
-              </Button>
-            )}
             <Button
               type="button"
               size="sm"
@@ -882,20 +951,47 @@ export function SnapGenerator({ catalog }: Props) {
                 setResultUrl(null);
                 setSelectedId(null);
                 setStage('idle');
-                setUpscaledUrl(null);
-                setUpscaleErr(null);
               }}
             >
               다른 컷 만들기
             </Button>
           </div>
-          {upscaleErr && (
-            <p role="alert" className="mt-2 text-xs text-red-600">
-              {upscaleErr}
-            </p>
-          )}
         </section>
       )}
+    </div>
+  );
+}
+
+function AngleRow({
+  personLabel,
+  numAngles,
+  faces,
+  refs,
+  disabled,
+}: {
+  personLabel: string;
+  numAngles: number;
+  faces: [FaceState, FaceState, FaceState];
+  refs: Array<React.RefObject<HTMLInputElement>>;
+  disabled?: boolean;
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-xs font-medium text-[#3D2E1F]">
+        {personLabel}{' '}
+        {numAngles > 1 && <span className="text-[10px] text-[#8B7355]">— {numAngles}각도</span>}
+      </p>
+      <div className={`grid gap-2 ${numAngles === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        {Array.from({ length: numAngles }).map((_, idx) => (
+          <FaceUploader
+            key={idx}
+            label={numAngles === 1 ? personLabel : ANGLE_LABELS[idx]}
+            face={faces[idx]}
+            disabled={disabled}
+            onPick={() => refs[idx].current?.click()}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -911,8 +1007,6 @@ function StatusCard({
   freeActivationAvailable: boolean;
   onDiscardAnchor: () => void;
 }) {
-  // 인라인 큰 미리보기 토글 — 한 행짜리 status 안에 넣으면 답답해서 카드 아래로
-  // 펼친다. 새 탭 열기 옵션도 같이 제공해 사용자가 원본 해상도로 비교 가능.
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -985,7 +1079,6 @@ function StatusCard({
         </div>
       </div>
 
-      {/* 인라인 큰 미리보기 — 앵커 보유 + 펼침 상태일 때만. */}
       {anchorUrl && expanded && (
         <div className="flex flex-col gap-2">
           <div className="mx-auto w-full max-w-[280px] overflow-hidden rounded border border-[#D4C5B0] bg-white">
@@ -993,7 +1086,7 @@ function StatusCard({
             <img src={anchorUrl} alt="저장된 앵커" className="block h-auto w-full object-contain" />
           </div>
           <p className="text-center text-[10px] text-[#8B7355]">
-            저장된 앵커 · 모든 카탈로그 생성에 자동 적용됩니다
+            저장된 앵커 · 셀카 모드 카탈로그 생성에 자동 적용됩니다 (커플 모드는 영향 없음)
           </p>
         </div>
       )}

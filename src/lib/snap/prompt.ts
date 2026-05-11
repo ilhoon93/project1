@@ -1,11 +1,13 @@
 /**
  * 웨딩스냅 프롬프트 빌더
  *
- * 입력 모드 두 가지를 지원한다.
- *   (A) 셀카 2장 — 신랑/신부 얼굴 reference + 카탈로그 마스터샘플 (총 3장)
- *   (B) 커플 사진 1장 — 사용자 포즈/구도 보존, 카탈로그는 스타일(의상/배경) 참조 (총 2장)
+ * 입력 모드 세 가지를 지원한다.
+ *   (A1) 셀카 1장씩 — 신랑/신부 정면 얼굴 각 1장 + 카탈로그 (총 3장)
+ *   (A3) 셀카 3장씩 — 신랑/신부 정면 + 좌45° + 우45° 각 3장 + 카탈로그 (총 7장)
+ *   (B)  커플 사진 1장 — 사용자 포즈/구도 보존, 카탈로그는 스타일 참조 (총 2장)
  *
- * 두 경우 모두 카탈로그 promptHint 와 (선택) 키·몸무게 가이드를 끼운다.
+ * 셀카 multi-angle 은 모델이 3D 얼굴을 더 정확히 잡아 측면/3-quarter 카탈로그
+ * 컷에서 정체성이 깨지지 않게 한다. 1장씩 모드는 비용·간편성 우선 옵션.
  *
  * 모든 prompt 의 마지막에는 공통 NEGATIVES 섹션을 추가해 gpt-image-2 가 흔히
  * 만들어내는 인공물(플라스틱 피부, 비대칭 눈, 손가락 오류, 컷아웃 halo 등) 을
@@ -23,6 +25,10 @@ export interface SnapPromptInput {
   catalogPromptHint: string;
   groom?: BodyMetrics;
   bride?: BodyMetrics;
+  /** 신랑 face reference 이미지 수 (1 = 정면만, 3 = 정면+좌45°+우45°). 기본 1. */
+  groomFaceCount?: number;
+  /** 신부 face reference 이미지 수. 기본 1. */
+  brideFaceCount?: number;
 }
 
 /**
@@ -84,6 +90,47 @@ function buildBodySection(groom?: BodyMetrics, bride?: BodyMetrics): string[] {
 }
 
 /**
+ * 얼굴 reference 이미지가 1장이면 단일 reference, 3장이면 정면/좌45°/우45° 의
+ * 다각 reference 로 설명. 각 모델 입력 슬롯 번호 (1-base) 와 사용 시 참조할
+ * 짧은 라벨("Image 1", "Images 1–3") 을 함께 돌려준다.
+ */
+function faceReferenceLines(
+  groomCount: number,
+  brideCount: number,
+  startIdx = 1,
+): { lines: string[]; nextIdx: number; groomRef: string; brideRef: string } {
+  const lines: string[] = [];
+  let idx = startIdx;
+  let groomRef: string;
+  let brideRef: string;
+  if (groomCount <= 1) {
+    lines.push(`- Image ${idx} = Groom face reference (frontal close-up).`);
+    groomRef = `Image ${idx}`;
+    idx += 1;
+  } else {
+    const end = idx + groomCount - 1;
+    lines.push(
+      `- Images ${idx}–${end} = Groom face references at ${groomCount} angles (in order: frontal, left ~45°, right ~45°). Synthesize a consistent 3D understanding of his face from these.`,
+    );
+    groomRef = `Images ${idx}–${end}`;
+    idx = end + 1;
+  }
+  if (brideCount <= 1) {
+    lines.push(`- Image ${idx} = Bride face reference (frontal close-up).`);
+    brideRef = `Image ${idx}`;
+    idx += 1;
+  } else {
+    const end = idx + brideCount - 1;
+    lines.push(
+      `- Images ${idx}–${end} = Bride face references at ${brideCount} angles (in order: frontal, left ~45°, right ~45°). Synthesize a consistent 3D understanding of her face from these.`,
+    );
+    brideRef = `Images ${idx}–${end}`;
+    idx = end + 1;
+  }
+  return { lines, nextIdx: idx, groomRef, brideRef };
+}
+
+/**
  * gpt-image-2 가 자주 만들어내는 흠집들을 자연어 negative 로 차단. 길게 나열할
  * 수록 다른 지시문이 희석되니 가장 잦은 6~8개만 유지.
  */
@@ -100,33 +147,41 @@ const NEGATIVES = [
   '- Identity drift — the synthesized faces must clearly match the face reference image(s)',
 ];
 
-/** (A) 셀카 2장 + 카탈로그 마스터샘플 (image_urls 총 3장) */
+/**
+ * (A) 셀카 + 카탈로그 마스터샘플 — image_urls = [...groomFaces, ...brideFaces, catalog]
+ * 신랑/신부 face reference 수는 옵션으로 변동 (1 or 3 각각). 총 입력 수 =
+ * groomFaceCount + brideFaceCount + 1.
+ */
 export function buildSnapPrompt(input: SnapPromptInput | string): string {
   const opts: SnapPromptInput =
     typeof input === 'string' ? { catalogPromptHint: input } : input;
+  const groomCount = opts.groomFaceCount ?? 1;
+  const brideCount = opts.brideFaceCount ?? 1;
+  const total = groomCount + brideCount + 1;
+  const { lines: faceLines, nextIdx, groomRef, brideRef } = faceReferenceLines(groomCount, brideCount);
+  const catalogIdx = nextIdx;
   const bodySection = buildBodySection(opts.groom, opts.bride);
 
   return [
-    'Compose a wedding portrait using THREE input images:',
-    '- Image 1 = Groom face reference. Use this exact face for the groom in the scene.',
-    '- Image 2 = Bride face reference. Use this exact face for the bride in the scene.',
-    "- Image 3 = Composition reference. Replicate this image's pose, framing, camera angle, depth of field, background, outfits, and overall lighting setup.",
+    `Compose a wedding portrait using ${total} input images:`,
+    ...faceLines,
+    `- Image ${catalogIdx} = Composition reference. Replicate this image's pose, framing, camera angle, depth of field, background, outfits, and overall lighting setup.`,
     '',
     `Scene context: ${opts.catalogPromptHint}`,
     '',
     'CRITICAL FACE FIDELITY:',
-    "- Reproduce the groom's face from Image 1 (eye shape, nose bridge, jawline, skin tone/texture, hair style/color, expression) with high fidelity",
-    "- Reproduce the bride's face from Image 2 the same way",
-    '- Do NOT blend the two faces. Assign Image 1 face → groom position in Image 3, Image 2 face → bride position',
+    `- Reproduce the groom's face from ${groomRef} (eye shape, nose bridge, jawline, skin tone/texture, hair style/color, expression) with high fidelity.`,
+    `- Reproduce the bride's face from ${brideRef} the same way.`,
+    `- Do NOT blend the two faces. Assign groom face references → groom position in Image ${catalogIdx}, bride face references → bride position.`,
     '',
-    'COMPOSITION (from Image 3 — replicate exactly):',
+    `COMPOSITION (from Image ${catalogIdx} — replicate exactly):`,
     '- Pose, body positions, gestures, hand positions',
     '- Camera angle, framing, depth of field, lens character',
     '- Background, environment, outfits, props',
     ...bodySection,
     '',
     'NATURAL INTEGRATION:',
-    "- Re-light the swapped faces to match Image 3's primary light direction, color temperature, and softness",
+    `- Re-light the swapped faces to match Image ${catalogIdx}'s primary light direction, color temperature, and softness`,
     '- Re-shade hair highlights and skin tones for consistency with the scene',
     '- Soft natural edges where faces meet hair/clothing — no sharp cutout look',
     '- Apply uniform color grading across the whole frame as if shot on the same camera',
@@ -172,23 +227,38 @@ const ANCHOR_INTEGRATION = [
   '- Match the depth of field of the subjects with the background falloff; no mismatched sharpness.',
 ];
 
+export interface AnchorSelfiesPromptOpts {
+  groom?: BodyMetrics;
+  bride?: BodyMetrics;
+  /** 신랑 reference 이미지 수 (1 or 3). 기본 1. */
+  groomFaceCount?: number;
+  /** 신부 reference 이미지 수 (1 or 3). 기본 1. */
+  brideFaceCount?: number;
+}
+
 export function buildAnchorPromptSelfies(
   baselineSceneHint: string,
-  body?: { groom?: BodyMetrics; bride?: BodyMetrics },
+  opts?: AnchorSelfiesPromptOpts,
 ): string {
-  const bodySection = buildBodySection(body?.groom, body?.bride);
+  const groomCount = opts?.groomFaceCount ?? 1;
+  const brideCount = opts?.brideFaceCount ?? 1;
+  const total = groomCount + brideCount;
+  const { lines: faceLines, groomRef, brideRef } = faceReferenceLines(groomCount, brideCount);
+  const bodySection = buildBodySection(opts?.groom, opts?.bride);
   return [
-    'Compose a clean wedding anchor portrait using TWO input images:',
-    '- Image 1 = Groom face reference. Use this exact face for the groom.',
-    '- Image 2 = Bride face reference. Use this exact face for the bride.',
+    `Compose a clean wedding anchor portrait using ${total} input image${total > 1 ? 's' : ''}:`,
+    ...faceLines,
     '',
     `Scene & framing: ${baselineSceneHint}`,
     '',
     'IDENTITY FIDELITY (match identity, not scale):',
-    "- Match the groom's identity from Image 1 (eye shape, nose bridge, jawline, skin tone/texture, hair style/color) precisely — but render the face at the anatomically correct size for the chosen framing. Identity, NOT scale.",
-    "- Match the bride's identity from Image 2 the same way.",
-    '- Do NOT blend the two faces. Assign Image 1 face → groom, Image 2 face → bride.',
+    `- Match the groom's identity from ${groomRef} (eye shape, nose bridge, jawline, skin tone/texture, hair style/color) precisely — but render the face at the anatomically correct size for the chosen framing. Identity, NOT scale.`,
+    `- Match the bride's identity from ${brideRef} the same way.`,
+    '- Do NOT blend the two faces. Groom face references describe the groom only, bride face references describe the bride only.',
     '- Do NOT enlarge or up-scale the face in order to make the identity more obvious — preserve natural head-to-body proportions.',
+    groomCount > 1 || brideCount > 1
+      ? '- Multi-angle references describe a single 3D face per person. Reconcile them into one consistent face; do NOT produce different-looking siblings.'
+      : '- The single reference face per person is frontal — extrapolate side angles plausibly when the framing demands it, without introducing identity drift.',
     ...bodySection,
     ...ANCHOR_INTEGRATION,
     ...NEGATIVES,

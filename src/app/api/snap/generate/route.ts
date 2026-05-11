@@ -13,17 +13,21 @@ import {
 /**
  * POST /api/snap/generate
  *
- * 카탈로그 컷 1장 생성. 입력 모드 세 가지를 자동 분기.
+ * 카탈로그 컷 1장 생성. 입력 모드 세 갈래.
  *
- *   (1) 사용자에게 저장된 anchor 가 있으면 → 무조건 anchor 경로
- *       image_urls = [anchorUrl, catalogMaster]  · buildAnchoredCatalogPrompt
- *       (가장 일관성 좋음 — 50컷 사이 정체성 안정. body metrics 도 앵커 저장값 재사용)
+ *   (1) mode='selfies' + 저장된 anchor 있음 → anchor 경로
+ *       image_urls = [anchorUrl, catalogMaster] · buildAnchoredCatalogPrompt
+ *       (50컷 정체성 일관성이 가장 좋음 — body metrics 도 앵커 저장값 재사용)
  *
- *   (2) anchor 없음 + mode='couple' 입력 → 커플 사진 경로
+ *   (2) mode='selfies' + anchor 없음 → 셀카 직결 경로
+ *       image_urls = [...groomFaceUrls, ...brideFaceUrls, catalogMaster]
+ *       buildSnapPrompt (groomFaceCount / brideFaceCount 1 or 3)
+ *
+ *   (3) mode='couple' → 커플 사진 직결 경로 (anchor 가 있어도 무시 — 사용자가
+ *       명시적으로 커플 사진 기반 생성을 원할 때 앵커 영향 차단)
  *       image_urls = [couplePhoto, catalogMaster] · buildCouplePhotoSnapPrompt
  *
- *   (3) anchor 없음 + mode='selfies' 입력 (또는 legacy) → 셀카 직결 경로
- *       image_urls = [groomFace, brideFace, catalogMaster] · buildSnapPrompt
+ *   (4) mode='anchor' — 저장된 앵커만 사용. 입력 없음.
  *
  * 요금: 카탈로그 1장 = snap 크레딧 1 차감. 실패 시 환불.
  */
@@ -35,8 +39,8 @@ const BodyMetricsSchema = z.object({
 
 const SelfieBodySchema = z.object({
   mode: z.literal('selfies'),
-  groomFaceUrl: z.string().url(),
-  brideFaceUrl: z.string().url(),
+  groomFaceUrls: z.array(z.string().url()).min(1).max(3),
+  brideFaceUrls: z.array(z.string().url()).min(1).max(3),
   catalogId: z.string().min(1),
   groomBody: BodyMetricsSchema.optional(),
   brideBody: BodyMetricsSchema.optional(),
@@ -50,23 +54,16 @@ const CoupleBodySchema = z.object({
   brideBody: BodyMetricsSchema.optional(),
 });
 
-// 앵커가 있는 사용자는 추가 입력 없이 catalogId 만 보내도 동작 (선택적으로 inputs).
+// 앵커가 있는 사용자는 추가 입력 없이 catalogId 만 보내도 동작.
 const AnchoredOnlySchema = z.object({
   mode: z.literal('anchor'),
   catalogId: z.string().min(1),
 });
 
-// 구버전 클라이언트 — mode 누락 시 셀카 모드로 폴백.
-const LegacySelfieBodySchema = SelfieBodySchema.omit({ mode: true }).transform((v) => ({
-  ...v,
-  mode: 'selfies' as const,
-}));
-
 const BodySchema = z.union([
   AnchoredOnlySchema,
   SelfieBodySchema,
   CoupleBodySchema,
-  LegacySelfieBodySchema,
 ]);
 
 export const maxDuration = 30;
@@ -95,12 +92,17 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient();
 
-  // ── 사용자 앵커 로드 (있으면 anchor 경로) ────────────────
-  const { data: anchor } = await admin
-    .from('snap_anchors')
-    .select('image_url, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  // ── 앵커 로드 — couple 모드는 명시적으로 앵커 영향 차단이라 조회 안 함 ──
+  const useAnchor = input.mode !== 'couple';
+  const anchor = useAnchor
+    ? (
+        await admin
+          .from('snap_anchors')
+          .select('image_url, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg')
+          .eq('user_id', user.id)
+          .maybeSingle()
+      ).data
+    : null;
   const hasAnchor = !!anchor?.image_url;
 
   // anchor 모드를 요청했는데 앵커가 없음 → 에러.
@@ -133,11 +135,18 @@ export async function POST(req: Request) {
   const catalogUrl = `${origin}${catalog.image}`;
 
   // ── image_urls + prompt 분기 ────────────────────────────
-  // 앵커가 있으면 사용자 입력 모드와 무관하게 anchor 경로 — 일관성이 가장 좋음.
-  // 앵커가 없으면 사용자 입력 모드에 따라 직결 경로.
   let imageUrls: string[];
   let prompt: string;
-  if (hasAnchor && anchor?.image_url) {
+  let pathLabel: 'anchored' | 'selfies' | 'couple';
+  if (input.mode === 'couple') {
+    imageUrls = [input.couplePhotoUrl, catalogUrl];
+    prompt = buildCouplePhotoSnapPrompt({
+      catalogPromptHint: catalog.promptHint,
+      groom: input.groomBody,
+      bride: input.brideBody,
+    });
+    pathLabel = 'couple';
+  } else if (hasAnchor && anchor?.image_url) {
     imageUrls = [anchor.image_url, catalogUrl];
     prompt = buildAnchoredCatalogPrompt({
       catalogPromptHint: catalog.promptHint,
@@ -150,20 +159,17 @@ export async function POST(req: Request) {
           ? { heightCm: anchor.bride_height_cm, weightKg: anchor.bride_weight_kg }
           : undefined,
     });
-  } else if (input.mode === 'couple') {
-    imageUrls = [input.couplePhotoUrl, catalogUrl];
-    prompt = buildCouplePhotoSnapPrompt({
-      catalogPromptHint: catalog.promptHint,
-      groom: input.groomBody,
-      bride: input.brideBody,
-    });
+    pathLabel = 'anchored';
   } else if (input.mode === 'selfies') {
-    imageUrls = [input.groomFaceUrl, input.brideFaceUrl, catalogUrl];
+    imageUrls = [...input.groomFaceUrls, ...input.brideFaceUrls, catalogUrl];
     prompt = buildSnapPrompt({
       catalogPromptHint: catalog.promptHint,
       groom: input.groomBody,
       bride: input.brideBody,
+      groomFaceCount: input.groomFaceUrls.length,
+      brideFaceCount: input.brideFaceUrls.length,
     });
+    pathLabel = 'selfies';
   } else {
     // 도달 불가 — anchor 모드인데 hasAnchor=false 인 경우는 위에서 차단됨.
     await admin.rpc('refund_snap_credit', {
@@ -201,7 +207,7 @@ export async function POST(req: Request) {
   return NextResponse.json({
     requestId,
     catalogId: input.catalogId,
-    anchoredPath: hasAnchor,
+    path: pathLabel,
     balance: consumeRes.balance,
   });
 }

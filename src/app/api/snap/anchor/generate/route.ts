@@ -36,10 +36,12 @@ const BodyMetricsSchema = z.object({
   weightKg: z.number().min(35).max(150),
 });
 
+// 셀카는 신랑/신부 각 1장 (정면) 또는 3장 (정면+좌45°+우45°). 3장 모드는
+// 모델이 3D 얼굴을 더 정확히 잡아 측면/3-quarter 컷에서 정체성 안정성이 좋다.
 const SelfieSchema = z.object({
   mode: z.literal('selfies'),
-  groomFaceUrl: z.string().url(),
-  brideFaceUrl: z.string().url(),
+  groomFaceUrls: z.array(z.string().url()).min(1).max(3),
+  brideFaceUrls: z.array(z.string().url()).min(1).max(3),
   groomBody: BodyMetricsSchema.optional(),
   brideBody: BodyMetricsSchema.optional(),
 });
@@ -121,16 +123,24 @@ export async function POST(req: Request) {
 
   const buildPrompt = (t: AnchorTemplate) => {
     const sceneHint = `${ANCHOR_BASELINE}\nFraming: ${t.framingHint}`;
-    const bodyOpt = { groom: input.groomBody, bride: input.brideBody };
-    return input.mode === 'couple'
-      ? buildAnchorPromptCouple(sceneHint, bodyOpt)
-      : buildAnchorPromptSelfies(sceneHint, bodyOpt);
+    if (input.mode === 'couple') {
+      return buildAnchorPromptCouple(sceneHint, {
+        groom: input.groomBody,
+        bride: input.brideBody,
+      });
+    }
+    return buildAnchorPromptSelfies(sceneHint, {
+      groom: input.groomBody,
+      bride: input.brideBody,
+      groomFaceCount: input.groomFaceUrls.length,
+      brideFaceCount: input.brideFaceUrls.length,
+    });
   };
 
   const imageUrls =
     input.mode === 'couple'
       ? [input.couplePhotoUrl]
-      : [input.groomFaceUrl, input.brideFaceUrl];
+      : [...input.groomFaceUrls, ...input.brideFaceUrls];
 
   let submissions: Array<{ templateId: AnchorTemplate['id']; requestId: string }>;
   try {
