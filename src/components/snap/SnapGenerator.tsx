@@ -16,7 +16,8 @@ import { CatalogThumbnail } from '@/components/snap/CatalogThumbnail';
 const POLL_INTERVAL_MS = 5_000;
 const MAX_POLL_ATTEMPTS = 60;
 
-type FaceSlot = 'groom' | 'bride';
+type FaceSlot = 'groom' | 'bride' | 'couple';
+type InputMode = 'selfies' | 'couple';
 
 type Stage =
   | 'idle'
@@ -45,6 +46,8 @@ interface BodyForm {
 const HEIGHT_RANGE = { min: 140, max: 210 };
 const WEIGHT_RANGE = { min: 35, max: 150 };
 
+const emptyFace = (): FaceState => ({ url: null, preview: null, uploading: false });
+
 interface Props {
   catalog: SnapCatalogItem[];
 }
@@ -64,8 +67,14 @@ function parseBody(b: BodyForm): { heightCm: number; weightKg: number } | null {
 }
 
 export function SnapGenerator({ catalog }: Props) {
-  const [groom, setGroom] = useState<FaceState>({ url: null, preview: null, uploading: false });
-  const [bride, setBride] = useState<FaceState>({ url: null, preview: null, uploading: false });
+  // 입력 모드 — 셀카 2장 (디폴트) / 커플 사진 1장.
+  // 모드를 바꿔도 이미 업로드한 사진은 유지(서버에 이미 올라가 있으므로) 하고,
+  // 사용하지 않는 슬롯은 단순히 무시한다.
+  const [mode, setMode] = useState<InputMode>('selfies');
+
+  const [groom, setGroom] = useState<FaceState>(emptyFace);
+  const [bride, setBride] = useState<FaceState>(emptyFace);
+  const [couple, setCouple] = useState<FaceState>(emptyFace);
   const [groomBody, setGroomBody] = useState<BodyForm>({ heightCm: '', weightKg: '' });
   const [brideBody, setBrideBody] = useState<BodyForm>({ heightCm: '', weightKg: '' });
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -76,10 +85,12 @@ export function SnapGenerator({ catalog }: Props) {
 
   const groomInputRef = useRef<HTMLInputElement>(null);
   const brideInputRef = useRef<HTMLInputElement>(null);
+  const coupleInputRef = useRef<HTMLInputElement>(null);
 
   const setFace = (slot: FaceSlot, next: FaceState) => {
     if (slot === 'groom') setGroom(next);
-    else setBride(next);
+    else if (slot === 'bride') setBride(next);
+    else setCouple(next);
   };
 
   const handleFaceUpload = async (slot: FaceSlot, file: File) => {
@@ -99,7 +110,7 @@ export function SnapGenerator({ catalog }: Props) {
     } = await supabase.auth.getUser();
     if (!user) {
       setErrorMsg('로그인이 필요합니다.');
-      setFace(slot, { url: null, preview: null, uploading: false });
+      setFace(slot, emptyFace());
       return;
     }
 
@@ -111,7 +122,7 @@ export function SnapGenerator({ catalog }: Props) {
       .upload(path, compressed, { contentType: compressed.type, upsert: false });
     if (upErr) {
       setErrorMsg(`업로드 실패: ${upErr.message}`);
-      setFace(slot, { url: null, preview: null, uploading: false });
+      setFace(slot, emptyFace());
       return;
     }
 
@@ -120,15 +131,20 @@ export function SnapGenerator({ catalog }: Props) {
       .createSignedUrl(path, 60 * 60);
     if (signErr || !signed?.signedUrl) {
       setErrorMsg('업로드한 이미지를 읽을 수 없습니다.');
-      setFace(slot, { url: null, preview: null, uploading: false });
+      setFace(slot, emptyFace());
       return;
     }
 
     setFace(slot, { url: signed.signedUrl, preview: signed.signedUrl, uploading: false });
   };
 
-  const canGenerate =
-    !!groom.url && !!bride.url && !!selectedId && stage !== 'submitting' && stage !== 'queued' && stage !== 'in-progress' && stage !== 'finalizing';
+  const isProgressing =
+    stage === 'submitting' || stage === 'queued' || stage === 'in-progress' || stage === 'finalizing';
+
+  // 현재 모드에서 모든 입력이 충족됐는지.
+  const inputsReady =
+    mode === 'selfies' ? !!groom.url && !!bride.url : !!couple.url;
+  const canGenerate = inputsReady && !!selectedId && !isProgressing;
 
   const parseResOrText = async (res: Response) => {
     const bodyText = await res.text();
@@ -210,7 +226,10 @@ export function SnapGenerator({ catalog }: Props) {
   };
 
   const handleGenerate = async () => {
-    if (!groom.url || !bride.url || !selectedId) return;
+    if (!selectedId) return;
+    if (mode === 'selfies' && (!groom.url || !bride.url)) return;
+    if (mode === 'couple' && !couple.url) return;
+
     setStage('submitting');
     setErrorMsg(null);
     setResultUrl(null);
@@ -219,17 +238,29 @@ export function SnapGenerator({ catalog }: Props) {
     const groomBodyValid = parseBody(groomBody);
     const brideBodyValid = parseBody(brideBody);
 
+    const payload =
+      mode === 'couple'
+        ? {
+            mode: 'couple' as const,
+            couplePhotoUrl: couple.url,
+            catalogId: selectedId,
+            ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
+            ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
+          }
+        : {
+            mode: 'selfies' as const,
+            groomFaceUrl: groom.url,
+            brideFaceUrl: bride.url,
+            catalogId: selectedId,
+            ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
+            ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
+          };
+
     try {
       const res = await fetch('/api/snap/generate', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          groomFaceUrl: groom.url,
-          brideFaceUrl: bride.url,
-          catalogId: selectedId,
-          ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
-          ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
-        }),
+        body: JSON.stringify(payload),
       });
       const { data, bodyText } = await parseResOrText(res);
       if (!res.ok) {
@@ -250,31 +281,85 @@ export function SnapGenerator({ catalog }: Props) {
     }
   };
 
-  const isProgressing =
-    stage === 'submitting' || stage === 'queued' || stage === 'in-progress' || stage === 'finalizing';
+  const inputsHint =
+    !inputsReady
+      ? mode === 'selfies'
+        ? '얼굴 사진을 모두 업로드하세요'
+        : '커플 사진을 업로드하세요'
+      : !selectedId
+        ? '카탈로그 컷을 선택하세요'
+        : null;
+
+  // 결과 비교 뷰에서 사용할 선택된 카탈로그.
+  const selectedCatalog = selectedId ? catalog.find((c) => c.id === selectedId) ?? null : null;
 
   return (
     <div className="mt-6 flex flex-col gap-6">
-      {/* 1. 신랑 / 신부 얼굴 업로드 */}
+      {/* 1. 입력 모드 선택 + 업로드 */}
       <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
-        <h2 className="text-sm font-medium text-[#3D2E1F]">1. 신랑·신부 얼굴 업로드</h2>
-        <p className="mt-1 text-xs text-[#8B7355]">
-          정면 클로즈업 사진을 한 장씩 올려주세요. 얼굴이 또렷할수록 합성이 정확합니다.
-        </p>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <FaceUploader
-            label="신랑 얼굴"
-            face={groom}
+        <h2 className="text-sm font-medium text-[#3D2E1F]">1. 사진 업로드</h2>
+
+        {/* 모드 토글 — 셀카 (디폴트) / 커플 사진 */}
+        <div
+          role="tablist"
+          aria-label="입력 방식"
+          className="mt-3 inline-flex rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-0.5 text-xs"
+        >
+          <ModeToggleButton
+            selected={mode === 'selfies'}
             disabled={isProgressing}
-            onPick={() => groomInputRef.current?.click()}
-          />
-          <FaceUploader
-            label="신부 얼굴"
-            face={bride}
+            onClick={() => setMode('selfies')}
+          >
+            셀카 2장 (권장)
+          </ModeToggleButton>
+          <ModeToggleButton
+            selected={mode === 'couple'}
             disabled={isProgressing}
-            onPick={() => brideInputRef.current?.click()}
-          />
+            onClick={() => setMode('couple')}
+          >
+            커플 사진 1장
+          </ModeToggleButton>
         </div>
+
+        {mode === 'selfies' ? (
+          <>
+            <p className="mt-3 text-xs text-[#8B7355]">
+              정면 클로즈업 사진을 한 장씩 올려주세요. 얼굴이 또렷할수록 합성이 정확합니다.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <FaceUploader
+                label="신랑 얼굴"
+                face={groom}
+                disabled={isProgressing}
+                onPick={() => groomInputRef.current?.click()}
+              />
+              <FaceUploader
+                label="신부 얼굴"
+                face={bride}
+                disabled={isProgressing}
+                onPick={() => brideInputRef.current?.click()}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="mt-3 text-xs text-[#8B7355]">
+              두 사람이 함께 찍힌 정면 사진을 1장 올려주세요. 두 분의 포즈·체형·
+              상호작용을 그대로 유지하고, 카탈로그의 의상·배경·조명만 입혀
+              드려요. 좋은 데이트 사진이 있으면 결과 품질이 가장 좋습니다.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <FaceUploader
+                label="커플 사진"
+                face={couple}
+                disabled={isProgressing}
+                onPick={() => coupleInputRef.current?.click()}
+                wide
+              />
+            </div>
+          </>
+        )}
+
         <input
           ref={groomInputRef}
           type="file"
@@ -297,6 +382,17 @@ export function SnapGenerator({ catalog }: Props) {
             e.target.value = '';
           }}
         />
+        <input
+          ref={coupleInputRef}
+          type="file"
+          accept={IMAGE_LIMITS.acceptMime.join(',')}
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void handleFaceUpload('couple', f);
+            e.target.value = '';
+          }}
+        />
       </section>
 
       {/* 1-b. 키 / 몸무게 (선택) — 전신 비율 반영용 */}
@@ -308,6 +404,13 @@ export function SnapGenerator({ catalog }: Props) {
           전신 / 반신 컷의 비율을 맞추는 데 사용돼요. 키 {HEIGHT_RANGE.min}–
           {HEIGHT_RANGE.max}cm · 몸무게 {WEIGHT_RANGE.min}–{WEIGHT_RANGE.max}kg
           범위로 입력해주세요. 비워두면 카탈로그 기본 체형으로 합성됩니다.
+          {mode === 'couple' && (
+            <>
+              <br />
+              커플 사진 모드에서는 사진 속 체형이 우선이지만, 입력하면 보정에
+              참고됩니다.
+            </>
+          )}
         </p>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <BodyFields
@@ -377,10 +480,8 @@ export function SnapGenerator({ catalog }: Props) {
                     ? '저장 중...'
                     : '생성하기'}
           </Button>
-          {!canGenerate && stage === 'idle' && (
-            <span className="text-xs text-[#8B7355]">
-              {!groom.url || !bride.url ? '얼굴 사진을 모두 업로드하세요' : '카탈로그 컷을 선택하세요'}
-            </span>
+          {!canGenerate && stage === 'idle' && inputsHint && (
+            <span className="text-xs text-[#8B7355]">{inputsHint}</span>
           )}
         </div>
         {progressNote && (
@@ -398,21 +499,32 @@ export function SnapGenerator({ catalog }: Props) {
         )}
       </section>
 
-      {/* 4. 결과 */}
+      {/* 4. 결과 — 카탈로그 마스터 ↔ 생성 결과 비교 뷰 */}
       {stage === 'done' && resultUrl && (
         <section className="rounded-md border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900 dark:bg-emerald-900/10">
           <h2 className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
             ✨ 생성 완료
           </h2>
-          <div className="mt-3 grid aspect-[3/4] w-full max-w-[320px] place-items-center overflow-hidden rounded bg-[#F5EDE0]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+          <p className="mt-1 text-xs text-emerald-700/80 dark:text-emerald-300/80">
+            선택한 카탈로그와 생성 결과를 나란히 비교해보세요. AI 합성은
+            카탈로그를 기준으로 하지만 얼굴/체형 차이로 일부 디테일은 달라질
+            수 있어요.
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <ComparePane
+              caption="선택한 카탈로그"
+              src={selectedCatalog?.image ?? null}
+              alt={selectedCatalog?.label ?? '카탈로그'}
+              hint={selectedCatalog?.label}
+            />
+            <ComparePane
+              caption="생성 결과"
               src={resultUrl}
               alt="생성된 웨딩스냅"
-              className="block h-full w-full object-contain"
+              hint="우리 얼굴로 합성됨"
             />
           </div>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <Button
               type="button"
               size="sm"
@@ -435,6 +547,62 @@ export function SnapGenerator({ catalog }: Props) {
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+function ModeToggleButton({
+  selected,
+  disabled,
+  onClick,
+  children,
+}: {
+  selected: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={selected}
+      disabled={disabled}
+      onClick={onClick}
+      className={`rounded px-3 py-1.5 transition-colors ${
+        selected
+          ? 'bg-white font-medium text-[#3D2E1F] shadow-sm ring-1 ring-[#D4C5B0]'
+          : 'text-[#8B7355] hover:text-[#3D2E1F]'
+      } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ComparePane({
+  caption,
+  src,
+  alt,
+  hint,
+}: {
+  caption: string;
+  src: string | null;
+  alt: string;
+  hint?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[11px] font-medium text-[#5C4633]">{caption}</span>
+      <div className="grid aspect-[3/4] w-full place-items-center overflow-hidden rounded border border-[#E8DCC9] bg-[#F5EDE0]">
+        {src ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src} alt={alt} className="block h-full w-full object-contain" />
+        ) : (
+          <span className="text-xs text-[#8B7355]">이미지 없음</span>
+        )}
+      </div>
+      {hint && <span className="text-[10px] text-[#8B7355]">{hint}</span>}
     </div>
   );
 }
@@ -511,11 +679,14 @@ function FaceUploader({
   face,
   disabled,
   onPick,
+  wide,
 }: {
   label: string;
   face: FaceState;
   disabled?: boolean;
   onPick: () => void;
+  /** 커플 사진은 더 넓은 프레임 사용 */
+  wide?: boolean;
 }) {
   return (
     <button
@@ -526,9 +697,13 @@ function FaceUploader({
         face.preview
           ? 'border-[#8B7355] bg-[#F5EDE0]'
           : 'border-[#E8DCC9] bg-white hover:bg-[#FAF7F2]'
-      } ${disabled || face.uploading ? 'opacity-60' : ''}`}
+      } ${disabled || face.uploading ? 'opacity-60' : ''} ${wide ? 'col-span-2' : ''}`}
     >
-      <div className="grid aspect-square w-full max-w-[140px] place-items-center overflow-hidden rounded bg-[#F5EDE0]">
+      <div
+        className={`grid w-full place-items-center overflow-hidden rounded bg-[#F5EDE0] ${
+          wide ? 'aspect-[4/3] max-w-[280px]' : 'aspect-square max-w-[140px]'
+        }`}
+      >
         {face.preview ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

@@ -3,14 +3,19 @@ import { z, ZodError } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { submitMultiImageEdit } from '@/lib/fal/client';
 import { findSnapCatalog } from '@/lib/snap/catalog';
-import { buildSnapPrompt } from '@/lib/snap/prompt';
+import { buildSnapPrompt, buildCouplePhotoSnapPrompt } from '@/lib/snap/prompt';
 
 /**
  * POST /api/snap/generate
  *
- * 멀티-이미지 모드로 fal.ai 큐에 작업 제출. 입력은 신랑/신부 얼굴 signed URL +
- * 카탈로그 id. 카탈로그 마스터 샘플 이미지는 public/wedding-snap/catalog/{id}.jpg
- * 에서 절대 URL 로 fal 에 전달한다.
+ * 멀티-이미지 모드로 fal.ai 큐에 작업 제출. 두 가지 입력 모드를 지원한다.
+ *   (A) 셀카 2장 : { groomFaceUrl, brideFaceUrl, catalogId, ... }
+ *       → image_urls = [신랑얼굴, 신부얼굴, 카탈로그샘플] · buildSnapPrompt
+ *   (B) 커플 사진 1장 : { couplePhotoUrl, catalogId, ... }
+ *       → image_urls = [커플사진, 카탈로그샘플] · buildCouplePhotoSnapPrompt
+ *
+ * 카탈로그 마스터 샘플 이미지는 public/wedding-snap/catalog/{id}.jpg 에서 절대
+ * URL 로 fal 에 전달한다.
  *
  * MVP 테스트 모드 — 결제/사용량 제한 없이 인증만 통과하면 호출 가능.
  * 추후 결제 검증을 추가할 때 본 라우트에 has-paid 체크만 끼워 넣으면 된다.
@@ -23,13 +28,32 @@ const BodyMetricsSchema = z.object({
   weightKg: z.number().min(35).max(150),
 });
 
-const BodySchema = z.object({
+// 두 모드를 discriminated union 으로 모델링. mode 필드를 강제해 입력 의도를
+// 명시적으로 만든다 (잘못된 조합 — 셀카 1장 + 커플 사진 동시 — 을 차단).
+const SelfieBodySchema = z.object({
+  mode: z.literal('selfies'),
   groomFaceUrl: z.string().url(),
   brideFaceUrl: z.string().url(),
   catalogId: z.string().min(1),
   groomBody: BodyMetricsSchema.optional(),
   brideBody: BodyMetricsSchema.optional(),
 });
+
+const CoupleBodySchema = z.object({
+  mode: z.literal('couple'),
+  couplePhotoUrl: z.string().url(),
+  catalogId: z.string().min(1),
+  groomBody: BodyMetricsSchema.optional(),
+  brideBody: BodyMetricsSchema.optional(),
+});
+
+// mode 누락 시 (구버전 클라이언트) 셀카 모드로 폴백.
+const LegacySelfieBodySchema = SelfieBodySchema.omit({ mode: true }).transform((v) => ({
+  ...v,
+  mode: 'selfies' as const,
+}));
+
+const BodySchema = z.union([SelfieBodySchema, CoupleBodySchema, LegacySelfieBodySchema]);
 
 export const maxDuration = 30;
 
@@ -61,20 +85,33 @@ export async function POST(req: Request) {
   // 4. 카탈로그 마스터 샘플 → 절대 URL.
   // fal.ai 가 외부에서 fetch 해야 하므로 origin 이 공개 도메인이어야 한다.
   // 로컬 개발(localhost) 에서는 fal 이 접근 불가하므로 vercel preview 등 공개
-  // 배포 환경에서 테스트 권장. 이 점은 README 에 안내.
+  // 배포 환경에서 테스트 권장.
   const origin = req.headers.get('origin') ?? new URL(req.url).origin;
   const catalogUrl = `${origin}${catalog.image}`;
 
-  // 5. fal 큐 제출
+  // 5. 모드에 따른 image_urls + prompt 분기.
+  const promptOptions = {
+    catalogPromptHint: catalog.promptHint,
+    groom: input.groomBody,
+    bride: input.brideBody,
+  };
+  const { imageUrls, prompt } =
+    input.mode === 'couple'
+      ? {
+          imageUrls: [input.couplePhotoUrl, catalogUrl],
+          prompt: buildCouplePhotoSnapPrompt(promptOptions),
+        }
+      : {
+          imageUrls: [input.groomFaceUrl, input.brideFaceUrl, catalogUrl],
+          prompt: buildSnapPrompt(promptOptions),
+        };
+
+  // 6. fal 큐 제출
   let requestId: string;
   try {
     requestId = await submitMultiImageEdit({
-      imageUrls: [input.groomFaceUrl, input.brideFaceUrl, catalogUrl],
-      prompt: buildSnapPrompt({
-        catalogPromptHint: catalog.promptHint,
-        groom: input.groomBody,
-        bride: input.brideBody,
-      }),
+      imageUrls,
+      prompt,
       quality: 'medium',
       imageSize: 'portrait_4_3',
     });
