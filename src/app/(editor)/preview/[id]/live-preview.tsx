@@ -1,9 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useEditorStore } from '@/stores/editor';
 import {
-  InvitationContentSchema,
   type InvitationContent,
 } from '@/types/invitation';
 import { InvitationSlides } from '@/components/invitation/InvitationSlides';
@@ -17,19 +14,13 @@ interface Props {
 }
 
 /**
- * Client wrapper around <InvitationSlides>. The server fetches the
- * persisted DB content and passes it as a fallback; once mounted, we
- * swap to the editor's Zustand store *if and only if* the store is
- * holding the same invitation. That way:
+ * /preview/[id] 는 "저장된 상태"를 그대로 보여주는 페이지다.
+ * 에디터 툴바의 미리보기 버튼 팝업("미리보기에는 저장된 내용만 반영됩니다")
+ * 약속을 지키기 위해 Zustand 스토어(미저장 편집분)는 절대 참조하지 않고
+ * 서버에서 받은 props (= DB 저장본) 만 렌더링한다.
  *
- *   - 새 탭/링크로 들어오면 서버 데이터 그대로 보이고,
- *   - 편집 중 미리보기 탭으로 넘어가면 자동저장 디바운스(2초)와 무관하게
- *     항상 직전 입력이 즉시 반영되며,
- *   - 디자인/메인 화면 변경(테마, 색상, 폰트, 페이지 순서, 배경 음악 등)도
- *     딜레이 없이 그 자리에서 갱신된다.
- *
- * The store subscription is reactive — every patchSection() call re-renders
- * the slides. No round-trip to the server, no debounce.
+ * 실시간 편집 미리보기는 에디터 페이지의 좌측 패널(EditorLivePreview) 이
+ * 담당한다.
  */
 export function LivePreview({
   invitationId,
@@ -38,41 +29,13 @@ export function LivePreview({
   weddingDate,
   content,
 }: Props) {
-  const storeId = useEditorStore((s) => s.invitationId);
-  const storeContent = useEditorStore((s) => s.content);
-  const storeMeta = useEditorStore((s) => s.meta);
-
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
-
-  const fromStore = hydrated && storeId === invitationId && storeContent && storeMeta;
-
-  // Reparse store content through the schema in case the persisted shape is
-  // out of date with the latest schema (e.g. new fields added since last visit).
-  let liveContent: InvitationContent = content;
-  let liveGroom = groomName;
-  let liveBride = brideName;
-  let liveDate = weddingDate;
-  if (fromStore) {
-    try {
-      liveContent = InvitationContentSchema.parse(storeContent);
-      liveGroom = storeMeta.groomName;
-      liveBride = storeMeta.brideName;
-      liveDate = storeMeta.weddingDate;
-    } catch {
-      // fall back to server data
-    }
-  }
-
   return (
     <InvitationSlides
       invitationId={invitationId}
-      groomName={liveGroom}
-      brideName={liveBride}
-      weddingDate={liveDate}
-      content={liveContent}
+      groomName={groomName}
+      brideName={brideName}
+      weddingDate={weddingDate}
+      content={content}
       isPreview
     />
   );

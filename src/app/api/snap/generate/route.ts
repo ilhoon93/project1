@@ -16,10 +16,19 @@ import { buildSnapPrompt } from '@/lib/snap/prompt';
  * 추후 결제 검증을 추가할 때 본 라우트에 has-paid 체크만 끼워 넣으면 된다.
  */
 
+// 체형 메타 — 두 명 모두 입력은 선택, 입력 시 키 140–210 cm / 몸무게 35–150 kg
+// 범위로 가드. 한쪽만 입력해도 그쪽만 가이드로 들어간다.
+const BodyMetricsSchema = z.object({
+  heightCm: z.number().min(140).max(210),
+  weightKg: z.number().min(35).max(150),
+});
+
 const BodySchema = z.object({
   groomFaceUrl: z.string().url(),
   brideFaceUrl: z.string().url(),
   catalogId: z.string().min(1),
+  groomBody: BodyMetricsSchema.optional(),
+  brideBody: BodyMetricsSchema.optional(),
 });
 
 export const maxDuration = 30;
@@ -61,7 +70,11 @@ export async function POST(req: Request) {
   try {
     requestId = await submitMultiImageEdit({
       imageUrls: [input.groomFaceUrl, input.brideFaceUrl, catalogUrl],
-      prompt: buildSnapPrompt(catalog.promptHint),
+      prompt: buildSnapPrompt({
+        catalogPromptHint: catalog.promptHint,
+        groom: input.groomBody,
+        bride: input.brideBody,
+      }),
       quality: 'medium',
       imageSize: 'portrait_4_3',
     });
