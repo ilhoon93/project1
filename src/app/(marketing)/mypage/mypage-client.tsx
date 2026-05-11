@@ -73,7 +73,7 @@ interface Props {
   entitlements: MyPageEntitlements;
 }
 
-type Tab = 'saves' | 'credits' | 'orders';
+type Tab = 'saves' | 'credits' | 'orders' | 'snap';
 
 const SOURCE_LABEL: Record<MyPageOrder['source'], string> = {
   portone: '앱 내 결제 (PortOne)',
@@ -104,9 +104,12 @@ export function MyPageClient({
         </p>
       </header>
 
-      <nav className="flex gap-1 border-b">
+      <nav className="flex gap-1 overflow-x-auto border-b">
         <TabButton selected={tab === 'saves'} onClick={() => setTab('saves')}>
           저장 내역
+        </TabButton>
+        <TabButton selected={tab === 'snap'} onClick={() => setTab('snap')}>
+          AI 웨딩스냅
         </TabButton>
         <TabButton selected={tab === 'credits'} onClick={() => setTab('credits')}>
           발행권 · 영구소장
@@ -119,11 +122,60 @@ export function MyPageClient({
       {tab === 'saves' && (
         <SavedTab invitations={invitations} archiveBalance={archiveBalance} />
       )}
+      {tab === 'snap' && <SnapTab entitlements={entitlements} />}
       {tab === 'credits' && (
         <CreditsTab balance={creditsBalance} archiveBalance={archiveBalance} entitlements={entitlements} />
       )}
       {tab === 'orders' && <OrdersTab orders={orders} />}
     </main>
+  );
+}
+
+// ── AI 웨딩스냅 ──────────────────────────────────────────────
+
+function SnapTab({ entitlements }: { entitlements: MyPageEntitlements }) {
+  return (
+    <section className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2 rounded-lg bg-white p-5 ring-1 ring-[#D4C5B0]">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-medium text-[#3D2E1F]">AI 웨딩스냅</h2>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ${
+              entitlements.aiSnap
+                ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                : 'bg-muted text-muted-foreground ring-border'
+            }`}
+          >
+            {entitlements.aiSnap ? '잠금 해제' : '미보유'}
+          </span>
+        </div>
+        <p className="text-xs leading-relaxed text-[#5C4633]">
+          신랑·신부 셀카 한 장씩이면 카탈로그의 베스트샷을 우리 얼굴로
+          합성해드려요. 키·몸무게를 함께 입력하면 전신 비율까지 자연스럽게
+          반영됩니다.
+        </p>
+        <div className="mt-1 flex flex-wrap gap-2">
+          <Link
+            href="/wedding-snap/create"
+            className="inline-flex h-9 items-center justify-center rounded-md bg-[#3D2E1F] px-4 text-xs font-medium text-white transition-colors hover:bg-[#5C4633]"
+          >
+            새 웨딩스냅 만들기
+          </Link>
+          <Link
+            href="/wedding-snap"
+            className="inline-flex h-9 items-center justify-center rounded-md border border-[#D4C5B0] bg-white px-4 text-xs font-medium text-[#5C4633] hover:bg-[#FAF7F2]"
+          >
+            카탈로그 둘러보기
+          </Link>
+        </div>
+        {!entitlements.aiSnap && (
+          <p className="mt-1 text-[11px] text-[#8B7355]">
+            MVP 테스트 모드 — 결제 없이 1컷씩 시험 생성 가능. 정식 패키지를
+            구매하면 20장 카탈로그가 모두 잠금 해제됩니다.
+          </p>
+        )}
+      </div>
+    </section>
   );
 }
 

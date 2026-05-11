@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEditorStore } from '@/stores/editor';
 import { Button } from '@/components/ui/button';
@@ -47,14 +46,17 @@ export function EditorToolbar({ invitationId }: { invitationId: string }) {
     router.push(`/preview/${invitationId}`);
   };
 
-  // 저장내역 (= 마이페이지) 이동 — 미저장 변경이 있으면 confirm. 저장 진행 중이면
-  // 완료까지 기다림.
+  // 저장내역 (= 마이페이지) 이동 — 미저장 변경이 있으면 confirm. 사용자가 "이동"
+  // 을 선택하면 로컬 스토어를 reset 해 다음에 에디터로 돌아왔을 때 항상 서버에
+  // 저장된 데이터만 보이도록 한다 (팝업의 "변경사항이 사라집니다" 문구를 실제로
+  // 이행). 저장 진행 중이면 완료까지 기다림.
   const handleGoMypage = async () => {
     if (status === 'dirty') {
       const ok = window.confirm(
         '저장하지 않은 변경사항이 있어요. 저장내역으로 이동하면 변경사항이 사라집니다. 이동할까요?',
       );
       if (!ok) return;
+      useEditorStore.getState().reset();
     }
     while (useEditorStore.getState().status === 'saving') {
       await new Promise((r) => setTimeout(r, 50));
@@ -65,13 +67,14 @@ export function EditorToolbar({ invitationId }: { invitationId: string }) {
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b bg-background/80 px-4 py-3 backdrop-blur">
       <div className="flex items-center gap-3">
-        <Link
-          href="/mypage"
+        <button
+          type="button"
+          onClick={() => void handleGoMypage()}
           className="text-sm text-muted-foreground hover:text-foreground"
           aria-label="저장내역으로"
         >
           ←
-        </Link>
+        </button>
         <span className={`text-xs ${STATUS_COLOR[status]}`} title={lastError ?? undefined}>
           {STATUS_LABEL[status]}
         </span>

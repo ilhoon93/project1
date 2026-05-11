@@ -36,13 +36,38 @@ interface FaceState {
   uploading: boolean;
 }
 
+interface BodyForm {
+  /** 빈 문자열을 허용하기 위해 string 상태로 보관 — submit 시 parse. */
+  heightCm: string;
+  weightKg: string;
+}
+
+const HEIGHT_RANGE = { min: 140, max: 210 };
+const WEIGHT_RANGE = { min: 35, max: 150 };
+
 interface Props {
   catalog: SnapCatalogItem[];
+}
+
+/**
+ * 입력 가능한 값일 때만 숫자, 아니면 null. 둘 다 채워졌고 범위 내일 때만
+ * 서버로 보낸다 (한쪽만 비어 있으면 그 사람은 omit).
+ */
+function parseBody(b: BodyForm): { heightCm: number; weightKg: number } | null {
+  const h = Number(b.heightCm);
+  const w = Number(b.weightKg);
+  if (!b.heightCm || !b.weightKg) return null;
+  if (!Number.isFinite(h) || !Number.isFinite(w)) return null;
+  if (h < HEIGHT_RANGE.min || h > HEIGHT_RANGE.max) return null;
+  if (w < WEIGHT_RANGE.min || w > WEIGHT_RANGE.max) return null;
+  return { heightCm: h, weightKg: w };
 }
 
 export function SnapGenerator({ catalog }: Props) {
   const [groom, setGroom] = useState<FaceState>({ url: null, preview: null, uploading: false });
   const [bride, setBride] = useState<FaceState>({ url: null, preview: null, uploading: false });
+  const [groomBody, setGroomBody] = useState<BodyForm>({ heightCm: '', weightKg: '' });
+  const [brideBody, setBrideBody] = useState<BodyForm>({ heightCm: '', weightKg: '' });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [stage, setStage] = useState<Stage>('idle');
   const [progressNote, setProgressNote] = useState<string | null>(null);
@@ -191,6 +216,9 @@ export function SnapGenerator({ catalog }: Props) {
     setResultUrl(null);
     setProgressNote('AI 작업을 큐에 제출하는 중...');
 
+    const groomBodyValid = parseBody(groomBody);
+    const brideBodyValid = parseBody(brideBody);
+
     try {
       const res = await fetch('/api/snap/generate', {
         method: 'POST',
@@ -199,6 +227,8 @@ export function SnapGenerator({ catalog }: Props) {
           groomFaceUrl: groom.url,
           brideFaceUrl: bride.url,
           catalogId: selectedId,
+          ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
+          ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
         }),
       });
       const { data, bodyText } = await parseResOrText(res);
@@ -267,6 +297,32 @@ export function SnapGenerator({ catalog }: Props) {
             e.target.value = '';
           }}
         />
+      </section>
+
+      {/* 1-b. 키 / 몸무게 (선택) — 전신 비율 반영용 */}
+      <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
+        <h2 className="text-sm font-medium text-[#3D2E1F]">
+          1-1. 키 · 몸무게 <span className="text-[10px] text-[#8B7355]">(선택)</span>
+        </h2>
+        <p className="mt-1 text-xs text-[#8B7355]">
+          전신 / 반신 컷의 비율을 맞추는 데 사용돼요. 키 {HEIGHT_RANGE.min}–
+          {HEIGHT_RANGE.max}cm · 몸무게 {WEIGHT_RANGE.min}–{WEIGHT_RANGE.max}kg
+          범위로 입력해주세요. 비워두면 카탈로그 기본 체형으로 합성됩니다.
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <BodyFields
+            label="신랑"
+            value={groomBody}
+            disabled={isProgressing}
+            onChange={setGroomBody}
+          />
+          <BodyFields
+            label="신부"
+            value={brideBody}
+            disabled={isProgressing}
+            onChange={setBrideBody}
+          />
+        </div>
       </section>
 
       {/* 2. 카탈로그 선택 */}
@@ -378,6 +434,73 @@ export function SnapGenerator({ catalog }: Props) {
             </Button>
           </div>
         </section>
+      )}
+    </div>
+  );
+}
+
+function BodyFields({
+  label,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: BodyForm;
+  disabled?: boolean;
+  onChange: (next: BodyForm) => void;
+}) {
+  const heightNum = Number(value.heightCm);
+  const weightNum = Number(value.weightKg);
+  const heightOut =
+    value.heightCm !== '' &&
+    Number.isFinite(heightNum) &&
+    (heightNum < HEIGHT_RANGE.min || heightNum > HEIGHT_RANGE.max);
+  const weightOut =
+    value.weightKg !== '' &&
+    Number.isFinite(weightNum) &&
+    (weightNum < WEIGHT_RANGE.min || weightNum > WEIGHT_RANGE.max);
+  return (
+    <div className="flex flex-col gap-2 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-3">
+      <span className="text-xs font-medium text-[#3D2E1F]">{label}</span>
+      <label className="flex items-center gap-2 text-xs text-[#5C4633]">
+        <span className="w-10 shrink-0">키</span>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={HEIGHT_RANGE.min}
+          max={HEIGHT_RANGE.max}
+          step={1}
+          placeholder="170"
+          disabled={disabled}
+          value={value.heightCm}
+          onChange={(e) => onChange({ ...value, heightCm: e.target.value })}
+          className={`w-full rounded border bg-white px-2 py-1.5 text-sm ${
+            heightOut ? 'border-red-400' : 'border-[#D4C5B0]'
+          }`}
+        />
+        <span className="text-[10px] text-[#8B7355]">cm</span>
+      </label>
+      <label className="flex items-center gap-2 text-xs text-[#5C4633]">
+        <span className="w-10 shrink-0">몸무게</span>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={WEIGHT_RANGE.min}
+          max={WEIGHT_RANGE.max}
+          step={1}
+          placeholder="65"
+          disabled={disabled}
+          value={value.weightKg}
+          onChange={(e) => onChange({ ...value, weightKg: e.target.value })}
+          className={`w-full rounded border bg-white px-2 py-1.5 text-sm ${
+            weightOut ? 'border-red-400' : 'border-[#D4C5B0]'
+          }`}
+        />
+        <span className="text-[10px] text-[#8B7355]">kg</span>
+      </label>
+      {(heightOut || weightOut) && (
+        <p className="text-[10px] text-red-600">입력 범위를 벗어났어요.</p>
       )}
     </div>
   );
