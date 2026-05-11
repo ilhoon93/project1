@@ -1,15 +1,15 @@
 /**
- * 웨딩스냅 멀티-이미지 프롬프트 빌더
+ * 웨딩스냅 프롬프트 빌더
  *
- * gpt-image-2/edit 의 image_urls 가 [신랑얼굴, 신부얼굴, 카탈로그_마스터샘플]
- * 3장을 받는 점을 활용해, 각 이미지의 역할을 prompt 로 명시한다.
- *   - Image 1 = 신랑 얼굴 reference (얼굴 일치도)
- *   - Image 2 = 신부 얼굴 reference (얼굴 일치도)
- *   - Image 3 = 포즈/구도/배경/의상/조명 reference (씬 일관성)
+ * 입력 모드 두 가지를 지원한다.
+ *   (A) 셀카 2장 — 신랑/신부 얼굴 reference + 카탈로그 마스터샘플 (총 3장)
+ *   (B) 커플 사진 1장 — 사용자 포즈/구도 보존, 카탈로그는 스타일(의상/배경) 참조 (총 2장)
  *
- * 모델은 Image 3 의 컴포지션을 그대로 복제하되 두 인물의 얼굴만 Image 1·2 의
- * 얼굴로 바꾼다. 추가로 카탈로그별 scene 컨텍스트(promptHint) + (선택) 키·
- * 몸무게로 추론한 체형 가이드를 끼워 전신 비율을 보강.
+ * 두 경우 모두 카탈로그 promptHint 와 (선택) 키·몸무게 가이드를 끼운다.
+ *
+ * 모든 prompt 의 마지막에는 공통 NEGATIVES 섹션을 추가해 gpt-image-2 가 흔히
+ * 만들어내는 인공물(플라스틱 피부, 비대칭 눈, 손가락 오류, 컷아웃 halo 등) 을
+ * 사전 차단한다.
  */
 
 export interface BodyMetrics {
@@ -65,29 +65,46 @@ function buildHeightComparison(groom?: BodyMetrics, bride?: BodyMetrics): string
   return `- Height difference: the ${taller} is roughly ${abs} cm taller than the ${shorter}. Reflect this gap when they stand side by side (head/shoulder offsets, eye-line difference). Do NOT make them identical heights.`;
 }
 
+function buildBodySection(groom?: BodyMetrics, bride?: BodyMetrics): string[] {
+  const lines: string[] = [];
+  const g = buildPersonGuide('groom', groom);
+  const b = buildPersonGuide('bride', bride);
+  const cmp = buildHeightComparison(groom, bride);
+  if (g) lines.push(g);
+  if (b) lines.push(b);
+  if (cmp) lines.push(cmp);
+  if (lines.length === 0) return [];
+  return [
+    '',
+    'BODY PROPORTIONS (apply when the framing includes the full or half body):',
+    ...lines,
+    '- Keep faces strictly from the face reference image(s); only the body silhouette and proportions follow the guide above.',
+    '- Tailor wedding attire to drape naturally on the described build (no shrink-wrap, no padding mismatch).',
+  ];
+}
+
+/**
+ * gpt-image-2 가 자주 만들어내는 흠집들을 자연어 negative 로 차단. 길게 나열할
+ * 수록 다른 지시문이 희석되니 가장 잦은 6~8개만 유지.
+ */
+const NEGATIVES = [
+  '',
+  'QUALITY REQUIREMENTS — strictly AVOID:',
+  '- Plastic, waxy, or overly smooth skin texture (preserve realistic pores and natural micro-detail)',
+  '- Asymmetric or misaligned eyes, lopsided pupils, drifting gaze',
+  '- Extra, missing, or malformed fingers; deformed hands or wrists',
+  '- Distorted, crooked, or missing teeth when smiling',
+  '- Visible cutout halos, hard edges, or color fringing around hair and clothing',
+  '- Blurry faces while the background is sharp (faces must be the sharpest area)',
+  '- Oversharpened artifacts, unnatural HDR look, or overcooked color saturation',
+  '- Identity drift — the synthesized faces must clearly match the face reference image(s)',
+];
+
+/** (A) 셀카 2장 + 카탈로그 마스터샘플 (image_urls 총 3장) */
 export function buildSnapPrompt(input: SnapPromptInput | string): string {
-  // 하위 호환: 문자열만 받던 옛 시그니처도 그대로 동작.
   const opts: SnapPromptInput =
     typeof input === 'string' ? { catalogPromptHint: input } : input;
-
-  const bodyLines: string[] = [];
-  const groomGuide = buildPersonGuide('groom', opts.groom);
-  const brideGuide = buildPersonGuide('bride', opts.bride);
-  const compare = buildHeightComparison(opts.groom, opts.bride);
-  if (groomGuide) bodyLines.push(groomGuide);
-  if (brideGuide) bodyLines.push(brideGuide);
-  if (compare) bodyLines.push(compare);
-
-  const bodySection =
-    bodyLines.length > 0
-      ? [
-          '',
-          'BODY PROPORTIONS (apply when the framing includes the full or half body):',
-          ...bodyLines,
-          '- Keep faces strictly from Image 1 / Image 2; only the body silhouette and proportions follow the guide above.',
-          '- Tailor wedding attire to drape naturally on the described build (no shrink-wrap, no padding mismatch).',
-        ]
-      : [];
+  const bodySection = buildBodySection(opts.groom, opts.bride);
 
   return [
     'Compose a wedding portrait using THREE input images:',
@@ -113,6 +130,152 @@ export function buildSnapPrompt(input: SnapPromptInput | string): string {
     '- Re-shade hair highlights and skin tones for consistency with the scene',
     '- Soft natural edges where faces meet hair/clothing — no sharp cutout look',
     '- Apply uniform color grading across the whole frame as if shot on the same camera',
+    ...NEGATIVES,
+    '',
+    'Style: Professional wedding photography, photorealistic, cinematic.',
+  ].join('\n');
+}
+
+/**
+ * (C) 앵커 후보 생성 — 카탈로그 reference 없음.
+ *   * 셀카 모드: image_urls = [신랑얼굴, 신부얼굴] (총 2장)
+ *   * 커플 모드: image_urls = [커플사진] (총 1장)
+ *
+ * 카탈로그 단계 reference 로 재사용할 깨끗한 베이스라인 컷을 만든다.
+ * baselineSceneHint 에 ANCHOR_BASELINE + framingHint 를 합쳐 전달.
+ */
+export function buildAnchorPromptSelfies(
+  baselineSceneHint: string,
+  body?: { groom?: BodyMetrics; bride?: BodyMetrics },
+): string {
+  const bodySection = buildBodySection(body?.groom, body?.bride);
+  return [
+    'Compose a clean wedding anchor portrait using TWO input images:',
+    '- Image 1 = Groom face reference. Use this exact face for the groom.',
+    '- Image 2 = Bride face reference. Use this exact face for the bride.',
+    '',
+    `Scene & framing: ${baselineSceneHint}`,
+    '',
+    'CRITICAL FACE FIDELITY:',
+    "- Reproduce the groom's face from Image 1 (eye shape, nose bridge, jawline, skin tone/texture, hair style/color) with very high fidelity — this anchor will be used as reference for many follow-up portraits.",
+    "- Reproduce the bride's face from Image 2 the same way.",
+    '- Do NOT blend the two faces. Assign Image 1 face → groom, Image 2 face → bride.',
+    ...bodySection,
+    '',
+    'NATURAL INTEGRATION:',
+    '- Apply uniform studio lighting and color grading across the whole frame.',
+    '- Soft natural edges where faces meet hair/clothing — no sharp cutout look.',
+    ...NEGATIVES,
+    '',
+    'Style: Professional wedding photography, photorealistic, cinematic, sharp on faces.',
+  ].join('\n');
+}
+
+export function buildAnchorPromptCouple(
+  baselineSceneHint: string,
+  body?: { groom?: BodyMetrics; bride?: BodyMetrics },
+): string {
+  const bodySection = buildBodySection(body?.groom, body?.bride);
+  return [
+    'Compose a clean wedding anchor portrait using ONE input image:',
+    '- Image 1 = Couple photo. PRESERVE the two people exactly — faces, identities, body shapes, and their natural way of standing/leaning toward each other.',
+    '',
+    `Scene & framing: ${baselineSceneHint}`,
+    '',
+    'IDENTITY & POSE FIDELITY (from Image 1):',
+    '- Faces must match Image 1 with very high fidelity — this anchor will be reused for many follow-up portraits.',
+    '- Replace casual / everyday outfits with the wedding attire specified in the scene, but keep the couple\'s natural pose and interaction.',
+    '- Keep camera angle and framing close to the requested anchor framing above.',
+    ...bodySection,
+    '',
+    'NATURAL INTEGRATION:',
+    '- Apply uniform studio lighting and color grading.',
+    '- Soft natural edges around hair / clothing — no cutout look.',
+    ...NEGATIVES,
+    '',
+    'Style: Professional wedding photography, photorealistic, cinematic, sharp on faces.',
+  ].join('\n');
+}
+
+/**
+ * (D) 앵커 기반 카탈로그 생성 — 앵커 1장 + 카탈로그 마스터샘플 (image_urls 총 2장)
+ *
+ * 앵커가 이미 얼굴/체형/스타일을 안정화시켜 두었으므로, 카탈로그 생성 시에는
+ * 두 얼굴을 다시 블렌딩할 필요 없이 앵커 1장을 정체성 reference 로 쓰고
+ * 카탈로그 마스터샘플로 새 scene 을 입힌다. 셀카 2장 합성 대비:
+ *   * face fidelity 가 훨씬 안정적 (single-face reference)
+ *   * 50컷 사이의 정체성 일관성 보장
+ *   * 비용 동일 (image_urls 길이만 다름)
+ */
+export function buildAnchoredCatalogPrompt(input: SnapPromptInput | string): string {
+  const opts: SnapPromptInput =
+    typeof input === 'string' ? { catalogPromptHint: input } : input;
+  const bodySection = buildBodySection(opts.groom, opts.bride);
+
+  return [
+    'Compose a wedding portrait using TWO input images:',
+    "- Image 1 = Anchor portrait of the same couple. This is the canonical identity reference — preserve both faces, hair, and body proportions exactly as in this image.",
+    "- Image 2 = Composition reference. Take the pose, framing, camera angle, depth of field, background, outfits, and overall lighting setup from this image.",
+    '',
+    `Scene context: ${opts.catalogPromptHint}`,
+    '',
+    'IDENTITY FIDELITY (from Image 1 — strict):',
+    '- Faces of both groom and bride must match Image 1 with high fidelity (eye shape, nose bridge, jawline, skin tone/texture, hair style/color).',
+    '- Body proportions and silhouettes should remain consistent with Image 1.',
+    '- Do NOT introduce people who are not in Image 1.',
+    '',
+    'COMPOSITION (from Image 2 — replicate):',
+    '- Pose, body positions, gestures, hand positions',
+    '- Camera angle, framing, depth of field, lens character',
+    '- Background, environment, outfits, props',
+    ...bodySection,
+    '',
+    'NATURAL INTEGRATION:',
+    "- Re-light the couple to match Image 2's primary light direction, color temperature, and softness",
+    '- Soft natural edges where faces meet hair/clothing — no sharp cutout look',
+    '- Apply uniform color grading across the whole frame as if shot on the same camera',
+    ...NEGATIVES,
+    '',
+    'Style: Professional wedding photography, photorealistic, cinematic.',
+  ].join('\n');
+}
+
+/**
+ * (B) 커플 사진 1장 + 카탈로그 마스터샘플 (image_urls 총 2장)
+ *
+ * 사용자 커플 사진의 포즈/구도/상호작용/체형은 그대로 두고, 카탈로그의 의상·
+ * 배경·조명 톤만 입힌다. 셀카 합성보다 정체성 일관성과 신체 비율 사실성이
+ * 강해, 좋은 커플 사진을 가진 사용자에게 권장되는 경로.
+ */
+export function buildCouplePhotoSnapPrompt(input: SnapPromptInput | string): string {
+  const opts: SnapPromptInput =
+    typeof input === 'string' ? { catalogPromptHint: input } : input;
+  const bodySection = buildBodySection(opts.groom, opts.bride);
+
+  return [
+    'Compose a wedding portrait using TWO input images:',
+    "- Image 1 = Couple photo. PRESERVE the two people exactly — faces, identities, body shapes, poses, hand positions, relative scale, eye lines, and their interaction with each other. This is the anchor.",
+    "- Image 2 = Style reference. Take outfits, background, environment, and overall lighting tone from this image.",
+    '',
+    `Scene context: ${opts.catalogPromptHint}`,
+    '',
+    'IDENTITY & POSE FIDELITY (from Image 1 — must be preserved):',
+    '- Faces must match Image 1 with high fidelity (eye shape, nose bridge, jawline, skin tone/texture, hair, expression)',
+    '- Keep the exact poses, gestures, hand positions, head tilts, and the way the couple holds / leans toward each other',
+    '- Keep camera angle and framing close to Image 1; do not arbitrarily reframe',
+    '',
+    'STYLE TRANSFER (from Image 2):',
+    "- Replace casual / everyday outfits with the wedding attire shown in Image 2 (groom: formal suit/tux as in Image 2; bride: wedding dress as in Image 2)",
+    '- Replace the background/environment with the one in Image 2',
+    "- Match Image 2's lighting direction, color temperature, and softness across the whole frame",
+    '- Add small wedding props (bouquet, boutonniere) only if naturally consistent with Image 2',
+    ...bodySection,
+    '',
+    'NATURAL INTEGRATION:',
+    '- Re-light the people to match the new scene; do not paste them in flat',
+    '- Soft natural edges where hair / clothing meet the background — no cutout look',
+    '- Uniform color grading as if shot on the same camera in the new scene',
+    ...NEGATIVES,
     '',
     'Style: Professional wedding photography, photorealistic, cinematic.',
   ].join('\n');

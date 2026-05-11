@@ -25,6 +25,7 @@ export default async function MyPage() {
     { data: aiSnap },
     { data: aiVideo },
     { data: familyPack },
+    { data: snapCreditsBalance },
   ] = await Promise.all([
     supabase
       .from('invitations')
@@ -48,6 +49,7 @@ export default async function MyPage() {
     supabase.rpc('user_has_package', { uid: user.id, pkg_code: 'ai_snap' }),
     supabase.rpc('user_has_package', { uid: user.id, pkg_code: 'ai_video' }),
     supabase.rpc('user_has_package', { uid: user.id, pkg_code: 'family_pack' }),
+    supabase.rpc('snap_credits_balance', { uid: user.id }),
   ]);
 
   const pubsByInvitation = new Map<string, MyPagePublication[]>();
@@ -109,6 +111,7 @@ export default async function MyPage() {
       invitations={invitations}
       creditsBalance={typeof balance === 'number' ? balance : 0}
       archiveBalance={typeof archiveBalance === 'number' ? archiveBalance : 0}
+      snapCreditsBalance={typeof snapCreditsBalance === 'number' ? snapCreditsBalance : 0}
       orders={orders ?? []}
       entitlements={{
         aiSnap: !!aiSnap,
