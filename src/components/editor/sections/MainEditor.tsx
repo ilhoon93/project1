@@ -20,9 +20,13 @@ import {
 } from '@/types/invitation';
 import { useEditorStore } from '@/stores/editor';
 import {
-  TITLE_FONT_KEYS,
+  TITLE_FONT_KEYS_EN,
+  TITLE_FONT_KEYS_KO,
   TITLE_FONT_OPTIONS,
   TITLE_TEXT_PRESETS,
+  DEFAULT_TITLE_FONT_KO,
+  DEFAULT_TITLE_FONT_EN,
+  isKoreanTitleText,
   type TitleFontKey,
 } from '@/lib/theme';
 import { SectionEditor } from '../SectionEditor';
@@ -131,11 +135,10 @@ export function MainEditor() {
           {showImagePicker && (
             // 우측 미리보기 — 고정 너비(w-32). 비율은 변형이 실제 슬라이드에서
             // 차지하는 비율과 정확히 일치시킨다:
-            //   poster   : 9:16 (풀스크린 이미지) + 9:20 폰 좌우 회색 마스크
-            //   polaroid : 1:1 (square 프레임)
-            //   heart    : 10:9 (heart 프레임)
-            //   screen   : 1:1 (square 프레임)
-            // 이렇게 하면 미리보기가 실제 메인 화면에 보이는 모습과 똑같이 나타난다.
+            //   poster              : 9:16 (풀스크린 이미지) + 9:20 폰 좌우 회색 마스크
+            //   polaroid / heart    : 1:1 (square 프레임)
+            //   screen              : 1:1 (정방형 폴백; 실제는 이미지 비율에 따라 가변)
+            //   arch / classic      : 3:4 (세로 액자)
             <div className="flex w-full shrink-0 flex-col gap-1.5 sm:w-32">
               <span className="text-sm font-medium text-foreground">메인 사진</span>
               <ImageUploader
@@ -145,7 +148,9 @@ export function MainEditor() {
                 folder="main"
                 previewAspect={
                   isFrame
-                    ? 'aspect-square'  // polaroid / heart / screen 모두 1:1 (heart 도 가로 확대 + 정사각형)
+                    ? frame?.variant === 'arch' || frame?.variant === 'classic'
+                      ? 'aspect-[3/4]'
+                      : 'aspect-square'
                     : 'aspect-[9/16]'
                 }
                 previewFit={
@@ -946,8 +951,8 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
             <SliderRow
               label="글자 크기"
               value={design.nameBox.fontSize}
-              min={12}
-              max={24}
+              min={14}
+              max={56}
               unit="px"
               onChange={(fontSize) =>
                 onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
@@ -1070,6 +1075,8 @@ const FRAME_VARIANT_LABELS: Record<FrameVariant, { name: string; hint: string }>
   polaroid: { name: '폴라로이드', hint: '흰 테두리 + 살짝 기울임' },
   heart: { name: '하트', hint: '하트 모양으로 클립' },
   screen: { name: '스크린', hint: '영화관 letterbox' },
+  arch: { name: '아치', hint: '상단이 둥근 세로 액자' },
+  classic: { name: '클래식', hint: '상하좌우 테두리 액자' },
 };
 
 function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: FrameProps) {
@@ -1084,7 +1091,8 @@ function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: F
     <div className="flex flex-col gap-5 rounded-md border border-input bg-muted/20 p-3">
       <DesignPanelHeader title="액자프레임 디자인" onReset={handleReset} />
 
-      {/* 프레임 스타일 — 폴라로이드 / 하트 / 스크린 변형 선택 */}
+      {/* 프레임 스타일 — 폴라로이드 / 하트 / 스크린 / 아치 / 클래식 변형 선택.
+          5종이라 한 줄(3) + 두 번째 줄(2) 로 자연 줄바꿈. */}
       <Group label="프레임 스타일">
         <div className="grid grid-cols-3 gap-2">
           {FRAME_VARIANTS.map((key) => {
@@ -1408,11 +1416,34 @@ function FontPicker({
   const wrapRef = useRef<HTMLDivElement>(null);
   useClickOutside(wrapRef, () => setOpen(false));
 
-  const current = TITLE_FONT_OPTIONS[value];
+  // 제목 텍스트 언어에 따라 표시할 폰트 그룹을 결정.
+  //   한글이면 한글 명조·고운바탕 계열만, 영문이면 기존 영문 장식 폰트만.
+  // 사용자가 한글↔영문을 오갈 때 현재 선택된 폰트가 새 그룹에 속하지
+  // 않으면 그 그룹의 기본 폰트로 자동 전환 (한 번만).
+  const isKorean = isKoreanTitleText(previewText);
+  const visibleKeys = isKorean
+    ? TITLE_FONT_KEYS_KO
+    : TITLE_FONT_KEYS_EN;
+  const valueInGroup = (visibleKeys as readonly string[]).includes(value);
+
+  useEffect(() => {
+    if (valueInGroup) return;
+    onChange(isKorean ? DEFAULT_TITLE_FONT_KO : DEFAULT_TITLE_FONT_EN);
+    // onChange 는 부모 상태 업데이트 함수라 deps 에서 제외 (무한 루프 회피).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isKorean, valueInGroup]);
+
+  // 그룹 외 폰트 값이 일시적으로 들어오면 (구버전 데이터) 현재 그룹 기본
+  // 폰트의 옵션을 임시 미리보기에 사용해 UI 가 깨지지 않게 한다.
+  const current =
+    TITLE_FONT_OPTIONS[value] ??
+    TITLE_FONT_OPTIONS[isKorean ? DEFAULT_TITLE_FONT_KO : DEFAULT_TITLE_FONT_EN];
 
   return (
     <div className="flex flex-col gap-1.5 text-sm">
-      <span className="font-medium text-foreground">폰트</span>
+      <span className="font-medium text-foreground">
+        폰트 <span className="text-xs font-normal text-muted-foreground">({isKorean ? '한글' : '영문'})</span>
+      </span>
       <div ref={wrapRef} className="relative">
         <button
           type="button"
@@ -1434,7 +1465,7 @@ function FontPicker({
             role="listbox"
             className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-md border border-input bg-background shadow-lg"
           >
-            {TITLE_FONT_KEYS.map((key) => {
+            {visibleKeys.map((key) => {
               const opt = TITLE_FONT_OPTIONS[key];
               const selected = key === value;
               return (
