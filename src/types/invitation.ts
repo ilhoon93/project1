@@ -257,14 +257,18 @@ export const TextDesignSchema = z
     nameBox: z
       .object({
         enabled: z.boolean().default(true),
-        fontSize: z.number().min(12).max(24).default(16),
+        // 텍스트형의 메인 화면 이름은 굵게·크게 부각하는 디자인 컨셉이라
+        // 다른 레이아웃보다 폰트 크기 상한을 56px 까지 크게 열어준다.
+        fontSize: z.number().min(14).max(56).default(28),
         offsetY: z.number().min(-50).max(50).default(0),
         // 'inline' = 한 줄 가운데 점 구분, 'stack' = 위·아래 두 줄 중앙 정렬.
+        // stack 일 때도 두 이름 사이에 작은 구분 점(✦)을 끼워넣어
+        // 짝을 이루는 디자인 톤을 유지한다 (렌더링 단계에서 처리).
         layout: z.enum(TEXT_NAME_LAYOUTS).default('inline'),
         // true 면 신부 이름을 먼저, 신랑 이름을 뒤로 배치.
         brideFirst: z.boolean().default(false),
       })
-      .default({ enabled: true, fontSize: 16, offsetY: 0, layout: 'inline', brideFirst: false }),
+      .default({ enabled: true, fontSize: 28, offsetY: 0, layout: 'inline', brideFirst: false }),
     messageBox: z
       .object({
         enabled: z.boolean().default(true),
@@ -279,7 +283,7 @@ export const TextDesignSchema = z
     dateBox: { enabled: true, fontSize: 15, offsetY: 0 },
     nameBox: {
       enabled: true,
-      fontSize: 16,
+      fontSize: 28,
       offsetY: 0,
       layout: 'inline',
       brideFirst: false,
@@ -295,7 +299,10 @@ export type TextDesign = z.infer<typeof TextDesignSchema>;
 // 이미지 프레임 모양이고, 그 외 제목·이름·날짜·인사말 요소는 동일한 컨트롤로
 // 노출한다. 일러스트형과 동일한 패턴으로 variant 필드 하나로 변형을 선택한다.
 
-export const FRAME_VARIANTS = ['polaroid', 'heart', 'screen'] as const;
+// 폴라로이드 / 하트 / 스크린 / 아치 / 클래식 (테두리 직사각형).
+//   - arch    : 세로 직사각형에 상단만 둥글게 처리한 아치형 액자
+//   - classic : 상하좌우에 직각 테두리(이중선)를 두른 갤러리 액자
+export const FRAME_VARIANTS = ['polaroid', 'heart', 'screen', 'arch', 'classic'] as const;
 export type FrameVariant = (typeof FRAME_VARIANTS)[number];
 
 export const FrameDesignSchema = z

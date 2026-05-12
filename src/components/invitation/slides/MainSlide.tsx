@@ -12,7 +12,11 @@ import {
   type IllustrationDesign,
   type TextDesign,
 } from '@/types/invitation';
-import { TITLE_FONT_OPTIONS } from '@/lib/theme';
+import {
+  TITLE_FONT_OPTIONS,
+  isKoreanTitleText,
+  DEFAULT_TITLE_FONT_KO,
+} from '@/lib/theme';
 import { Confetti } from '@/components/shared/Confetti';
 import { HeartClip } from '@/components/shared/HeartClip';
 
@@ -410,6 +414,15 @@ function PositionedBox({
 
 const PLAYFAIR = "var(--font-playfair-display), serif";
 
+// 일러스트형 / 텍스트형은 제목 폰트를 자체적으로 노출하지 않고, 한글이
+// 포함된 문구일 때만 자동으로 한글 폰트(고운바탕 계열)로 전환한다.
+function autoTitleFontFor(text: string): string {
+  if (isKoreanTitleText(text)) {
+    return TITLE_FONT_OPTIONS[DEFAULT_TITLE_FONT_KO].family;
+  }
+  return PLAYFAIR;
+}
+
 function IllustrationSlide({
   main,
   groomName,
@@ -426,6 +439,7 @@ function IllustrationSlide({
 
   const titleColor = design.title.color || 'currentColor';
   const illustSrc = `/illustrations/illust-${design.variant}.png`;
+  const titleFontFamily = autoTitleFontFor(design.title.text);
 
   return (
     // 레이아웃 구조 (위→아래):
@@ -457,7 +471,7 @@ function IllustrationSlide({
         <h1
           className="font-bold leading-tight"
           style={{
-            fontFamily: PLAYFAIR,
+            fontFamily: titleFontFamily,
             color: titleColor,
             fontSize: `${design.title.fontSize}px`,
             transform: design.title.offsetY ? `translateY(${design.title.offsetY}cqh)` : undefined,
@@ -572,6 +586,7 @@ function TextLayoutSlide({
 
   const titleColor = design.title.color || 'currentColor';
   const decoSrc = `/illustrations/text-${design.variant}.png`;
+  const titleFontFamily = autoTitleFontFor(design.title.text);
 
   // 이름 정렬/순서 — brideFirst 면 신부, 신랑 순. layout 'stack' 이면 위·아래 두 줄.
   // "신랑/신부" 접두어는 표시하지 않는다 (사용자 요청).
@@ -597,7 +612,7 @@ function TextLayoutSlide({
         <h1
           className="font-bold leading-tight"
           style={{
-            fontFamily: PLAYFAIR,
+            fontFamily: titleFontFamily,
             color: titleColor,
             fontSize: `${design.title.fontSize}px`,
             transform: design.title.offsetY ? `translateY(${design.title.offsetY}cqh)` : undefined,
@@ -638,10 +653,12 @@ function TextLayoutSlide({
       </div>
 
       {/* 3) 이름 — 풀너비 데코 아래 자리. offsetY (±50cqh) 로 데코 위쪽까지
-          끌어올릴 수 있어 사용자가 자유롭게 배치 가능. z-10 으로 데코 위에. */}
+          끌어올릴 수 있어 사용자가 자유롭게 배치 가능. z-10 으로 데코 위에.
+          텍스트형은 이름을 주인공처럼 굵게(font-bold) 보여주고, stack(위·아래)
+          레이아웃일 때는 두 이름 사이에 작은 ✦ 점을 끼워 짝을 시각화한다. */}
       {design.nameBox.enabled && (
         <div
-          className="relative z-10 flex shrink-0 flex-col items-center font-light tracking-wide"
+          className="relative z-10 flex shrink-0 flex-col items-center font-bold tracking-wide"
           style={{
             fontFamily: 'inherit',
             fontSize: `${design.nameBox.fontSize}px`,
@@ -652,6 +669,14 @@ function TextLayoutSlide({
           {design.nameBox.layout === 'stack' ? (
             <>
               <span className="leading-tight">{firstName}</span>
+              {/* 위·아래 두 이름을 구분하는 작은 점 — 이름 폰트 크기에 비례 */}
+              <span
+                aria-hidden
+                className="font-normal leading-none opacity-50"
+                style={{ fontSize: '0.55em', margin: '0.1em 0' }}
+              >
+                ✦
+              </span>
               <span className="leading-tight">{secondName}</span>
             </>
           ) : (
@@ -914,7 +939,7 @@ function formatDate(iso: string) {
 // variant 별로 이미지 프레임만 다르게 렌더한다.
 // ─────────────────────────────────────────────────────────────
 
-type FrameVariant = 'polaroid' | 'heart' | 'screen';
+type FrameVariant = 'polaroid' | 'heart' | 'screen' | 'arch' | 'classic';
 
 interface FrameProps extends FooterMode {
   main: InvitationContent['main'];
@@ -1102,6 +1127,76 @@ function FrameImage({
           ) : (
             <span className="text-3xl text-stone-400">📷</span>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === 'arch') {
+    // 아치 — 세로 직사각형(3:4) + 상단만 둥근 곡선. 잘림 영역은 imagePosition 으로 조정.
+    // 컨테이너 안쪽에서 살짝 띄운 두 번째 라인(::before) 처럼 매트 효과를 위해
+    // 안쪽 border 한 줄 추가 — outline 으로 아치 외곽선 + 내부 매트 라인을 함께.
+    return (
+      <div className="flex w-full shrink-0 items-center justify-center px-6">
+        <div
+          className="relative overflow-hidden border shadow-md"
+          style={{
+            width: 'min(68cqw, 18rem)',
+            aspectRatio: '3 / 4',
+            borderColor: 'currentColor',
+            borderRadius: '999px 999px 4px 4px',
+          }}
+        >
+          {src ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={src}
+              alt=""
+              className="h-full w-full object-cover"
+              style={{ objectPosition: objectPos }}
+            />
+          ) : (
+            <div className="grid h-full w-full place-items-center bg-stone-100 text-3xl text-stone-400">
+              🖼️
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === 'classic') {
+    // 클래식 — 상하좌우에 직각 이중 테두리(액자 매트 효과).
+    // 바깥 border + outline(안쪽 라인) + 패딩 으로 사진 둘레의 매트가 보이도록.
+    return (
+      <div className="flex w-full shrink-0 items-center justify-center px-6">
+        <div
+          className="relative bg-background p-3 shadow-md"
+          style={{
+            width: 'min(70cqw, 18rem)',
+            border: '1px solid currentColor',
+            outline: '1px solid currentColor',
+            outlineOffset: '-10px',
+          }}
+        >
+          <div
+            className="relative w-full overflow-hidden bg-stone-100"
+            style={{ aspectRatio: '3 / 4' }}
+          >
+            {src ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={src}
+                alt=""
+                className="h-full w-full object-cover"
+                style={{ objectPosition: objectPos }}
+              />
+            ) : (
+              <div className="grid h-full w-full place-items-center text-3xl text-stone-400">
+                🖼️
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );

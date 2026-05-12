@@ -455,8 +455,14 @@ export const FONT_OPTIONS: Record<FontKey, FontOption> = {
 // ── 영문 장식 폰트 (메인 풀이미지형 제목 전용) ──────────────
 // Title-only picker. 글로벌 테마 폰트(FONT_KEYS)와는 별도 도메인이라
 // FontKey에 섞지 않고 별도 enum으로 둔다 — 데이터 호환성 + UI 분리.
+//
+// 한글 문구가 선택되면 영문 장식 폰트는 한글 글리프를 가지고 있지 않아
+// 시스템 폴백으로 떨어지면서 텍스트형/일러스트형의 분위기를 잃는다.
+// → TITLE_FONT_KEYS_KO 에 한글에서 잘 보이는 폰트들을 별도로 정의해두고,
+// 메인 에디터의 FontPicker 는 제목 텍스트의 언어를 감지해 둘 중 하나의
+// 목록만 보여준다. 두 목록의 키는 서로 겹치지 않아 z.enum 하나로 통합 가능.
 
-export const TITLE_FONT_KEYS = [
+export const TITLE_FONT_KEYS_EN = [
   'playfairDisplay',
   'montserrat',
   'ebGaramond',
@@ -464,9 +470,30 @@ export const TITLE_FONT_KEYS = [
   'greatVibes',
   'pinyonScript',
 ] as const;
+export type TitleFontKeyEn = (typeof TITLE_FONT_KEYS_EN)[number];
+
+// 한글 제목 폰트 — globals.css / next/font 로 이미 로드돼 있는 한글 폰트 중
+// 청첩장 제목에 잘 어울리는 우아한 명조·고운바탕 계열을 추렸다.
+export const TITLE_FONT_KEYS_KO = [
+  'koSerif',         // 명조 — Noto Serif KR
+  'koGowun',         // 고운바탕 — 부드러운 세리프
+  'koSongMyung',     // 송명 — 클래식 명조
+  'koJeju',          // 제주명조 — 살짝 손글씨 느낌
+  'koGabiaGosran',   // 가비아 고스란체 — 가는 명조
+  'koGabiaCheongyeon', // 가비아 청연 — 캘리 느낌
+] as const;
+export type TitleFontKeyKo = (typeof TITLE_FONT_KEYS_KO)[number];
+
+// 통합 enum — 데이터 호환성 + zod 스키마 단일화 용도.
+// 기존 저장된 invitation 의 font 값('playfairDisplay' 등) 그대로 통과.
+export const TITLE_FONT_KEYS = [
+  ...TITLE_FONT_KEYS_EN,
+  ...TITLE_FONT_KEYS_KO,
+] as const;
 export type TitleFontKey = (typeof TITLE_FONT_KEYS)[number];
 
 export const TITLE_FONT_OPTIONS: Record<TitleFontKey, FontOption> = {
+  // 영문
   playfairDisplay: {
     label: 'Playfair Display',
     family: "var(--font-playfair-display), serif",
@@ -491,9 +518,49 @@ export const TITLE_FONT_OPTIONS: Record<TitleFontKey, FontOption> = {
     label: 'Pinyon Script',
     family: "var(--font-pinyon-script), cursive",
   },
+  // 한글 — FONT_OPTIONS 의 family 와 동일한 변수를 그대로 사용한다.
+  koSerif: { label: '명조', family: "var(--font-noto-serif-kr), serif" },
+  koGowun: { label: '고운바탕', family: "var(--font-gowun-batang), serif" },
+  koSongMyung: {
+    label: '송명',
+    family: "var(--font-song-myung), var(--font-noto-serif-kr), serif",
+  },
+  koJeju: {
+    label: '제주명조',
+    family: "'Jeju Myeongjo', var(--font-noto-serif-kr), serif",
+  },
+  koGabiaGosran: {
+    label: '가비아 고스란체',
+    family: "var(--font-gabia-gosran), var(--font-noto-serif-kr), serif",
+  },
+  koGabiaCheongyeon: {
+    label: '가비아 청연',
+    family: "var(--font-gabia-cheongyeon), var(--font-noto-serif-kr), serif",
+  },
 };
 
+/** 한글 문구 자동 적용 시 기본으로 세팅할 한글 폰트 키. */
+export const DEFAULT_TITLE_FONT_KO: TitleFontKeyKo = 'koGowun';
+/** 영문 문구 기본 폰트 키. */
+export const DEFAULT_TITLE_FONT_EN: TitleFontKeyEn = 'playfairDisplay';
+
+/**
+ * 텍스트에 한글(가-힣 / 자음 / 모음)이 포함돼 있으면 true.
+ * 빈 문자열이거나 한글이 한 글자도 없으면 false.
+ */
+export function isKoreanTitleText(text: string | null | undefined): boolean {
+  if (!text) return false;
+  return /[ㄱ-ㆎ가-힣]/.test(text);
+}
+
+/** 한 폰트 키가 한글 그룹 소속인지 여부. */
+export function isKoreanTitleFontKey(key: string): key is TitleFontKeyKo {
+  return (TITLE_FONT_KEYS_KO as readonly string[]).includes(key);
+}
+
 // 콤보박스 프리셋 — 사용자는 이 중 선택하거나 직접 입력 가능.
+// 마지막에 한글 프리셋 추가 — 한글 선택 시 에디터가 자동으로
+// 한글 폰트 목록으로 전환한다.
 export const TITLE_TEXT_PRESETS = [
   'We are getting married',
   'our wedding day',
@@ -504,6 +571,7 @@ export const TITLE_TEXT_PRESETS = [
   'Save the Date',
   'Love, always',
   'Love, Laughter, Forever',
+  '우리 결혼합니다',
 ] as const;
 
 /**

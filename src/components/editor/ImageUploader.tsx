@@ -35,7 +35,7 @@ interface Props {
    * 설정 시 미리보기에 실제 프레임 모양(흰 테두리 + 기울임, 하트 클립 등) 을 적용해
    * 사용자가 잘릴 영역을 그대로 확인할 수 있게 한다.
    */
-  frameVariant?: 'polaroid' | 'heart' | 'screen';
+  frameVariant?: 'polaroid' | 'heart' | 'screen' | 'arch' | 'classic';
   label?: string;
 }
 
@@ -173,7 +173,7 @@ interface FramedPreviewProps {
   previewFit: 'cover' | 'contain';
   previewPosition?: { x: number; y: number };
   showWideAspectCropMask: boolean;
-  frameVariant?: 'polaroid' | 'heart' | 'screen';
+  frameVariant?: 'polaroid' | 'heart' | 'screen' | 'arch' | 'classic';
 }
 
 function FramedPreview({
@@ -227,6 +227,57 @@ function FramedPreview({
             style={objectPos ? { objectPosition: objectPos } : undefined}
           />
         </HeartClip>
+      </div>
+    );
+  }
+
+  // 아치 — 세로 직사각형 + 상단이 둥근 형태. CSS border-radius 로 상단만 둥글게.
+  if (frameVariant === 'arch') {
+    return (
+      <div className="flex w-full justify-center">
+        <div
+          className={`${previewAspect} relative overflow-hidden border border-foreground/30 shadow-sm`}
+          style={{
+            width: '6.5rem',
+            borderRadius: '999px 999px 4px 4px',
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt="업로드된 사진"
+            className="h-full w-full object-cover"
+            style={objectPos ? { objectPosition: objectPos } : undefined}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // 클래식 — 상하좌우에 직각 이중 테두리. 작은 안쪽 여백으로 매트(액자 안쪽 배경) 표현.
+  if (frameVariant === 'classic') {
+    return (
+      <div className="flex w-full justify-center">
+        <div
+          className="relative bg-background p-1.5 shadow-sm"
+          style={{
+            width: '6.5rem',
+            border: '1px solid currentColor',
+            // 안쪽에 한 줄 더 — outline 으로 매트 라인 표현.
+            outline: '1px solid currentColor',
+            outlineOffset: '-6px',
+          }}
+        >
+          <div className={`${previewAspect} relative w-full overflow-hidden bg-stone-100`}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt="업로드된 사진"
+              className="h-full w-full object-cover"
+              style={objectPos ? { objectPosition: objectPos } : undefined}
+            />
+          </div>
+        </div>
       </div>
     );
   }
