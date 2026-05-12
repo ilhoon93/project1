@@ -3,28 +3,35 @@ import { z, ZodError } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getImageEditResult } from '@/lib/fal/client';
+import { markSnapJobCompleted } from '@/lib/snap/jobs';
 
 /**
- * /api/snap/anchor
+ * /api/snap/anchor — solo anchor 아키텍처.
  *
- * GET  — 현재 사용자의 앵커 (없으면 null) 와 활성화 상태 반환.
- * POST — 선택한 앵커 후보(requestId)를 영구 저장. fal CDN URL 을 우리
- *        public-images 버킷으로 옮기고 snap_anchors.image_url 을 갱신.
- * DELETE — 앵커 폐기 (다음 생성은 다시 유료 재생성 요금 — 정책 일관).
+ * GET    — 현재 사용자의 anchor 행 + 무료 활성화 quota 여부.
+ *          { groom_anchor_url, bride_anchor_url, source_mode, body 가이드, ... }
+ * POST   — 선택한 groom anchor + bride anchor 의 fal requestId 를 받아 둘 다
+ *          public-images 로 영구 호스팅 + snap_anchors 갱신. 한쪽만 보내도
+ *          허용 (점진 선택). 마지막에 두 URL 모두 채워지면 selection 완료.
+ * DELETE — anchor 폐기 (다음 batch 는 4 크레딧).
  *
- * 무료 활성화 정책: snap_anchors 행이 존재하지 않으면 첫 batch 가 무료. 즉
- *   * "행 없음"      = 무료 활성화 가능
- *   * "행 있음·NULL" = batch 만 만들고 아직 선택 안 함 (무료 quota 소비)
- *   * "행 있음·set"  = 선택 완료 상태
+ * 무료 활성화 정책:
+ *   * snap_anchors 행이 없음           = 무료 가능
+ *   * 행은 있는데 last_batch_at NULL   = 마이그 13 이후 quota 리셋된 상태 (무료 가능)
+ *   * 행 + last_batch_at 채워짐        = 이미 batch 만든 적 있음 → 재생성은 유료
  */
 
-const SaveSchema = z.object({
-  requestId: z.string().min(1),
-});
+const SaveSchema = z
+  .object({
+    groomRequestId: z.string().min(1).optional(),
+    brideRequestId: z.string().min(1).optional(),
+  })
+  .refine((v) => v.groomRequestId || v.brideRequestId, {
+    message: 'At least one of groomRequestId or brideRequestId is required',
+  });
 
 export const maxDuration = 30;
 
-// 사용자별로 자주 바뀌고 캐시되면 안 되는 응답 — 브라우저/CDN 모두 캐시 금지.
 const NO_STORE_HEADERS = {
   'cache-control': 'no-store, no-cache, must-revalidate',
 } as const;
@@ -41,16 +48,18 @@ export async function GET() {
   const { data } = await admin
     .from('snap_anchors')
     .select(
-      'image_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, last_batch_at, updated_at',
+      'groom_anchor_url, bride_anchor_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, last_batch_at, updated_at',
     )
     .eq('user_id', user.id)
     .maybeSingle();
 
+  // 무료 활성화: 행이 없거나 last_batch_at 이 NULL (legacy reset).
+  const freeActivationAvailable = !data || data.last_batch_at === null;
+
   return NextResponse.json(
     {
       anchor: data ?? null,
-      // 무료 활성화 quota — 행 자체가 없을 때만 사용 가능.
-      freeActivationAvailable: !data,
+      freeActivationAvailable,
     },
     { headers: NO_STORE_HEADERS },
   );
@@ -73,41 +82,69 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  // 1. fal 결과 URL 가져오기.
-  let generatedUrl: string;
-  try {
-    generatedUrl = await getImageEditResult(input.requestId);
-  } catch (e) {
-    console.error('[snap/anchor save] fal.queue.result error', e);
-    return NextResponse.json({ error: '선택한 앵커 결과를 가져오지 못했습니다.' }, { status: 502 });
-  }
-
-  // 2. 우리 public-images 버킷에 영구 호스팅.
-  let publicUrl: string;
-  try {
-    const blob = await fetch(generatedUrl).then((r) => {
-      if (!r.ok) throw new Error(`fetch anchor: ${r.status}`);
-      return r.blob();
-    });
-    const path = `wedding-snap/${user.id}/anchor-${Date.now()}.jpg`;
-    const admin = createAdminClient();
-    const { error: upErr } = await admin.storage
-      .from('public-images')
-      .upload(path, blob, { contentType: 'image/jpeg', upsert: false });
-    if (upErr) throw upErr;
-    publicUrl = admin.storage.from('public-images').getPublicUrl(path).data.publicUrl;
-  } catch (e) {
-    console.error('[snap/anchor save] storage upload error', e);
-    return NextResponse.json({ error: '앵커 저장에 실패했습니다.' }, { status: 500 });
-  }
-
-  // 3. snap_anchors 갱신 — single-path upsert.
-  //    행이 있으면 source_mode / last_batch_at 은 generate 시점 값을 보존,
-  //    없으면 (직접 POST 등 예외 케이스) selfies + now 로 기본값.
   const admin = createAdminClient();
+
+  // 1. 선택된 requestId 각각에 대해: fal 결과 → public-images 업로드 → 우리 URL.
+  const persistOne = async (
+    slot: 'groom' | 'bride',
+    requestId: string,
+  ): Promise<{ url: string } | { error: NextResponse }> => {
+    let generatedUrl: string;
+    try {
+      generatedUrl = await getImageEditResult(requestId);
+    } catch (e) {
+      console.error(`[snap/anchor save] ${slot} fal result error`, e);
+      return {
+        error: NextResponse.json(
+          { error: `선택한 ${slot === 'groom' ? '신랑' : '신부'} 앵커 결과를 가져오지 못했습니다.` },
+          { status: 502 },
+        ),
+      };
+    }
+    try {
+      const blob = await fetch(generatedUrl).then((r) => {
+        if (!r.ok) throw new Error(`fetch anchor: ${r.status}`);
+        return r.blob();
+      });
+      const path = `wedding-snap/${user.id}/anchor-${slot}-${Date.now()}.jpg`;
+      const { error: upErr } = await admin.storage
+        .from('public-images')
+        .upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+      if (upErr) throw upErr;
+      const publicUrl = admin.storage.from('public-images').getPublicUrl(path).data.publicUrl;
+      // snap_jobs 의 해당 row 를 completed 로 마크.
+      void markSnapJobCompleted(requestId, publicUrl);
+      return { url: publicUrl };
+    } catch (e) {
+      console.error(`[snap/anchor save] ${slot} storage upload error`, e);
+      return {
+        error: NextResponse.json(
+          { error: `${slot === 'groom' ? '신랑' : '신부'} 앵커 저장에 실패했습니다.` },
+          { status: 500 },
+        ),
+      };
+    }
+  };
+
+  let groomUrl: string | null = null;
+  let brideUrl: string | null = null;
+
+  if (input.groomRequestId) {
+    const r = await persistOne('groom', input.groomRequestId);
+    if ('error' in r) return r.error;
+    groomUrl = r.url;
+  }
+  if (input.brideRequestId) {
+    const r = await persistOne('bride', input.brideRequestId);
+    if ('error' in r) return r.error;
+    brideUrl = r.url;
+  }
+
+  // 2. snap_anchors 갱신 — single-path upsert.
+  //    기존 행이 있으면 source_mode / last_batch_at / 다른 slot URL 은 보존.
   const { data: existing, error: fetchErr } = await admin
     .from('snap_anchors')
-    .select('source_mode, last_batch_at')
+    .select('source_mode, last_batch_at, groom_anchor_url, bride_anchor_url')
     .eq('user_id', user.id)
     .maybeSingle();
   if (fetchErr) {
@@ -124,7 +161,8 @@ export async function POST(req: Request) {
 
   const upsertPayload = {
     user_id: user.id,
-    image_url: publicUrl,
+    groom_anchor_url: groomUrl ?? existing?.groom_anchor_url ?? null,
+    bride_anchor_url: brideUrl ?? existing?.bride_anchor_url ?? null,
     source_mode: existing?.source_mode ?? ('selfies' as const),
     last_batch_at: existing?.last_batch_at ?? new Date().toISOString(),
   };
@@ -135,8 +173,6 @@ export async function POST(req: Request) {
 
   if (upsertErr) {
     console.error('[snap/anchor save] upsert error', upsertErr, { payload: upsertPayload });
-    // 실제 원인을 클라이언트에 노출 — 마이그레이션 미적용 / RLS / 스키마 문제 등을
-    // 운영에서 빠르게 찾기 위함. 민감 정보 없음 (PG 에러 메시지 + 코드).
     return NextResponse.json(
       {
         error: '앵커 메타 저장에 실패했습니다.',
@@ -148,7 +184,11 @@ export async function POST(req: Request) {
     );
   }
 
-  return NextResponse.json({ url: publicUrl });
+  return NextResponse.json({
+    groomAnchorUrl: upsertPayload.groom_anchor_url,
+    brideAnchorUrl: upsertPayload.bride_anchor_url,
+    bothSet: !!upsertPayload.groom_anchor_url && !!upsertPayload.bride_anchor_url,
+  });
 }
 
 export async function DELETE() {

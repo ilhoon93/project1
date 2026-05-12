@@ -2,32 +2,35 @@ import { NextResponse } from 'next/server';
 import { z, ZodError } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { submitMultiImageEdit } from '@/lib/fal/client';
+import { GPT_IMAGE_MODEL, submitMultiImageEdit } from '@/lib/fal/client';
 import { findSnapCatalog } from '@/lib/snap/catalog';
 import {
-  buildSnapPrompt,
   buildCouplePhotoSnapPrompt,
-  buildAnchoredCatalogPrompt,
+  buildSoloCatalogPrompt,
+  buildTogetherCatalogPrompt,
 } from '@/lib/snap/prompt';
+import { logSnapJobSubmit } from '@/lib/snap/jobs';
 
 /**
  * POST /api/snap/generate
  *
- * 카탈로그 컷 1장 생성. 입력 모드 세 갈래.
+ * Solo anchor 아키텍처 + couple bypass 분기:
  *
- *   (1) mode='selfies' + 저장된 anchor 있음 → anchor 경로
- *       image_urls = [anchorUrl, catalogMaster] · buildAnchoredCatalogPrompt
- *       (50컷 정체성 일관성이 가장 좋음 — body metrics 도 앵커 저장값 재사용)
+ *   (1) mode='couple' → 커플 사진 직결 (anchor 무시)
+ *       image_urls = [couplePhoto, catalogMaster]
+ *       buildCouplePhotoSnapPrompt
  *
- *   (2) mode='selfies' + anchor 없음 → 셀카 직결 경로
- *       image_urls = [...groomFaceUrls, ...brideFaceUrls, catalogMaster]
- *       buildSnapPrompt (groomFaceCount / brideFaceCount 1 or 3)
+ *   (2) mode='anchor' (default for selfies users) →
+ *       catalog.personality 에 따라 분기:
  *
- *   (3) mode='couple' → 커플 사진 직결 경로 (anchor 가 있어도 무시 — 사용자가
- *       명시적으로 커플 사진 기반 생성을 원할 때 앵커 영향 차단)
- *       image_urls = [couplePhoto, catalogMaster] · buildCouplePhotoSnapPrompt
+ *       (2a) personality='together'   → [groom-anchor, bride-anchor, catalog] (3장)
+ *                                       buildTogetherCatalogPrompt
+ *       (2b) personality='groom-solo' → [groom-anchor, catalog] (2장)
+ *                                       buildSoloCatalogPrompt('groom')
+ *       (2c) personality='bride-solo' → [bride-anchor, catalog] (2장)
+ *                                       buildSoloCatalogPrompt('bride')
  *
- *   (4) mode='anchor' — 저장된 앵커만 사용. 입력 없음.
+ *       필요한 anchor 가 없으면 400 + code='no_anchor' / 'no_anchor_slot'.
  *
  * 요금: 카탈로그 1장 = snap 크레딧 1 차감. 실패 시 환불.
  */
@@ -35,15 +38,6 @@ import {
 const BodyMetricsSchema = z.object({
   heightCm: z.number().min(140).max(210),
   weightKg: z.number().min(35).max(150),
-});
-
-const SelfieBodySchema = z.object({
-  mode: z.literal('selfies'),
-  groomFaceUrls: z.array(z.string().url()).min(1).max(3),
-  brideFaceUrls: z.array(z.string().url()).min(1).max(3),
-  catalogId: z.string().min(1),
-  groomBody: BodyMetricsSchema.optional(),
-  brideBody: BodyMetricsSchema.optional(),
 });
 
 const CoupleBodySchema = z.object({
@@ -54,17 +48,13 @@ const CoupleBodySchema = z.object({
   brideBody: BodyMetricsSchema.optional(),
 });
 
-// 앵커가 있는 사용자는 추가 입력 없이 catalogId 만 보내도 동작.
+// 앵커 모드 — 저장된 anchor 만 사용. 추가 입력 없음.
 const AnchoredOnlySchema = z.object({
   mode: z.literal('anchor'),
   catalogId: z.string().min(1),
 });
 
-const BodySchema = z.union([
-  AnchoredOnlySchema,
-  SelfieBodySchema,
-  CoupleBodySchema,
-]);
+const BodySchema = z.union([AnchoredOnlySchema, CoupleBodySchema]);
 
 export const maxDuration = 30;
 
@@ -90,27 +80,62 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unknown catalog id' }, { status: 400 });
   }
 
-  const admin = createAdminClient();
-
-  // ── 앵커 로드 — couple 모드는 명시적으로 앵커 영향 차단이라 조회 안 함 ──
-  const useAnchor = input.mode !== 'couple';
-  const anchor = useAnchor
-    ? (
-        await admin
-          .from('snap_anchors')
-          .select('image_url, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg')
-          .eq('user_id', user.id)
-          .maybeSingle()
-      ).data
-    : null;
-  const hasAnchor = !!anchor?.image_url;
-
-  // anchor 모드를 요청했는데 앵커가 없음 → 에러.
-  if (input.mode === 'anchor' && !hasAnchor) {
+  // Couple 모드 + solo 카탈로그 조합은 의미가 약함 (커플 사진에서 한 명만 추출
+  // → face fidelity 저하). UI 에서도 hide 되지만 서버에서도 차단.
+  if (input.mode === 'couple' && catalog.personality !== 'together') {
     return NextResponse.json(
-      { error: '먼저 앵커를 생성하고 선택해주세요.', code: 'no_anchor' },
+      {
+        error: '커플 사진 모드에서는 함께 컷만 생성 가능합니다. 단독 컷은 셀카 모드를 사용해주세요.',
+        code: 'couple_solo_mismatch',
+      },
       { status: 400 },
     );
+  }
+
+  const admin = createAdminClient();
+
+  // ── 앵커 모드면 anchor 로드 + personality 별 필요 slot 검증 ───
+  let anchor: {
+    groom_anchor_url: string | null;
+    bride_anchor_url: string | null;
+    groom_height_cm: number | null;
+    groom_weight_kg: number | null;
+    bride_height_cm: number | null;
+    bride_weight_kg: number | null;
+  } | null = null;
+  if (input.mode === 'anchor') {
+    const { data } = await admin
+      .from('snap_anchors')
+      .select(
+        'groom_anchor_url, bride_anchor_url, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg',
+      )
+      .eq('user_id', user.id)
+      .maybeSingle();
+    anchor = data;
+    if (!anchor) {
+      return NextResponse.json(
+        { error: '먼저 앵커를 생성하고 선택해주세요.', code: 'no_anchor' },
+        { status: 400 },
+      );
+    }
+    if (catalog.personality === 'together') {
+      if (!anchor.groom_anchor_url || !anchor.bride_anchor_url) {
+        return NextResponse.json(
+          { error: '함께 컷에는 신랑 앵커와 신부 앵커가 모두 필요합니다.', code: 'no_anchor_slot' },
+          { status: 400 },
+        );
+      }
+    } else if (catalog.personality === 'groom-solo' && !anchor.groom_anchor_url) {
+      return NextResponse.json(
+        { error: '신랑 단독 컷에는 신랑 앵커가 필요합니다.', code: 'no_anchor_slot' },
+        { status: 400 },
+      );
+    } else if (catalog.personality === 'bride-solo' && !anchor.bride_anchor_url) {
+      return NextResponse.json(
+        { error: '신부 단독 컷에는 신부 앵커가 필요합니다.', code: 'no_anchor_slot' },
+        { status: 400 },
+      );
+    }
   }
 
   // ── 크레딧 1 차감 (원자적) ─────────────────────────────
@@ -130,14 +155,24 @@ export async function POST(req: Request) {
     );
   }
 
-  // ── 카탈로그 마스터 샘플 URL ────────────────────────────
+  // ── 카탈로그 마스터 URL ────────────────────────────────
   const origin = req.headers.get('origin') ?? new URL(req.url).origin;
   const catalogUrl = `${origin}${catalog.image}`;
+
+  const groomBody =
+    anchor?.groom_height_cm && anchor.groom_weight_kg
+      ? { heightCm: anchor.groom_height_cm, weightKg: anchor.groom_weight_kg }
+      : undefined;
+  const brideBody =
+    anchor?.bride_height_cm && anchor.bride_weight_kg
+      ? { heightCm: anchor.bride_height_cm, weightKg: anchor.bride_weight_kg }
+      : undefined;
 
   // ── image_urls + prompt 분기 ────────────────────────────
   let imageUrls: string[];
   let prompt: string;
-  let pathLabel: 'anchored' | 'selfies' | 'couple';
+  let pathLabel: 'anchored' | 'couple';
+
   if (input.mode === 'couple') {
     imageUrls = [input.couplePhotoUrl, catalogUrl];
     prompt = buildCouplePhotoSnapPrompt({
@@ -146,38 +181,31 @@ export async function POST(req: Request) {
       bride: input.brideBody,
     });
     pathLabel = 'couple';
-  } else if (hasAnchor && anchor?.image_url) {
-    imageUrls = [anchor.image_url, catalogUrl];
-    prompt = buildAnchoredCatalogPrompt({
-      catalogPromptHint: catalog.promptHint,
-      groom:
-        anchor.groom_height_cm && anchor.groom_weight_kg
-          ? { heightCm: anchor.groom_height_cm, weightKg: anchor.groom_weight_kg }
-          : undefined,
-      bride:
-        anchor.bride_height_cm && anchor.bride_weight_kg
-          ? { heightCm: anchor.bride_height_cm, weightKg: anchor.bride_weight_kg }
-          : undefined,
-    });
-    pathLabel = 'anchored';
-  } else if (input.mode === 'selfies') {
-    imageUrls = [...input.groomFaceUrls, ...input.brideFaceUrls, catalogUrl];
-    prompt = buildSnapPrompt({
-      catalogPromptHint: catalog.promptHint,
-      groom: input.groomBody,
-      bride: input.brideBody,
-      groomFaceCount: input.groomFaceUrls.length,
-      brideFaceCount: input.brideFaceUrls.length,
-    });
-    pathLabel = 'selfies';
   } else {
-    // 도달 불가 — anchor 모드인데 hasAnchor=false 인 경우는 위에서 차단됨.
-    await admin.rpc('refund_snap_credit', {
-      p_user_id: user.id,
-      p_note: 'unreachable branch',
-      p_ref_id: null,
-    });
-    return NextResponse.json({ error: 'Invalid input mode' }, { status: 400 });
+    pathLabel = 'anchored';
+    if (catalog.personality === 'together') {
+      imageUrls = [anchor!.groom_anchor_url!, anchor!.bride_anchor_url!, catalogUrl];
+      prompt = buildTogetherCatalogPrompt({
+        catalogPromptHint: catalog.promptHint,
+        groom: groomBody,
+        bride: brideBody,
+      });
+    } else if (catalog.personality === 'groom-solo') {
+      imageUrls = [anchor!.groom_anchor_url!, catalogUrl];
+      prompt = buildSoloCatalogPrompt({
+        slot: 'groom',
+        catalogPromptHint: catalog.promptHint,
+        groom: groomBody,
+      });
+    } else {
+      // bride-solo
+      imageUrls = [anchor!.bride_anchor_url!, catalogUrl];
+      prompt = buildSoloCatalogPrompt({
+        slot: 'bride',
+        catalogPromptHint: catalog.promptHint,
+        bride: brideBody,
+      });
+    }
   }
 
   // ── fal 큐 제출 ────────────────────────────────────────
@@ -191,7 +219,6 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error('[snap/generate] fal.queue.submit error', e);
-    // 제출 실패 → 차감한 크레딧 환불.
     await admin.rpc('refund_snap_credit', {
       p_user_id: user.id,
       p_note: 'submit failed',
@@ -204,10 +231,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 502 });
   }
 
+  // snap_jobs 로깅 — 본 흐름에 영향 없게 비동기.
+  void logSnapJobSubmit({
+    userId: user.id,
+    kind: 'catalog',
+    falRequestId: requestId,
+    model: GPT_IMAGE_MODEL,
+    quality: 'medium',
+    catalogId: input.catalogId,
+    catalogPath: pathLabel,
+    creditDelta: -1,
+  });
+
   return NextResponse.json({
     requestId,
     catalogId: input.catalogId,
     path: pathLabel,
+    personality: catalog.personality,
     balance: consumeRes.balance,
   });
 }

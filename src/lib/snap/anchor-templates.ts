@@ -1,60 +1,85 @@
 /**
- * 앵커 후보 4장 — 다양한 framing 의 베이스라인 스튜디오 컷.
+ * 앵커 후보 4장 — solo anchor 아키텍처.
  *
- * 모두 같은 스튜디오/의상 baseline 을 공유하고 프레이밍·각도·표정만 다르게
- * 만들어, 사용자가 "내 얼굴이 가장 잘 살아나는 컷" 을 고를 수 있도록 분산을
- * 의도적으로 키운다. 동일 prompt 의 4 variation 으로 뽑으면 비슷비슷해
- * 보여서 선택 가치가 떨어진다는 점을 반영.
+ * 2 slots (groom, bride) × 2 framings (close-up, half-body) = 4 outputs.
+ * 동일 batch 한 번에 신랑 단독 2장 + 신부 단독 2장이 만들어진다.
  *
- * 카탈로그와 달리 앵커는 high quality 로 한 번만 만들어 평생 reference 로
- * 재사용되므로 비용 정당화가 된다 (앵커 1장 ≈ $0.13).
+ * 솔로 anchor 의 핵심 가치:
+ *   - 한 anchor 에 한 명만 등장 → 두 얼굴 블렌딩 위험 0
+ *   - 카탈로그 생성 시 [groomAnchor, brideAnchor, catalogMaster] 로 묶어
+ *     같이 컷 / [groomAnchor, catalogMaster] 또는 [brideAnchor, ...] 로
+ *     단독 컷까지 자연스럽게 지원
+ *
+ * 2 framings 선택 근거 (4 → 2 압축):
+ *   - close-up : face identity 최대 추출 (눈/코/턱 디테일, 피부, 헤어)
+ *   - half-body: 가장 자주 쓰이는 framing — 어깨/상반신 비율 + 의상 fit
+ *   - full-body 와 3-quarter 는 키/몸무게 가이드 + buildBodySection 으로 보완
+ *
+ * 비용: 4 outputs × $0.13 (high quality) ≈ $0.52. 기존 함께-anchor 와 동일.
  */
 
+export type AnchorSlot = 'groom' | 'bride';
+export type AnchorFraming = 'closeup' | 'halfbody';
+
 export interface AnchorTemplate {
-  id: 'closeup' | 'halfbody' | 'fullbody' | 'threequarter';
+  /** 누구 단독 컷인지 — 한 anchor 에 한 명만 등장 */
+  slot: AnchorSlot;
+  /** 프레이밍 */
+  framing: AnchorFraming;
+  /** 사용자에게 보일 한글 라벨 */
   label: string;
-  /** 카탈로그 promptHint 와 같은 위치에 들어가는 scene/framing 컨텍스트. */
+  /** prompt 의 framing 라인에 들어가는 영문 cue */
   framingHint: string;
 }
 
 /**
- * 모든 앵커 템플릿이 공유하는 베이스라인 — 깨끗한 스튜디오, 클래식 웨딩 의상,
- * 균등 조명, 자연스러운 미소. 사용자별 변동은 framingHint 로만 준다.
- *
- * 표정은 Duchenne 미소 (눈가 주름 + 입꼬리 살짝 올림) 를 명시해 "포즈 사진"
- * 느낌이 아닌 진짜 행복해 보이는 표정을 유도한다. 조명/그림자 통합 표현과
- * 해부학적 비율(머리:몸 = 1/7~1/8) 도 베이스라인에 미리 넣어 framingHint
- * 별로 중복 명시 없이 일관성 유지.
+ * 모든 앵커 템플릿이 공유하는 베이스라인 — 깨끗한 스튜디오, 균등 조명,
+ * 자연스러운 미소, 단일 카메라 통합. solo anchor 라 의상은 ANCHOR_ATTIRE
+ * 에서 slot 별로 별도 주입.
  */
 export const ANCHOR_BASELINE =
-  'Clean indoor studio with seamless neutral gray backdrop, two-source softbox lighting from front-left and front-right with a subtle floor pickup creating a soft natural shadow under the subjects, polished floor that gently reflects the lighting, editorial wedding portrait atmosphere. Groom: black peak-lapel tuxedo with white shirt and black bow tie. Bride: ivory A-line wedding dress with off-shoulder neckline and lace bodice. Expressions: both share a genuine, relaxed smile — eyes slightly crinkled (Duchenne smile), corners of the mouth gently lifted, soft natural happiness, never staged or forced. The whole image is captured by a single physical camera at the location — same exposure, white balance, contrast curve, micro-grain across subjects and background. Lighting wraps softly around shoulders and hair so the subjects feel integrated with the backdrop, no cut-out or paste-in look. Anatomically realistic proportions — head height is roughly 1/7 to 1/8 of total body height (natural adult ratio), shoulders about 2x head width, neck-to-shoulder transition smooth and realistic. Do NOT enlarge or zoom into the face for half-body, three-quarter, or full-body framings — the face is rendered at the natural size for the chosen camera distance.';
+  'Clean indoor studio with seamless neutral gray backdrop, two-source softbox lighting from front-left and front-right with a subtle floor pickup creating a soft natural shadow under the subject, polished floor that gently reflects the lighting, editorial wedding portrait atmosphere. Expression: a genuine, relaxed smile — eyes slightly crinkled (Duchenne smile), corners of the mouth gently lifted, soft natural happiness, never staged or forced. The whole image is captured by a single physical camera at the location — same exposure, white balance, contrast curve, micro-grain across subject and background. Lighting wraps softly around shoulders and hair so the subject feels integrated with the backdrop, no cut-out or paste-in look. Anatomically realistic proportions — head height is roughly 1/7 to 1/8 of total body height (natural adult ratio), shoulders about 2x head width, neck-to-shoulder transition smooth and realistic. Do NOT enlarge or zoom into the face for half-body framing — the face is rendered at the natural size for the chosen camera distance.';
+
+/** slot 별 의상 + 단독 보장 cue — 단독 컷이라 명시적으로 "alone in the frame". */
+export const ANCHOR_ATTIRE: Record<AnchorSlot, string> = {
+  groom:
+    'Groom alone in the frame (no second person, no bride, no other people visible). Dressed in a black peak-lapel tuxedo with a crisp white dress shirt and a black bow tie.',
+  bride:
+    'Bride alone in the frame (no second person, no groom, no other people visible). Dressed in an ivory A-line wedding dress with an off-shoulder neckline and a lace bodice, holding a small bouquet of white flowers.',
+};
 
 export const ANCHOR_TEMPLATES: AnchorTemplate[] = [
   {
-    id: 'closeup',
-    label: '클로즈업 정면',
+    slot: 'groom',
+    framing: 'closeup',
+    label: '신랑 클로즈업',
     framingHint:
-      'Tight chest-up close-up portrait, both faces clearly featured, frontal camera angle at eye level, shallow depth of field with creamy bokeh on the backdrop. Faces fill ~60% of the frame. Soft warm catchlights in both pairs of eyes.',
+      'Tight chest-up close-up portrait, face clearly featured, frontal camera angle at eye level, shallow depth of field with creamy bokeh on the backdrop. Face fills ~55% of the frame. Soft warm catchlights in the eyes.',
   },
   {
-    id: 'halfbody',
-    label: '반신 사선',
+    slot: 'groom',
+    framing: 'halfbody',
+    label: '신랑 반신',
     framingHint:
-      "Waist-up half-body portrait, three-quarter (~30°) camera angle, both subjects gently leaning toward each other with a natural soft smile. Hands visible naturally — bride may hold a small bouquet, groom's hand resting at his side or gently on the bride's back. Camera distance is realistic for a waist-up portrait shot on a 50–85mm lens — face occupies its natural head-to-torso proportion, NOT enlarged, NOT zoomed, NOT scaled up to emphasize identity. Soft rim light wraps around the shoulder closest to camera so the silhouette blends into the backdrop — explicitly NO sharp outline, NO cutout halo, NO color fringing along shoulders, hair, or the bouquet edge. A subtle environmental color cast from the backdrop bounces softly onto skin and clothing so subjects belong in the light.",
+      "Waist-up half-body portrait, slightly three-quarter (~15°) camera angle, hands resting naturally at the side or lightly in jacket pocket. Camera distance is realistic for a waist-up portrait shot on a 50–85mm lens — face occupies its natural head-to-torso proportion, NOT enlarged, NOT zoomed, NOT scaled up to emphasize identity. Soft rim light wraps around the shoulder closest to camera so the silhouette blends into the backdrop — explicitly NO sharp outline, NO cutout halo, NO color fringing along shoulders or hair.",
   },
   {
-    id: 'fullbody',
-    label: '전신 정면',
+    slot: 'bride',
+    framing: 'closeup',
+    label: '신부 클로즈업',
     framingHint:
-      'Full-body standing portrait, frontal camera at eye level positioned far enough that the entire couple fits in frame from head to floor (typical 35–50mm full-length lens distance). Face occupies approximately 1/8 of the total frame height — the face is the identity reference, NOT the focal scale; it is one element of the whole figure. Both subjects facing the camera and standing naturally close together with a warm relaxed smile. Full attire visible from head to floor including shoes and the dress hem. Crucial integration cues: a subtle ambient-occlusion contact shadow where shoes meet the floor, a soft directional shadow on the backdrop behind the couple matching the softbox direction, the dress hem gently touching the floor (never floating, never magically lifted). Backdrop bounce light gently tints the clothing edges. Subjects must look planted in the scene — NEVER like a cut-out paste-in on a flat backdrop. Generous headroom and floor space.',
+      'Tight chest-up close-up portrait, face clearly featured, frontal camera angle at eye level, shallow depth of field with creamy bokeh on the backdrop. Face fills ~55% of the frame. Soft warm catchlights in the eyes, subtle natural makeup.',
   },
   {
-    id: 'threequarter',
-    label: '3/4 미소',
+    slot: 'bride',
+    framing: 'halfbody',
+    label: '신부 반신',
     framingHint:
-      'Three-quarter length portrait (knee-up), slight side angle (~20°), bride angled slightly toward groom with a soft natural smile, groom looking warmly at the bride or at the camera with an easy grin. Relaxed posture, hands and waist naturally placed. Camera framed for a knee-up shot on a portrait lens — face at natural size for this distance, NOT zoomed or enlarged. Soft rim light along the camera-side shoulder for natural integration with the backdrop.',
+      'Waist-up half-body portrait, slightly three-quarter (~15°) camera angle, holding a small bouquet with both hands at waist level. Camera distance is realistic for a waist-up portrait shot on a 50–85mm lens — face occupies its natural head-to-torso proportion, NOT enlarged, NOT zoomed, NOT scaled up. Soft rim light wraps around the shoulder closest to camera so the silhouette blends into the backdrop — explicitly NO sharp outline, NO cutout halo, NO color fringing along shoulders, hair, dress edge, or bouquet edge.',
   },
 ];
 
-export const isAnchorTemplateId = (v: string): v is AnchorTemplate['id'] =>
-  ANCHOR_TEMPLATES.some((t) => t.id === v);
+export const isAnchorSlot = (v: string): v is AnchorSlot =>
+  v === 'groom' || v === 'bride';
+export const isAnchorFraming = (v: string): v is AnchorFraming =>
+  v === 'closeup' || v === 'halfbody';

@@ -22,7 +22,7 @@ function ensureConfigured() {
 // 입출력 스키마는 fal 표준 — 입력 image_urls/prompt, 출력 data.images[0].url.
 // ─────────────────────────────────────────────────────────────
 
-const GPT_IMAGE_MODEL = 'openai/gpt-image-2/edit';
+export const GPT_IMAGE_MODEL = 'openai/gpt-image-2/edit';
 
 // quality: 'low' | 'medium' | 'high' | 'auto' — fal default 는 'high'.
 //   high: 출력 ~4,160 토큰(1024²) → ~$0.13/회. 디테일 가장 많음.

@@ -2,33 +2,34 @@ import { NextResponse } from 'next/server';
 import { z, ZodError } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { submitMultiImageEdit } from '@/lib/fal/client';
+import { GPT_IMAGE_MODEL, submitMultiImageEdit } from '@/lib/fal/client';
 import {
+  ANCHOR_ATTIRE,
   ANCHOR_BASELINE,
   ANCHOR_TEMPLATES,
+  type AnchorFraming,
+  type AnchorSlot,
   type AnchorTemplate,
 } from '@/lib/snap/anchor-templates';
-import {
-  buildAnchorPromptSelfies,
-  buildAnchorPromptCouple,
-} from '@/lib/snap/prompt';
+import { buildAnchorPromptSolo } from '@/lib/snap/prompt';
+import { logSnapJobSubmit } from '@/lib/snap/jobs';
 
 /**
  * POST /api/snap/anchor/generate
  *
- * 앵커 후보 4장을 한 번에 큐에 제출한다. 4장은 서로 다른 framing (close-up /
- * half-body / full-body / 3-quarter) 으로 분산. 모두 high quality 로 — 평생
- * reference 자산이므로 비용 정당화.
+ * Solo anchor batch — 한 번에 4 outputs (groom × 2 framings + bride × 2 framings).
+ * 모두 high quality 로 — 평생 reference 자산이라 비용 정당화.
  *
  * 요금 정책 (1회 무료 활성화):
- *   * 사용자의 snap_anchors 행이 없으면 → 무료. 새 행 insert.
- *   * 행이 있으면 → 재생성 batch. snap 크레딧 4개 차감 (1장당 1크레딧 환산).
+ *   * snap_anchors 행이 없거나 last_batch_at 이 NULL → 무료 (첫 batch)
+ *   * 그 외 → 재생성 batch. snap 크레딧 4 차감 (1 output 당 1 환산)
  *
- * 응답: { requestIds: [{ templateId, requestId }], freeActivation: boolean }
+ * 응답:
+ *   { requestIds: [{ slot, framing, requestId }, ...], freeActivation: boolean }
  *
- * 클라이언트는 각 requestId 를 /api/snap/status 로 폴링하다 모두 COMPLETED 되면
- * fal CDN URL 을 받아 화면에 그리고, 사용자가 선택하면 POST /api/snap/anchor 로
- * 영구 저장한다.
+ * 클라이언트는 각 requestId 를 /api/snap/status 로 폴링하다 모두 COMPLETED 시
+ * fal CDN URL 을 받아 4장 그리드로 표시, 사용자가 신랑 row + 신부 row 에서
+ * 각 1장씩 선택 후 POST /api/snap/anchor 로 영구 저장.
  */
 
 const BodyMetricsSchema = z.object({
@@ -36,9 +37,8 @@ const BodyMetricsSchema = z.object({
   weightKg: z.number().min(35).max(150),
 });
 
-// 셀카는 신랑/신부 각 1장 (정면) 또는 3장 (정면+좌45°+우45°). 3장 모드는
-// 모델이 3D 얼굴을 더 정확히 잡아 측면/3-quarter 컷에서 정체성 안정성이 좋다.
-const SelfieSchema = z.object({
+// 셀카는 신랑/신부 각 1장 (정면) 또는 3장 (정면+좌45°+우45°).
+const BodySchema = z.object({
   mode: z.literal('selfies'),
   groomFaceUrls: z.array(z.string().url()).min(1).max(3),
   brideFaceUrls: z.array(z.string().url()).min(1).max(3),
@@ -46,16 +46,6 @@ const SelfieSchema = z.object({
   brideBody: BodyMetricsSchema.optional(),
 });
 
-const CoupleSchema = z.object({
-  mode: z.literal('couple'),
-  couplePhotoUrl: z.string().url(),
-  groomBody: BodyMetricsSchema.optional(),
-  brideBody: BodyMetricsSchema.optional(),
-});
-
-const BodySchema = z.union([SelfieSchema, CoupleSchema]);
-
-// 재생성 batch 1회 비용 (snap 크레딧).
 const REGEN_COST = 4;
 
 export const maxDuration = 30;
@@ -79,15 +69,16 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient();
 
-  // 1. 무료 활성화 여부 — 기존 snap_anchors 행이 없으면 무료.
+  // 1. 무료 활성화 여부 — snap_anchors 행이 없거나 last_batch_at NULL.
+  //    (마이그레이션 013 이 기존 사용자 last_batch_at 을 NULL 로 리셋해 무료 quota 재부여)
   const { data: existing } = await admin
     .from('snap_anchors')
-    .select('user_id')
+    .select('last_batch_at')
     .eq('user_id', user.id)
     .maybeSingle();
-  const isFreeActivation = !existing;
+  const isFreeActivation = !existing || existing.last_batch_at === null;
 
-  // 2. 유료 재생성이면 크레딧 4개 사전 차감 (원자적 RPC 4회 호출).
+  // 2. 유료 재생성이면 크레딧 4개 사전 차감.
   if (!isFreeActivation) {
     for (let i = 0; i < REGEN_COST; i += 1) {
       const { data: consume } = await admin.rpc('consume_snap_credit', {
@@ -96,7 +87,7 @@ export async function POST(req: Request) {
       });
       const res = consume as { ok?: boolean; balance?: number } | null;
       if (!res?.ok) {
-        // 부분 차감 환불 — 멱등성 위해 ref_id 동일 batch id.
+        // 부분 차감 환불.
         for (let j = 0; j < i; j += 1) {
           await admin.rpc('refund_snap_credit', {
             p_user_id: user.id,
@@ -117,47 +108,51 @@ export async function POST(req: Request) {
     }
   }
 
-  // 3. 4 개 템플릿을 병렬로 fal 큐에 제출.
-  const origin = req.headers.get('origin') ?? new URL(req.url).origin;
-  void origin; // origin 은 카탈로그 reference 가 없어 사용하지 않음
+  // 3. slot 별 reference image_urls 분기.
+  const refUrlsBySlot: Record<AnchorSlot, string[]> = {
+    groom: input.groomFaceUrls,
+    bride: input.brideFaceUrls,
+  };
+  const bodyBySlot: Record<AnchorSlot, { heightCm: number; weightKg: number } | undefined> = {
+    groom: input.groomBody,
+    bride: input.brideBody,
+  };
 
   const buildPrompt = (t: AnchorTemplate) => {
-    const sceneHint = `${ANCHOR_BASELINE}\nFraming: ${t.framingHint}`;
-    if (input.mode === 'couple') {
-      return buildAnchorPromptCouple(sceneHint, {
-        groom: input.groomBody,
-        bride: input.brideBody,
-      });
-    }
-    return buildAnchorPromptSelfies(sceneHint, {
-      groom: input.groomBody,
-      bride: input.brideBody,
-      groomFaceCount: input.groomFaceUrls.length,
-      brideFaceCount: input.brideFaceUrls.length,
+    const baselineSceneHint = `${ANCHOR_BASELINE}\n${ANCHOR_ATTIRE[t.slot]}\nFraming: ${t.framingHint}`;
+    return buildAnchorPromptSolo({
+      slot: t.slot,
+      baselineSceneHint,
+      faceCount: refUrlsBySlot[t.slot].length,
+      body: bodyBySlot[t.slot],
     });
   };
 
-  const imageUrls =
-    input.mode === 'couple'
-      ? [input.couplePhotoUrl]
-      : [...input.groomFaceUrls, ...input.brideFaceUrls];
-
-  let submissions: Array<{ templateId: AnchorTemplate['id']; requestId: string }>;
+  let submissions: Array<{ slot: AnchorSlot; framing: AnchorFraming; requestId: string }>;
   try {
     submissions = await Promise.all(
       ANCHOR_TEMPLATES.map(async (t) => {
         const requestId = await submitMultiImageEdit({
-          imageUrls,
+          imageUrls: refUrlsBySlot[t.slot],
           prompt: buildPrompt(t),
           quality: 'high',
           imageSize: 'portrait_4_3',
         });
-        return { templateId: t.id, requestId };
+        void logSnapJobSubmit({
+          userId: user.id,
+          kind: 'anchor',
+          falRequestId: requestId,
+          model: GPT_IMAGE_MODEL,
+          quality: 'high',
+          anchorSlot: t.slot,
+          anchorFraming: t.framing,
+          creditDelta: isFreeActivation ? 0 : -1,
+        });
+        return { slot: t.slot, framing: t.framing, requestId };
       }),
     );
   } catch (e) {
     console.error('[snap/anchor/generate] fal.queue.submit error', e);
-    // 유료였다면 환불 — 부분 성공 케이스도 보수적으로 전체 환불.
     if (!isFreeActivation) {
       for (let i = 0; i < REGEN_COST; i += 1) {
         await admin.rpc('refund_snap_credit', {
@@ -174,12 +169,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 502 });
   }
 
-  // 4. snap_anchors 행을 upsert — image_url 은 아직 NULL (선택 전).
-  //    체형 가이드와 source_mode 도 같이 저장해 카탈로그 단계에서 재사용.
+  // 4. snap_anchors 행 upsert — anchor URL 들은 아직 NULL (선택 전).
   const upsertPayload = {
     user_id: user.id,
-    image_url: null,
-    source_mode: input.mode,
+    groom_anchor_url: null,
+    bride_anchor_url: null,
+    source_mode: 'selfies' as const,
     groom_height_cm: input.groomBody?.heightCm ?? null,
     groom_weight_kg: input.groomBody?.weightKg ?? null,
     bride_height_cm: input.brideBody?.heightCm ?? null,
@@ -191,7 +186,6 @@ export async function POST(req: Request) {
     .upsert(upsertPayload, { onConflict: 'user_id' });
   if (upsertErr) {
     console.error('[snap/anchor/generate] upsert snap_anchors error', upsertErr);
-    // 이미 fal 제출은 일어났으므로 사용자에게는 정상 응답을 주되 서버 로그로 추적.
   }
 
   return NextResponse.json({

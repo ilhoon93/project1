@@ -3,6 +3,7 @@ import { z, ZodError } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getImageEditResult } from '@/lib/fal/client';
+import { markSnapJobCompleted, markSnapJobFailed } from '@/lib/snap/jobs';
 
 /**
  * POST /api/snap/finalize
@@ -47,6 +48,7 @@ export async function POST(req: Request) {
     generatedUrl = await getImageEditResult(input.requestId);
   } catch (e) {
     console.error('[snap/finalize] fal.queue.result error', e);
+    void markSnapJobFailed(input.requestId, e instanceof Error ? e.message : 'result fetch failed');
     return NextResponse.json(
       { error: '결과 조회에 실패했습니다.' },
       { status: 502 },
@@ -70,11 +72,15 @@ export async function POST(req: Request) {
     publicUrl = admin.storage.from('public-images').getPublicUrl(path).data.publicUrl;
   } catch (e) {
     console.error('[snap/finalize] storage upload error', e);
+    void markSnapJobFailed(input.requestId, e instanceof Error ? e.message : 'storage upload failed');
     return NextResponse.json(
       { error: '이미지 저장에 실패했습니다.' },
       { status: 500 },
     );
   }
+
+  // snap_jobs 완료 마크 — 실패해도 본 응답 흐름에 영향 X.
+  void markSnapJobCompleted(input.requestId, publicUrl);
 
   return NextResponse.json({ url: publicUrl });
 }
