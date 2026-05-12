@@ -323,7 +323,8 @@ export type Database = {
       snap_anchors: {
         Row: {
           user_id: string;
-          image_url: string | null;
+          groom_anchor_url: string | null;
+          bride_anchor_url: string | null;
           source_mode: 'selfies' | 'couple';
           groom_height_cm: number | null;
           groom_weight_kg: number | null;
@@ -335,7 +336,8 @@ export type Database = {
         };
         Insert: {
           user_id: string;
-          image_url?: string | null;
+          groom_anchor_url?: string | null;
+          bride_anchor_url?: string | null;
           source_mode: 'selfies' | 'couple';
           groom_height_cm?: number | null;
           groom_weight_kg?: number | null;
@@ -346,6 +348,46 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database['public']['Tables']['snap_anchors']['Insert']>;
+        Relationships: [];
+      };
+      snap_jobs: {
+        Row: {
+          id: string;
+          user_id: string;
+          kind: 'anchor' | 'catalog';
+          fal_request_id: string;
+          model: string;
+          quality: string | null;
+          catalog_id: string | null;
+          catalog_path: 'anchored' | 'selfies' | 'couple' | null;
+          anchor_slot: 'groom' | 'bride' | null;
+          anchor_framing: 'closeup' | 'halfbody' | null;
+          status: 'submitted' | 'in_progress' | 'completed' | 'failed' | 'timeout';
+          result_url: string | null;
+          credit_delta: number;
+          error_message: string | null;
+          submitted_at: string;
+          completed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          kind: 'anchor' | 'catalog';
+          fal_request_id: string;
+          model: string;
+          quality?: string | null;
+          catalog_id?: string | null;
+          catalog_path?: 'anchored' | 'selfies' | 'couple' | null;
+          anchor_slot?: 'groom' | 'bride' | null;
+          anchor_framing?: 'closeup' | 'halfbody' | null;
+          status: 'submitted' | 'in_progress' | 'completed' | 'failed' | 'timeout';
+          result_url?: string | null;
+          credit_delta?: number;
+          error_message?: string | null;
+          submitted_at?: string;
+          completed_at?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['snap_jobs']['Insert']>;
         Relationships: [];
       };
       publications: {

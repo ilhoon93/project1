@@ -11,7 +11,11 @@ import {
 import { Button } from '@/components/ui/button';
 import type { SnapCatalogItem } from '@/lib/snap/catalog';
 import { CatalogThumbnail } from '@/components/snap/CatalogThumbnail';
-import { ANCHOR_TEMPLATES } from '@/lib/snap/anchor-templates';
+import {
+  ANCHOR_TEMPLATES,
+  type AnchorFraming,
+  type AnchorSlot,
+} from '@/lib/snap/anchor-templates';
 
 // 폴링 — gpt-image-2 medium 은 보통 20–60초, high 는 30–90초.
 const POLL_INTERVAL_MS = 5_000;
@@ -52,12 +56,14 @@ const emptyFaceTriple = (): [FaceState, FaceState, FaceState] => [
 const ANGLE_LABELS = ['정면', '좌 45°', '우 45°'] as const;
 
 interface AnchorInfo {
-  imageUrl: string | null;
+  groomAnchorUrl: string | null;
+  brideAnchorUrl: string | null;
   sourceMode: string | null;
 }
 
 interface AnchorCandidate {
-  templateId: string;
+  slot: AnchorSlot;
+  framing: AnchorFraming;
   requestId: string;
   resultUrl: string | null;
   status: 'pending' | 'in-progress' | 'done' | 'error';
@@ -90,7 +96,6 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export function SnapGenerator({ catalog }: Props) {
   // 입력 모드 — 셀카 1장씩 (디폴트) / 셀카 3장씩 (정면+좌45°+우45°) / 커플 사진.
-  // 모드를 바꿔도 이미 업로드한 사진은 유지하고, 사용하지 않는 슬롯만 무시.
   const [mode, setMode] = useState<InputMode>('selfies1');
 
   // 신랑/신부 얼굴은 항상 3-슬롯 배열로 보관. 모드에 따라 보이는 갯수만 다름.
@@ -100,7 +105,7 @@ export function SnapGenerator({ catalog }: Props) {
   const [groomBody, setGroomBody] = useState<BodyForm>({ heightCm: '', weightKg: '' });
   const [brideBody, setBrideBody] = useState<BodyForm>({ heightCm: '', weightKg: '' });
 
-  // 앵커 상태
+  // 앵커 상태 — solo anchor (groom + bride 각각).
   const [anchor, setAnchor] = useState<AnchorInfo | null>(null);
   const [anchorBatch, setAnchorBatch] = useState<AnchorCandidate[] | null>(null);
   const [anchorStage, setAnchorStage] = useState<
@@ -108,6 +113,10 @@ export function SnapGenerator({ catalog }: Props) {
   >('idle');
   const [anchorErr, setAnchorErr] = useState<string | null>(null);
   const [anchorFreeAvail, setAnchorFreeAvail] = useState<boolean>(true);
+  // 사용자가 batch 그리드에서 고른 후보들 (slot 별 1개씩).
+  const [pendingGroomRequestId, setPendingGroomRequestId] = useState<string | null>(null);
+  const [pendingBrideRequestId, setPendingBrideRequestId] = useState<string | null>(null);
+
   const [snapBalance, setSnapBalance] = useState<number | null>(null);
 
   // 카탈로그 생성 상태
@@ -117,9 +126,6 @@ export function SnapGenerator({ catalog }: Props) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
 
-  // 각 슬롯에 1개씩의 hidden file input — useRef 9개는 번거로워 click 핸들러 안에
-  // 직접 input 생성/트리거 방식으로 변환. (groomFront / groomLeft / groomRight /
-  // brideFront / brideLeft / brideRight / couple)
   const groomRefs = [
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
@@ -136,7 +142,10 @@ export function SnapGenerator({ catalog }: Props) {
     stage === 'submitting' || stage === 'queued' || stage === 'in-progress' || stage === 'finalizing';
   const isAnchorBusy = anchorStage === 'submitting' || anchorStage === 'polling' || anchorStage === 'saving';
 
-  // 초기 로드 — 현재 앵커 + 크레딧 잔액. cache: 'no-store' 가 핵심.
+  // 앵커가 "완전히" 저장됐는지 — 신랑/신부 둘 다 set.
+  const hasFullAnchor = !!anchor?.groomAnchorUrl && !!anchor?.brideAnchorUrl;
+
+  // 초기 로드.
   useEffect(() => {
     let canceled = false;
     (async () => {
@@ -148,7 +157,8 @@ export function SnapGenerator({ catalog }: Props) {
         if (canceled) return;
         if (a?.anchor) {
           setAnchor({
-            imageUrl: (a.anchor.image_url as string | null) ?? null,
+            groomAnchorUrl: (a.anchor.groom_anchor_url as string | null) ?? null,
+            brideAnchorUrl: (a.anchor.bride_anchor_url as string | null) ?? null,
             sourceMode: (a.anchor.source_mode as string | null) ?? null,
           });
           if (a.anchor.groom_height_cm && a.anchor.groom_weight_kg) {
@@ -167,7 +177,7 @@ export function SnapGenerator({ catalog }: Props) {
         setAnchorFreeAvail(a?.freeActivationAvailable ?? !a?.anchor);
         if (typeof e?.snapCredits === 'number') setSnapBalance(e.snapCredits);
       } catch {
-        // 비로그인 등 — 그대로 둠.
+        // 비로그인 등 — 그대로.
       }
     })();
     return () => {
@@ -175,7 +185,6 @@ export function SnapGenerator({ catalog }: Props) {
     };
   }, []);
 
-  // 셀카 슬롯 N개 (모드 기준).
   const numAngles = mode === 'selfies3' ? 3 : 1;
 
   const setGroomFaceAt = (idx: number, next: FaceState) => {
@@ -255,7 +264,7 @@ export function SnapGenerator({ catalog }: Props) {
     else setCouple(ready);
   };
 
-  // 모드에 맞는 입력이 모두 준비됐는지.
+  // 셀카 입력 ready — 각 slot 의 첫 N장 모두 url 채워짐.
   const selfiesReady = (() => {
     for (let i = 0; i < numAngles; i += 1) {
       if (!groomFaces[i].url || !brideFaces[i].url) return false;
@@ -264,30 +273,20 @@ export function SnapGenerator({ catalog }: Props) {
   })();
   const inputsReady = mode === 'couple' ? !!couple.url : selfiesReady;
 
-  // 앵커 batch 생성 가능 여부 — 셀카 모드에서만, 입력 모두 준비됨.
-  const canGenerateAnchor = mode !== 'couple' && inputsReady && !isAnchorBusy;
-
-  // 카탈로그 생성 가능 여부:
-  //  - couple 모드: couple.url + selectedId 만 있으면 OK (앵커 영향 없음)
-  //  - selfies 모드: 앵커 있으면 selectedId 만, 없으면 selfies inputs 도 필요
-  const canGenerateCatalog = (() => {
-    if (!selectedId || isProgressing) return false;
-    if (mode === 'couple') return !!couple.url;
-    if (anchor?.imageUrl) return true;
-    return selfiesReady;
-  })();
-
-  // 페이로드 추출 헬퍼.
   const collectGroomUrls = (): string[] =>
     groomFaces.slice(0, numAngles).map((f) => f.url).filter((u): u is string => !!u);
   const collectBrideUrls = (): string[] =>
     brideFaces.slice(0, numAngles).map((f) => f.url).filter((u): u is string => !!u);
 
-  // ── 앵커 batch 4장 제출 ───────────────────────────────────
+  // ── 앵커 batch 4장 (2 groom + 2 bride) 제출 ───────────────
+  const canGenerateAnchor = mode !== 'couple' && inputsReady && !isAnchorBusy;
+
   const handleGenerateAnchorBatch = async () => {
-    if (isAnchorBusy || mode === 'couple' || !inputsReady) return;
+    if (!canGenerateAnchor) return;
     setAnchorErr(null);
     setAnchorStage('submitting');
+    setPendingGroomRequestId(null);
+    setPendingBrideRequestId(null);
 
     const groomBodyValid = parseBody(groomBody);
     const brideBodyValid = parseBody(brideBody);
@@ -311,10 +310,13 @@ export function SnapGenerator({ catalog }: Props) {
         const base = (data?.error as string | undefined) ?? text.slice(0, 80) ?? `HTTP ${res.status}`;
         throw new Error(base);
       }
-      const ids = data?.requestIds as Array<{ templateId: string; requestId: string }> | undefined;
+      const ids = data?.requestIds as
+        | Array<{ slot: AnchorSlot; framing: AnchorFraming; requestId: string }>
+        | undefined;
       if (!ids?.length) throw new Error('서버가 요청 ID를 돌려주지 않았습니다.');
       const batch: AnchorCandidate[] = ids.map((x) => ({
-        templateId: x.templateId,
+        slot: x.slot,
+        framing: x.framing,
         requestId: x.requestId,
         resultUrl: null,
         status: 'pending',
@@ -354,8 +356,8 @@ export function SnapGenerator({ catalog }: Props) {
           if (idx < 0) continue;
           const status = s.data?.status as string | undefined;
           if (status === 'COMPLETED') {
-            const resultUrl = (s.data?.imageUrl as string | undefined) ?? null;
-            current[idx] = { ...current[idx], status: 'done', resultUrl };
+            const url = (s.data?.imageUrl as string | undefined) ?? null;
+            current[idx] = { ...current[idx], status: 'done', resultUrl: url };
             mutated = true;
           } else if (status === 'FAILED') {
             current[idx] = { ...current[idx], status: 'error' };
@@ -377,15 +379,28 @@ export function SnapGenerator({ catalog }: Props) {
     setAnchorStage('error');
   };
 
-  const handleSelectAnchor = async (candidate: AnchorCandidate) => {
-    if (!candidate.requestId || candidate.status !== 'done' || isAnchorBusy) return;
+  // 사용자가 슬롯별로 후보를 토글. 둘 다 선택돼야 "저장" 활성화.
+  const selectCandidate = (c: AnchorCandidate) => {
+    if (c.status !== 'done') return;
+    if (c.slot === 'groom') setPendingGroomRequestId(c.requestId);
+    else setPendingBrideRequestId(c.requestId);
+  };
+
+  const canSaveAnchor =
+    !!pendingGroomRequestId && !!pendingBrideRequestId && anchorStage !== 'saving';
+
+  const handleSaveAnchor = async () => {
+    if (!canSaveAnchor) return;
     setAnchorStage('saving');
     setAnchorErr(null);
     try {
       const res = await fetch('/api/snap/anchor', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ requestId: candidate.requestId }),
+        body: JSON.stringify({
+          groomRequestId: pendingGroomRequestId,
+          brideRequestId: pendingBrideRequestId,
+        }),
       });
       const { data, text } = await parseRes(res);
       if (!res.ok) {
@@ -394,10 +409,16 @@ export function SnapGenerator({ catalog }: Props) {
         const code = data?.code as string | undefined;
         throw new Error(detail ? `${base}\n원인: ${detail}${code ? ` (${code})` : ''}` : base);
       }
-      const url = data?.url as string | undefined;
-      if (!url) throw new Error('서버가 저장 URL을 돌려주지 않았습니다.');
-      setAnchor({ imageUrl: url, sourceMode: 'selfies' });
+      const groomUrl = data?.groomAnchorUrl as string | undefined;
+      const brideUrl = data?.brideAnchorUrl as string | undefined;
+      setAnchor({
+        groomAnchorUrl: groomUrl ?? null,
+        brideAnchorUrl: brideUrl ?? null,
+        sourceMode: 'selfies',
+      });
       setAnchorBatch(null);
+      setPendingGroomRequestId(null);
+      setPendingBrideRequestId(null);
       setAnchorStage('idle');
     } catch (e) {
       setAnchorErr(e instanceof Error ? e.message : '앵커 저장 실패');
@@ -417,6 +438,28 @@ export function SnapGenerator({ catalog }: Props) {
   };
 
   // ── 카탈로그 생성 ────────────────────────────────────────
+  // 카탈로그 필터링: couple 모드에서는 solo 카탈로그 숨김.
+  const visibleCatalog = catalog.filter((c) => {
+    if (mode === 'couple') return c.personality === 'together';
+    return true;
+  });
+
+  const selectedCatalog = selectedId ? catalog.find((c) => c.id === selectedId) ?? null : null;
+
+  // 카탈로그 생성 가능 여부.
+  const canGenerateCatalog = (() => {
+    if (!selectedId || !selectedCatalog || isProgressing) return false;
+    if (mode === 'couple') return !!couple.url && selectedCatalog.personality === 'together';
+    // selfies 모드 — 앵커 필요. personality 별 slot 검증.
+    if (!hasFullAnchor) {
+      // 부분 앵커도 허용? 정책: solo 카탈로그는 해당 slot 만 있어도 OK.
+      if (selectedCatalog.personality === 'groom-solo') return !!anchor?.groomAnchorUrl;
+      if (selectedCatalog.personality === 'bride-solo') return !!anchor?.brideAnchorUrl;
+      return false; // together 인데 한쪽 앵커가 없으면 X.
+    }
+    return true;
+  })();
+
   const pollUntilDone = async (requestId: string, catalogId: string) => {
     let attempts = 0;
     while (attempts < MAX_POLL_ATTEMPTS) {
@@ -479,7 +522,7 @@ export function SnapGenerator({ catalog }: Props) {
   };
 
   const handleGenerateCatalog = async () => {
-    if (!selectedId) return;
+    if (!selectedId || !selectedCatalog) return;
     if (!canGenerateCatalog) return;
 
     setStage('submitting');
@@ -490,10 +533,6 @@ export function SnapGenerator({ catalog }: Props) {
     const groomBodyValid = parseBody(groomBody);
     const brideBodyValid = parseBody(brideBody);
 
-    // 모드별 페이로드:
-    //  - couple: 명시적으로 mode='couple' 보내 서버가 앵커 무시하게.
-    //  - selfies + 앵커 있음: mode='anchor' 로 서버가 앵커 reference 사용.
-    //  - selfies + 앵커 없음: mode='selfies' + 셀카 url 배열.
     let payload: Record<string, unknown>;
     if (mode === 'couple') {
       payload = {
@@ -503,17 +542,9 @@ export function SnapGenerator({ catalog }: Props) {
         ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
         ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
       };
-    } else if (anchor?.imageUrl) {
-      payload = { mode: 'anchor', catalogId: selectedId };
     } else {
-      payload = {
-        mode: 'selfies',
-        groomFaceUrls: collectGroomUrls(),
-        brideFaceUrls: collectBrideUrls(),
-        catalogId: selectedId,
-        ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
-        ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
-      };
+      // selfies 모드 — 항상 anchor 경로. server 가 personality 보고 분기.
+      payload = { mode: 'anchor', catalogId: selectedId };
     }
 
     try {
@@ -543,27 +574,25 @@ export function SnapGenerator({ catalog }: Props) {
     }
   };
 
-  // 헬퍼
-  const selectedCatalog = selectedId ? catalog.find((c) => c.id === selectedId) ?? null : null;
-
-  // 셀카 모드 + 앵커 보유 = 사진 업로드/체형 입력 섹션 숨김 (이미 잠겨 있음).
-  const showSelfieInputs = mode !== 'couple' && !anchor?.imageUrl;
+  // ── 헬퍼 / 표시용 ───────────────────────────────────────
+  const showSelfieInputs = mode !== 'couple' && !hasFullAnchor;
   const showCoupleInputs = mode === 'couple';
-  const showAnchorBuilder = mode !== 'couple' && !anchor?.imageUrl;
+  const showAnchorBuilder = mode !== 'couple' && !hasFullAnchor;
 
-  // 카탈로그 생성 시 어떤 경로를 탈지 — UI 안내용.
   const pathHint = (() => {
     if (mode === 'couple') return '커플 사진 기반 (앵커 영향 없음)';
-    if (anchor?.imageUrl) return '저장된 앵커 기반';
-    return mode === 'selfies3' ? '셀카 3장씩 직결' : '셀카 1장씩 직결';
+    if (selectedCatalog?.personality === 'groom-solo') return '신랑 앵커 단독 컷';
+    if (selectedCatalog?.personality === 'bride-solo') return '신부 앵커 단독 컷';
+    return '신랑·신부 앵커 합성';
   })();
 
   return (
     <div className="mt-6 flex flex-col gap-6">
-      {/* 0. 현재 상태 카드 — 크레딧 / 앵커 */}
+      {/* 0. 현재 상태 카드 — 크레딧 + 신랑/신부 앵커 썸네일 */}
       <StatusCard
         snapBalance={snapBalance}
-        anchorUrl={anchor?.imageUrl ?? null}
+        groomAnchorUrl={anchor?.groomAnchorUrl ?? null}
+        brideAnchorUrl={anchor?.brideAnchorUrl ?? null}
         freeActivationAvailable={anchorFreeAvail}
         onDiscardAnchor={handleDiscardAnchor}
       />
@@ -599,28 +628,25 @@ export function SnapGenerator({ catalog }: Props) {
           </ModeToggleButton>
         </div>
 
-        {/* 모드별 안내 */}
         {mode === 'selfies1' && (
           <p className="mt-3 text-xs text-[#8B7355]">
-            정면 클로즈업 사진을 한 장씩 올려주세요. 1장만 사용하므로 빠르고 간편한
-            기본 옵션 — 측면/3-quarter 카탈로그 컷에서 정체성이 살짝 흔들릴 수 있어요.
+            정면 클로즈업 사진을 한 장씩 올려주세요. 빠르고 간편한 기본 옵션.
           </p>
         )}
         {mode === 'selfies3' && (
           <p className="mt-3 text-xs text-[#8B7355]">
             정면 + 좌 45° + 우 45° 사진을 각 3장씩 올려주세요. 모델이 3D 얼굴을 더
-            정확히 잡아 측면 컷에서도 정체성이 안정적입니다. <strong>권장 옵션</strong>.
+            정확히 잡아 측면 컷에서도 정체성이 안정적입니다. <strong>권장</strong>.
           </p>
         )}
         {mode === 'couple' && (
           <p className="mt-3 text-xs text-[#8B7355]">
-            두 사람이 함께 찍힌 정면 사진을 1장 올려주세요. <strong>커플 사진 모드는
-            앵커 영향을 받지 않습니다</strong> — 사용자 포즈/체형/상호작용을 그대로
-            유지하고 카탈로그의 의상·배경·조명만 입혀 드려요.
+            두 사람이 함께 찍힌 정면 사진을 1장 올려주세요. <strong>커플 사진
+            모드는 앵커 영향을 받지 않습니다</strong> — 사용자 포즈/체형/상호작용을
+            그대로 유지. 단독 카탈로그는 숨겨집니다.
           </p>
         )}
 
-        {/* 셀카 입력 영역 */}
         {showSelfieInputs && (
           <div className="mt-3 flex flex-col gap-4">
             <AngleRow
@@ -637,7 +663,6 @@ export function SnapGenerator({ catalog }: Props) {
               refs={brideRefs}
               disabled={isProgressing || isAnchorBusy}
             />
-            {/* hidden file inputs */}
             {([0, 1, 2] as const).map((idx) => (
               <input
                 key={`groom-${idx}`}
@@ -669,15 +694,14 @@ export function SnapGenerator({ catalog }: Props) {
           </div>
         )}
 
-        {/* 셀카 모드 + 앵커 보유 = 잠긴 상태 안내 */}
-        {mode !== 'couple' && anchor?.imageUrl && (
+        {mode !== 'couple' && hasFullAnchor && (
           <p className="mt-3 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-3 text-xs text-[#5C4633]">
-            ✓ 앵커가 저장되어 있어 사진을 다시 업로드할 필요가 없어요. 새로 만들려면
-            위 상태 카드의 &ldquo;폐기&rdquo; 를 누르세요 (다음 batch 는 4 크레딧).
+            ✓ 신랑/신부 앵커가 모두 저장되어 있어 사진 업로드 단계는 건너뜁니다.
+            새로 만들려면 위 상태 카드의 &ldquo;폐기&rdquo; 를 누르세요 (다음
+            batch 는 4 크레딧).
           </p>
         )}
 
-        {/* 커플 입력 영역 */}
         {showCoupleInputs && (
           <div className="mt-3 grid grid-cols-2 gap-3">
             <FaceUploader
@@ -702,7 +726,7 @@ export function SnapGenerator({ catalog }: Props) {
         )}
       </section>
 
-      {/* 1-b. 키 / 몸무게 (선택) — 앵커 없거나 커플 모드일 때 노출 */}
+      {/* 1-b. 키 / 몸무게 */}
       {(showSelfieInputs || showCoupleInputs) && (
         <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
           <h2 className="text-sm font-medium text-[#3D2E1F]">
@@ -710,8 +734,7 @@ export function SnapGenerator({ catalog }: Props) {
           </h2>
           <p className="mt-1 text-xs text-[#8B7355]">
             전신 / 반신 컷의 비율을 맞추는 데 사용돼요. 키 {HEIGHT_RANGE.min}–
-            {HEIGHT_RANGE.max}cm · 몸무게 {WEIGHT_RANGE.min}–{WEIGHT_RANGE.max}kg
-            범위. 비워두면 카탈로그 기본 체형으로 합성됩니다.
+            {HEIGHT_RANGE.max}cm · 몸무게 {WEIGHT_RANGE.min}–{WEIGHT_RANGE.max}kg.
           </p>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <BodyFields
@@ -730,19 +753,18 @@ export function SnapGenerator({ catalog }: Props) {
         </section>
       )}
 
-      {/* 2. 앵커 만들기 — 셀카 모드 + 앵커 미보유에서만 */}
+      {/* 2. 앵커 만들기 — 셀카 모드 + 미완성 앵커일 때만 */}
       {showAnchorBuilder && (
         <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
           <h2 className="text-sm font-medium text-[#3D2E1F]">2. 앵커 만들기</h2>
           <p className="mt-1 text-xs text-[#8B7355]">
-            앵커는 카탈로그 50컷 사이에서 얼굴/체형이 흔들리지 않도록 잡아주는
-            기준 이미지예요. 서로 다른 4가지 framing (클로즈업 · 반신 · 전신 ·
-            3/4) 으로 후보를 만들고 가장 마음에 드는 1장을 고릅니다.
+            한 번에 신랑 단독 2장 + 신부 단독 2장 (클로즈업 / 반신) 을 만들어
+            드려요. 각 row 에서 마음에 드는 컷을 1장씩 골라 저장하면 모든 카탈로그
+            (함께 컷 / 단독 컷) 에 적용됩니다.
             {anchorFreeAvail ? (
               <>
                 {' '}
-                <span className="font-medium text-emerald-700">첫 batch 는 무료</span>
-                예요.
+                <span className="font-medium text-emerald-700">첫 batch 는 무료</span>예요.
               </>
             ) : (
               <>
@@ -784,51 +806,45 @@ export function SnapGenerator({ catalog }: Props) {
           )}
 
           {anchorBatch && (
-            <div className="mt-4">
+            <div className="mt-4 flex flex-col gap-4">
               <p className="text-xs text-[#5C4633]">
-                마음에 드는 framing 을 골라 저장하세요. 저장한 앵커는 모든 카탈로그
-                컷에 자동 적용됩니다.
+                신랑 / 신부 각 row 에서 마음에 드는 컷을 1장씩 선택한 뒤 아래
+                &ldquo;앵커 저장&rdquo; 을 누르세요.
               </p>
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {anchorBatch.map((c) => {
-                  const tpl = ANCHOR_TEMPLATES.find((t) => t.id === c.templateId);
-                  return (
-                    <button
-                      key={c.requestId}
-                      type="button"
-                      disabled={c.status !== 'done' || anchorStage === 'saving'}
-                      onClick={() => void handleSelectAnchor(c)}
-                      className={`flex flex-col overflow-hidden rounded-md border text-left transition-colors ${
-                        c.status === 'done'
-                          ? 'border-[#E8DCC9] hover:border-[#3D2E1F] hover:ring-2 hover:ring-[#3D2E1F]/20'
-                          : 'border-[#E8DCC9] opacity-70'
-                      }`}
-                    >
-                      <div className="grid aspect-[3/4] w-full place-items-center overflow-hidden bg-[#F5EDE0]">
-                        {c.resultUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={c.resultUrl}
-                            alt={tpl?.label ?? c.templateId}
-                            className="block h-full w-full object-contain"
-                          />
-                        ) : c.status === 'error' ? (
-                          <span className="text-[10px] text-red-600">실패</span>
-                        ) : (
-                          <span className="text-[10px] text-[#8B7355]">
-                            {c.status === 'in-progress' ? '합성 중...' : '대기 중...'}
-                          </span>
-                        )}
-                      </div>
-                      <div className="p-2">
-                        <p className="text-xs font-medium text-[#3D2E1F]">{tpl?.label ?? c.templateId}</p>
-                        <p className="mt-0.5 text-[10px] text-[#8B7355]">
-                          {c.status === 'done' ? '눌러서 이 앵커로 저장' : '...'}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
+              <AnchorRowGrid
+                slot="groom"
+                label="신랑"
+                candidates={anchorBatch.filter((c) => c.slot === 'groom')}
+                selectedRequestId={pendingGroomRequestId}
+                onSelect={selectCandidate}
+                disabled={anchorStage === 'saving'}
+              />
+              <AnchorRowGrid
+                slot="bride"
+                label="신부"
+                candidates={anchorBatch.filter((c) => c.slot === 'bride')}
+                selectedRequestId={pendingBrideRequestId}
+                onSelect={selectCandidate}
+                disabled={anchorStage === 'saving'}
+              />
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => void handleSaveAnchor()}
+                  disabled={!canSaveAnchor}
+                >
+                  {anchorStage === 'saving' ? '저장 중...' : '앵커 저장'}
+                </Button>
+                {!canSaveAnchor && anchorStage !== 'saving' && (
+                  <span className="text-xs text-[#8B7355]">
+                    {!pendingGroomRequestId && !pendingBrideRequestId
+                      ? '신랑/신부 각 1장씩 선택해주세요'
+                      : !pendingGroomRequestId
+                        ? '신랑 컷을 선택해주세요'
+                        : '신부 컷을 선택해주세요'}
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -843,7 +859,7 @@ export function SnapGenerator({ catalog }: Props) {
           <span className="text-[10px] text-[#8B7355]">· 현재 경로: {pathHint}</span>
         </p>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-          {catalog.map((item) => {
+          {visibleCatalog.map((item) => {
             const selected = selectedId === item.id;
             return (
               <button
@@ -852,13 +868,14 @@ export function SnapGenerator({ catalog }: Props) {
                 disabled={isProgressing}
                 onClick={() => setSelectedId(item.id)}
                 aria-pressed={selected}
-                className={`flex flex-col overflow-hidden rounded-md border text-left transition-colors ${
+                className={`relative flex flex-col overflow-hidden rounded-md border text-left transition-colors ${
                   selected
                     ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
                     : 'border-[#E8DCC9] hover:border-[#8B7355]'
                 } ${isProgressing ? 'opacity-60' : ''}`}
               >
                 <CatalogThumbnail src={item.image} alt={item.label} />
+                <PersonalityBadge personality={item.personality} />
                 <div className="p-2">
                   <p className="text-xs font-medium text-[#3D2E1F]">{item.label}</p>
                   <p className="mt-0.5 text-[10px] text-[#8B7355]">{item.hint}</p>
@@ -885,17 +902,14 @@ export function SnapGenerator({ catalog }: Props) {
                     : `생성하기 ${snapBalance !== null ? `(잔여 ${snapBalance})` : ''}`}
           </Button>
           {!canGenerateCatalog && stage === 'idle' && (
-            <span className="text-xs text-[#8B7355]">
-              {mode === 'couple' && !couple.url
-                ? '커플 사진을 업로드하세요'
-                : mode !== 'couple' && !anchor?.imageUrl && !selfiesReady
-                  ? mode === 'selfies3'
-                    ? '신랑/신부 각 3장씩 업로드'
-                    : '신랑/신부 각 1장씩 업로드'
-                  : !selectedId
-                    ? '카탈로그 컷을 선택하세요'
-                    : null}
-            </span>
+            <GenerateHint
+              mode={mode}
+              hasFullAnchor={hasFullAnchor}
+              anchor={anchor}
+              selectedCatalog={selectedCatalog}
+              couplePresent={!!couple.url}
+              selectedId={selectedId}
+            />
           )}
         </div>
         {progressNote && <p className="mt-3 text-xs text-[#5C4633]">{progressNote}</p>}
@@ -911,7 +925,7 @@ export function SnapGenerator({ catalog }: Props) {
         )}
       </section>
 
-      {/* 5. 결과 — 비교 뷰. 업스케일은 얼굴 변형 문제로 제거. */}
+      {/* 5. 결과 — 비교 뷰 (업스케일 제거) */}
       {stage === 'done' && resultUrl && (
         <section className="rounded-md border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900 dark:bg-emerald-900/10">
           <h2 className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
@@ -962,6 +976,121 @@ export function SnapGenerator({ catalog }: Props) {
   );
 }
 
+function GenerateHint({
+  mode,
+  hasFullAnchor,
+  anchor,
+  selectedCatalog,
+  couplePresent,
+  selectedId,
+}: {
+  mode: InputMode;
+  hasFullAnchor: boolean;
+  anchor: AnchorInfo | null;
+  selectedCatalog: SnapCatalogItem | null;
+  couplePresent: boolean;
+  selectedId: string | null;
+}) {
+  let text = '';
+  if (!selectedId) text = '카탈로그 컷을 선택하세요';
+  else if (mode === 'couple') {
+    if (!couplePresent) text = '커플 사진을 업로드하세요';
+    else if (selectedCatalog?.personality !== 'together') text = '커플 모드에서는 함께 컷만 가능';
+  } else if (!hasFullAnchor) {
+    if (selectedCatalog?.personality === 'together') text = '신랑/신부 앵커가 모두 필요합니다';
+    else if (selectedCatalog?.personality === 'groom-solo' && !anchor?.groomAnchorUrl) text = '신랑 앵커가 필요합니다';
+    else if (selectedCatalog?.personality === 'bride-solo' && !anchor?.brideAnchorUrl) text = '신부 앵커가 필요합니다';
+    else text = '앵커를 먼저 만들어 주세요';
+  }
+  if (!text) return null;
+  return <span className="text-xs text-[#8B7355]">{text}</span>;
+}
+
+function AnchorRowGrid({
+  slot,
+  label,
+  candidates,
+  selectedRequestId,
+  onSelect,
+  disabled,
+}: {
+  slot: AnchorSlot;
+  label: string;
+  candidates: AnchorCandidate[];
+  selectedRequestId: string | null;
+  onSelect: (c: AnchorCandidate) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-xs font-medium text-[#3D2E1F]">
+        {label} <span className="text-[10px] text-[#8B7355]">({slot === 'groom' ? '신랑' : '신부'} 단독 2 컷)</span>
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        {candidates.map((c) => {
+          const tpl = ANCHOR_TEMPLATES.find((t) => t.slot === c.slot && t.framing === c.framing);
+          const isSelected = selectedRequestId === c.requestId;
+          return (
+            <button
+              key={c.requestId}
+              type="button"
+              disabled={disabled || c.status !== 'done'}
+              onClick={() => onSelect(c)}
+              className={`flex flex-col overflow-hidden rounded-md border text-left transition-colors ${
+                isSelected
+                  ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
+                  : c.status === 'done'
+                    ? 'border-[#E8DCC9] hover:border-[#8B7355]'
+                    : 'border-[#E8DCC9] opacity-70'
+              }`}
+            >
+              <div className="grid aspect-[3/4] w-full place-items-center overflow-hidden bg-[#F5EDE0]">
+                {c.resultUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={c.resultUrl}
+                    alt={tpl?.label ?? c.framing}
+                    className="block h-full w-full object-contain"
+                  />
+                ) : c.status === 'error' ? (
+                  <span className="text-[10px] text-red-600">실패</span>
+                ) : (
+                  <span className="text-[10px] text-[#8B7355]">
+                    {c.status === 'in-progress' ? '합성 중...' : '대기 중...'}
+                  </span>
+                )}
+              </div>
+              <div className="p-2">
+                <p className="text-xs font-medium text-[#3D2E1F]">
+                  {c.framing === 'closeup' ? '클로즈업' : '반신'}
+                </p>
+                <p className="mt-0.5 text-[10px] text-[#8B7355]">
+                  {isSelected ? '✓ 선택됨' : c.status === 'done' ? '눌러서 선택' : '...'}
+                </p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PersonalityBadge({ personality }: { personality: SnapCatalogItem['personality'] }) {
+  const config = {
+    together: { label: '함께', color: 'bg-[#3D2E1F]/85' },
+    'groom-solo': { label: '신랑 단독', color: 'bg-blue-600/85' },
+    'bride-solo': { label: '신부 단독', color: 'bg-pink-600/85' },
+  }[personality];
+  return (
+    <span
+      className={`absolute left-1 top-1 rounded px-1.5 py-0.5 text-[9px] font-medium text-white ${config.color}`}
+    >
+      {config.label}
+    </span>
+  );
+}
+
 function AngleRow({
   personLabel,
   numAngles,
@@ -998,16 +1127,20 @@ function AngleRow({
 
 function StatusCard({
   snapBalance,
-  anchorUrl,
+  groomAnchorUrl,
+  brideAnchorUrl,
   freeActivationAvailable,
   onDiscardAnchor,
 }: {
   snapBalance: number | null;
-  anchorUrl: string | null;
+  groomAnchorUrl: string | null;
+  brideAnchorUrl: string | null;
   freeActivationAvailable: boolean;
   onDiscardAnchor: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const hasAny = !!groomAnchorUrl || !!brideAnchorUrl;
+  const hasBoth = !!groomAnchorUrl && !!brideAnchorUrl;
 
   return (
     <div className="flex flex-col gap-3 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-3">
@@ -1028,20 +1161,13 @@ function StatusCard({
         </div>
         <div className="flex flex-1 items-center gap-2 text-xs text-[#5C4633]">
           <span className="rounded-full bg-white px-2 py-0.5 ring-1 ring-[#D4C5B0]">앵커</span>
-          {anchorUrl ? (
+          {hasAny ? (
             <>
-              <button
-                type="button"
-                onClick={() => setExpanded((v) => !v)}
-                title={expanded ? '미리보기 접기' : '크게 보기'}
-                className="inline-flex h-10 w-8 overflow-hidden rounded border border-[#D4C5B0] transition-transform hover:scale-105"
-                aria-expanded={expanded}
-                aria-label={expanded ? '앵커 미리보기 접기' : '앵커 크게 보기'}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={anchorUrl} alt="앵커" className="h-full w-full object-cover" />
-              </button>
-              <span className="font-medium text-emerald-700">저장됨</span>
+              <AnchorThumb url={groomAnchorUrl} label="신랑" onToggle={() => setExpanded((v) => !v)} />
+              <AnchorThumb url={brideAnchorUrl} label="신부" onToggle={() => setExpanded((v) => !v)} />
+              <span className={`font-medium ${hasBoth ? 'text-emerald-700' : 'text-amber-700'}`}>
+                {hasBoth ? '완료' : '부분 저장'}
+              </span>
               <button
                 type="button"
                 onClick={() => setExpanded((v) => !v)}
@@ -1049,14 +1175,6 @@ function StatusCard({
               >
                 {expanded ? '접기' : '크게 보기'}
               </button>
-              <a
-                href={anchorUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px] text-[#8B7355] underline underline-offset-2 hover:text-[#3D2E1F]"
-              >
-                새 탭
-              </a>
               <button
                 type="button"
                 onClick={onDiscardAnchor}
@@ -1079,16 +1197,66 @@ function StatusCard({
         </div>
       </div>
 
-      {anchorUrl && expanded && (
-        <div className="flex flex-col gap-2">
-          <div className="mx-auto w-full max-w-[280px] overflow-hidden rounded border border-[#D4C5B0] bg-white">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={anchorUrl} alt="저장된 앵커" className="block h-auto w-full object-contain" />
-          </div>
-          <p className="text-center text-[10px] text-[#8B7355]">
-            저장된 앵커 · 셀카 모드 카탈로그 생성에 자동 적용됩니다 (커플 모드는 영향 없음)
-          </p>
+      {hasAny && expanded && (
+        <div className="grid grid-cols-2 gap-3">
+          <AnchorBigPreview url={groomAnchorUrl} label="신랑 앵커" />
+          <AnchorBigPreview url={brideAnchorUrl} label="신부 앵커" />
         </div>
+      )}
+    </div>
+  );
+}
+
+function AnchorThumb({
+  url,
+  label,
+  onToggle,
+}: {
+  url: string | null;
+  label: string;
+  onToggle: () => void;
+}) {
+  if (!url) {
+    return (
+      <span className="inline-flex h-10 w-8 items-center justify-center rounded border border-dashed border-[#D4C5B0] text-[9px] text-[#8B7355]">
+        {label} X
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      title={`${label} 앵커 크게 보기`}
+      className="inline-flex h-10 w-8 overflow-hidden rounded border border-[#D4C5B0] transition-transform hover:scale-105"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url} alt={label} className="h-full w-full object-cover" />
+    </button>
+  );
+}
+
+function AnchorBigPreview({ url, label }: { url: string | null; label: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="text-[11px] font-medium text-[#5C4633]">{label}</p>
+      <div className="grid aspect-[3/4] w-full place-items-center overflow-hidden rounded border border-[#D4C5B0] bg-white">
+        {url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={url} alt={label} className="block h-full w-full object-contain" />
+        ) : (
+          <span className="text-xs text-[#8B7355]">미선택</span>
+        )}
+      </div>
+      {url && (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-center text-[10px] text-[#8B7355] underline underline-offset-2 hover:text-[#3D2E1F]"
+        >
+          새 탭에서 원본
+        </a>
       )}
     </div>
   );

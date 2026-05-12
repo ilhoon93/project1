@@ -1,18 +1,21 @@
 /**
- * 웨딩스냅 프롬프트 빌더
+ * 웨딩스냅 프롬프트 빌더 — solo anchor 아키텍처.
  *
- * 입력 모드 세 가지를 지원한다.
- *   (A1) 셀카 1장씩 — 신랑/신부 정면 얼굴 각 1장 + 카탈로그 (총 3장)
- *   (A3) 셀카 3장씩 — 신랑/신부 정면 + 좌45° + 우45° 각 3장 + 카탈로그 (총 7장)
- *   (B)  커플 사진 1장 — 사용자 포즈/구도 보존, 카탈로그는 스타일 참조 (총 2장)
+ * 카탈로그 입력 형태 (personality 기반 분기):
+ *   * together   → [groom-anchor, bride-anchor, catalog]  (3장)  buildTogetherCatalogPrompt
+ *   * groom-solo → [groom-anchor, catalog]                (2장)  buildSoloCatalogPrompt('groom', ...)
+ *   * bride-solo → [bride-anchor, catalog]                (2장)  buildSoloCatalogPrompt('bride', ...)
+ *   * couple     → [couple-photo, catalog]                (2장)  buildCouplePhotoSnapPrompt (anchor 우회)
  *
- * 셀카 multi-angle 은 모델이 3D 얼굴을 더 정확히 잡아 측면/3-quarter 카탈로그
- * 컷에서 정체성이 깨지지 않게 한다. 1장씩 모드는 비용·간편성 우선 옵션.
+ * 앵커 생성 (solo anchor batch):
+ *   * slot='groom' + framing=closeup/halfbody  → [groom selfies...]  buildAnchorPromptSolo('groom', ...)
+ *   * slot='bride' + framing=closeup/halfbody  → [bride selfies...]  buildAnchorPromptSolo('bride', ...)
  *
- * 모든 prompt 의 마지막에는 공통 NEGATIVES 섹션을 추가해 gpt-image-2 가 흔히
- * 만들어내는 인공물(플라스틱 피부, 비대칭 눈, 손가락 오류, 컷아웃 halo 등) 을
- * 사전 차단한다.
+ * 모든 prompt 의 마지막에 공통 NEGATIVES + ANCHOR_INTEGRATION (앵커 한정) 가
+ * 들어가 gpt-image-2 의 흔한 인공물과 paste-in 룩을 적극 차단한다.
  */
+
+import type { AnchorSlot } from '@/lib/snap/anchor-templates';
 
 export interface BodyMetrics {
   /** 키 cm — 140~210 권장 */
@@ -25,16 +28,12 @@ export interface SnapPromptInput {
   catalogPromptHint: string;
   groom?: BodyMetrics;
   bride?: BodyMetrics;
-  /** 신랑 face reference 이미지 수 (1 = 정면만, 3 = 정면+좌45°+우45°). 기본 1. */
-  groomFaceCount?: number;
-  /** 신부 face reference 이미지 수. 기본 1. */
-  brideFaceCount?: number;
 }
 
-/**
- * BMI 기반 체형 라벨. 모델이 절대 수치에 민감하지 않으므로 정성적 표현으로
- * 변환해 넣는다. 한국 성인 기준 보수적인 컷오프.
- */
+// ──────────────────────────────────────────────────────────────
+// 체형 가이드 — BMI / 키 차이를 정성적으로 변환해 prompt 에 주입
+// ──────────────────────────────────────────────────────────────
+
 function bodyShape(m: BodyMetrics): string {
   const heightM = m.heightCm / 100;
   const bmi = m.weightKg / (heightM * heightM);
@@ -45,7 +44,6 @@ function bodyShape(m: BodyMetrics): string {
   return 'fuller-figured, plus-size build';
 }
 
-/** 키만 보고 신장 라벨. 두 사람 비교에는 별도 줄에서 다룬다. */
 function heightLabel(cm: number): string {
   if (cm < 155) return 'petite stature';
   if (cm < 165) return 'shorter than average stature';
@@ -56,9 +54,7 @@ function heightLabel(cm: number): string {
 
 function buildPersonGuide(role: 'groom' | 'bride', m?: BodyMetrics): string | null {
   if (!m) return null;
-  const shape = bodyShape(m);
-  const height = heightLabel(m.heightCm);
-  return `- ${role === 'groom' ? 'Groom' : 'Bride'}: ${m.heightCm} cm tall, ${m.weightKg} kg — ${height}, ${shape}. Render full-body proportions (limb length, shoulder width, torso, waist, hip) consistent with this build.`;
+  return `- ${role === 'groom' ? 'Groom' : 'Bride'}: ${m.heightCm} cm tall, ${m.weightKg} kg — ${heightLabel(m.heightCm)}, ${bodyShape(m)}. Render full-body proportions (limb length, shoulder width, torso, waist, hip) consistent with this build.`;
 }
 
 function buildHeightComparison(groom?: BodyMetrics, bride?: BodyMetrics): string | null {
@@ -89,51 +85,10 @@ function buildBodySection(groom?: BodyMetrics, bride?: BodyMetrics): string[] {
   ];
 }
 
-/**
- * 얼굴 reference 이미지가 1장이면 단일 reference, 3장이면 정면/좌45°/우45° 의
- * 다각 reference 로 설명. 각 모델 입력 슬롯 번호 (1-base) 와 사용 시 참조할
- * 짧은 라벨("Image 1", "Images 1–3") 을 함께 돌려준다.
- */
-function faceReferenceLines(
-  groomCount: number,
-  brideCount: number,
-  startIdx = 1,
-): { lines: string[]; nextIdx: number; groomRef: string; brideRef: string } {
-  const lines: string[] = [];
-  let idx = startIdx;
-  let groomRef: string;
-  let brideRef: string;
-  if (groomCount <= 1) {
-    lines.push(`- Image ${idx} = Groom face reference (frontal close-up).`);
-    groomRef = `Image ${idx}`;
-    idx += 1;
-  } else {
-    const end = idx + groomCount - 1;
-    lines.push(
-      `- Images ${idx}–${end} = Groom face references at ${groomCount} angles (in order: frontal, left ~45°, right ~45°). Synthesize a consistent 3D understanding of his face from these.`,
-    );
-    groomRef = `Images ${idx}–${end}`;
-    idx = end + 1;
-  }
-  if (brideCount <= 1) {
-    lines.push(`- Image ${idx} = Bride face reference (frontal close-up).`);
-    brideRef = `Image ${idx}`;
-    idx += 1;
-  } else {
-    const end = idx + brideCount - 1;
-    lines.push(
-      `- Images ${idx}–${end} = Bride face references at ${brideCount} angles (in order: frontal, left ~45°, right ~45°). Synthesize a consistent 3D understanding of her face from these.`,
-    );
-    brideRef = `Images ${idx}–${end}`;
-    idx = end + 1;
-  }
-  return { lines, nextIdx: idx, groomRef, brideRef };
-}
+// ──────────────────────────────────────────────────────────────
+// 공통 negatives + 앵커 전용 integration (paste-in / 머리 비대증 차단)
+// ──────────────────────────────────────────────────────────────
 
-/**
- * gpt-image-2 가 자주 만들어내는 흠집들을 자연어 negative 로 차단. 길게 나열할
- * 수록 다른 지시문이 희석되니 가장 잦은 6~8개만 유지.
- */
 const NEGATIVES = [
   '',
   'QUALITY REQUIREMENTS — strictly AVOID:',
@@ -148,206 +103,209 @@ const NEGATIVES = [
 ];
 
 /**
- * (A) 셀카 + 카탈로그 마스터샘플 — image_urls = [...groomFaces, ...brideFaces, catalog]
- * 신랑/신부 face reference 수는 옵션으로 변동 (1 or 3 각각). 총 입력 수 =
- * groomFaceCount + brideFaceCount + 1.
- */
-export function buildSnapPrompt(input: SnapPromptInput | string): string {
-  const opts: SnapPromptInput =
-    typeof input === 'string' ? { catalogPromptHint: input } : input;
-  const groomCount = opts.groomFaceCount ?? 1;
-  const brideCount = opts.brideFaceCount ?? 1;
-  const total = groomCount + brideCount + 1;
-  const { lines: faceLines, nextIdx, groomRef, brideRef } = faceReferenceLines(groomCount, brideCount);
-  const catalogIdx = nextIdx;
-  const bodySection = buildBodySection(opts.groom, opts.bride);
-
-  return [
-    `Compose a wedding portrait using ${total} input images:`,
-    ...faceLines,
-    `- Image ${catalogIdx} = Composition reference. Replicate this image's pose, framing, camera angle, depth of field, background, outfits, and overall lighting setup.`,
-    '',
-    `Scene context: ${opts.catalogPromptHint}`,
-    '',
-    'CRITICAL FACE FIDELITY:',
-    `- Reproduce the groom's face from ${groomRef} (eye shape, nose bridge, jawline, skin tone/texture, hair style/color, expression) with high fidelity.`,
-    `- Reproduce the bride's face from ${brideRef} the same way.`,
-    `- Do NOT blend the two faces. Assign groom face references → groom position in Image ${catalogIdx}, bride face references → bride position.`,
-    '',
-    `COMPOSITION (from Image ${catalogIdx} — replicate exactly):`,
-    '- Pose, body positions, gestures, hand positions',
-    '- Camera angle, framing, depth of field, lens character',
-    '- Background, environment, outfits, props',
-    ...bodySection,
-    '',
-    'NATURAL INTEGRATION:',
-    `- Re-light the swapped faces to match Image ${catalogIdx}'s primary light direction, color temperature, and softness`,
-    '- Re-shade hair highlights and skin tones for consistency with the scene',
-    '- Soft natural edges where faces meet hair/clothing — no sharp cutout look',
-    '- Apply uniform color grading across the whole frame as if shot on the same camera',
-    ...NEGATIVES,
-    '',
-    'Style: Professional wedding photography, photorealistic, cinematic.',
-  ].join('\n');
-}
-
-/**
- * (C) 앵커 후보 생성 — 카탈로그 reference 없음.
- *   * 셀카 모드: image_urls = [신랑얼굴, 신부얼굴] (총 2장)
- *   * 커플 모드: image_urls = [커플사진] (총 1장)
- *
- * 카탈로그 단계 reference 로 재사용할 깨끗한 베이스라인 컷을 만든다.
- * baselineSceneHint 에 ANCHOR_BASELINE + framingHint 를 합쳐 전달.
- */
-/**
- * 앵커 전용 NATURAL INTEGRATION 섹션 — half-body / full-body 처럼 신체가
- * 많이 보이는 framing 에서 자주 발생하는 두 가지 실패 모드를 적극 차단:
- *   1) 머리 비대증 — face fidelity 강조 때문에 모델이 얼굴을 zoom 해서 그림
- *   2) paste-in 룩  — 인물·배경이 따로 그려진 합성처럼 보임
- * NEGATIVES 와 별도로 양성 instruction 으로 한 번 더 강조.
+ * 앵커 전용 — half-body 같은 framing 에서 머리 비대증 / paste-in 룩 차단.
+ * NEGATIVES 와 별도의 양성 instruction.
  */
 const ANCHOR_INTEGRATION = [
   '',
-  'ANATOMICAL PROPORTIONS — critical for half-body, three-quarter, and full-body framings:',
+  'ANATOMICAL PROPORTIONS — critical when the framing shows the body (half-body):',
   '- Head height is roughly 1/7 to 1/8 of total body height (natural adult ratio). Shoulders about 2x head width.',
-  '- DO NOT enlarge, zoom into, or up-scale the face when the target framing is anything other than a tight chest-up close-up. The face is the IDENTITY reference, NOT the focal scale.',
+  '- DO NOT enlarge, zoom into, or up-scale the face when the target framing is not a tight chest-up close-up. The face is the IDENTITY reference, NOT the focal scale.',
   '- Neck-to-shoulder transition must be smooth and realistic — no oversized head perched on a smaller body, no shrunken torso.',
-  '- Maintain the natural face size for the camera distance implied by the framing (50–85mm portrait lens for half-body, 35–50mm for full-body).',
+  '- Maintain the natural face size for a 50–85mm portrait lens at the chosen camera distance.',
   '',
-  'NATURAL INTEGRATION — top priority for half-body and full-body framings:',
-  '- Subjects MUST look photographed inside the scene by a single physical camera — not pasted on top of it.',
-  '- Apply uniform studio lighting, a single consistent color grade, identical micro-grain, identical contrast curve, and identical white balance across subjects and background. There is one camera, one exposure.',
+  'NATURAL INTEGRATION — top priority for half-body framing:',
+  '- Subject MUST look photographed inside the scene by a single physical camera — not pasted on top of it.',
+  '- Apply uniform studio lighting, a single consistent color grade, identical micro-grain, identical contrast curve, and identical white balance across subject and background. There is one camera, one exposure.',
   '- Re-light hair, skin, and clothing so the light direction and softness match the backdrop softboxes.',
-  '- Add a soft light wrap (rim light) on shoulders, hair edges, and the bouquet so silhouettes blend with the backdrop.',
+  '- Add a soft light wrap (rim light) on shoulders, hair edges, and the bouquet so the silhouette blends with the backdrop.',
   '- Allow soft natural imperfection at the edges of hair and clothing — flyaway strands, fabric falloff, light scatter — instead of perfectly clean cutout edges.',
-  '- A subtle environmental color cast from the backdrop bounces softly onto skin and clothing edges so subjects belong in the light.',
-  '- For half-body or longer: add a subtle directional shadow on the backdrop behind the couple, matching the softbox direction.',
-  '- For full-body: add a soft ambient-occlusion contact shadow where shoes meet the polished floor, and a slight floor reflection beneath them. The dress hem should rest on the floor, never float.',
-  '- Edges where hair, clothing, the bouquet, or the dress veil meet the background must be soft and natural — no sharp masks, no halos, no color fringing.',
-  '- Match the depth of field of the subjects with the background falloff; no mismatched sharpness.',
+  '- A subtle environmental color cast from the backdrop bounces softly onto skin and clothing edges so the subject belongs in the light.',
+  '- Add a subtle directional shadow on the backdrop behind the subject, matching the softbox direction.',
+  '- Edges where hair, clothing, bouquet, or veil meet the background must be soft and natural — no sharp masks, no halos, no color fringing.',
+  '- Match the depth of field of the subject with the background falloff; no mismatched sharpness.',
 ];
 
-export interface AnchorSelfiesPromptOpts {
-  groom?: BodyMetrics;
-  bride?: BodyMetrics;
-  /** 신랑 reference 이미지 수 (1 or 3). 기본 1. */
-  groomFaceCount?: number;
-  /** 신부 reference 이미지 수 (1 or 3). 기본 1. */
-  brideFaceCount?: number;
+/**
+ * 카탈로그 전용 — 카탈로그 마스터 reference 로 합성할 때 paste-in 차단.
+ * 앵커 단계의 ANCHOR_INTEGRATION 보다 짧게 (catalog promptHint 가 이미 풍부).
+ */
+const CATALOG_INTEGRATION = [
+  '',
+  'NATURAL INTEGRATION (subject ↔ scene):',
+  "- Re-light the subject(s) to match the catalog scene's primary light direction, color temperature, and softness.",
+  "- Apply a single consistent color grade, identical white balance and contrast curve, across subject(s) and background — one camera, one exposure.",
+  "- Soft natural edges around hair, clothing, bouquet — no sharp cutout halos, no color fringing.",
+  '- Subtle environmental color cast from the scene bounces softly onto skin and clothing.',
+  '- Maintain anatomical head-to-body proportions (head ≈ 1/7–1/8 of body height); do NOT enlarge the face beyond natural size.',
+];
+
+// ──────────────────────────────────────────────────────────────
+// 얼굴 reference 이미지 N장 → 슬롯 번호 매핑 (1 or 3 angles per person)
+// ──────────────────────────────────────────────────────────────
+
+function faceReferenceLine(
+  role: 'groom' | 'bride',
+  faceCount: number,
+  startIdx: number,
+): { line: string; nextIdx: number; ref: string } {
+  if (faceCount <= 1) {
+    return {
+      line: `- Image ${startIdx} = ${role === 'groom' ? 'Groom' : 'Bride'} face reference (frontal close-up).`,
+      nextIdx: startIdx + 1,
+      ref: `Image ${startIdx}`,
+    };
+  }
+  const end = startIdx + faceCount - 1;
+  return {
+    line: `- Images ${startIdx}–${end} = ${role === 'groom' ? 'Groom' : 'Bride'} face references at ${faceCount} angles (in order: frontal, left ~45°, right ~45°). Synthesize a consistent 3D understanding of the face.`,
+    nextIdx: end + 1,
+    ref: `Images ${startIdx}–${end}`,
+  };
 }
 
-export function buildAnchorPromptSelfies(
-  baselineSceneHint: string,
-  opts?: AnchorSelfiesPromptOpts,
-): string {
-  const groomCount = opts?.groomFaceCount ?? 1;
-  const brideCount = opts?.brideFaceCount ?? 1;
-  const total = groomCount + brideCount;
-  const { lines: faceLines, groomRef, brideRef } = faceReferenceLines(groomCount, brideCount);
-  const bodySection = buildBodySection(opts?.groom, opts?.bride);
+// ──────────────────────────────────────────────────────────────
+// (A) Solo 앵커 생성 — 한 명만 reference 로 받음
+// ──────────────────────────────────────────────────────────────
+
+export interface AnchorSoloPromptOpts {
+  /** 어느 사람의 앵커인지 */
+  slot: AnchorSlot;
+  /** baselineSceneHint = ANCHOR_BASELINE + ANCHOR_ATTIRE[slot] + framingHint 결합 */
+  baselineSceneHint: string;
+  /** 셀카 reference 이미지 수 (1 or 3) */
+  faceCount?: number;
+  /** 해당 사람의 체형 가이드 (있으면) */
+  body?: BodyMetrics;
+}
+
+export function buildAnchorPromptSolo(opts: AnchorSoloPromptOpts): string {
+  const faceCount = opts.faceCount ?? 1;
+  const role = opts.slot;
+  const { line: faceLine, ref } = faceReferenceLine(role, faceCount, 1);
+  const personGuide = opts.body ? buildPersonGuide(role, opts.body) : null;
+  const bodySection = personGuide
+    ? [
+        '',
+        'BODY PROPORTIONS:',
+        personGuide,
+        '- Keep the face strictly from the face reference image(s); only the body silhouette and proportions follow the guide above.',
+        '- Tailor wedding attire to drape naturally on the described build (no shrink-wrap, no padding mismatch).',
+      ]
+    : [];
+
   return [
-    `Compose a clean wedding anchor portrait using ${total} input image${total > 1 ? 's' : ''}:`,
-    ...faceLines,
+    `Compose a clean solo wedding anchor portrait using ${faceCount} input image${faceCount > 1 ? 's' : ''}:`,
+    faceLine,
     '',
-    `Scene & framing: ${baselineSceneHint}`,
+    `Scene & framing: ${opts.baselineSceneHint}`,
     '',
     'IDENTITY FIDELITY (match identity, not scale):',
-    `- Match the groom's identity from ${groomRef} (eye shape, nose bridge, jawline, skin tone/texture, hair style/color) precisely — but render the face at the anatomically correct size for the chosen framing. Identity, NOT scale.`,
-    `- Match the bride's identity from ${brideRef} the same way.`,
-    '- Do NOT blend the two faces. Groom face references describe the groom only, bride face references describe the bride only.',
+    `- Match the ${role === 'groom' ? "groom's" : "bride's"} identity from ${ref} (eye shape, nose bridge, jawline, skin tone/texture, hair style/color) precisely — but render the face at the anatomically correct size for the chosen framing. Identity, NOT scale.`,
+    faceCount > 1
+      ? '- Multi-angle references describe a single 3D face. Reconcile them into one consistent face; do NOT produce different-looking siblings.'
+      : '- The single reference face is frontal — extrapolate plausible 3D shape without identity drift.',
+    `- The frame contains ONLY the ${role === 'groom' ? 'groom' : 'bride'} (one person). Do NOT add a second person.`,
     '- Do NOT enlarge or up-scale the face in order to make the identity more obvious — preserve natural head-to-body proportions.',
-    groomCount > 1 || brideCount > 1
-      ? '- Multi-angle references describe a single 3D face per person. Reconcile them into one consistent face; do NOT produce different-looking siblings.'
-      : '- The single reference face per person is frontal — extrapolate side angles plausibly when the framing demands it, without introducing identity drift.',
     ...bodySection,
     ...ANCHOR_INTEGRATION,
     ...NEGATIVES,
     '',
-    'Style: Professional wedding photography, photorealistic, cinematic. Faces are sharp but rendered at natural anatomical size.',
+    'Style: Professional wedding photography, photorealistic, cinematic. Face is sharp but rendered at natural anatomical size.',
   ].join('\n');
 }
 
-export function buildAnchorPromptCouple(
-  baselineSceneHint: string,
-  body?: { groom?: BodyMetrics; bride?: BodyMetrics },
-): string {
-  const bodySection = buildBodySection(body?.groom, body?.bride);
-  return [
-    'Compose a clean wedding anchor portrait using ONE input image:',
-    '- Image 1 = Couple photo. PRESERVE the two people exactly — faces, identities, body shapes, and their natural way of standing/leaning toward each other.',
-    '',
-    `Scene & framing: ${baselineSceneHint}`,
-    '',
-    'IDENTITY & POSE FIDELITY (match identity, not scale):',
-    '- Match the faces from Image 1 precisely — but render them at the anatomically correct size for the chosen framing. Identity, NOT scale.',
-    "- Replace casual / everyday outfits with the wedding attire specified in the scene, but keep the couple's natural pose, body proportions, and interaction.",
-    '- Keep camera angle and framing close to the requested anchor framing above.',
-    '- Do NOT enlarge or up-scale the faces to emphasize identity — preserve natural head-to-body proportions implied by the framing.',
-    ...bodySection,
-    ...ANCHOR_INTEGRATION,
-    ...NEGATIVES,
-    '',
-    'Style: Professional wedding photography, photorealistic, cinematic. Faces are sharp but rendered at natural anatomical size.',
-  ].join('\n');
-}
+// ──────────────────────────────────────────────────────────────
+// (B) Together 카탈로그 — groom-anchor + bride-anchor + catalog
+// ──────────────────────────────────────────────────────────────
 
-/**
- * (D) 앵커 기반 카탈로그 생성 — 앵커 1장 + 카탈로그 마스터샘플 (image_urls 총 2장)
- *
- * 앵커가 이미 얼굴/체형/스타일을 안정화시켜 두었으므로, 카탈로그 생성 시에는
- * 두 얼굴을 다시 블렌딩할 필요 없이 앵커 1장을 정체성 reference 로 쓰고
- * 카탈로그 마스터샘플로 새 scene 을 입힌다. 셀카 2장 합성 대비:
- *   * face fidelity 가 훨씬 안정적 (single-face reference)
- *   * 50컷 사이의 정체성 일관성 보장
- *   * 비용 동일 (image_urls 길이만 다름)
- */
-export function buildAnchoredCatalogPrompt(input: SnapPromptInput | string): string {
+export function buildTogetherCatalogPrompt(input: SnapPromptInput | string): string {
   const opts: SnapPromptInput =
     typeof input === 'string' ? { catalogPromptHint: input } : input;
   const bodySection = buildBodySection(opts.groom, opts.bride);
 
   return [
-    'Compose a wedding portrait using TWO input images:',
-    "- Image 1 = Anchor portrait of the same couple. This is the canonical identity reference — preserve both faces, hair, and body proportions exactly as in this image.",
-    "- Image 2 = Composition reference. Take the pose, framing, camera angle, depth of field, background, outfits, and overall lighting setup from this image.",
+    'Compose a couple wedding portrait using THREE input images:',
+    '- Image 1 = Groom anchor (solo portrait of the groom). PRESERVE his face, hair, skin tone, and body proportions exactly.',
+    '- Image 2 = Bride anchor (solo portrait of the bride). PRESERVE her face, hair, skin tone, and body proportions exactly.',
+    "- Image 3 = Composition reference (catalog master). Replicate this image's pose, framing, camera angle, depth of field, background, outfits, lighting, and overall composition.",
     '',
     `Scene context: ${opts.catalogPromptHint}`,
     '',
-    'FRAMING MISMATCH HANDLING (very important):',
-    "- Image 1 (anchor) may be cropped differently from Image 2 (target framing) — e.g. anchor is a close-up while target is a full-body shot, or vice versa.",
-    "- Use Image 1 as the canonical identity/body reference and RE-RENDER the couple at whatever scale and framing Image 2 demands. Crop, extend, or zoom as needed.",
-    "- Face, hair, skin, and body proportion details from Image 1 must persist regardless of the framing change.",
-    "- If Image 1 is a close-up and Image 2 is full-body, extrapolate the body below the anchor crop consistent with the body guide below (height/weight) and the anchor's visible shoulders/neck.",
-    "- If Image 1 is full-body and Image 2 is a close-up, scale up the face from Image 1 while preserving sharpness and identity — do not let the face become soft or generic.",
+    'IDENTITY FIDELITY — strict role assignment:',
+    "- Image 1's groom → the groom position in Image 3. Image 2's bride → the bride position. Do NOT swap, do NOT blend the two faces.",
+    "- Face details (eye shape, nose bridge, jawline, skin tone/texture, hair style/color) must clearly match each respective anchor.",
+    '- Do NOT add additional people not present in the anchors.',
     '',
-    'IDENTITY FIDELITY (from Image 1 — strict):',
-    '- Faces of both groom and bride must match Image 1 with high fidelity (eye shape, nose bridge, jawline, skin tone/texture, hair style/color).',
-    '- Body proportions and silhouettes should remain consistent with Image 1.',
-    '- Do NOT introduce people who are not in Image 1.',
+    'FRAMING MISMATCH HANDLING (anchors may be close-up while catalog is full-body, etc.):',
+    '- Use anchors as canonical identity / body references and RE-RENDER each person at the scale demanded by Image 3.',
+    "- If an anchor is close-up and Image 3 is full-body, extrapolate the body below the anchor crop using the body guide and the anchor's visible shoulders/neck.",
+    '- If an anchor is half-body and Image 3 is close-up, scale up the face without softness or identity loss.',
     '',
-    'COMPOSITION (from Image 2 — replicate):',
-    '- Pose, body positions, gestures, hand positions',
+    'COMPOSITION (from Image 3 — replicate):',
+    '- Pose, body positions, gestures, hand positions, interaction between the two',
     '- Camera angle, framing, depth of field, lens character',
     '- Background, environment, outfits, props',
     ...bodySection,
-    '',
-    'NATURAL INTEGRATION:',
-    "- Re-light the couple to match Image 2's primary light direction, color temperature, and softness",
-    '- Soft natural edges where faces meet hair/clothing — no sharp cutout look',
-    '- Apply uniform color grading across the whole frame as if shot on the same camera',
+    ...CATALOG_INTEGRATION,
     ...NEGATIVES,
     '',
     'Style: Professional wedding photography, photorealistic, cinematic.',
   ].join('\n');
 }
 
-/**
- * (B) 커플 사진 1장 + 카탈로그 마스터샘플 (image_urls 총 2장)
- *
- * 사용자 커플 사진의 포즈/구도/상호작용/체형은 그대로 두고, 카탈로그의 의상·
- * 배경·조명 톤만 입힌다. 셀카 합성보다 정체성 일관성과 신체 비율 사실성이
- * 강해, 좋은 커플 사진을 가진 사용자에게 권장되는 경로.
- */
+// ──────────────────────────────────────────────────────────────
+// (C) Solo 카탈로그 — one-anchor + catalog (신랑만 또는 신부만)
+// ──────────────────────────────────────────────────────────────
+
+export interface SoloCatalogPromptOpts extends SnapPromptInput {
+  slot: AnchorSlot;
+}
+
+export function buildSoloCatalogPrompt(opts: SoloCatalogPromptOpts): string {
+  const role = opts.slot;
+  const bodyMetrics = role === 'groom' ? opts.groom : opts.bride;
+  const personGuide = bodyMetrics ? buildPersonGuide(role, bodyMetrics) : null;
+  const bodySection = personGuide
+    ? [
+        '',
+        'BODY PROPORTIONS:',
+        personGuide,
+        '- Keep the face strictly from Image 1; only the body silhouette and proportions follow the guide above.',
+      ]
+    : [];
+
+  return [
+    `Compose a SOLO ${role === 'groom' ? 'groom' : 'bride'} wedding portrait using TWO input images:`,
+    `- Image 1 = ${role === 'groom' ? 'Groom' : 'Bride'} anchor (solo portrait). PRESERVE the face, hair, skin tone, and body proportions exactly.`,
+    "- Image 2 = Composition reference (catalog master). Replicate pose, framing, camera angle, depth of field, background, outfit, lighting, and composition.",
+    '',
+    `Scene context: ${opts.catalogPromptHint}`,
+    '',
+    'IDENTITY FIDELITY:',
+    `- Image 1's face is the ${role === 'groom' ? 'groom' : 'bride'} — match this identity precisely (eye shape, nose bridge, jawline, skin tone/texture, hair style/color).`,
+    `- The output contains ONLY the ${role === 'groom' ? 'groom' : 'bride'} (one person). Do NOT add a ${role === 'groom' ? 'bride' : 'groom'} or any second person, even if the catalog master suggests space for one.`,
+    '',
+    'FRAMING MISMATCH HANDLING:',
+    "- Image 1 (anchor) may be cropped differently from Image 2. Use Image 1 as the canonical identity / body reference and RE-RENDER at whatever scale Image 2 demands.",
+    "- Extrapolate body parts not visible in Image 1 using the body guide (if any) and the anchor's visible shoulders.",
+    '',
+    'COMPOSITION (from Image 2 — replicate):',
+    '- Pose, body position, gesture, hand position',
+    '- Camera angle, framing, depth of field, lens character',
+    '- Background, environment, outfit, props',
+    ...bodySection,
+    ...CATALOG_INTEGRATION,
+    ...NEGATIVES,
+    '',
+    'Style: Professional wedding photography, photorealistic, cinematic.',
+  ].join('\n');
+}
+
+// ──────────────────────────────────────────────────────────────
+// (D) 커플 사진 직결 — anchor 우회
+// ──────────────────────────────────────────────────────────────
+
 export function buildCouplePhotoSnapPrompt(input: SnapPromptInput | string): string {
   const opts: SnapPromptInput =
     typeof input === 'string' ? { catalogPromptHint: input } : input;
@@ -355,8 +313,8 @@ export function buildCouplePhotoSnapPrompt(input: SnapPromptInput | string): str
 
   return [
     'Compose a wedding portrait using TWO input images:',
-    "- Image 1 = Couple photo. PRESERVE the two people exactly — faces, identities, body shapes, poses, hand positions, relative scale, eye lines, and their interaction with each other. This is the anchor.",
-    "- Image 2 = Style reference. Take outfits, background, environment, and overall lighting tone from this image.",
+    "- Image 1 = Couple photo. PRESERVE the two people exactly — faces, identities, body shapes, poses, hand positions, relative scale, eye lines, and their interaction with each other. This is the anchor for identity and pose.",
+    "- Image 2 = Style reference (catalog master). Take outfits, background, environment, and overall lighting tone from this image.",
     '',
     `Scene context: ${opts.catalogPromptHint}`,
     '',
@@ -371,11 +329,7 @@ export function buildCouplePhotoSnapPrompt(input: SnapPromptInput | string): str
     "- Match Image 2's lighting direction, color temperature, and softness across the whole frame",
     '- Add small wedding props (bouquet, boutonniere) only if naturally consistent with Image 2',
     ...bodySection,
-    '',
-    'NATURAL INTEGRATION:',
-    '- Re-light the people to match the new scene; do not paste them in flat',
-    '- Soft natural edges where hair / clothing meet the background — no cutout look',
-    '- Uniform color grading as if shot on the same camera in the new scene',
+    ...CATALOG_INTEGRATION,
     ...NEGATIVES,
     '',
     'Style: Professional wedding photography, photorealistic, cinematic.',
