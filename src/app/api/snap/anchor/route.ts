@@ -199,6 +199,37 @@ export async function DELETE() {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const admin = createAdminClient();
+
+  // 1. 현재 snap_anchors 행 읽기 (있으면 history 로 복사하기 위함).
+  const { data: current } = await admin
+    .from('snap_anchors')
+    .select(
+      'groom_anchor_url, bride_anchor_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, created_at',
+    )
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  // 2. 행이 있고 적어도 한쪽 URL 이 set 이면 history 에 보존. 둘 다 NULL 이면
+  //    아직 저장 안 된 상태(batch 만 만든 row) 라 history 가치 없음.
+  if (current && (current.groom_anchor_url || current.bride_anchor_url)) {
+    const { error: histErr } = await admin.from('snap_anchor_history').insert({
+      user_id: user.id,
+      groom_anchor_url: current.groom_anchor_url,
+      bride_anchor_url: current.bride_anchor_url,
+      source_mode: current.source_mode,
+      groom_height_cm: current.groom_height_cm,
+      groom_weight_kg: current.groom_weight_kg,
+      bride_height_cm: current.bride_height_cm,
+      bride_weight_kg: current.bride_weight_kg,
+      anchor_created_at: current.created_at,
+    });
+    if (histErr) {
+      // 히스토리 보존 실패는 본 흐름 차단 X (로그만) — 사용자 명령은 폐기.
+      console.warn('[snap/anchor delete] history insert failed', histErr);
+    }
+  }
+
+  // 3. snap_anchors 행 삭제.
   const { error } = await admin.from('snap_anchors').delete().eq('user_id', user.id);
   if (error) {
     console.error('[snap/anchor delete] error', error);

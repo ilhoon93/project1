@@ -17,19 +17,19 @@ import { logSnapJobSubmit } from '@/lib/snap/jobs';
 /**
  * POST /api/snap/anchor/generate
  *
- * Solo anchor batch — 한 번에 4 outputs (groom × 2 framings + bride × 2 framings).
- * 모두 high quality 로 — 평생 reference 자산이라 비용 정당화.
+ * Solo anchor batch — slot 별 2 outputs (closeup + halfbody) 을 한 번에
+ * fal 큐에 제출. slots 파라미터로 부분 재생성 가능:
+ *   * slots = ['groom', 'bride'] (default): 4 outputs, full batch
+ *   * slots = ['groom']: 2 outputs (신랑 closeup + halfbody)
+ *   * slots = ['bride']: 2 outputs (신부 closeup + halfbody)
  *
- * 요금 정책 (1회 무료 활성화):
- *   * snap_anchors 행이 없거나 last_batch_at 이 NULL → 무료 (첫 batch)
- *   * 그 외 → 재생성 batch. snap 크레딧 4 차감 (1 output 당 1 환산)
+ * 요금 정책:
+ *   * 첫 batch (snap_anchors 없거나 last_batch_at NULL): 무료. 단,
+ *     full batch 일 때만 — 부분 재생성은 항상 유료.
+ *   * 재생성 batch: 1 output 당 1 크레딧 (slots 길이 × 2). 즉
+ *     groom only = 2, bride only = 2, both = 4.
  *
- * 응답:
- *   { requestIds: [{ slot, framing, requestId }, ...], freeActivation: boolean }
- *
- * 클라이언트는 각 requestId 를 /api/snap/status 로 폴링하다 모두 COMPLETED 시
- * fal CDN URL 을 받아 4장 그리드로 표시, 사용자가 신랑 row + 신부 row 에서
- * 각 1장씩 선택 후 POST /api/snap/anchor 로 영구 저장.
+ * 응답: { requestIds: [{ slot, framing, requestId }, ...], freeActivation: boolean }
  */
 
 const BodyMetricsSchema = z.object({
@@ -37,16 +37,18 @@ const BodyMetricsSchema = z.object({
   weightKg: z.number().min(35).max(150),
 });
 
-// 셀카는 신랑/신부 각 1장 (정면) 또는 3장 (정면+좌45°+우45°).
+const SlotsSchema = z.array(z.enum(['groom', 'bride'])).min(1).max(2);
+
 const BodySchema = z.object({
   mode: z.literal('selfies'),
-  groomFaceUrls: z.array(z.string().url()).min(1).max(3),
-  brideFaceUrls: z.array(z.string().url()).min(1).max(3),
+  // 부분 재생성용. default = 둘 다.
+  slots: SlotsSchema.optional(),
+  // 셀카 URL — slots 에 포함된 사람의 URL 만 필수.
+  groomFaceUrls: z.array(z.string().url()).min(1).max(3).optional(),
+  brideFaceUrls: z.array(z.string().url()).min(1).max(3).optional(),
   groomBody: BodyMetricsSchema.optional(),
   brideBody: BodyMetricsSchema.optional(),
 });
-
-const REGEN_COST = 4;
 
 export const maxDuration = 30;
 
@@ -67,23 +69,46 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
+  // 정규화: slots 미지정이면 둘 다.
+  const slots: AnchorSlot[] = (input.slots ?? ['groom', 'bride']) as AnchorSlot[];
+  const uniqueSlots = Array.from(new Set(slots));
+
+  // 각 slot 에 해당하는 face URL 이 모두 있는지 검증.
+  if (uniqueSlots.includes('groom') && (!input.groomFaceUrls || input.groomFaceUrls.length === 0)) {
+    return NextResponse.json(
+      { error: '신랑 슬롯을 재생성하려면 신랑 셀카가 필요합니다.', code: 'missing_groom_faces' },
+      { status: 400 },
+    );
+  }
+  if (uniqueSlots.includes('bride') && (!input.brideFaceUrls || input.brideFaceUrls.length === 0)) {
+    return NextResponse.json(
+      { error: '신부 슬롯을 재생성하려면 신부 셀카가 필요합니다.', code: 'missing_bride_faces' },
+      { status: 400 },
+    );
+  }
+
   const admin = createAdminClient();
 
   // 1. 무료 활성화 여부 — snap_anchors 행이 없거나 last_batch_at NULL.
-  //    (마이그레이션 013 이 기존 사용자 last_batch_at 을 NULL 로 리셋해 무료 quota 재부여)
+  //    부분 재생성은 항상 유료 — 무료 quota 는 full batch 만 적용.
   const { data: existing } = await admin
     .from('snap_anchors')
     .select('last_batch_at')
     .eq('user_id', user.id)
     .maybeSingle();
-  const isFreeActivation = !existing || existing.last_batch_at === null;
+  const isFreshUser = !existing || existing.last_batch_at === null;
+  const isFullBatch = uniqueSlots.length === 2;
+  const isFreeActivation = isFreshUser && isFullBatch;
 
-  // 2. 유료 재생성이면 크레딧 4개 사전 차감.
-  if (!isFreeActivation) {
-    for (let i = 0; i < REGEN_COST; i += 1) {
+  // 2. 비용 계산 — 1 output 당 1 크레딧. slots 길이 × 2.
+  const cost = isFreeActivation ? 0 : uniqueSlots.length * 2;
+
+  // 3. 유료라면 크레딧 사전 차감 (cost 만큼).
+  if (cost > 0) {
+    for (let i = 0; i < cost; i += 1) {
       const { data: consume } = await admin.rpc('consume_snap_credit', {
         p_user_id: user.id,
-        p_note: `anchor_regen ${i + 1}/${REGEN_COST}`,
+        p_note: `anchor_regen ${uniqueSlots.join('+')} ${i + 1}/${cost}`,
       });
       const res = consume as { ok?: boolean; balance?: number } | null;
       if (!res?.ok) {
@@ -97,9 +122,9 @@ export async function POST(req: Request) {
         }
         return NextResponse.json(
           {
-            error: '앵커 재생성에는 4 스냅 크레딧이 필요합니다. 패키지를 구매해 주세요.',
+            error: `앵커 ${isFullBatch ? '재생성' : '부분 재생성'}에는 ${cost} 스냅 크레딧이 필요합니다. 패키지를 구매해 주세요.`,
             code: 'insufficient_credits',
-            requiredCredits: REGEN_COST,
+            requiredCredits: cost,
             currentBalance: res?.balance ?? 0,
           },
           { status: 402 },
@@ -108,8 +133,10 @@ export async function POST(req: Request) {
     }
   }
 
-  // 3. slot 별 reference image_urls 분기.
-  const refUrlsBySlot: Record<AnchorSlot, string[]> = {
+  // 4. slots 에 포함된 템플릿만 골라 제출.
+  const templates = ANCHOR_TEMPLATES.filter((t) => uniqueSlots.includes(t.slot));
+
+  const refUrlsBySlot: Record<AnchorSlot, string[] | undefined> = {
     groom: input.groomFaceUrls,
     bride: input.brideFaceUrls,
   };
@@ -123,7 +150,7 @@ export async function POST(req: Request) {
     return buildAnchorPromptSolo({
       slot: t.slot,
       baselineSceneHint,
-      faceCount: refUrlsBySlot[t.slot].length,
+      faceCount: (refUrlsBySlot[t.slot] ?? []).length,
       body: bodyBySlot[t.slot],
     });
   };
@@ -131,9 +158,10 @@ export async function POST(req: Request) {
   let submissions: Array<{ slot: AnchorSlot; framing: AnchorFraming; requestId: string }>;
   try {
     submissions = await Promise.all(
-      ANCHOR_TEMPLATES.map(async (t) => {
+      templates.map(async (t) => {
+        const faces = refUrlsBySlot[t.slot] ?? [];
         const requestId = await submitMultiImageEdit({
-          imageUrls: refUrlsBySlot[t.slot],
+          imageUrls: faces,
           prompt: buildPrompt(t),
           quality: 'high',
           imageSize: 'portrait_4_3',
@@ -153,8 +181,8 @@ export async function POST(req: Request) {
     );
   } catch (e) {
     console.error('[snap/anchor/generate] fal.queue.submit error', e);
-    if (!isFreeActivation) {
-      for (let i = 0; i < REGEN_COST; i += 1) {
+    if (cost > 0) {
+      for (let i = 0; i < cost; i += 1) {
         await admin.rpc('refund_snap_credit', {
           p_user_id: user.id,
           p_note: 'anchor_regen rollback (submit failure)',
@@ -169,16 +197,37 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 502 });
   }
 
-  // 4. snap_anchors 행 upsert — anchor URL 들은 아직 NULL (선택 전).
+  // 5. snap_anchors 행 upsert — 부분 재생성이면 기존 다른 slot URL 보존.
+  //    last_batch_at 갱신해 무료 quota 소진 처리.
+  const { data: currentRow } = await admin
+    .from('snap_anchors')
+    .select('groom_anchor_url, bride_anchor_url, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
   const upsertPayload = {
     user_id: user.id,
-    groom_anchor_url: null,
-    bride_anchor_url: null,
+    // 재생성 대상 slot 만 NULL 로 (선택 전 상태), 다른 slot 은 기존 값 유지.
+    groom_anchor_url: uniqueSlots.includes('groom')
+      ? null
+      : currentRow?.groom_anchor_url ?? null,
+    bride_anchor_url: uniqueSlots.includes('bride')
+      ? null
+      : currentRow?.bride_anchor_url ?? null,
     source_mode: 'selfies' as const,
-    groom_height_cm: input.groomBody?.heightCm ?? null,
-    groom_weight_kg: input.groomBody?.weightKg ?? null,
-    bride_height_cm: input.brideBody?.heightCm ?? null,
-    bride_weight_kg: input.brideBody?.weightKg ?? null,
+    // body metrics 도 재생성 대상 slot 의 값으로 갱신. 다른 slot 은 기존 값.
+    groom_height_cm: uniqueSlots.includes('groom')
+      ? input.groomBody?.heightCm ?? currentRow?.groom_height_cm ?? null
+      : currentRow?.groom_height_cm ?? null,
+    groom_weight_kg: uniqueSlots.includes('groom')
+      ? input.groomBody?.weightKg ?? currentRow?.groom_weight_kg ?? null
+      : currentRow?.groom_weight_kg ?? null,
+    bride_height_cm: uniqueSlots.includes('bride')
+      ? input.brideBody?.heightCm ?? currentRow?.bride_height_cm ?? null
+      : currentRow?.bride_height_cm ?? null,
+    bride_weight_kg: uniqueSlots.includes('bride')
+      ? input.brideBody?.weightKg ?? currentRow?.bride_weight_kg ?? null
+      : currentRow?.bride_weight_kg ?? null,
     last_batch_at: new Date().toISOString(),
   };
   const { error: upsertErr } = await admin
@@ -191,5 +240,7 @@ export async function POST(req: Request) {
   return NextResponse.json({
     requestIds: submissions,
     freeActivation: isFreeActivation,
+    slots: uniqueSlots,
+    cost,
   });
 }

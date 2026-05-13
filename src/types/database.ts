@@ -390,6 +390,36 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['snap_jobs']['Insert']>;
         Relationships: [];
       };
+      snap_anchor_history: {
+        Row: {
+          id: string;
+          user_id: string;
+          groom_anchor_url: string | null;
+          bride_anchor_url: string | null;
+          source_mode: 'selfies' | 'couple';
+          groom_height_cm: number | null;
+          groom_weight_kg: number | null;
+          bride_height_cm: number | null;
+          bride_weight_kg: number | null;
+          anchor_created_at: string | null;
+          discarded_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          groom_anchor_url?: string | null;
+          bride_anchor_url?: string | null;
+          source_mode: 'selfies' | 'couple';
+          groom_height_cm?: number | null;
+          groom_weight_kg?: number | null;
+          bride_height_cm?: number | null;
+          bride_weight_kg?: number | null;
+          anchor_created_at?: string | null;
+          discarded_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['snap_anchor_history']['Insert']>;
+        Relationships: [];
+      };
       publications: {
         Row: {
           id: string;
