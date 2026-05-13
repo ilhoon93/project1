@@ -105,13 +105,18 @@ const NEGATIVES = [
 /**
  * 앵커 전용 — half-body 같은 framing 에서 머리 비대증 / paste-in 룩 차단.
  * NEGATIVES 와 별도의 양성 instruction.
+ *
+ * 비율 cue 는 baseline 과 framingHint 에 이어 세 번째 layer — 모델이 face
+ * fidelity 강조 때문에 얼굴을 키우는 실패 모드가 끈질겨 중복 강조 필요.
  */
 const ANCHOR_INTEGRATION = [
   '',
-  'ANATOMICAL PROPORTIONS — critical when the framing shows the body (half-body):',
-  '- Head height is roughly 1/7 to 1/8 of total body height (natural adult ratio). Shoulders about 2x head width.',
+  'ANATOMICAL PROPORTIONS — CRITICAL when the framing shows the body (half-body):',
+  '- Head height MUST be 1/7.5 to 1/8 of total body height (lean toward 1/8 — the smaller side — if uncertain). Shoulders about 2x head width.',
+  '- For a half-body (waist-up) frame: the face occupies roughly 1/3 of the vertical frame height, NOT 1/2, NOT bigger. The torso below the face fills the remaining 2/3.',
   '- DO NOT enlarge, zoom into, or up-scale the face when the target framing is not a tight chest-up close-up. The face is the IDENTITY reference, NOT the focal scale.',
-  '- Neck-to-shoulder transition must be smooth and realistic — no oversized head perched on a smaller body, no shrunken torso.',
+  '- If you find yourself rendering the face larger than the natural anatomical size, STOP and re-render with a smaller face. An oversized head is a failure.',
+  '- Neck-to-shoulder transition must be smooth and realistic — no oversized head perched on a smaller body, no shrunken torso, no "bobblehead" effect.',
   '- Maintain the natural face size for a 50–85mm portrait lens at the chosen camera distance.',
   '',
   'NATURAL INTEGRATION — top priority for half-body framing:',
@@ -127,8 +132,9 @@ const ANCHOR_INTEGRATION = [
 ];
 
 /**
- * 카탈로그 전용 — 카탈로그 마스터 reference 로 합성할 때 paste-in 차단.
- * 앵커 단계의 ANCHOR_INTEGRATION 보다 짧게 (catalog promptHint 가 이미 풍부).
+ * 카탈로그 전용 — 카탈로그 마스터 reference 로 합성할 때 paste-in 차단 +
+ * 머리 비대증 차단. 앵커 단계의 ANCHOR_INTEGRATION 보다 짧지만 비율 cue 는
+ * 동일 강도로 유지.
  */
 const CATALOG_INTEGRATION = [
   '',
@@ -137,7 +143,13 @@ const CATALOG_INTEGRATION = [
   "- Apply a single consistent color grade, identical white balance and contrast curve, across subject(s) and background — one camera, one exposure.",
   "- Soft natural edges around hair, clothing, bouquet — no sharp cutout halos, no color fringing.",
   '- Subtle environmental color cast from the scene bounces softly onto skin and clothing.',
-  '- Maintain anatomical head-to-body proportions (head ≈ 1/7–1/8 of body height); do NOT enlarge the face beyond natural size.',
+  '',
+  'ANATOMICAL PROPORTIONS — CRITICAL (most common failure mode):',
+  '- Head height MUST be 1/7.5 to 1/8 of total body height (lean toward 1/8 if uncertain). Shoulders about 2x head width.',
+  '- For half-body framing: the face occupies roughly 1/3 of the vertical frame, NOT 1/2.',
+  '- DO NOT enlarge the face to emphasize identity. If the face appears even slightly oversized, re-render smaller.',
+  '- Match the face size to the catalog reference framing, not to the anchor crop. The anchor provides identity, the catalog provides scale.',
+  '- Expression: keep a soft closed-lip subtle smile (no teeth, no open-mouth grin) consistent with the anchor, unless the catalog scene explicitly demands otherwise.',
 ];
 
 // ──────────────────────────────────────────────────────────────
