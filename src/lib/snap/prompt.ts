@@ -93,6 +93,10 @@ const NEGATIVES = [
   '',
   'QUALITY REQUIREMENTS — strictly AVOID:',
   '- Plastic, waxy, or overly smooth skin texture (preserve realistic pores and natural micro-detail)',
+  '- Beauty filter look, airbrushed, or over-retouched skin (must have natural skin micro-detail)',
+  '- Plastic doll-like or wax-figure face appearance (must look like a real photographed human)',
+  '- Soft feathered chin or jawline, glow halo around the face or hairline (must be a sharp natural edge)',
+  '- Digital-clean look with zero grain or texture (must have very subtle photographic film grain / sensor noise)',
   '- Asymmetric or misaligned eyes, lopsided pupils, drifting gaze',
   '- Extra, missing, or malformed fingers; deformed hands or wrists',
   '- Distorted, crooked, or missing teeth when smiling',
@@ -100,6 +104,35 @@ const NEGATIVES = [
   '- Blurry faces while the background is sharp (faces must be the sharpest area)',
   '- Oversharpened artifacts, unnatural HDR look, or overcooked color saturation',
   '- Identity drift — the synthesized faces must clearly match the face reference image(s)',
+];
+
+/**
+ * 포토리얼리즘 양성 cue — 모든 prompt 빌더에 주입.
+ *
+ * gpt-image-2 의 default 출력은 "디지털 클린" — pores 없고, 그레인 없고,
+ * 머리카락이 뭉뚱그려지고, 턱선이 부드럽게 페더링된다. NEGATIVES (음성) 만으로는
+ * 모델이 안전한 smooth 로 회귀하므로 명시적 양성 cue 로 균형을 잡는다.
+ *
+ * 사용자 우선순위 매핑:
+ *   1. 머리카락 디테일 ─ fine hair strands + flyaways
+ *   2. 피부 텍스처     ─ realistic pores + micro-imperfections + RAW DSLR
+ *   3. 미세 그레인     ─ subtle 35mm film grain / sensor noise
+ *   4. 턱선 feathering ─ sharp natural jawline edge, NO halo at chin/neck
+ *   5. 눈 주변         ─ clear iris detail, defined shadowing, soft catchlights
+ *
+ * 빌더별 주입: buildAnchorPromptSolo / buildTogetherCatalogPrompt /
+ * buildSoloCatalogPrompt / buildCouplePhotoSnapPrompt 4개 모두에 적용.
+ */
+const PHOTOREALISM = [
+  '',
+  'PHOTOREALISM — render as a RAW DSLR photograph (50–85mm portrait lens):',
+  '- Realistic skin texture with visible natural pores and subtle micro-imperfections (small moles, faint texture variation) — NOT smoothed flat.',
+  '- Fine individual hair strands visible at the hairline edges; gentle natural flyaways that catch the light.',
+  '- Natural fabric wrinkles, weave, and folds on suit / dress / shirt — fabric must read as real cloth, not plastic or vinyl.',
+  '- Cinematic skin tones with a subtle warm/cool gradient across the face (not flat color).',
+  '- Sharp natural jawline and hairline edges. NO soft halo, NO feathering, NO glow at chin / neck / hair contour.',
+  '- Defined eye area: clear iris detail with visible color variation, subtle natural shadowing under the brow, soft warm catchlights in the eyes.',
+  '- Very subtle 35mm film grain / faint sensor noise across the entire image — barely perceptible but enough to break the AI-clean digital look.',
 ];
 
 /**
@@ -221,6 +254,7 @@ export function buildAnchorPromptSolo(opts: AnchorSoloPromptOpts): string {
     '- Do NOT enlarge or up-scale the face in order to make the identity more obvious — preserve natural head-to-body proportions.',
     ...bodySection,
     ...ANCHOR_INTEGRATION,
+    ...PHOTOREALISM,
     ...NEGATIVES,
     '',
     'Style: Professional wedding photography, photorealistic, cinematic. Face is sharp but rendered at natural anatomical size.',
@@ -260,6 +294,7 @@ export function buildTogetherCatalogPrompt(input: SnapPromptInput | string): str
     '- Background, environment, outfits, props',
     ...bodySection,
     ...CATALOG_INTEGRATION,
+    ...PHOTOREALISM,
     ...NEGATIVES,
     '',
     'Style: Professional wedding photography, photorealistic, cinematic.',
@@ -308,6 +343,7 @@ export function buildSoloCatalogPrompt(opts: SoloCatalogPromptOpts): string {
     '- Background, environment, outfit, props',
     ...bodySection,
     ...CATALOG_INTEGRATION,
+    ...PHOTOREALISM,
     ...NEGATIVES,
     '',
     'Style: Professional wedding photography, photorealistic, cinematic.',
@@ -342,6 +378,7 @@ export function buildCouplePhotoSnapPrompt(input: SnapPromptInput | string): str
     '- Add small wedding props (bouquet, boutonniere) only if naturally consistent with Image 2',
     ...bodySection,
     ...CATALOG_INTEGRATION,
+    ...PHOTOREALISM,
     ...NEGATIVES,
     '',
     'Style: Professional wedding photography, photorealistic, cinematic.',

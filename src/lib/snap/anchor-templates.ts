@@ -48,12 +48,19 @@ export interface AnchorTemplate {
 export const ANCHOR_BASELINE =
   'Clean indoor studio with seamless neutral gray backdrop, two-source softbox lighting from front-left and front-right with a subtle floor pickup creating a soft natural shadow under the subject, polished floor that gently reflects the lighting, editorial wedding portrait atmosphere. Expression: a soft, closed-lip subtle smile — corners of the mouth gently lifted by a small amount, lips closed (no teeth showing, no open-mouth grin), eyes warm and relaxed, calm and composed, never staged or forced. The whole image is captured by a single physical camera at the location — same exposure, white balance, contrast curve, micro-grain across subject and background. Lighting wraps softly around shoulders and hair so the subject feels integrated with the backdrop, no cut-out or paste-in look. Anatomically realistic proportions are CRITICAL — head height MUST be approximately 1/7.5 to 1/8 of total body height (lean toward the smaller 1/8 ratio if uncertain), shoulders about 2x head width, neck-to-shoulder transition smooth and realistic. DO NOT enlarge or zoom into the face for half-body framing — the face is the natural size at the chosen camera distance. If the rendered face appears even slightly larger than 1/8 of body height in a half-body shot, it is wrong. Face is identity reference, NOT scale.';
 
-/** slot 별 의상 + 단독 보장 cue — 단독 컷이라 명시적으로 "alone in the frame". */
+/**
+ * slot 별 의상 + 단독 보장 cue — 단독 컷이라 명시적으로 "alone in the frame".
+ *
+ * 신부 skin note: PHOTOREALISM 블록의 "realistic pores + micro-imperfections" 가
+ * 신부 컨텍스트에서 too rough 해지지 않도록 makeup-aware 로 살짝 약화. K-beauty
+ * 의 자연스러운 base + light enhancement 미감 유지. pores 는 보이되 flat 하게
+ * 뭉개지 않음.
+ */
 export const ANCHOR_ATTIRE: Record<AnchorSlot, string> = {
   groom:
     'Groom alone in the frame (no second person, no bride, no other people visible). Dressed in a black peak-lapel tuxedo with a crisp white dress shirt and a black bow tie.',
   bride:
-    'Bride alone in the frame (no second person, no groom, no other people visible). Dressed in an ivory A-line wedding dress with an off-shoulder neckline and a lace bodice, holding a small bouquet of white flowers.',
+    "Bride alone in the frame (no second person, no groom, no other people visible). Dressed in an ivory A-line wedding dress with an off-shoulder neckline and a lace bodice, holding a small bouquet of white flowers. Bride's skin shows natural micro-texture under tasteful light bridal makeup — pores remain visible but softened, NEVER smoothed flat or airbrushed.",
 };
 
 export const ANCHOR_TEMPLATES: AnchorTemplate[] = [
