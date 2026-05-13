@@ -6,6 +6,8 @@ import { GPT_IMAGE_MODEL, submitMultiImageEdit } from '@/lib/fal/client';
 import {
   ANCHOR_ATTIRE,
   ANCHOR_BASELINE,
+  ANCHOR_EXPRESSION_NEUTRAL,
+  ANCHOR_EXPRESSION_SLIGHT_SMILE,
   ANCHOR_TEMPLATES,
   type AnchorFraming,
   type AnchorSlot,
@@ -48,6 +50,8 @@ const BodySchema = z.object({
   brideFaceUrls: z.array(z.string().url()).min(1).max(3).optional(),
   groomBody: BodyMetricsSchema.optional(),
   brideBody: BodyMetricsSchema.optional(),
+  // 사용자 옵션 — 체크하면 약간 미소 표정, 안 하면 차분한 자연 표정.
+  slightSmile: z.boolean().optional(),
 });
 
 export const maxDuration = 30;
@@ -145,8 +149,13 @@ export async function POST(req: Request) {
     bride: input.brideBody,
   };
 
+  // 옵션 미선택 = 차분한 자연 표정. 선택 = 옅은 미소.
+  const expressionCue = input.slightSmile
+    ? ANCHOR_EXPRESSION_SLIGHT_SMILE
+    : ANCHOR_EXPRESSION_NEUTRAL;
+
   const buildPrompt = (t: AnchorTemplate) => {
-    const baselineSceneHint = `${ANCHOR_BASELINE}\n${ANCHOR_ATTIRE[t.slot]}\nFraming: ${t.framingHint}`;
+    const baselineSceneHint = `${ANCHOR_BASELINE}\n${expressionCue}\n${ANCHOR_ATTIRE[t.slot]}\nFraming: ${t.framingHint}`;
     return buildAnchorPromptSolo({
       slot: t.slot,
       baselineSceneHint,

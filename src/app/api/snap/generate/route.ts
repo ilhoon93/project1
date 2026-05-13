@@ -183,18 +183,10 @@ export async function POST(req: Request) {
     pathLabel = 'couple';
   } else {
     pathLabel = 'anchored';
-    // catalogMeta: framing / pose / cameraDistance — anchor 우위를 누르고
-    // 카탈로그의 포즈/스케일/카메라를 강제. 메타가 없는 카탈로그는 헬퍼가 자동 무시.
-    const catalogMeta = {
-      framing: catalog.framing,
-      pose: catalog.pose,
-      cameraDistance: catalog.cameraDistance,
-    };
     if (catalog.personality === 'together') {
       imageUrls = [anchor!.groom_anchor_url!, anchor!.bride_anchor_url!, catalogUrl];
       prompt = buildTogetherCatalogPrompt({
         catalogPromptHint: catalog.promptHint,
-        catalogMeta,
         groom: groomBody,
         bride: brideBody,
       });
@@ -203,7 +195,6 @@ export async function POST(req: Request) {
       prompt = buildSoloCatalogPrompt({
         slot: 'groom',
         catalogPromptHint: catalog.promptHint,
-        catalogMeta,
         groom: groomBody,
       });
     } else {
@@ -212,7 +203,6 @@ export async function POST(req: Request) {
       prompt = buildSoloCatalogPrompt({
         slot: 'bride',
         catalogPromptHint: catalog.promptHint,
-        catalogMeta,
         bride: brideBody,
       });
     }
