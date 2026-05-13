@@ -1,19 +1,14 @@
 import { NextResponse } from 'next/server';
 import { z, ZodError } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { getImageEditResult } from '@/lib/fal/client';
-import { markSnapJobCompleted, markSnapJobFailed } from '@/lib/snap/jobs';
+import { finalizeSnapJob } from '@/lib/snap/finalize';
 
 /**
  * POST /api/snap/finalize
  *
- * fal.ai 큐 작업이 COMPLETED 된 뒤 호출. 결과 URL 을 받아 우리 Storage 에 저장하고
- * 영구 public URL 을 돌려준다 (fal.ai CDN 은 짧은 수명이라 재호스팅 필수).
- *
- * 무료 AI 와 달리 사용량 제한(ai_image_usage)을 적용하지 않는다 — 웨딩스냅은
- * 결제 단위로 N장을 만드는 유료 흐름이고, 결제 검증은 별도 라우트에서 다룬다.
- * 또 alone-standing 결과물(알림장 content 와 무관) 이라 invitation 갱신도 없음.
+ * 단일 finalize — 사용자가 페이지에 머무르며 폴링 후 호출. 새로운 비동기
+ * 흐름에서는 /api/snap/jobs/poll-pending 이 mypage 진입 시 일괄 처리하므로
+ * 이 엔드포인트는 호환성을 위해 유지.
  */
 
 const BodySchema = z.object({
@@ -24,14 +19,12 @@ const BodySchema = z.object({
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  // 1. Auth
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // 2. Validate body
   let input;
   try {
     input = BodySchema.parse(await req.json());
@@ -42,45 +35,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  // 3. fal.ai 결과 URL 가져오기 (이미 COMPLETED 상태여야 함).
-  let generatedUrl: string;
   try {
-    generatedUrl = await getImageEditResult(input.requestId);
-  } catch (e) {
-    console.error('[snap/finalize] fal.queue.result error', e);
-    void markSnapJobFailed(input.requestId, e instanceof Error ? e.message : 'result fetch failed');
-    return NextResponse.json(
-      { error: '결과 조회에 실패했습니다.' },
-      { status: 502 },
-    );
-  }
-
-  // 4. fal.ai CDN → 우리 public-images 버킷에 재호스팅.
-  let publicUrl: string;
-  try {
-    const blob = await fetch(generatedUrl).then((r) => {
-      if (!r.ok) throw new Error(`fetch generated image: ${r.status}`);
-      return r.blob();
+    const { url } = await finalizeSnapJob({
+      userId: user.id,
+      falRequestId: input.requestId,
+      catalogId: input.catalogId ?? null,
     });
-    const slug = input.catalogId ? `${input.catalogId}-` : '';
-    const path = `wedding-snap/${user.id}/${slug}${Date.now()}.jpg`;
-    const admin = createAdminClient();
-    const { error: upErr } = await admin.storage
-      .from('public-images')
-      .upload(path, blob, { contentType: 'image/jpeg', upsert: false });
-    if (upErr) throw upErr;
-    publicUrl = admin.storage.from('public-images').getPublicUrl(path).data.publicUrl;
+    return NextResponse.json({ url });
   } catch (e) {
-    console.error('[snap/finalize] storage upload error', e);
-    void markSnapJobFailed(input.requestId, e instanceof Error ? e.message : 'storage upload failed');
-    return NextResponse.json(
-      { error: '이미지 저장에 실패했습니다.' },
-      { status: 500 },
-    );
+    console.error('[snap/finalize] error', e);
+    const message = e instanceof Error ? e.message : 'finalize failed';
+    // 502 (외부) 와 500 (내부) 구분 — fal result 실패는 502, storage 는 500.
+    const status = message.startsWith('fal result fetch') ? 502 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
-
-  // snap_jobs 완료 마크 — 실패해도 본 응답 흐름에 영향 X.
-  void markSnapJobCompleted(input.requestId, publicUrl);
-
-  return NextResponse.json({ url: publicUrl });
 }

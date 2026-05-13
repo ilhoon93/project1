@@ -23,14 +23,10 @@ const MAX_POLL_ATTEMPTS = 60;
 
 type InputMode = 'selfies1' | 'selfies3' | 'couple';
 
-type Stage =
-  | 'idle'
-  | 'submitting'
-  | 'queued'
-  | 'in-progress'
-  | 'finalizing'
-  | 'done'
-  | 'error';
+// 카탈로그 생성 stage — 제출 직후 사용자가 페이지를 벗어나도 되게 비동기 모드.
+// 'submitted' 도달 후 SnapGenerator 는 더 이상 폴링하지 않음. 결과는 마이페이지
+// 갤러리에서 자동 finalize 됨 (POST /api/snap/jobs/poll-pending).
+type Stage = 'idle' | 'submitting' | 'submitted' | 'error';
 
 interface FaceState {
   url: string | null;
@@ -119,12 +115,10 @@ export function SnapGenerator({ catalog }: Props) {
 
   const [snapBalance, setSnapBalance] = useState<number | null>(null);
 
-  // 카탈로그 생성 상태
+  // 카탈로그 생성 상태 — 비동기 모드라 result/progressNote 같은 필드는 제거.
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [stage, setStage] = useState<Stage>('idle');
-  const [progressNote, setProgressNote] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [resultUrl, setResultUrl] = useState<string | null>(null);
 
   const groomRefs = [
     useRef<HTMLInputElement>(null),
@@ -138,8 +132,7 @@ export function SnapGenerator({ catalog }: Props) {
   ];
   const coupleRef = useRef<HTMLInputElement>(null);
 
-  const isProgressing =
-    stage === 'submitting' || stage === 'queued' || stage === 'in-progress' || stage === 'finalizing';
+  const isProgressing = stage === 'submitting';
   const isAnchorBusy = anchorStage === 'submitting' || anchorStage === 'polling' || anchorStage === 'saving';
 
   // 앵커가 "완전히" 저장됐는지 — 신랑/신부 둘 다 set.
@@ -279,10 +272,36 @@ export function SnapGenerator({ catalog }: Props) {
     brideFaces.slice(0, numAngles).map((f) => f.url).filter((u): u is string => !!u);
 
   // ── 앵커 batch 4장 (2 groom + 2 bride) 제출 ───────────────
-  const canGenerateAnchor = mode !== 'couple' && inputsReady && !isAnchorBusy;
+  // slot 별 셀카 준비 상태 — 부분 재생성 가능 여부.
+  const groomSelfiesReady = (() => {
+    for (let i = 0; i < numAngles; i += 1) {
+      if (!groomFaces[i].url) return false;
+    }
+    return true;
+  })();
+  const brideSelfiesReady = (() => {
+    for (let i = 0; i < numAngles; i += 1) {
+      if (!brideFaces[i].url) return false;
+    }
+    return true;
+  })();
 
-  const handleGenerateAnchorBatch = async () => {
-    if (!canGenerateAnchor) return;
+  const canGenerateAnchor = mode !== 'couple' && inputsReady && !isAnchorBusy;
+  const canRegenGroomOnly = mode !== 'couple' && groomSelfiesReady && !isAnchorBusy;
+  const canRegenBrideOnly = mode !== 'couple' && brideSelfiesReady && !isAnchorBusy;
+
+  // slots 인자로 부분 재생성 (groom only / bride only / both) 도 지원.
+  const handleGenerateAnchorBatch = async (slots: AnchorSlot[] = ['groom', 'bride']) => {
+    if (mode === 'couple' || isAnchorBusy) return;
+    // 슬롯별 입력 검증.
+    if (slots.includes('groom') && !groomSelfiesReady) {
+      setAnchorErr('신랑 셀카를 모두 업로드해주세요.');
+      return;
+    }
+    if (slots.includes('bride') && !brideSelfiesReady) {
+      setAnchorErr('신부 셀카를 모두 업로드해주세요.');
+      return;
+    }
     setAnchorErr(null);
     setAnchorStage('submitting');
     setPendingGroomRequestId(null);
@@ -291,10 +310,11 @@ export function SnapGenerator({ catalog }: Props) {
     const groomBodyValid = parseBody(groomBody);
     const brideBodyValid = parseBody(brideBody);
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       mode: 'selfies' as const,
-      groomFaceUrls: collectGroomUrls(),
-      brideFaceUrls: collectBrideUrls(),
+      slots,
+      ...(slots.includes('groom') ? { groomFaceUrls: collectGroomUrls() } : {}),
+      ...(slots.includes('bride') ? { brideFaceUrls: collectBrideUrls() } : {}),
       ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
       ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
     };
@@ -386,8 +406,17 @@ export function SnapGenerator({ catalog }: Props) {
     else setPendingBrideRequestId(c.requestId);
   };
 
+  // 현재 batch 에 포함된 slots — 부분 재생성 시 한 slot 만 있을 수 있음.
+  const batchSlots = anchorBatch
+    ? Array.from(new Set(anchorBatch.map((c) => c.slot)))
+    : [];
+  const groomNeeded = batchSlots.includes('groom');
+  const brideNeeded = batchSlots.includes('bride');
   const canSaveAnchor =
-    !!pendingGroomRequestId && !!pendingBrideRequestId && anchorStage !== 'saving';
+    !!anchorBatch &&
+    (groomNeeded ? !!pendingGroomRequestId : true) &&
+    (brideNeeded ? !!pendingBrideRequestId : true) &&
+    anchorStage !== 'saving';
 
   const handleSaveAnchor = async () => {
     if (!canSaveAnchor) return;
@@ -460,75 +489,14 @@ export function SnapGenerator({ catalog }: Props) {
     return true;
   })();
 
-  const pollUntilDone = async (requestId: string, catalogId: string) => {
-    let attempts = 0;
-    while (attempts < MAX_POLL_ATTEMPTS) {
-      attempts += 1;
-      try {
-        const res = await fetch(`/api/snap/status?id=${encodeURIComponent(requestId)}`);
-        const { data, text } = await parseRes(res);
-        if (!res.ok) {
-          throw new Error((data?.error as string | undefined) ?? text.slice(0, 80) ?? `HTTP ${res.status}`);
-        }
-        const status = data?.status as string | undefined;
-        const queuePosition = data?.queuePosition as number | undefined;
-        if (status === 'COMPLETED') {
-          await finalize(requestId, catalogId);
-          return;
-        }
-        if (status === 'FAILED') throw new Error('AI 생성에 실패했습니다.');
-        if (status === 'IN_QUEUE') {
-          setStage('queued');
-          setProgressNote(
-            queuePosition && queuePosition > 0
-              ? `대기열 ${queuePosition}번째에서 기다리는 중...`
-              : '대기열에서 기다리는 중...',
-          );
-        } else {
-          setStage('in-progress');
-          setProgressNote(`AI 가 합성하는 중... (${attempts * 5}초 경과)`);
-        }
-      } catch (e) {
-        setErrorMsg(e instanceof Error ? e.message : '상태 조회 실패');
-        setStage('error');
-        return;
-      }
-      await sleep(POLL_INTERVAL_MS);
-    }
-    setErrorMsg('생성이 너무 오래 걸려 중단했습니다.');
-    setStage('error');
-  };
-
-  const finalize = async (requestId: string, catalogId: string) => {
-    setStage('finalizing');
-    setProgressNote('결과 저장 중...');
-    try {
-      const res = await fetch('/api/snap/finalize', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ requestId, catalogId }),
-      });
-      const { data, text } = await parseRes(res);
-      if (!res.ok) {
-        throw new Error((data?.error as string | undefined) ?? text.slice(0, 80) ?? `HTTP ${res.status}`);
-      }
-      setResultUrl((data?.url as string | undefined) ?? null);
-      setStage('done');
-      setProgressNote(null);
-    } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : '결과 저장 실패');
-      setStage('error');
-    }
-  };
-
+  // submit-and-go: fal 큐에만 제출하고 폴링은 마이페이지가 담당. 사용자는
+  // 페이지를 자유롭게 떠나도 됨. 제출 직후 'submitted' 상태 + 안내 배너.
   const handleGenerateCatalog = async () => {
     if (!selectedId || !selectedCatalog) return;
     if (!canGenerateCatalog) return;
 
     setStage('submitting');
     setErrorMsg(null);
-    setResultUrl(null);
-    setProgressNote('AI 작업을 큐에 제출하는 중...');
 
     const groomBodyValid = parseBody(groomBody);
     const brideBodyValid = parseBody(brideBody);
@@ -560,24 +528,24 @@ export function SnapGenerator({ catalog }: Props) {
         }
         throw new Error((data?.error as string | undefined) ?? text.slice(0, 80) ?? `HTTP ${res.status}`);
       }
-      const requestId = data?.requestId as string | undefined;
-      if (!requestId) throw new Error('서버가 요청 ID를 돌려주지 않았습니다.');
       if (typeof data?.balance === 'number') setSnapBalance(data.balance);
 
-      setStage('queued');
-      setProgressNote('대기열에서 기다리는 중...');
-      void pollUntilDone(requestId, selectedId);
+      // 제출 성공 — selectedId 리셋해 사용자가 다른 컷을 또 제출하거나
+      // 페이지를 떠날 수 있게.
+      setSelectedId(null);
+      setStage('submitted');
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : '생성 실패');
       setStage('error');
-      setProgressNote(null);
     }
   };
 
   // ── 헬퍼 / 표시용 ───────────────────────────────────────
-  const showSelfieInputs = mode !== 'couple' && !hasFullAnchor;
+  // 셀카 모드 = 항상 입력 + 앵커 빌더 노출. 앵커 이미 저장됐어도 부분 재생성
+  // 가능해야 하므로 hide 하지 않음.
+  const showSelfieInputs = mode !== 'couple';
   const showCoupleInputs = mode === 'couple';
-  const showAnchorBuilder = mode !== 'couple' && !hasFullAnchor;
+  const showAnchorBuilder = mode !== 'couple';
 
   const pathHint = (() => {
     if (mode === 'couple') return '커플 사진 기반 (앵커 영향 없음)';
@@ -696,9 +664,9 @@ export function SnapGenerator({ catalog }: Props) {
 
         {mode !== 'couple' && hasFullAnchor && (
           <p className="mt-3 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-3 text-xs text-[#5C4633]">
-            ✓ 신랑/신부 앵커가 모두 저장되어 있어 사진 업로드 단계는 건너뜁니다.
-            새로 만들려면 위 상태 카드의 &ldquo;폐기&rdquo; 를 누르세요 (다음
-            batch 는 4 크레딧).
+            ✓ 신랑/신부 앵커가 저장되어 있어요. 카탈로그를 바로 선택할 수 있고,
+            얼굴이 마음에 안 들면 아래에서 셀카를 다시 업로드해 신랑/신부
+            슬롯별로 부분 재생성도 가능합니다.
           </p>
         )}
 
@@ -774,28 +742,68 @@ export function SnapGenerator({ catalog }: Props) {
             )}
           </p>
 
-          <div className="mt-3 flex items-center gap-3">
-            <Button
-              type="button"
-              onClick={() => void handleGenerateAnchorBatch()}
-              disabled={!canGenerateAnchor}
-            >
-              {anchorStage === 'submitting'
-                ? '제출 중...'
-                : anchorStage === 'polling'
-                  ? '생성 중...'
-                  : anchorStage === 'saving'
-                    ? '저장 중...'
-                    : anchorBatch
-                      ? '다시 만들기 (4 크레딧)'
-                      : anchorFreeAvail
-                        ? '앵커 후보 만들기 (무료)'
-                        : '앵커 후보 만들기 (4 크레딧)'}
-            </Button>
-            {!inputsReady && (
-              <span className="text-xs text-[#8B7355]">
-                {mode === 'selfies3' ? '신랑/신부 각 3장씩 업로드' : '신랑/신부 각 1장씩 업로드'}
-              </span>
+          <div className="mt-3 flex flex-col gap-2">
+            {anchorFreeAvail ? (
+              // 첫 batch — 전체 무료 1 button.
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  type="button"
+                  onClick={() => void handleGenerateAnchorBatch(['groom', 'bride'])}
+                  disabled={!canGenerateAnchor}
+                >
+                  {anchorStage === 'submitting'
+                    ? '제출 중...'
+                    : anchorStage === 'polling'
+                      ? '생성 중...'
+                      : anchorStage === 'saving'
+                        ? '저장 중...'
+                        : '앵커 후보 만들기 (무료)'}
+                </Button>
+                {!inputsReady && (
+                  <span className="text-xs text-[#8B7355]">
+                    {mode === 'selfies3' ? '신랑/신부 각 3장씩 업로드' : '신랑/신부 각 1장씩 업로드'}
+                  </span>
+                )}
+              </div>
+            ) : (
+              // 두 번째 batch 부터 — 부분 재생성 3 button.
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleGenerateAnchorBatch(['groom'])}
+                  disabled={!canRegenGroomOnly}
+                >
+                  {anchorStage === 'submitting' || anchorStage === 'polling'
+                    ? '생성 중...'
+                    : '신랑만 재생성 (2 크레딧)'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleGenerateAnchorBatch(['bride'])}
+                  disabled={!canRegenBrideOnly}
+                >
+                  {anchorStage === 'submitting' || anchorStage === 'polling'
+                    ? '생성 중...'
+                    : '신부만 재생성 (2 크레딧)'}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => void handleGenerateAnchorBatch(['groom', 'bride'])}
+                  disabled={!canGenerateAnchor}
+                >
+                  {anchorStage === 'submitting' || anchorStage === 'polling'
+                    ? '생성 중...'
+                    : '둘 다 재생성 (4 크레딧)'}
+                </Button>
+                {!groomSelfiesReady && !brideSelfiesReady && (
+                  <span className="text-xs text-[#8B7355]">셀카를 업로드하세요</span>
+                )}
+              </div>
             )}
           </div>
 
@@ -808,25 +816,32 @@ export function SnapGenerator({ catalog }: Props) {
           {anchorBatch && (
             <div className="mt-4 flex flex-col gap-4">
               <p className="text-xs text-[#5C4633]">
-                신랑 / 신부 각 row 에서 마음에 드는 컷을 1장씩 선택한 뒤 아래
-                &ldquo;앵커 저장&rdquo; 을 누르세요.
+                {groomNeeded && brideNeeded
+                  ? '신랑 / 신부 각 row 에서 마음에 드는 컷을 1장씩 선택한 뒤 아래 "앵커 저장" 을 누르세요.'
+                  : groomNeeded
+                    ? '신랑 컷 하나를 선택한 뒤 "앵커 저장" 을 누르세요. 신부 앵커는 그대로 유지됩니다.'
+                    : '신부 컷 하나를 선택한 뒤 "앵커 저장" 을 누르세요. 신랑 앵커는 그대로 유지됩니다.'}
               </p>
-              <AnchorRowGrid
-                slot="groom"
-                label="신랑"
-                candidates={anchorBatch.filter((c) => c.slot === 'groom')}
-                selectedRequestId={pendingGroomRequestId}
-                onSelect={selectCandidate}
-                disabled={anchorStage === 'saving'}
-              />
-              <AnchorRowGrid
-                slot="bride"
-                label="신부"
-                candidates={anchorBatch.filter((c) => c.slot === 'bride')}
-                selectedRequestId={pendingBrideRequestId}
-                onSelect={selectCandidate}
-                disabled={anchorStage === 'saving'}
-              />
+              {groomNeeded && (
+                <AnchorRowGrid
+                  slot="groom"
+                  label="신랑"
+                  candidates={anchorBatch.filter((c) => c.slot === 'groom')}
+                  selectedRequestId={pendingGroomRequestId}
+                  onSelect={selectCandidate}
+                  disabled={anchorStage === 'saving'}
+                />
+              )}
+              {brideNeeded && (
+                <AnchorRowGrid
+                  slot="bride"
+                  label="신부"
+                  candidates={anchorBatch.filter((c) => c.slot === 'bride')}
+                  selectedRequestId={pendingBrideRequestId}
+                  onSelect={selectCandidate}
+                  disabled={anchorStage === 'saving'}
+                />
+              )}
               <div className="flex items-center gap-3">
                 <Button
                   type="button"
@@ -893,13 +908,7 @@ export function SnapGenerator({ catalog }: Props) {
           <Button type="button" onClick={() => void handleGenerateCatalog()} disabled={!canGenerateCatalog}>
             {stage === 'submitting'
               ? '제출 중...'
-              : stage === 'queued'
-                ? '대기 중...'
-                : stage === 'in-progress'
-                  ? 'AI 합성 중...'
-                  : stage === 'finalizing'
-                    ? '저장 중...'
-                    : `생성하기 ${snapBalance !== null ? `(잔여 ${snapBalance})` : ''}`}
+              : `생성하기 ${snapBalance !== null ? `(잔여 ${snapBalance})` : ''}`}
           </Button>
           {!canGenerateCatalog && stage === 'idle' && (
             <GenerateHint
@@ -912,12 +921,13 @@ export function SnapGenerator({ catalog }: Props) {
             />
           )}
         </div>
-        {progressNote && <p className="mt-3 text-xs text-[#5C4633]">{progressNote}</p>}
-        {isProgressing && (
-          <p className="mt-1 text-[11px] text-[#8B7355]">
-            평균 20–60초 정도 걸립니다. 페이지를 닫으면 작업 결과를 받지 못해요.
-          </p>
-        )}
+        <p className="mt-2 text-[11px] text-[#8B7355]">
+          제출 후 화면을 떠나도 생성은 백그라운드에서 계속 진행됩니다. 결과는
+          <a href="/mypage?tab=snap" className="ml-1 underline underline-offset-2">
+            마이페이지 &gt; AI 웨딩스냅
+          </a>{' '}
+          탭에서 확인할 수 있어요.
+        </p>
         {errorMsg && (
           <p role="alert" className="mt-3 text-xs text-red-600">
             {errorMsg}
@@ -925,49 +935,30 @@ export function SnapGenerator({ catalog }: Props) {
         )}
       </section>
 
-      {/* 5. 결과 — 비교 뷰 (업스케일 제거) */}
-      {stage === 'done' && resultUrl && (
+      {/* 5. 제출 완료 배너 — 비동기 모드 안내 */}
+      {stage === 'submitted' && (
         <section className="rounded-md border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900 dark:bg-emerald-900/10">
           <h2 className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-            ✨ 생성 완료
+            ✨ 생성 작업이 시작되었어요
           </h2>
           <p className="mt-1 text-xs text-emerald-700/80 dark:text-emerald-300/80">
-            선택한 카탈로그와 생성 결과를 나란히 비교해보세요. 얼굴/체형 차이로
-            일부 디테일은 다를 수 있어요.
+            평균 20–60초 후에 완성됩니다. 화면을 떠나도 생성은 계속 진행되며,
+            결과는 마이페이지에서 모아 볼 수 있어요.
           </p>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <ComparePane
-              caption="선택한 카탈로그"
-              src={selectedCatalog?.image ?? null}
-              alt={selectedCatalog?.label ?? '카탈로그'}
-              hint={selectedCatalog?.label}
-            />
-            <ComparePane
-              caption="생성 결과"
-              src={resultUrl}
-              alt="생성된 웨딩스냅"
-              hint="우리 얼굴로 합성됨"
-            />
-          </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => window.open(resultUrl, '_blank', 'noopener')}
-            >
-              새 탭에서 열기
+            <Button asChild size="sm">
+              <a href="/mypage?tab=snap">마이페이지에서 결과 보기</a>
             </Button>
             <Button
               type="button"
               size="sm"
               variant="outline"
               onClick={() => {
-                setResultUrl(null);
-                setSelectedId(null);
                 setStage('idle');
+                setErrorMsg(null);
               }}
             >
-              다른 컷 만들기
+              다른 컷도 만들기
             </Button>
           </div>
         </section>
@@ -1291,32 +1282,6 @@ function ModeToggleButton({
   );
 }
 
-function ComparePane({
-  caption,
-  src,
-  alt,
-  hint,
-}: {
-  caption: string;
-  src: string | null;
-  alt: string;
-  hint?: string;
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[11px] font-medium text-[#5C4633]">{caption}</span>
-      <div className="grid aspect-[3/4] w-full place-items-center overflow-hidden rounded border border-[#E8DCC9] bg-[#F5EDE0]">
-        {src ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt={alt} className="block h-full w-full object-contain" />
-        ) : (
-          <span className="text-xs text-[#8B7355]">이미지 없음</span>
-        )}
-      </div>
-      {hint && <span className="text-[10px] text-[#8B7355]">{hint}</span>}
-    </div>
-  );
-}
 
 function BodyFields({
   label,

@@ -1,10 +1,39 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { COLOR_THEME_LABELS, type ColorTheme } from '@/lib/theme';
+import { SNAP_CATALOG } from '@/lib/snap/catalog';
+
+// snap_jobs / snap_anchor_history 응답 타입 — API 가 돌려주는 raw shape.
+interface SnapJob {
+  id: string;
+  kind: 'anchor' | 'catalog';
+  fal_request_id: string;
+  catalog_id: string | null;
+  catalog_path: 'anchored' | 'selfies' | 'couple' | null;
+  anchor_slot: 'groom' | 'bride' | null;
+  anchor_framing: 'closeup' | 'halfbody' | null;
+  status: 'submitted' | 'in_progress' | 'completed' | 'failed' | 'timeout';
+  result_url: string | null;
+  error_message: string | null;
+  submitted_at: string;
+  completed_at: string | null;
+}
+
+interface AnchorHistoryEntry {
+  id: string;
+  groom_anchor_url: string | null;
+  bride_anchor_url: string | null;
+  source_mode: 'selfies' | 'couple';
+  anchor_created_at: string | null;
+  discarded_at: string;
+}
+
+// 폴링 간격 — pending job 있을 때만 활성.
+const POLL_INTERVAL_MS = 8_000;
 
 export interface MyPagePublication {
   id: string;
@@ -200,6 +229,77 @@ function SnapTab({
 }) {
   const hasCredits = snapCreditsBalance > 0;
 
+  // 생성 결과 + 히스토리 fetch.
+  const [jobs, setJobs] = useState<SnapJob[] | null>(null);
+  const [history, setHistory] = useState<AnchorHistoryEntry[] | null>(null);
+  const [polling, setPolling] = useState(false);
+
+  // pending 작업 finalize 시도 후 jobs 목록 fetch. 'pending' 이 남아 있으면
+  // 8초 간격으로 자동 반복.
+  const refreshJobs = useCallback(async (): Promise<boolean> => {
+    let stillPending = false;
+    try {
+      setPolling(true);
+      // 1. pending 자동 finalize.
+      await fetch('/api/snap/jobs/poll-pending', {
+        method: 'POST',
+        cache: 'no-store',
+      });
+      // 2. jobs 목록.
+      const res = await fetch('/api/snap/jobs?kind=catalog&limit=100', {
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { jobs?: SnapJob[] };
+        const list = data.jobs ?? [];
+        setJobs(list);
+        stillPending = list.some(
+          (j) => j.status === 'submitted' || j.status === 'in_progress',
+        );
+      }
+    } catch (e) {
+      console.warn('[mypage snap] refresh jobs failed', e);
+    } finally {
+      setPolling(false);
+    }
+    return stillPending;
+  }, []);
+
+  // 폐기된 앵커 fetch — 1회.
+  const refreshHistory = useCallback(async () => {
+    try {
+      const res = await fetch('/api/snap/anchor/history', { cache: 'no-store' });
+      if (res.ok) {
+        const data = (await res.json()) as { entries?: AnchorHistoryEntry[] };
+        setHistory(data.entries ?? []);
+      }
+    } catch (e) {
+      console.warn('[mypage snap] refresh history failed', e);
+    }
+  }, []);
+
+  // 초기 마운트 + 폴링 루프.
+  useEffect(() => {
+    let canceled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const loop = async () => {
+      if (canceled) return;
+      const pending = await refreshJobs();
+      if (canceled) return;
+      if (pending) {
+        timer = setTimeout(() => void loop(), POLL_INTERVAL_MS);
+      }
+    };
+    void loop();
+    void refreshHistory();
+
+    return () => {
+      canceled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [refreshJobs, refreshHistory]);
+
   return (
     <section className="flex flex-col gap-4">
       {/* 잔액 + 빠른 진입 */}
@@ -295,6 +395,12 @@ function SnapTab({
         </p>
       </div>
 
+      {/* 생성 갤러리 — 진행 중 + 완료 */}
+      <SnapJobsGallery jobs={jobs} polling={polling} onRefresh={refreshJobs} />
+
+      {/* 폐기된 앵커 — 펼치기 형태 */}
+      <SnapAnchorHistory history={history} />
+
       {entitlements.aiSnap && !hasCredits && (
         <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-900">
           이전에 구매하신 AI 웨딩스냅 패키지는 새 크레딧 모델로 자동 전환되어
@@ -304,6 +410,215 @@ function SnapTab({
       )}
     </section>
   );
+}
+
+// ── 생성 갤러리 ───────────────────────────────────────────────
+
+function SnapJobsGallery({
+  jobs,
+  polling,
+  onRefresh,
+}: {
+  jobs: SnapJob[] | null;
+  polling: boolean;
+  onRefresh: () => Promise<boolean>;
+}) {
+  if (jobs === null) {
+    return (
+      <div className="rounded-lg bg-white p-5 ring-1 ring-[#D4C5B0]">
+        <p className="text-xs text-[#8B7355]">생성 결과 불러오는 중…</p>
+      </div>
+    );
+  }
+
+  const pending = jobs.filter(
+    (j) => j.status === 'submitted' || j.status === 'in_progress',
+  );
+  const completed = jobs.filter((j) => j.status === 'completed');
+  const failed = jobs.filter((j) => j.status === 'failed' || j.status === 'timeout');
+
+  if (jobs.length === 0) {
+    return (
+      <div className="rounded-lg bg-white p-5 ring-1 ring-[#D4C5B0]">
+        <h3 className="text-sm font-medium text-[#3D2E1F]">생성 결과</h3>
+        <p className="mt-1 text-xs text-[#8B7355]">
+          아직 생성된 스냅이 없어요. 위 &ldquo;새 웨딩스냅 만들기&rdquo; 에서 시작해 보세요.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-lg bg-white p-5 ring-1 ring-[#D4C5B0]">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-medium text-[#3D2E1F]">생성 결과</h3>
+        <button
+          type="button"
+          onClick={() => void onRefresh()}
+          disabled={polling}
+          className="text-[11px] text-[#8B7355] underline underline-offset-2 hover:text-[#3D2E1F] disabled:opacity-50"
+        >
+          {polling ? '새로고침 중...' : '새로고침'}
+        </button>
+      </div>
+
+      {pending.length > 0 && (
+        <div className="flex flex-col gap-2 rounded-md border border-amber-200 bg-amber-50 p-3">
+          <p className="text-[11px] font-medium text-amber-900">
+            진행 중인 작업 {pending.length}개
+          </p>
+          <p className="text-[10px] text-amber-800">
+            평균 20–60초 소요. 자동 새로고침 되며, 페이지를 떠나도 백그라운드에서
+            계속 진행됩니다.
+          </p>
+          <ul className="flex flex-col gap-1 text-[11px] text-amber-900">
+            {pending.map((j) => (
+              <li key={j.id} className="flex items-center justify-between gap-2">
+                <span className="truncate">
+                  {catalogLabel(j.catalog_id)} ·{' '}
+                  {j.status === 'submitted' ? '대기 중' : '합성 중'}
+                </span>
+                <span className="text-[10px] text-amber-700">
+                  {formatRelative(j.submitted_at)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {completed.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+          {completed.map((j) => (
+            <SnapResultCard key={j.id} job={j} />
+          ))}
+        </div>
+      )}
+
+      {failed.length > 0 && (
+        <details className="rounded-md border border-red-200 bg-red-50 p-3 text-[11px] text-red-900">
+          <summary className="cursor-pointer font-medium">
+            실패한 작업 {failed.length}개 (펼쳐서 보기)
+          </summary>
+          <ul className="mt-2 flex flex-col gap-1">
+            {failed.map((j) => (
+              <li key={j.id}>
+                {catalogLabel(j.catalog_id)} · {j.error_message ?? '알 수 없는 오류'}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
+  );
+}
+
+function SnapResultCard({ job }: { job: SnapJob }) {
+  return (
+    <a
+      href={job.result_url ?? '#'}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex flex-col overflow-hidden rounded-md border border-[#E8DCC9] bg-white transition-transform hover:scale-[1.02]"
+    >
+      <div className="grid aspect-[3/4] w-full place-items-center overflow-hidden bg-[#F5EDE0]">
+        {job.result_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={job.result_url}
+            alt={catalogLabel(job.catalog_id)}
+            className="block h-full w-full object-contain"
+          />
+        ) : (
+          <span className="text-[10px] text-[#8B7355]">URL 없음</span>
+        )}
+      </div>
+      <div className="p-1.5">
+        <p className="truncate text-[11px] font-medium text-[#3D2E1F]">
+          {catalogLabel(job.catalog_id)}
+        </p>
+        <p className="text-[10px] text-[#8B7355]">
+          {formatRelative(job.completed_at ?? job.submitted_at)}
+        </p>
+      </div>
+    </a>
+  );
+}
+
+// ── 폐기된 앵커 ────────────────────────────────────────────────
+
+function SnapAnchorHistory({ history }: { history: AnchorHistoryEntry[] | null }) {
+  if (history === null) return null;
+  if (history.length === 0) return null;
+
+  return (
+    <details className="rounded-lg bg-white p-5 ring-1 ring-[#D4C5B0]">
+      <summary className="cursor-pointer text-sm font-medium text-[#3D2E1F]">
+        폐기된 앵커 {history.length}개 (펼치기)
+      </summary>
+      <p className="mt-1 text-[11px] text-[#8B7355]">
+        이전에 만들었다가 폐기한 앵커들. 결과 갤러리와 별개로 보관되며 그대로
+        보관됩니다.
+      </p>
+      <ul className="mt-3 flex flex-col gap-3">
+        {history.map((h) => (
+          <li
+            key={h.id}
+            className="flex flex-col gap-2 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-3"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-[#5C4633]">
+                {formatRelative(h.discarded_at)} 폐기 · {h.source_mode}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <AnchorHistoryPreview url={h.groom_anchor_url} label="신랑" />
+              <AnchorHistoryPreview url={h.bride_anchor_url} label="신부" />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+function AnchorHistoryPreview({ url, label }: { url: string | null; label: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="text-[10px] font-medium text-[#5C4633]">{label}</p>
+      <div className="grid aspect-[3/4] w-full place-items-center overflow-hidden rounded border border-[#D4C5B0] bg-white">
+        {url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <a href={url} target="_blank" rel="noopener noreferrer" className="block h-full w-full">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt={`폐기된 ${label} 앵커`} className="h-full w-full object-contain" />
+          </a>
+        ) : (
+          <span className="text-[10px] text-[#8B7355]">없음</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── 헬퍼 ──────────────────────────────────────────────────────
+
+function catalogLabel(catalogId: string | null): string {
+  if (!catalogId) return '카탈로그 없음';
+  const item = SNAP_CATALOG.find((c) => c.id === catalogId);
+  return item?.label ?? catalogId;
+}
+
+function formatRelative(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return '';
+  const diffSec = Math.floor((Date.now() - t) / 1000);
+  if (diffSec < 60) return '방금';
+  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}분 전`;
+  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}시간 전`;
+  if (diffSec < 7 * 86400) return `${Math.floor(diffSec / 86400)}일 전`;
+  return new Date(iso).toLocaleDateString('ko-KR');
 }
 
 function TabButton({
