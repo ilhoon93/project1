@@ -216,7 +216,11 @@ function faceReferenceLine(
 export interface AnchorSoloPromptOpts {
   /** 어느 사람의 앵커인지 */
   slot: AnchorSlot;
-  /** baselineSceneHint = ANCHOR_BASELINE + ANCHOR_ATTIRE[slot] + framingHint 결합 */
+  /**
+   * baselineSceneHint = ANCHOR_BASELINE + ANCHOR_EXPRESSION_* + ANCHOR_ATTIRE[slot] + framingHint.
+   * Expression 은 API route 가 slightSmile 옵션 보고 NEUTRAL / SLIGHT_SMILE
+   * 중 골라 미리 합쳐서 넘긴다.
+   */
   baselineSceneHint: string;
   /** 셀카 reference 이미지 수 (1 or 3) */
   faceCount?: number;

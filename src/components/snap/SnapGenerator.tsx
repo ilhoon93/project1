@@ -115,10 +115,18 @@ export function SnapGenerator({ catalog }: Props) {
 
   const [snapBalance, setSnapBalance] = useState<number | null>(null);
 
-  // 카탈로그 생성 상태 — 비동기 모드라 result/progressNote 같은 필드는 제거.
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // 앵커 생성 옵션 — 사용자가 체크하면 옅은 미소, 안 하면 차분한 표정.
+  const [slightSmile, setSlightSmile] = useState<boolean>(false);
+
+  // 카탈로그 다중 선택 — 한 번에 N개 제출 가능. 비동기 finalize 라 페이지 이탈 OK.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [stage, setStage] = useState<Stage>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // 다중 제출 결과 — 성공/실패 카운트 표시용.
+  const [submitSummary, setSubmitSummary] = useState<{
+    ok: number;
+    failed: Array<{ catalogId: string; reason: string }>;
+  } | null>(null);
 
   const groomRefs = [
     useRef<HTMLInputElement>(null),
@@ -313,6 +321,7 @@ export function SnapGenerator({ catalog }: Props) {
     const payload: Record<string, unknown> = {
       mode: 'selfies' as const,
       slots,
+      slightSmile,
       ...(slots.includes('groom') ? { groomFaceUrls: collectGroomUrls() } : {}),
       ...(slots.includes('bride') ? { brideFaceUrls: collectBrideUrls() } : {}),
       ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
@@ -473,71 +482,102 @@ export function SnapGenerator({ catalog }: Props) {
     return true;
   });
 
-  const selectedCatalog = selectedId ? catalog.find((c) => c.id === selectedId) ?? null : null;
-
-  // 카탈로그 생성 가능 여부.
-  const canGenerateCatalog = (() => {
-    if (!selectedId || !selectedCatalog || isProgressing) return false;
-    if (mode === 'couple') return !!couple.url && selectedCatalog.personality === 'together';
-    // selfies 모드 — 앵커 필요. personality 별 slot 검증.
-    if (!hasFullAnchor) {
-      // 부분 앵커도 허용? 정책: solo 카탈로그는 해당 slot 만 있어도 OK.
-      if (selectedCatalog.personality === 'groom-solo') return !!anchor?.groomAnchorUrl;
-      if (selectedCatalog.personality === 'bride-solo') return !!anchor?.brideAnchorUrl;
-      return false; // together 인데 한쪽 앵커가 없으면 X.
+  // 한 카탈로그가 현재 입력 (mode + anchor) 으로 생성 가능한지 판정.
+  // 다중 선택 UI 가 개별 카탈로그 자체의 enable/disable 판단에 사용.
+  const isCatalogGeneratable = (item: SnapCatalogItem): boolean => {
+    if (mode === 'couple') return !!couple.url && item.personality === 'together';
+    // selfies 모드 — personality 별 slot 검증.
+    if (item.personality === 'together') {
+      return !!anchor?.groomAnchorUrl && !!anchor?.brideAnchorUrl;
     }
-    return true;
-  })();
+    if (item.personality === 'groom-solo') return !!anchor?.groomAnchorUrl;
+    if (item.personality === 'bride-solo') return !!anchor?.brideAnchorUrl;
+    return false;
+  };
 
-  // submit-and-go: fal 큐에만 제출하고 폴링은 마이페이지가 담당. 사용자는
-  // 페이지를 자유롭게 떠나도 됨. 제출 직후 'submitted' 상태 + 안내 배너.
+  // 선택된 카탈로그 목록 (실제 객체) — 다중 선택 후 제출 시 사용.
+  const selectedCatalogs = Array.from(selectedIds)
+    .map((id) => catalog.find((c) => c.id === id))
+    .filter((c): c is SnapCatalogItem => !!c);
+
+  // 한 번에 제출 가능 여부 — 1개 이상 선택 + 모두 generatable + 진행 중 아님.
+  const canGenerateCatalog =
+    selectedCatalogs.length > 0 &&
+    !isProgressing &&
+    selectedCatalogs.every(isCatalogGeneratable);
+
+  const toggleCatalogSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // submit-and-go: 선택된 N개 카탈로그를 fal 큐에 병렬 제출. 폴링은 마이페이지가
+  // 담당. 사용자는 페이지 자유 이탈 가능. 부분 실패 시 성공/실패 카운트 표시.
   const handleGenerateCatalog = async () => {
-    if (!selectedId || !selectedCatalog) return;
     if (!canGenerateCatalog) return;
 
     setStage('submitting');
     setErrorMsg(null);
+    setSubmitSummary(null);
 
     const groomBodyValid = parseBody(groomBody);
     const brideBodyValid = parseBody(brideBody);
 
-    let payload: Record<string, unknown>;
-    if (mode === 'couple') {
-      payload = {
-        mode: 'couple',
-        couplePhotoUrl: couple.url,
-        catalogId: selectedId,
-        ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
-        ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
-      };
-    } else {
-      // selfies 모드 — 항상 anchor 경로. server 가 personality 보고 분기.
-      payload = { mode: 'anchor', catalogId: selectedId };
-    }
-
-    try {
-      const res = await fetch('/api/snap/generate', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const { data, text } = await parseRes(res);
-      if (!res.ok) {
-        if (data?.code === 'insufficient_credits') {
-          setSnapBalance((data?.currentBalance as number | undefined) ?? 0);
-        }
-        throw new Error((data?.error as string | undefined) ?? text.slice(0, 80) ?? `HTTP ${res.status}`);
+    const buildPayload = (item: SnapCatalogItem): Record<string, unknown> => {
+      if (mode === 'couple') {
+        return {
+          mode: 'couple',
+          couplePhotoUrl: couple.url,
+          catalogId: item.id,
+          ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
+          ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
+        };
       }
-      if (typeof data?.balance === 'number') setSnapBalance(data.balance);
+      return { mode: 'anchor', catalogId: item.id };
+    };
 
-      // 제출 성공 — selectedId 리셋해 사용자가 다른 컷을 또 제출하거나
-      // 페이지를 떠날 수 있게.
-      setSelectedId(null);
-      setStage('submitted');
-    } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : '생성 실패');
-      setStage('error');
-    }
+    // 병렬 제출 — 각각 독립. 부분 실패 케이스를 위해 Promise.allSettled.
+    const results = await Promise.allSettled(
+      selectedCatalogs.map(async (item) => {
+        const res = await fetch('/api/snap/generate', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(buildPayload(item)),
+        });
+        const { data, text } = await parseRes(res);
+        if (!res.ok) {
+          if (data?.code === 'insufficient_credits') {
+            setSnapBalance((data?.currentBalance as number | undefined) ?? 0);
+          }
+          throw new Error(
+            (data?.error as string | undefined) ?? text.slice(0, 80) ?? `HTTP ${res.status}`,
+          );
+        }
+        if (typeof data?.balance === 'number') setSnapBalance(data.balance);
+        return { catalogId: item.id };
+      }),
+    );
+
+    const ok: string[] = [];
+    const failed: Array<{ catalogId: string; reason: string }> = [];
+    results.forEach((r, i) => {
+      const item = selectedCatalogs[i];
+      if (r.status === 'fulfilled') ok.push(item.id);
+      else
+        failed.push({
+          catalogId: item.id,
+          reason: r.reason instanceof Error ? r.reason.message : '제출 실패',
+        });
+    });
+
+    setSubmitSummary({ ok: ok.length, failed });
+    // 성공한 카탈로그는 선택 해제 (실패한 건 재시도 위해 유지).
+    setSelectedIds(new Set(failed.map((f) => f.catalogId)));
+    setStage('submitted');
   };
 
   // ── 헬퍼 / 표시용 ───────────────────────────────────────
@@ -549,8 +589,12 @@ export function SnapGenerator({ catalog }: Props) {
 
   const pathHint = (() => {
     if (mode === 'couple') return '커플 사진 기반 (앵커 영향 없음)';
-    if (selectedCatalog?.personality === 'groom-solo') return '신랑 앵커 단독 컷';
-    if (selectedCatalog?.personality === 'bride-solo') return '신부 앵커 단독 컷';
+    if (selectedCatalogs.length === 0) return '카탈로그를 선택하면 경로가 표시돼요';
+    const kinds = new Set(selectedCatalogs.map((c) => c.personality));
+    if (kinds.size > 1) return '여러 경로 혼합 (함께 / 단독)';
+    const k = selectedCatalogs[0].personality;
+    if (k === 'groom-solo') return '신랑 앵커 단독 컷';
+    if (k === 'bride-solo') return '신부 앵커 단독 컷';
     return '신랑·신부 앵커 합성';
   })();
 
@@ -742,6 +786,21 @@ export function SnapGenerator({ catalog }: Props) {
             )}
           </p>
 
+          {/* 표정 옵션 — 체크 시 옅은 미소, 안 함 시 차분한 자연 표정 */}
+          <label className="mt-3 flex items-center gap-2 text-xs text-[#5C4633]">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-[#D4C5B0] accent-[#3D2E1F]"
+              checked={slightSmile}
+              onChange={(e) => setSlightSmile(e.target.checked)}
+              disabled={isAnchorBusy}
+            />
+            <span>
+              <span className="font-medium">약간 미소를 짓는 표정으로</span> (체크 안 하면 차분한
+              자연 표정)
+            </span>
+          </label>
+
           <div className="mt-3 flex flex-col gap-2">
             {anchorFreeAvail ? (
               // 첫 batch — 전체 무료 1 button.
@@ -866,29 +925,48 @@ export function SnapGenerator({ catalog }: Props) {
         </section>
       )}
 
-      {/* 3. 카탈로그 선택 */}
+      {/* 3. 카탈로그 선택 — 다중 선택 가능 */}
       <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
-        <h2 className="text-sm font-medium text-[#3D2E1F]">카탈로그 컷 선택</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-sm font-medium text-[#3D2E1F]">카탈로그 컷 선택</h2>
+          {selectedIds.size > 0 && (
+            <span className="text-[11px] text-[#5C4633]">
+              {selectedIds.size}개 선택 · {selectedIds.size} 스냅 크레딧 차감
+            </span>
+          )}
+        </div>
         <p className="mt-1 text-xs text-[#8B7355]">
-          마음에 드는 컷을 하나 골라주세요. 1장당 스냅 크레딧 1개가 차감됩니다.{' '}
+          여러 컷을 선택해 한 번에 만들 수 있어요. 1장당 스냅 크레딧 1개 차감.{' '}
           <span className="text-[10px] text-[#8B7355]">· 현재 경로: {pathHint}</span>
         </p>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {visibleCatalog.map((item) => {
-            const selected = selectedId === item.id;
+            const selected = selectedIds.has(item.id);
+            const enabled = isCatalogGeneratable(item);
+            const dim = isProgressing || !enabled;
             return (
               <button
                 key={item.id}
                 type="button"
-                disabled={isProgressing}
-                onClick={() => setSelectedId(item.id)}
+                disabled={isProgressing || !enabled}
+                onClick={() => toggleCatalogSelection(item.id)}
                 aria-pressed={selected}
+                title={!enabled ? '이 컷을 만들려면 필요한 앵커 / 입력이 부족해요' : undefined}
                 className={`relative flex flex-col overflow-hidden rounded-md border text-left transition-colors ${
                   selected
                     ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
                     : 'border-[#E8DCC9] hover:border-[#8B7355]'
-                } ${isProgressing ? 'opacity-60' : ''}`}
+                } ${dim ? 'opacity-50' : ''}`}
               >
+                {/* 좌상단 체크 인디케이터 */}
+                <span
+                  className={`absolute left-2 top-2 z-10 grid h-5 w-5 place-items-center rounded-sm border bg-white ${
+                    selected ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white' : 'border-[#D4C5B0]'
+                  }`}
+                  aria-hidden
+                >
+                  {selected ? '✓' : ''}
+                </span>
                 <CatalogThumbnail src={item.image} alt={item.label} />
                 <PersonalityBadge personality={item.personality} />
                 <div className="p-2">
@@ -907,18 +985,28 @@ export function SnapGenerator({ catalog }: Props) {
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Button type="button" onClick={() => void handleGenerateCatalog()} disabled={!canGenerateCatalog}>
             {stage === 'submitting'
-              ? '제출 중...'
-              : `생성하기 ${snapBalance !== null ? `(잔여 ${snapBalance})` : ''}`}
+              ? `제출 중... (${selectedIds.size}개)`
+              : selectedIds.size === 0
+                ? `생성하기 ${snapBalance !== null ? `(잔여 ${snapBalance})` : ''}`
+                : `${selectedIds.size}개 동시 생성 (${selectedIds.size} 크레딧${snapBalance !== null ? ` · 잔여 ${snapBalance}` : ''})`}
           </Button>
-          {!canGenerateCatalog && stage === 'idle' && (
+          {!canGenerateCatalog && stage !== 'submitting' && (
             <GenerateHint
               mode={mode}
               hasFullAnchor={hasFullAnchor}
               anchor={anchor}
-              selectedCatalog={selectedCatalog}
+              selectedCount={selectedIds.size}
               couplePresent={!!couple.url}
-              selectedId={selectedId}
             />
+          )}
+          {selectedIds.size > 0 && stage !== 'submitting' && (
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="text-[11px] text-[#8B7355] underline underline-offset-2 hover:text-[#3D2E1F]"
+            >
+              선택 모두 해제
+            </button>
           )}
         </div>
         <p className="mt-2 text-[11px] text-[#8B7355]">
@@ -935,16 +1023,42 @@ export function SnapGenerator({ catalog }: Props) {
         )}
       </section>
 
-      {/* 5. 제출 완료 배너 — 비동기 모드 안내 */}
-      {stage === 'submitted' && (
-        <section className="rounded-md border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900 dark:bg-emerald-900/10">
-          <h2 className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-            ✨ 생성 작업이 시작되었어요
+      {/* 5. 제출 완료 배너 — 비동기 모드 안내 + 다중 제출 결과 */}
+      {stage === 'submitted' && submitSummary && (
+        <section
+          className={`rounded-md border p-4 ${
+            submitSummary.failed.length === 0
+              ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-900/10'
+              : 'border-amber-300 bg-amber-50/60 dark:border-amber-800 dark:bg-amber-900/10'
+          }`}
+        >
+          <h2
+            className={`text-sm font-medium ${
+              submitSummary.failed.length === 0
+                ? 'text-emerald-700 dark:text-emerald-300'
+                : 'text-amber-800 dark:text-amber-200'
+            }`}
+          >
+            {submitSummary.failed.length === 0
+              ? `✨ ${submitSummary.ok}개 작업 모두 시작되었어요`
+              : `⚠️ ${submitSummary.ok}개 시작 · ${submitSummary.failed.length}개 실패`}
           </h2>
-          <p className="mt-1 text-xs text-emerald-700/80 dark:text-emerald-300/80">
-            평균 20–60초 후에 완성됩니다. 화면을 떠나도 생성은 계속 진행되며,
-            결과는 마이페이지에서 모아 볼 수 있어요.
+          <p className="mt-1 text-xs text-[#5C4633]">
+            평균 20–60초 후에 완성됩니다. 화면을 떠나도 생성은 계속 진행되며, 결과는
+            마이페이지에서 모아 볼 수 있어요.
           </p>
+          {submitSummary.failed.length > 0 && (
+            <ul className="mt-2 flex flex-col gap-1 text-[11px] text-amber-900 dark:text-amber-200">
+              {submitSummary.failed.map((f) => {
+                const item = catalog.find((c) => c.id === f.catalogId);
+                return (
+                  <li key={f.catalogId}>
+                    · {item?.label ?? f.catalogId}: {f.reason}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
           <div className="mt-3 flex flex-wrap gap-2">
             <Button asChild size="sm">
               <a href="/mypage?tab=snap">마이페이지에서 결과 보기</a>
@@ -955,6 +1069,7 @@ export function SnapGenerator({ catalog }: Props) {
               variant="outline"
               onClick={() => {
                 setStage('idle');
+                setSubmitSummary(null);
                 setErrorMsg(null);
               }}
             >
@@ -971,27 +1086,23 @@ function GenerateHint({
   mode,
   hasFullAnchor,
   anchor,
-  selectedCatalog,
+  selectedCount,
   couplePresent,
-  selectedId,
 }: {
   mode: InputMode;
   hasFullAnchor: boolean;
   anchor: AnchorInfo | null;
-  selectedCatalog: SnapCatalogItem | null;
+  selectedCount: number;
   couplePresent: boolean;
-  selectedId: string | null;
 }) {
   let text = '';
-  if (!selectedId) text = '카탈로그 컷을 선택하세요';
+  if (selectedCount === 0) text = '카탈로그 컷을 1개 이상 선택하세요';
   else if (mode === 'couple') {
     if (!couplePresent) text = '커플 사진을 업로드하세요';
-    else if (selectedCatalog?.personality !== 'together') text = '커플 모드에서는 함께 컷만 가능';
+    else text = '커플 모드는 "함께" 컷만 선택 가능합니다';
   } else if (!hasFullAnchor) {
-    if (selectedCatalog?.personality === 'together') text = '신랑/신부 앵커가 모두 필요합니다';
-    else if (selectedCatalog?.personality === 'groom-solo' && !anchor?.groomAnchorUrl) text = '신랑 앵커가 필요합니다';
-    else if (selectedCatalog?.personality === 'bride-solo' && !anchor?.brideAnchorUrl) text = '신부 앵커가 필요합니다';
-    else text = '앵커를 먼저 만들어 주세요';
+    if (!anchor?.groomAnchorUrl && !anchor?.brideAnchorUrl) text = '앵커를 먼저 만들어 주세요';
+    else text = '선택한 컷 중 필요한 앵커가 부족한 컷이 있어요';
   }
   if (!text) return null;
   return <span className="text-xs text-[#8B7355]">{text}</span>;
