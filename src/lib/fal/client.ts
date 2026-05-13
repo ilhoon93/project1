@@ -120,3 +120,91 @@ export async function getImageEditResult(requestId: string): Promise<string> {
 }
 
 // 업스케일러 (fal-ai/clarity-upscaler) 는 얼굴이 과하게 변형되는 문제로 제거.
+// 대신 후처리 업스케일은 lib/snap/postprocess.ts 에서 아래 두 모델 사용:
+//   - aura-sr (Real-ESRGAN 계열) : 얼굴 보존 ★★★★★, detail 약함
+//   - topaz/upscale/image        : 얼굴 보존 ★★★★, detail 강함
+
+// ─────────────────────────────────────────────────────────────
+// 업스케일 헬퍼 — fal.queue.submit / status / result 패턴 동일
+// ─────────────────────────────────────────────────────────────
+
+const AURA_SR_MODEL = 'fal-ai/aura-sr';
+const TOPAZ_UPSCALE_MODEL = 'fal-ai/topaz/upscale/image';
+
+interface UpscaleResult {
+  image?: { url: string };
+  images?: { url: string }[];
+}
+
+/**
+ * aura-sr — Real-ESRGAN 계열. 얼굴 보존 매우 잘. detail 추가 약함.
+ * 2x / 4x 지원. 기본은 4x 라 명시적으로 2 권장 (over-upscale 시 soft 함이
+ * 그대로 큰 캔버스로 확대돼 효과 미미).
+ */
+export async function submitAuraSrUpscale(input: {
+  imageUrl: string;
+  scale?: 2 | 4;
+}): Promise<string> {
+  ensureConfigured();
+  const { request_id } = await fal.queue.submit(AURA_SR_MODEL, {
+    input: {
+      image_url: input.imageUrl,
+      upscale_factor: input.scale ?? 2,
+    },
+  });
+  if (!request_id) throw new Error('aura-sr.submit returned no request_id');
+  return request_id;
+}
+
+export async function getAuraSrResult(requestId: string): Promise<string> {
+  ensureConfigured();
+  const result = await fal.queue.result(AURA_SR_MODEL, { requestId });
+  const data = result.data as UpscaleResult;
+  const url = data.image?.url ?? data.images?.[0]?.url;
+  if (!url) throw new Error('aura-sr.result returned no image url');
+  return url;
+}
+
+/**
+ * Topaz Gigapixel image upscale — 사진 전용 학습. detail 복원이 가장 우수.
+ *
+ * 안전 파라미터:
+ *   - model: 'Standard V2' (보수적, identity 안전) 또는 'High Fidelity V2'
+ *   - face_enhancement: false  ← 필수. true 면 얼굴 변형 위험
+ *   - subject_detection: 'All' — 균일 처리 (fal SDK 가 'None' 미지원)
+ */
+export async function submitTopazUpscale(input: {
+  imageUrl: string;
+  scale?: 2 | 4;
+  model?:
+    | 'Standard V2'
+    | 'High Fidelity V2'
+    | 'Low Resolution V2'
+    | 'CGI'
+    | 'Text Refine'
+    | 'Recovery'
+    | 'Redefine';
+}): Promise<string> {
+  ensureConfigured();
+  const { request_id } = await fal.queue.submit(TOPAZ_UPSCALE_MODEL, {
+    input: {
+      image_url: input.imageUrl,
+      model: input.model ?? 'Standard V2',
+      upscale_factor: input.scale ?? 2,
+      face_enhancement: false,
+      subject_detection: 'All',
+      output_format: 'jpeg',
+    },
+  });
+  if (!request_id) throw new Error('topaz-upscale.submit returned no request_id');
+  return request_id;
+}
+
+export async function getTopazResult(requestId: string): Promise<string> {
+  ensureConfigured();
+  const result = await fal.queue.result(TOPAZ_UPSCALE_MODEL, { requestId });
+  const data = result.data as UpscaleResult;
+  const url = data.image?.url ?? data.images?.[0]?.url;
+  if (!url) throw new Error('topaz-upscale.result returned no image url');
+  return url;
+}
