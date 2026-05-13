@@ -16,6 +16,11 @@
  */
 
 import type { AnchorSlot } from '@/lib/snap/anchor-templates';
+import type {
+  CatalogCameraDistance,
+  CatalogFraming,
+  SnapCatalogItem,
+} from '@/lib/snap/catalog';
 
 export interface BodyMetrics {
   /** 키 cm — 140~210 권장 */
@@ -26,8 +31,55 @@ export interface BodyMetrics {
 
 export interface SnapPromptInput {
   catalogPromptHint: string;
+  /** 신규 — catalog 메타데이터 (framing/pose/cameraDistance) cue 로 변환. */
+  catalogMeta?: Pick<SnapCatalogItem, 'framing' | 'pose' | 'cameraDistance'>;
   groom?: BodyMetrics;
   bride?: BodyMetrics;
+}
+
+// ──────────────────────────────────────────────────────────────
+// Catalog 메타데이터 → prompt cue 변환
+// ──────────────────────────────────────────────────────────────
+
+const FRAMING_DESCRIPTION: Record<CatalogFraming, string> = {
+  closeup:
+    'Close-up (chest-up). The face fills ~40–55% of the frame. This is the ONLY framing where the face appears large.',
+  halfbody:
+    'Half-body (waist-up). The head occupies the top ~25–30% of the frame. The torso fills the remaining ~70–75%. NOT a close-up.',
+  fullbody:
+    'Full-body (head to feet, with negative space). The head occupies only the top ~12–13% of the frame. The body fills the rest. DO NOT crop above the feet.',
+};
+
+const CAMERA_DISTANCE_DESCRIPTION: Record<CatalogCameraDistance, string> = {
+  tight: 'Tight framing — subject(s) dominate the frame, minimal negative space.',
+  medium: 'Medium framing — subject(s) take ~60–70% of frame width with comfortable margin.',
+  wide: 'Wide environmental framing — subject(s) take ~40–55% of frame width, environment is prominent.',
+};
+
+/**
+ * Catalog 메타데이터 → cue 라인 배열. 메타데이터가 하나라도 있으면 명시적
+ * "CATALOG META LOCK" 섹션을 추가해 promptHint 의 텍스트보다 더 강하게 박는다.
+ */
+function buildCatalogMetaCue(
+  meta?: Pick<SnapCatalogItem, 'framing' | 'pose' | 'cameraDistance'>,
+): string[] {
+  if (!meta || (!meta.framing && !meta.pose && !meta.cameraDistance)) {
+    return [];
+  }
+  const lines: string[] = ['', 'CATALOG META LOCK — replicate exactly (overrides anchor defaults):'];
+  if (meta.framing) {
+    lines.push(`- Framing: ${meta.framing}. ${FRAMING_DESCRIPTION[meta.framing]}`);
+  }
+  if (meta.cameraDistance) {
+    lines.push(`- Camera distance: ${CAMERA_DISTANCE_DESCRIPTION[meta.cameraDistance]}`);
+  }
+  if (meta.pose) {
+    lines.push(`- Pose: ${meta.pose}`);
+  }
+  lines.push(
+    "- These META values are stronger than the anchor's default standing pose. If conflict, META wins.",
+  );
+  return lines;
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -86,6 +138,60 @@ function buildBodySection(groom?: BodyMetrics, bride?: BodyMetrics): string[] {
 }
 
 // ──────────────────────────────────────────────────────────────
+// ZONE LOCKS — anchor / body / catalog 사이의 우선순위 명확화
+//
+// 카탈로그 합성 단계의 가장 빈번한 실패 모드는 "anchor 의 visual signal 이
+// 텍스트 명령보다 강해 catalog 의 포즈/의상/framing 을 덮는다" 와
+// "catalog 의 안경/메이크업 같은 얼굴 영역 디테일이 anchor identity 를
+// 침범한다". 이를 막기 위해 3개의 zone 으로 권한을 분리한다:
+//
+//   IDENTITY ZONE  → anchor 절대  (얼굴/피부/안경/수염/머리)
+//   BODY ZONE      → body metrics 절대  (키/몸무게 기반 체형)
+//   COMPOSITION    → catalog 절대  (의상/포즈/framing/배경/조명)
+//
+// 모든 카탈로그 합성 빌더에 일괄 주입. 앵커 단계 (buildAnchorPromptSolo) 는
+// IDENTITY 만 적용 (catalog 없음).
+// ──────────────────────────────────────────────────────────────
+
+const IDENTITY_LOCK = [
+  '',
+  'IDENTITY ZONE — anchor wins over catalog (NEVER override):',
+  "- Face shape and features (eyes, nose, mouth, jaw line, eyebrows) come STRICTLY from the anchor reference. The catalog's face must be ignored.",
+  '- Skin tone and skin texture from the anchor.',
+  '- Hair color, hair length, hair style, and hair texture from the anchor — NOT from the catalog. If the catalog shows a different hair length or style, IGNORE it.',
+  '- Facial accessories belong to identity: glasses, eyeglasses, sunglasses, beard, mustache, stubble, facial moles, scars, freckles are ENTIRELY determined by the anchor.',
+  "- If the catalog image shows glasses but the anchor does NOT, render the result WITHOUT glasses. If the anchor wears glasses but the catalog does NOT, render WITH glasses. The anchor is the absolute truth for facial accessories.",
+  '- Makeup style and intensity follow the anchor (light natural look as shown in anchor). Do not add heavy makeup just because the catalog model has it.',
+];
+
+const BODY_LOCK = [
+  '',
+  'BODY ZONE — user-provided body metrics win over catalog model:',
+  '- The body proportions (shoulder width, torso length, waist, hip, limb length, overall build) are determined by the user-provided height (cm) and weight (kg), NOT by the catalog model\'s physique.',
+  '- DO NOT copy the catalog model\'s body type. The catalog provides POSE and FRAMING, but never the actual physique.',
+  '- Match the BMI-derived build precisely: slender / lean / average / fuller. A 90 kg subject must look 90 kg, not slimmed to match a slim catalog model.',
+  '- For couples: respect the height difference from user input. Do NOT make both subjects the same height just because the catalog couple looks similar in height.',
+];
+
+const COMPOSITION_LOCK = [
+  '',
+  'COMPOSITION ZONE — catalog wins over anchor (must replicate exactly):',
+  '- Pose, body position, gesture, hand position, head tilt, weight distribution — EXACTLY as shown in the catalog reference image.',
+  '- Camera angle, framing scale (close-up / half-body / full-body), camera distance, depth of field, lens character — EXACTLY from the catalog.',
+  '- Background, environment, props (bouquet, etc.) — EXACTLY from the catalog.',
+  "- Wedding attire (suit color, suit cut, lapel type, shirt color, tie type and color, dress color, dress silhouette, neckline, lace, shoes) — EXACTLY from the catalog. OVERRIDE the anchor's anchor-baseline attire — e.g., if the anchor wears a black tuxedo with bow tie but the catalog shows a charcoal suit with white tie, render the CATALOG attire.",
+  '- Lighting direction, color temperature, softness, color grade — from the catalog.',
+  '- Composition rule: when in doubt about a non-identity, non-body element, follow the catalog.',
+];
+
+const ANCHOR_ONLY_IDENTITY_GUARD = [
+  '',
+  'IDENTITY GUARD (anchor stage — no catalog yet):',
+  '- Face shape and features, skin tone, skin texture, hair color/length/style, glasses, beard, moles — ALL come from the face reference image(s). Do not invent.',
+  '- Single reference may be frontal — extrapolate plausible 3D shape without drifting from the identity.',
+];
+
+// ──────────────────────────────────────────────────────────────
 // 공통 negatives + 앵커 전용 integration (paste-in / 머리 비대증 차단)
 // ──────────────────────────────────────────────────────────────
 
@@ -104,6 +210,10 @@ const NEGATIVES = [
   '- Blurry faces while the background is sharp (faces must be the sharpest area)',
   '- Oversharpened artifacts, unnatural HDR look, or overcooked color saturation',
   '- Identity drift — the synthesized faces must clearly match the face reference image(s)',
+  "- Adding glasses, beard, or mustache from the catalog when the anchor doesn't show them (or removing them if the anchor has them)",
+  "- Copying the catalog model's body type or build (use user height/weight instead)",
+  '- Oversized head / enlarged face / bobblehead effect (head must be ≤ 1/7.5 of total body height)',
+  "- Using the anchor's tight face crop as a scale reference (the anchor is identity only — the catalog defines scale)",
 ];
 
 /**
@@ -167,7 +277,11 @@ const ANCHOR_INTEGRATION = [
 /**
  * 카탈로그 전용 — 카탈로그 마스터 reference 로 합성할 때 paste-in 차단 +
  * 머리 비대증 차단. 앵커 단계의 ANCHOR_INTEGRATION 보다 짧지만 비율 cue 는
- * 동일 강도로 유지.
+ * 더 강력 — anchor crop 무시 + catalog scale match + 절대 cap.
+ *
+ * 사용자 테스트 결과 "항상 얼굴이 크게 나옴" — 모델이 anchor 의 face crop 을
+ * scale reference 로 잘못 쓰는 패턴. anchor 의 close-up 은 identity 용이지
+ * 스케일이 아님을 반복 명시.
  */
 const CATALOG_INTEGRATION = [
   '',
@@ -177,12 +291,19 @@ const CATALOG_INTEGRATION = [
   "- Soft natural edges around hair, clothing, bouquet — no sharp cutout halos, no color fringing.",
   '- Subtle environmental color cast from the scene bounces softly onto skin and clothing.',
   '',
-  'ANATOMICAL PROPORTIONS — CRITICAL (most common failure mode):',
-  '- Head height MUST be 1/7.5 to 1/8 of total body height (lean toward 1/8 if uncertain). Shoulders about 2x head width.',
-  '- For half-body framing: the face occupies roughly 1/3 of the vertical frame, NOT 1/2.',
-  '- DO NOT enlarge the face to emphasize identity. If the face appears even slightly oversized, re-render smaller.',
-  '- Match the face size to the catalog reference framing, not to the anchor crop. The anchor provides identity, the catalog provides scale.',
-  '- Expression: keep a soft closed-lip subtle smile (no teeth, no open-mouth grin) consistent with the anchor, unless the catalog scene explicitly demands otherwise.',
+  'HEAD-TO-BODY RATIO — most common failure mode (read carefully):',
+  '- The anchor image may be a tight face crop. DO NOT use the anchor\'s apparent head size as a scale reference. The anchor is for identity ONLY.',
+  '- The CATALOG image defines the actual head-to-body ratio. Match the catalog\'s ratio exactly.',
+  '- Absolute cap: head height MUST be ≤ 1/7.5 of total body height in any framing that shows the body. Lean toward 1/8 if uncertain.',
+  '- For full-body shots: the head occupies the top ~12–13% of the vertical frame, NOT more.',
+  '- For half-body (waist-up) shots: the head occupies the top ~25–30% of the frame, NOT more (NOT 1/2, NOT bigger).',
+  '- For close-up (chest-up) shots: the face fills ~40–55% of the frame — this is the ONLY framing where the face is large.',
+  '- If unsure, render the head SMALLER. An oversized head is the failure mode we are correcting.',
+  '- Shoulders about 2x head width. Neck-to-shoulder transition smooth, no "bobblehead" effect.',
+  '',
+  'EXPRESSION:',
+  '- Soft natural smile — eyes warm and relaxed, corners of the mouth gently lifted. Lips may be lightly closed OR slightly parted (a small natural hint of teeth is OK if it looks like a real spontaneous smile).',
+  '- AVOID both: (a) an exaggerated wide-open laughing grin, (b) a stiff serious / blank expression. The target is "natural happy moment" — not staged, not somber.',
 ];
 
 // ──────────────────────────────────────────────────────────────
@@ -232,7 +353,7 @@ export function buildAnchorPromptSolo(opts: AnchorSoloPromptOpts): string {
   const bodySection = personGuide
     ? [
         '',
-        'BODY PROPORTIONS:',
+        'BODY PROPORTIONS (user-provided, strict):',
         personGuide,
         '- Keep the face strictly from the face reference image(s); only the body silhouette and proportions follow the guide above.',
         '- Tailor wedding attire to drape naturally on the described build (no shrink-wrap, no padding mismatch).',
@@ -246,12 +367,13 @@ export function buildAnchorPromptSolo(opts: AnchorSoloPromptOpts): string {
     `Scene & framing: ${opts.baselineSceneHint}`,
     '',
     'IDENTITY FIDELITY (match identity, not scale):',
-    `- Match the ${role === 'groom' ? "groom's" : "bride's"} identity from ${ref} (eye shape, nose bridge, jawline, skin tone/texture, hair style/color) precisely — but render the face at the anatomically correct size for the chosen framing. Identity, NOT scale.`,
+    `- Match the ${role === 'groom' ? "groom's" : "bride's"} identity from ${ref} (eye shape, nose bridge, jawline, skin tone/texture, hair style/color, glasses if any, beard if any) precisely — but render the face at the anatomically correct size for the chosen framing. Identity, NOT scale.`,
     faceCount > 1
       ? '- Multi-angle references describe a single 3D face. Reconcile them into one consistent face; do NOT produce different-looking siblings.'
       : '- The single reference face is frontal — extrapolate plausible 3D shape without identity drift.',
     `- The frame contains ONLY the ${role === 'groom' ? 'groom' : 'bride'} (one person). Do NOT add a second person.`,
     '- Do NOT enlarge or up-scale the face in order to make the identity more obvious — preserve natural head-to-body proportions.',
+    ...ANCHOR_ONLY_IDENTITY_GUARD,
     ...bodySection,
     ...ANCHOR_INTEGRATION,
     ...PHOTOREALISM,
@@ -269,29 +391,23 @@ export function buildTogetherCatalogPrompt(input: SnapPromptInput | string): str
   const opts: SnapPromptInput =
     typeof input === 'string' ? { catalogPromptHint: input } : input;
   const bodySection = buildBodySection(opts.groom, opts.bride);
+  const metaCue = buildCatalogMetaCue(opts.catalogMeta);
 
   return [
     'Compose a couple wedding portrait using THREE input images:',
-    '- Image 1 = Groom anchor (solo portrait of the groom). PRESERVE his face, hair, skin tone, and body proportions exactly.',
-    '- Image 2 = Bride anchor (solo portrait of the bride). PRESERVE her face, hair, skin tone, and body proportions exactly.',
-    "- Image 3 = Composition reference (catalog master). Replicate this image's pose, framing, camera angle, depth of field, background, outfits, lighting, and overall composition.",
+    '- Image 1 = Groom anchor (solo portrait). Use ONLY for groom identity (face / skin / hair / glasses / facial hair) and groom build.',
+    '- Image 2 = Bride anchor (solo portrait). Use ONLY for bride identity (face / skin / hair / makeup) and bride build.',
+    '- Image 3 = Composition reference (catalog master). Use for POSE / FRAMING / camera / background / outfits / lighting. NOT for any face or body type.',
     '',
     `Scene context: ${opts.catalogPromptHint}`,
+    ...metaCue,
+    ...IDENTITY_LOCK,
     '',
-    'IDENTITY FIDELITY — strict role assignment:',
-    "- Image 1's groom → the groom position in Image 3. Image 2's bride → the bride position. Do NOT swap, do NOT blend the two faces.",
-    "- Face details (eye shape, nose bridge, jawline, skin tone/texture, hair style/color) must clearly match each respective anchor.",
+    'IDENTITY ROLE ASSIGNMENT (couple):',
+    "- Image 1's identity → goes to the groom position in Image 3. Image 2's identity → goes to the bride position. Do NOT swap, do NOT blend the two faces.",
     '- Do NOT add additional people not present in the anchors.',
-    '',
-    'FRAMING MISMATCH HANDLING (anchors may be close-up while catalog is full-body, etc.):',
-    '- Use anchors as canonical identity / body references and RE-RENDER each person at the scale demanded by Image 3.',
-    "- If an anchor is close-up and Image 3 is full-body, extrapolate the body below the anchor crop using the body guide and the anchor's visible shoulders/neck.",
-    '- If an anchor is half-body and Image 3 is close-up, scale up the face without softness or identity loss.',
-    '',
-    'COMPOSITION (from Image 3 — replicate):',
-    '- Pose, body positions, gestures, hand positions, interaction between the two',
-    '- Camera angle, framing, depth of field, lens character',
-    '- Background, environment, outfits, props',
+    ...BODY_LOCK,
+    ...COMPOSITION_LOCK,
     ...bodySection,
     ...CATALOG_INTEGRATION,
     ...PHOTOREALISM,
@@ -316,31 +432,25 @@ export function buildSoloCatalogPrompt(opts: SoloCatalogPromptOpts): string {
   const bodySection = personGuide
     ? [
         '',
-        'BODY PROPORTIONS:',
+        'BODY PROPORTIONS (user-provided, strict):',
         personGuide,
         '- Keep the face strictly from Image 1; only the body silhouette and proportions follow the guide above.',
       ]
     : [];
+  const metaCue = buildCatalogMetaCue(opts.catalogMeta);
 
   return [
     `Compose a SOLO ${role === 'groom' ? 'groom' : 'bride'} wedding portrait using TWO input images:`,
-    `- Image 1 = ${role === 'groom' ? 'Groom' : 'Bride'} anchor (solo portrait). PRESERVE the face, hair, skin tone, and body proportions exactly.`,
-    "- Image 2 = Composition reference (catalog master). Replicate pose, framing, camera angle, depth of field, background, outfit, lighting, and composition.",
+    `- Image 1 = ${role === 'groom' ? 'Groom' : 'Bride'} anchor. Use ONLY for identity (face / skin / hair / glasses / facial hair${role === 'bride' ? ' / makeup' : ''}) and build.`,
+    '- Image 2 = Composition reference (catalog master). Use for POSE / FRAMING / camera / background / outfit / lighting. NOT for any face detail or body type.',
     '',
     `Scene context: ${opts.catalogPromptHint}`,
+    ...metaCue,
+    ...IDENTITY_LOCK,
     '',
-    'IDENTITY FIDELITY:',
-    `- Image 1's face is the ${role === 'groom' ? 'groom' : 'bride'} — match this identity precisely (eye shape, nose bridge, jawline, skin tone/texture, hair style/color).`,
-    `- The output contains ONLY the ${role === 'groom' ? 'groom' : 'bride'} (one person). Do NOT add a ${role === 'groom' ? 'bride' : 'groom'} or any second person, even if the catalog master suggests space for one.`,
-    '',
-    'FRAMING MISMATCH HANDLING:',
-    "- Image 1 (anchor) may be cropped differently from Image 2. Use Image 1 as the canonical identity / body reference and RE-RENDER at whatever scale Image 2 demands.",
-    "- Extrapolate body parts not visible in Image 1 using the body guide (if any) and the anchor's visible shoulders.",
-    '',
-    'COMPOSITION (from Image 2 — replicate):',
-    '- Pose, body position, gesture, hand position',
-    '- Camera angle, framing, depth of field, lens character',
-    '- Background, environment, outfit, props',
+    `EXCLUSIVITY: The output contains ONLY the ${role === 'groom' ? 'groom' : 'bride'} (one person). Do NOT add a ${role === 'groom' ? 'bride' : 'groom'} or any second person, even if the catalog master suggests space for one.`,
+    ...BODY_LOCK,
+    ...COMPOSITION_LOCK,
     ...bodySection,
     ...CATALOG_INTEGRATION,
     ...PHOTOREALISM,
@@ -359,23 +469,28 @@ export function buildCouplePhotoSnapPrompt(input: SnapPromptInput | string): str
     typeof input === 'string' ? { catalogPromptHint: input } : input;
   const bodySection = buildBodySection(opts.groom, opts.bride);
 
+  // 커플 사진 모드 — pose/framing 도 Image 1 (커플 사진) 에서 옴.
+  // 따라서 COMPOSITION_LOCK 대신 Image 1 우위 안내가 더 맞음.
+  // catalogMeta 도 적용 안 함 (Image 1 의 framing 이 우선).
   return [
     'Compose a wedding portrait using TWO input images:',
-    "- Image 1 = Couple photo. PRESERVE the two people exactly — faces, identities, body shapes, poses, hand positions, relative scale, eye lines, and their interaction with each other. This is the anchor for identity and pose.",
-    "- Image 2 = Style reference (catalog master). Take outfits, background, environment, and overall lighting tone from this image.",
+    '- Image 1 = Couple photo. Use for IDENTITY + POSE + framing + relative scale + interaction. This is the anchor.',
+    '- Image 2 = Style reference (catalog master). Use ONLY for outfits / background / environment / lighting tone. NOT for face or pose.',
     '',
     `Scene context: ${opts.catalogPromptHint}`,
     '',
     'IDENTITY & POSE FIDELITY (from Image 1 — must be preserved):',
-    '- Faces must match Image 1 with high fidelity (eye shape, nose bridge, jawline, skin tone/texture, hair, expression)',
-    '- Keep the exact poses, gestures, hand positions, head tilts, and the way the couple holds / leans toward each other',
-    '- Keep camera angle and framing close to Image 1; do not arbitrarily reframe',
+    '- Faces (eye shape, nose, jaw, skin tone/texture, hair, glasses, facial hair, makeup) match Image 1 with high fidelity.',
+    '- Keep the exact poses, gestures, hand positions, head tilts, and the way the couple holds / leans toward each other.',
+    '- Keep camera angle and framing close to Image 1; do not arbitrarily reframe.',
+    '- Glasses / facial hair / hair style: take ENTIRELY from Image 1, not from Image 2.',
     '',
-    'STYLE TRANSFER (from Image 2):',
-    "- Replace casual / everyday outfits with the wedding attire shown in Image 2 (groom: formal suit/tux as in Image 2; bride: wedding dress as in Image 2)",
-    '- Replace the background/environment with the one in Image 2',
-    "- Match Image 2's lighting direction, color temperature, and softness across the whole frame",
-    '- Add small wedding props (bouquet, boutonniere) only if naturally consistent with Image 2',
+    'STYLE TRANSFER (from Image 2 — apply over Image 1):',
+    "- Replace casual / everyday outfits with the wedding attire shown in Image 2 (groom: suit/tux as in Image 2; bride: wedding dress as in Image 2). Match cut, color, tie type, neckline, lace, etc.",
+    '- Replace the background/environment with the one in Image 2.',
+    "- Match Image 2's lighting direction, color temperature, and softness across the whole frame.",
+    '- Add small wedding props (bouquet, boutonniere) only if naturally consistent with Image 2.',
+    ...BODY_LOCK,
     ...bodySection,
     ...CATALOG_INTEGRATION,
     ...PHOTOREALISM,
