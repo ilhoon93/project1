@@ -390,6 +390,18 @@ export function buildSoloCatalogPrompt(opts: SoloCatalogPromptOpts): string {
 // (D) 커플 사진 직결 — anchor 우회
 // ──────────────────────────────────────────────────────────────
 
+/**
+ * 커플 사진 직결 — anchor 우회. STRICT 모드:
+ *
+ *   업로드된 커플 사진(Image 1)의 얼굴·구도·포즈·프레이밍은 절대 변형하지 않고,
+ *   카탈로그 마스터(Image 2)에서는 배경 / 의상 / 분위기·조명·컬러 그레이드만 참조해
+ *   바꾼다. 흔히 발생하는 실패 모드 (얼굴이 카탈로그 인물로 변형, 프레이밍이 카탈로그
+ *   비율로 끌려감, 포즈가 살짝 다른 자세로 재구성) 를 명시적으로 차단.
+ *
+ * 사용자 요청 (PR 시점):
+ *   "올린 사진의 구도와 얼굴을 절대 변형하지 않고 카탈로그의 배경과 의상과 분위기만
+ *    참조해서 변경하게 만들어줘."
+ */
 export function buildCouplePhotoSnapPrompt(input: SnapPromptInput | string): string {
   const opts: SnapPromptInput =
     typeof input === 'string' ? { catalogPromptHint: input } : input;
@@ -397,34 +409,38 @@ export function buildCouplePhotoSnapPrompt(input: SnapPromptInput | string): str
   const colorSection = colorHintSection(opts.catalogColorHint);
 
   return [
-    'Compose a wedding portrait using TWO input images:',
-    "- Image 1 = Couple photo. PRESERVE the two people exactly — faces, identities, body shapes, poses, hand positions, relative scale, eye lines, and their interaction with each other. This is the anchor for identity and pose.",
-    "- Image 2 = Style reference (catalog master). Take outfits, background, environment, overall lighting tone, AND face/head SIZE relative to the frame from this image.",
+    'STRICT preservation task. Two input images, very different roles:',
+    "- Image 1 = User couple photo. THIS IS THE LOCKED REFERENCE. Faces, identities, poses, hand positions, head tilts, the way they lean toward each other, eye lines, framing, camera angle, and face/head SIZE relative to the frame ALL come from Image 1 unchanged.",
+    "- Image 2 = Catalog style reference. ONLY THREE ELEMENTS come from Image 2: (a) wedding outfits, (b) background / environment, (c) overall lighting tone, color grade, and atmospheric mood. NOTHING else.",
     '',
-    `Scene context: ${opts.catalogPromptHint}`,
+    `Scene context (mood only, NOT for composition): ${opts.catalogPromptHint}`,
     '',
-    'IDENTITY & POSE FIDELITY (from Image 1 — must be preserved):',
-    '- Faces must match Image 1 with high fidelity (eye shape, nose bridge, jawline, skin tone/texture, hair, expression)',
-    '- Keep the exact poses, gestures, hand positions, head tilts, and the way the couple holds / leans toward each other',
-    '- Keep camera angle and framing close to Image 1; do not arbitrarily reframe',
+    'LOCKED FROM IMAGE 1 — DO NOT CHANGE ANY OF THESE:',
+    '- Faces: identical eye shape, nose bridge, jawline, mouth shape, skin tone/texture, hair shape and color, facial expression. The faces in the output MUST be the same two people as Image 1, indistinguishable from those reference faces.',
+    '- Composition: same camera angle, same framing tightness, same crop. Do not recompose, do not reframe wider or tighter than Image 1.',
+    '- Pose: identical body positions, gestures, hand positions, where each hand rests, head tilts, shoulder angles, who-leans-toward-whom, eye direction, who looks at camera vs. who looks at partner.',
+    '- Relative scale of the two people to each other and to the frame: exact same as Image 1. Heights, body proportions, distance between heads — all locked.',
+    '- Face/head SIZE relative to the frame: matches Image 1. Do NOT shrink or enlarge faces based on Image 2 framing. If Image 1 is a close-up, the output is a close-up. If Image 1 is a half-body, the output is a half-body.',
     '',
-    'SCALE AUTHORITY — Image 2 wins on face/head size:',
-    '- Match the head/face size relative to the frame to Image 2 (the catalog), NOT to Image 1.',
-    '- If Image 1 is a close-up selfie with large faces, but Image 2 is a wide full-body shot with small faces, the rendered faces must be SMALL like Image 2.',
-    '- Identity comes from Image 1; SCALE comes from Image 2. Never enlarge the face to match Image 1\'s zoom level.',
-    '- If you find yourself rendering heads larger than those in Image 2, STOP and re-render smaller. An oversized head is a hard failure mode.',
+    'TAKE FROM IMAGE 2 — ONLY THESE THREE THINGS:',
+    "- Wedding attire: replace whatever the couple is wearing in Image 1 with the wedding attire shown in Image 2 (groom: the formal suit/tux from Image 2; bride: the wedding dress from Image 2). Drape the new attire naturally onto the existing poses without changing the poses themselves.",
+    '- Background / environment: replace the background of Image 1 with the environment in Image 2 (studio backdrop, outdoor garden, hanok courtyard, etc. as appropriate).',
+    "- Lighting and color mood: re-light the couple to match Image 2's primary light direction, color temperature, softness, and overall grade. Apply Image 2's color grade across the whole frame so subject and background read as one exposure.",
     '',
-    'STYLE TRANSFER (from Image 2):',
-    "- Replace casual / everyday outfits with the wedding attire shown in Image 2 (groom: formal suit/tux as in Image 2; bride: wedding dress as in Image 2)",
-    '- Replace the background/environment with the one in Image 2',
-    "- Match Image 2's lighting direction, color temperature, and softness across the whole frame",
-    '- Add small wedding props (bouquet, boutonniere) only if naturally consistent with Image 2',
+    'EXPLICITLY DO NOT:',
+    '- Adopt the poses, hand positions, or composition of Image 2. Image 2 is mood reference, not pose reference.',
+    '- Replace any face with a face from Image 2 (or from any other source). The faces are Image 1\'s, period.',
+    '- Add or remove people. Same two people from Image 1, no third person, no removed person.',
+    '- Reframe to match Image 2\'s framing (e.g., if Image 1 is half-body and Image 2 is full-body, the output stays half-body).',
+    '- Modify facial expressions to look "more wedding-like" — keep Image 1\'s expressions exactly.',
+    '',
+    'OPTIONAL WEDDING PROPS:',
+    '- A small bouquet or boutonniere may be added ONLY if it can be placed naturally in an existing hand position from Image 1 (bride holding something at waist level, groom\'s pocket). Otherwise, omit. Do not move hands to hold props.',
     ...bodySection,
     ...colorSection,
-    ...CATALOG_INTEGRATION,
     ...PHOTOREALISM,
     ...NEGATIVES,
     '',
-    'Style: Professional wedding photography, photorealistic, cinematic.',
+    'Style: Professional wedding photography, photorealistic, cinematic. Above all: Image 1 IS the photo — Image 2 only changes its costume, room, and lighting.',
   ].join('\n');
 }

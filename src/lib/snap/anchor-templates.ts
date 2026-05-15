@@ -47,15 +47,28 @@ export const ANCHOR_BASELINE =
   'Clean indoor studio with seamless neutral gray backdrop, two-source softbox lighting from front-left and front-right with a subtle floor pickup creating a soft natural shadow under the subject, polished floor that gently reflects the lighting, editorial wedding portrait atmosphere. The whole image is captured by a single physical camera at the location — same exposure, white balance, contrast curve, micro-grain across subject and background. Lighting wraps softly around shoulders and hair so the subject feels integrated with the backdrop, no cut-out or paste-in look. Anatomically realistic proportions are CRITICAL — head height MUST be approximately 1/7.5 to 1/8 of total body height (lean toward the smaller 1/8 ratio if uncertain), shoulders about 2x head width, neck-to-shoulder transition smooth and realistic. DO NOT enlarge or zoom into the face for half-body framing — the face is the natural size at the chosen camera distance. If the rendered face appears even slightly larger than 1/8 of body height in a half-body shot, it is wrong. Face is identity reference, NOT scale.';
 
 /**
- * 표정 cue — 사용자 옵션에 따라 분기.
- * - default (slightSmile=false): 차분하고 자연스러운 표정. 미소 강제 안 함 — 셀카의 실제 표정 보존.
- * - slightSmile=true: 옅은 미소. 살짝 입꼬리만 올라간 정도.
+ * 표정 cue — 사용자 옵션에 따라 3 종.
+ * - 'neutral' (default): 차분하고 자연스러운 표정. 미소 강제 안 함 — 셀카의 실제 표정 보존.
+ * - 'slight': 옅은 미소. 살짝 입꼬리만 올라간 정도.
+ * - 'bright': 환하게 웃는 미소. 자연스러운 만족스러운 웃음, 치아 약간 보임. 과장된 grin 은 금지.
  */
+export type AnchorExpression = 'neutral' | 'slight' | 'bright';
+
 export const ANCHOR_EXPRESSION_NEUTRAL =
   'Expression: a calm, composed, natural expression — eyes warm and relaxed, mouth in a relaxed neutral position (no forced smile). Preserve the natural facial expression from the face reference image(s). Never staged.';
 
 export const ANCHOR_EXPRESSION_SLIGHT_SMILE =
   'Expression: a soft, very slight smile — corners of the mouth lifted by a small amount, eyes warm and relaxed; lips may be lightly closed or barely parted (a small natural hint of teeth is OK if it looks like a real spontaneous smile). AVOID exaggerated wide-open grin AND blank serious expression. Target: a gentle "natural happy moment".';
+
+export const ANCHOR_EXPRESSION_BRIGHT_SMILE =
+  'Expression: a bright, warm, genuinely happy smile — corners of the mouth clearly lifted, eyes naturally crinkling at the outer corners ("Duchenne" eye smile), upper teeth gently visible (a natural relaxed grin, NOT a posed dental show). The smile reads as a real spontaneous joyful moment from a wedding day — confident, warm, alive. AVOID: forced theatrical grin, mouth wide-open laughing, asymmetric smirk, or blank serious face. Skin around eyes shows soft natural crease lines from the smile (no plastic flat smile).';
+
+/** 옵션 enum → 프롬프트 cue 매핑. */
+export function expressionCueFor(expression: AnchorExpression): string {
+  if (expression === 'bright') return ANCHOR_EXPRESSION_BRIGHT_SMILE;
+  if (expression === 'slight') return ANCHOR_EXPRESSION_SLIGHT_SMILE;
+  return ANCHOR_EXPRESSION_NEUTRAL;
+}
 
 /**
  * slot 별 의상 + 단독 보장 cue — 단독 컷이라 명시적으로 "alone in the frame".
