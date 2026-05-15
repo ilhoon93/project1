@@ -348,10 +348,10 @@ function PosterFullImageSlide({
         </PositionedBox>
       )}
 
-      {/* 하단 축하하기 / 누적 카운트 — bottom-16 (64px) 이상 유지해 진행 바(bottom-5=20px)
-          와 ≥40px 간격 확보. 사용자가 축하하기 버튼을 누르려다 진행 바가 잘못 눌리는
-          일 방지. */}
-      <div className="absolute bottom-16 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center">
+      {/* 하단 축하하기 / 누적 카운트 — bottom-10 (40px). 진행 바(bottom-5=20px) 위로
+          ≥20px 간격 확보. 사용자가 축하하기 버튼을 누르려다 진행 바가 잘못 눌리는
+          일을 방지하면서도 슬라이드 콘텐츠와 충분한 거리를 둔다. */}
+      <div className="absolute bottom-10 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center">
         <CelebrationFooter
           mode={mode}
           cheersCount={cheersCount}
@@ -544,8 +544,8 @@ function IllustrationSlide({
       {/* 6) 하단 spacer — 인사말 길이와 무관하게 축하하기 자리를 비워둠 */}
       <div style={{ flex: '1 1 0', minHeight: '6cqh' }} />
 
-      {/* 7) 하단 축하하기 / 누적 카운트 — bottom-16 으로 진행 바와 ≥40px 간격 확보 */}
-      <div className="absolute bottom-16 left-1/2 z-20 -translate-x-1/2">
+      {/* 7) 하단 축하하기 / 누적 카운트 — bottom-10 으로 진행 바 바로 위에 배치 */}
+      <div className="absolute bottom-10 left-1/2 z-20 -translate-x-1/2">
         <CelebrationFooter
           mode={mode}
           cheersCount={cheersCount}
@@ -639,18 +639,24 @@ function TextLayoutSlide({
 
       {/* 2) 데코 — 꽃/편지 등 텍스트형 일러스트. 슬라이드 폭을 가득 채워(좌우
           여백 0) 풀너비로 깔린다. 다크 테마에선 --mw-illust-filter 가 자동
-          적용되어 밝은 배경처럼 보이도록 invert/glow 처리. */}
-      <div className="flex w-full shrink-0 items-center justify-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={decoSrc}
-          alt=""
-          aria-hidden
-          className="block h-auto w-full select-none object-cover"
-          draggable={false}
-          style={{ filter: 'var(--mw-illust-filter, none)' }}
-        />
-      </div>
+          적용되어 밝은 배경처럼 보이도록 invert/glow 처리.
+          variant === 'none' 이면 데코를 렌더하지 않고, 데코가 차지하던 자리만큼
+          빈 spacer 를 둬서 이름·날짜의 기본 위치가 흐트러지지 않게 한다. */}
+      {design.variant === 'none' ? (
+        <div aria-hidden className="w-full shrink-0" style={{ height: '6cqh' }} />
+      ) : (
+        <div className="flex w-full shrink-0 items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={decoSrc}
+            alt=""
+            aria-hidden
+            className="block h-auto w-full select-none object-cover"
+            draggable={false}
+            style={{ filter: 'var(--mw-illust-filter, none)' }}
+          />
+        </div>
+      )}
 
       {/* 3) 이름 — 풀너비 데코 아래 자리. offsetY (±50cqh) 로 데코 위쪽까지
           끌어올릴 수 있어 사용자가 자유롭게 배치 가능. z-10 으로 데코 위에.
@@ -708,7 +714,7 @@ function TextLayoutSlide({
       {/* 5) 하단 spacer — 인사말 길이와 무관하게 축하하기 자리를 비워둠 */}
       <div style={{ flex: '1 1 0', minHeight: '6cqh' }} />
 
-      <div className="absolute bottom-16 left-1/2 z-20 -translate-x-1/2">
+      <div className="absolute bottom-10 left-1/2 z-20 -translate-x-1/2">
         <CelebrationFooter
           mode={mode}
           cheersCount={cheersCount}
@@ -894,7 +900,7 @@ function LegacyMainSlide({
         )}
       </div>
 
-      <div className="absolute bottom-16 left-1/2 z-20 flex w-full -translate-x-1/2 flex-col items-center gap-4 px-10">
+      <div className="absolute bottom-10 left-1/2 z-20 flex w-full -translate-x-1/2 flex-col items-center gap-4 px-10">
         <CelebrationFooter
           mode={mode}
           cheersCount={cheersCount}
@@ -1078,8 +1084,8 @@ function FrameSlide({
       {/* 5) 하단 spacer */}
       <div style={{ flex: '1 1 0', minHeight: '5cqh' }} />
 
-      {/* 6) 축하하기 / 누적 카운트 — bottom-16 으로 진행 바와 ≥40px 간격 확보 */}
-      <div className="absolute bottom-16 left-1/2 z-20 -translate-x-1/2">
+      {/* 6) 축하하기 / 누적 카운트 — bottom-10 으로 진행 바 바로 위에 배치 */}
+      <div className="absolute bottom-10 left-1/2 z-20 -translate-x-1/2">
         <CelebrationFooter
           mode={mode}
           cheersCount={cheersCount}

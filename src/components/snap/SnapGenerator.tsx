@@ -958,9 +958,9 @@ export function SnapGenerator({ catalog }: Props) {
                     : 'border-[#E8DCC9] hover:border-[#8B7355]'
                 } ${dim ? 'opacity-50' : ''}`}
               >
-                {/* 좌상단 체크 인디케이터 */}
+                {/* 우상단 체크 인디케이터 — 좌상단 PersonalityBadge 와 겹치지 않도록 우측에 배치 */}
                 <span
-                  className={`absolute left-2 top-2 z-10 grid h-5 w-5 place-items-center rounded-sm border bg-white ${
+                  className={`absolute right-2 top-2 z-10 grid h-5 w-5 place-items-center rounded-sm border bg-white shadow-sm ${
                     selected ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white' : 'border-[#D4C5B0]'
                   }`}
                   aria-hidden
