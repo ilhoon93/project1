@@ -184,7 +184,7 @@ export function MyPageClient({
 // ── AI 웨딩스냅 ──────────────────────────────────────────────
 
 interface SnapPackageTier {
-  code: 'snap_20' | 'snap_50' | 'snap_100';
+  code: 'snap_5' | 'snap_20' | 'snap_40';
   name: string;
   credits: number;
   price: number;
@@ -195,28 +195,28 @@ interface SnapPackageTier {
 
 const SNAP_PACKAGES: SnapPackageTier[] = [
   {
+    code: 'snap_5',
+    name: '체험팩',
+    credits: 5,
+    price: 3900,
+    perImage: 780,
+    highlight: '부담 없이 한 번 만들어 보고 싶을 때',
+  },
+  {
     code: 'snap_20',
-    name: '스타터',
+    name: '표준 (가장 인기)',
     credits: 20,
-    price: 19900,
-    perImage: 995,
-    highlight: '청첩장 메인 + 베스트샷 몇 장만 필요할 때',
+    price: 13900,
+    perImage: 695,
+    highlight: '청첩장 메인 + 베스트샷 다양하게',
   },
   {
-    code: 'snap_50',
-    name: '베스트',
-    credits: 50,
-    price: 39900,
-    perImage: 798,
+    code: 'snap_40',
+    name: '헤비',
+    credits: 40,
+    price: 24900,
+    perImage: 622,
     highlight: '카탈로그 풀 활용 · 가성비 최고',
-  },
-  {
-    code: 'snap_100',
-    name: '풀패키지',
-    credits: 100,
-    price: 69900,
-    perImage: 699,
-    bonus: '영구소장권 1개 포함',
   },
 ];
 
@@ -361,13 +361,13 @@ function SnapTab({
             <li
               key={p.code}
               className={`flex flex-col gap-1 rounded-md border p-3 text-xs ${
-                p.code === 'snap_50' ? 'border-[#3D2E1F] bg-[#FAF7F2]' : 'border-[#E8DCC9] bg-white'
+                p.code === 'snap_20' ? 'border-[#3D2E1F] bg-[#FAF7F2]' : 'border-[#E8DCC9] bg-white'
               }`}
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-[#3D2E1F]">{p.name}</span>
-                  {p.code === 'snap_50' && (
+                  {p.code === 'snap_20' && (
                     <span className="rounded-full bg-[#3D2E1F] px-2 py-0.5 text-[10px] font-medium text-white">
                       추천
                     </span>
