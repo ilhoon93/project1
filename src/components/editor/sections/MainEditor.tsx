@@ -375,6 +375,7 @@ function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: 
 
         <PositionSliders
           position={design.title.position}
+          yMax={85}
           onChange={(position) =>
             onChange({ ...design, title: { ...design.title, position } })
           }
@@ -407,6 +408,7 @@ function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: 
             />
             <PositionSliders
               position={design.dateBox.position}
+              yMax={85}
               onChange={(position) =>
                 onChange({ ...design, dateBox: { ...design.dateBox, position } })
               }
@@ -441,6 +443,7 @@ function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: 
             />
             <PositionSliders
               position={design.nameBox.position}
+              yMax={85}
               onChange={(position) =>
                 onChange({ ...design, nameBox: { ...design.nameBox, position } })
               }
@@ -475,6 +478,7 @@ function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: 
             />
             <PositionSliders
               position={design.messageBox.position}
+              yMax={85}
               onChange={(position) =>
                 onChange({ ...design, messageBox: { ...design.messageBox, position } })
               }
@@ -778,6 +782,7 @@ interface TextProps {
 const TEXT_VARIANT_LABELS: Record<TextVariant, { name: string; hint: string }> = {
   flower: { name: '꽃', hint: '플로럴 라인 아트' },
   letter: { name: '편지', hint: '편지·봉투 일러스트' },
+  none: { name: '없음', hint: '데코 이미지 없이 텍스트만' },
 };
 
 function TextDesignControls({ design, onChange, greeting, onGreetingChange }: TextProps) {
@@ -790,9 +795,9 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
     <div className="flex flex-col gap-5 rounded-md border border-input bg-muted/20 p-3">
       <DesignPanelHeader title="텍스트형 디자인" onReset={handleReset} />
 
-      {/* 데코 변형 선택 */}
+      {/* 데코 변형 선택 — 꽃 / 편지 / 없음 3종 */}
       <Group label="데코 일러스트">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {TEXT_VARIANTS.map((key) => {
             const selected = design.variant === key;
             const meta = TEXT_VARIANT_LABELS[key];
@@ -890,7 +895,7 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
               label="상하 위치"
               value={design.dateBox.offsetY}
               min={-50}
-              max={50}
+              max={25}
               leftHint="상"
               rightHint="하"
               onChange={(offsetY) =>
@@ -962,7 +967,7 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
               label="상하 위치"
               value={design.nameBox.offsetY}
               min={-50}
-              max={50}
+              max={25}
               leftHint="상"
               rightHint="하"
               onChange={(offsetY) =>
@@ -1001,7 +1006,7 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
               label="상하 위치"
               value={design.messageBox.offsetY}
               min={-50}
-              max={50}
+              max={25}
               leftHint="상"
               rightHint="하"
               onChange={(offsetY) =>
@@ -1634,9 +1639,17 @@ function Switch({
 function PositionSliders({
   position,
   onChange,
+  yMax,
 }: {
   position: { x: number; y: number };
   onChange: (next: { x: number; y: number }) => void;
+  /**
+   * y 축 최대값. 기본 100. 텍스트/이름/날짜/인사말처럼 슬라이드 하단의
+   * "축하하기" 버튼 영역(약 90% 이하 지점) 을 침범하지 않아야 하는 요소엔
+   * 85 정도로 낮춰 사용한다. 이미지 object-position 처럼 화면 전체를 덮는
+   * 요소엔 100 그대로 둔다.
+   */
+  yMax?: number;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -1654,7 +1667,7 @@ function PositionSliders({
         label="상하"
         value={position.y}
         min={0}
-        max={100}
+        max={yMax ?? 100}
         leftHint="상"
         rightHint="하"
         unit="%"

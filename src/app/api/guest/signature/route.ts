@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z, ZodError } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 const BodySchema = z.object({
   invitationId: z.string().uuid(),
@@ -23,7 +23,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const supabase = createClient();
+  // 게스트 서명 입력은 service-role 로 RLS 우회 — invitation_is_active() 가
+  // 마이그레이션/환경 차이로 거짓 음성을 낼 때 정상 입력이 차단되는 문제 회피.
+  // 입력은 위 Zod 스키마로 sanitize 완료.
+  const supabase = createAdminClient();
   const { error } = await supabase.from('signatures').insert({
     invitation_id: body.invitationId,
     visitor_name: body.visitorName,

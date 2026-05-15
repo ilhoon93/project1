@@ -220,8 +220,9 @@ export type IllustrationDesign = z.infer<typeof IllustrationDesignSchema>;
 // variant 로 선택한다.
 //   - flower : 기존 text-flower.png — 라인 아트 꽃다발
 //   - letter : text-letter.png       — 봉투/편지 일러스트
+//   - none   : 데코 이미지 없이 텍스트만 — 가장 미니멀한 옵션
 
-export const TEXT_VARIANTS = ['flower', 'letter'] as const;
+export const TEXT_VARIANTS = ['flower', 'letter', 'none'] as const;
 export type TextVariant = (typeof TEXT_VARIANTS)[number];
 
 // 이름 정렬 방식 — 한 줄(가운데 점 구분) vs 위·아래(스택, 중앙 정렬).
@@ -245,13 +246,14 @@ export const TextDesignSchema = z
         offsetY: 0,
       }),
     // 데코 이미지가 풀너비로 깔리는 텍스트형에선 이름·날짜·인사말이 이미지
-    // 위로 올라가거나 아래로 내려가야 자연스럽기 때문에 offsetY 범위를
-    // ±10 → ±50 cqh 로 크게 넓힌다 (1 cqh = 슬라이드 높이의 1%).
+    // 위로 올라가야 자연스럽기 때문에 offsetY 의 음수 범위(상)는 -50 cqh 로
+    // 크게 넓혔지만, 양수 범위(하)는 슬라이드 하단 "축하하기" 버튼 영역을
+    // 침범하지 않도록 +25 cqh 로 제한한다 (1 cqh = 슬라이드 높이의 1%).
     dateBox: z
       .object({
         enabled: z.boolean().default(true),
         fontSize: z.number().min(11).max(22).default(15),
-        offsetY: z.number().min(-50).max(50).default(0),
+        offsetY: z.number().min(-50).max(25).default(0),
       })
       .default({ enabled: true, fontSize: 15, offsetY: 0 }),
     nameBox: z
@@ -260,7 +262,7 @@ export const TextDesignSchema = z
         // 텍스트형의 메인 화면 이름은 굵게·크게 부각하는 디자인 컨셉이라
         // 다른 레이아웃보다 폰트 크기 상한을 56px 까지 크게 열어준다.
         fontSize: z.number().min(14).max(56).default(28),
-        offsetY: z.number().min(-50).max(50).default(0),
+        offsetY: z.number().min(-50).max(25).default(0),
         // 'inline' = 한 줄 가운데 점 구분, 'stack' = 위·아래 두 줄 중앙 정렬.
         // stack 일 때도 두 이름 사이에 작은 구분 점(✦)을 끼워넣어
         // 짝을 이루는 디자인 톤을 유지한다 (렌더링 단계에서 처리).
@@ -273,7 +275,7 @@ export const TextDesignSchema = z
       .object({
         enabled: z.boolean().default(true),
         fontSize: z.number().min(11).max(20).default(13),
-        offsetY: z.number().min(-50).max(50).default(0),
+        offsetY: z.number().min(-50).max(25).default(0),
       })
       .default({ enabled: true, fontSize: 13, offsetY: 0 }),
   })

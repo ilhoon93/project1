@@ -169,6 +169,18 @@ function Question({
           );
         })}
       </div>
+
+      {/* 투표 완료 안내 — 클릭 직후 하객에게 응답이 잘 전달됐다는 피드백.
+          aria-live=polite 로 스크린리더에도 알림. */}
+      {picked !== null && (
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-center text-xs font-medium text-[var(--mw-accent)]"
+        >
+          ✓ 투표가 완료되었습니다. 참여해주셔서 감사합니다!
+        </p>
+      )}
     </article>
   );
 }

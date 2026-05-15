@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z, ZodError } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 const PostSchema = z.object({
   invitationId: z.string().uuid(),
@@ -20,7 +21,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const supabase = createClient();
+  // 게스트 입력은 service-role 로 RLS 우회 — invitation_is_active() 가
+  // 마이그레이션 환경 차이(레거시 invitations vs 신규 publications) 로
+  // 거짓 음성을 내는 케이스가 있어 RLS 가 정상 게스트 메시지까지 차단하는
+  // 문제를 회피한다. 입력은 위 Zod 스키마로 sanitize 완료.
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('guestbook_messages')
     .insert({
