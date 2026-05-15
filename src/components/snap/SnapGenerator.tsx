@@ -958,14 +958,18 @@ export function SnapGenerator({ catalog }: Props) {
                     : 'border-[#E8DCC9] hover:border-[#8B7355]'
                 } ${dim ? 'opacity-50' : ''}`}
               >
-                {/* 우상단 체크 인디케이터 — 좌상단 PersonalityBadge 와 겹치지 않도록 우측에 배치 */}
+                {/* 우상단 체크 인디케이터 — 좌상단 PersonalityBadge 와 겹치지 않도록 우측에 배치.
+                    배경 이미지의 명도와 무관하게 보이도록 흰 테두리 + 그림자 + 반투명 배경 적용.
+                    선택 시: 채워진 다크 박스 + 흰 ✓.  미선택 시: 반투명 다크 박스 + 흰 테두리. */}
                 <span
-                  className={`absolute right-2 top-2 z-10 grid h-5 w-5 place-items-center rounded-sm border bg-white shadow-sm ${
-                    selected ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white' : 'border-[#D4C5B0]'
+                  className={`pointer-events-none absolute right-2 top-2 z-20 grid h-6 w-6 place-items-center rounded-full border-2 text-[13px] font-bold leading-none shadow-md backdrop-blur-sm transition-all ${
+                    selected
+                      ? 'border-white bg-[#3D2E1F] text-white scale-110'
+                      : 'border-white/90 bg-black/35 text-white/0'
                   }`}
                   aria-hidden
                 >
-                  {selected ? '✓' : ''}
+                  ✓
                 </span>
                 <CatalogThumbnail src={item.image} alt={item.label} />
                 <PersonalityBadge personality={item.personality} />
