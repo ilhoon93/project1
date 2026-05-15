@@ -164,6 +164,12 @@ const PHOTOREALISM = [
  */
 const ANCHOR_INTEGRATION = [
   '',
+  'SELFIE PERSPECTIVE CORRECTION — common user input issue:',
+  "- The face reference image(s) may be a SELFIE shot at close range with a wide-angle phone front camera (~24mm equivalent). Wide-angle close-up distorts faces: nose appears enlarged, cheeks pushed out, ears smaller, jawline rounded — the so-called \"selfie distortion\".",
+  '- INTERPRET the face identity from the reference, but RENDER it as if photographed under a 50–85mm portrait lens at proper distance (~2m). That means: natural facial proportions, slimmer nose (corrected), normal cheek width, ears at proper relative size.',
+  '- Preserve identity features (eye shape, eye spacing, brow shape, lip shape, hair, skin tone) but normalize the perspective distortion of the input.',
+  '- If the reference looks like a normal portrait already (not a close-up selfie), no correction needed — just match identity directly.',
+  '',
   'ANATOMICAL PROPORTIONS — CRITICAL when the framing shows the body (half-body):',
   '- Head height MUST be 1/7.5 to 1/8 of total body height (lean toward 1/8 — the smaller side — if uncertain). Shoulders about 2x head width.',
   '- For a half-body (waist-up) frame: the face occupies roughly 1/3 of the vertical frame height, NOT 1/2, NOT bigger. The torso below the face fills the remaining 2/3.',

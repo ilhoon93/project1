@@ -1172,8 +1172,7 @@ function FrameImage({
   }
 
   if (variant === 'classic') {
-    // 클래식 — 직각 1px 외곽선만. 매트(흰 테두리) 부분 제거 — 사진이 외곽선까지 꽉 참.
-    // 패딩 / 흰 배경(bg-background) 모두 삭제.
+    // 클래식 — 외곽선 / 매트(흰 테두리) 모두 제거. 사진만 깔끔하게 + shadow 로 입체감.
     return (
       <div className="flex w-full shrink-0 items-center justify-center px-4">
         <div
@@ -1181,7 +1180,6 @@ function FrameImage({
           style={{
             width: 'min(78cqw, 20rem)',
             aspectRatio: '3 / 4',
-            border: '1px solid currentColor',
           }}
         >
           {src ? (

@@ -713,6 +713,33 @@ export function SnapGenerator({ catalog }: Props) {
           </p>
         )}
 
+        {/* 셀카 거리 가이드 — 광각 왜곡(볼록렌즈 효과) 회피 안내.
+            너무 가까이서 찍은 셀카는 코·얼굴 가운데가 부풀고 옆얼굴이 작아 보여,
+            앵커 → 카탈로그 합성 결과의 비율이 어색해진다. */}
+        <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-[11px] text-[#5C4633]">
+          <p className="font-semibold text-amber-800">
+            📸 좋은 결과를 위한 사진 가이드
+          </p>
+          <ul className="mt-1.5 list-disc space-y-1 pl-4">
+            <li>
+              <strong>가까이서 찍은 셀카는 피해주세요.</strong> 휴대폰 전면 카메라는
+              광각이라 얼굴 가운데(코)가 부풀고 비율이 어색해집니다.
+            </li>
+            <li>
+              <strong>팔을 끝까지 뻗어서</strong> 찍거나 (최소), <strong>다른 사람이
+              1.5~2m 거리</strong>에서 찍어주면 가장 좋아요.
+            </li>
+            <li>
+              <strong>증명사진 · 프로필 사진 · 인물 사진</strong>도 매우 좋습니다.
+              꼭 셀카일 필요 없어요.
+            </li>
+            <li>
+              밝은 곳에서 얼굴이 또렷하게 보이도록. 강한 보정 필터·선글라스·마스크는
+              피해주세요.
+            </li>
+          </ul>
+        </div>
+
         {showSelfieInputs && (
           <div className="mt-3 flex flex-col gap-4">
             <AngleRow
@@ -1154,7 +1181,10 @@ export function SnapGenerator({ catalog }: Props) {
           탭에서 확인할 수 있어요.
         </p>
         {errorMsg && (
-          <p role="alert" className="mt-3 text-xs text-red-600">
+          <p
+            role="alert"
+            className="mt-3 whitespace-pre-line text-xs text-red-600"
+          >
             {errorMsg}
           </p>
         )}
