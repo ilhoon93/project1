@@ -1119,10 +1119,10 @@ function FrameImage({
 
   if (variant === 'polaroid') {
     // 흰 테두리 + 살짝 기울임. 그림자로 입체감.
-    // 사이즈 확대 — 기존 34cqh × 60cqw 에서 ~25% 키워 화면에서 더 존재감.
+    // 사이즈는 원본(34/60/16rem) 과 1차 확대(42/74/20rem) 의 중간 — 원본보다 약간 큼.
     return (
       <div className="shrink-0 rotate-[-3deg] bg-white p-3 pb-8 shadow-xl">
-        <div className="flex h-[42cqh] w-[74cqw] max-w-[20rem] items-center justify-center overflow-hidden bg-stone-100">
+        <div className="flex h-[37cqh] w-[66cqw] max-w-[17rem] items-center justify-center overflow-hidden bg-stone-100">
           {src ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -1141,14 +1141,14 @@ function FrameImage({
 
   if (variant === 'arch') {
     // 아치 — 세로 직사각형(3:4) + 상단만 둥근 곡선. 잘림 영역은 imagePosition 으로 조정.
-    // 사이즈 확대 (68cqw / 18rem → 86cqw / 22rem) + 테두리 제거 — 사진 자체가
-    // 주인공이 되도록 외곽선과 매트 라인을 모두 빼고 부드러운 그림자만 남김.
+    // 사이즈는 원본(68cqw / 18rem) 과 1차 확대(86cqw / 22rem) 의 중간 — 원본보다 약간 큼.
+    // 테두리는 없이 그림자만 (사진 자체가 주인공).
     return (
-      <div className="flex w-full shrink-0 items-center justify-center px-4">
+      <div className="flex w-full shrink-0 items-center justify-center px-5">
         <div
           className="relative overflow-hidden shadow-md"
           style={{
-            width: 'min(86cqw, 22rem)',
+            width: 'min(76cqw, 20rem)',
             aspectRatio: '3 / 4',
             borderRadius: '999px 999px 4px 4px',
           }}
@@ -1172,36 +1172,31 @@ function FrameImage({
   }
 
   if (variant === 'classic') {
-    // 클래식 — 직각 테두리 단일선 (이전엔 이중 테두리: border + outline).
-    // 안쪽 outline 제거 + p-3 → p-1 로 패딩 감소 → 같은 컨테이너 안에서 사진
-    // 영역이 더 커진다.
+    // 클래식 — 직각 1px 외곽선만. 매트(흰 테두리) 부분 제거 — 사진이 외곽선까지 꽉 참.
+    // 패딩 / 흰 배경(bg-background) 모두 삭제.
     return (
       <div className="flex w-full shrink-0 items-center justify-center px-4">
         <div
-          className="relative bg-background p-1 shadow-md"
+          className="relative overflow-hidden shadow-md"
           style={{
             width: 'min(78cqw, 20rem)',
+            aspectRatio: '3 / 4',
             border: '1px solid currentColor',
           }}
         >
-          <div
-            className="relative w-full overflow-hidden bg-stone-100"
-            style={{ aspectRatio: '3 / 4' }}
-          >
-            {src ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={src}
-                alt=""
-                className="h-full w-full object-cover"
-                style={{ objectPosition: objectPos }}
-              />
-            ) : (
-              <div className="grid h-full w-full place-items-center text-3xl text-stone-400">
-                🖼️
-              </div>
-            )}
-          </div>
+          {src ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={src}
+              alt=""
+              className="h-full w-full object-cover"
+              style={{ objectPosition: objectPos }}
+            />
+          ) : (
+            <div className="grid h-full w-full place-items-center bg-stone-100 text-3xl text-stone-400">
+              🖼️
+            </div>
+          )}
         </div>
       </div>
     );
