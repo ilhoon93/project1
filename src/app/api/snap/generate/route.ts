@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { GPT_IMAGE_MODEL, submitMultiImageEdit } from '@/lib/fal/client';
 import { findSnapCatalog } from '@/lib/snap/catalog';
+import { getCatalogColorMeta } from '@/lib/snap/catalog-metadata';
 import {
   buildCouplePhotoSnapPrompt,
   buildSoloCatalogPrompt,
@@ -168,6 +169,11 @@ export async function POST(req: Request) {
       ? { heightCm: anchor.bride_height_cm, weightKg: anchor.bride_weight_kg }
       : undefined;
 
+  // 카탈로그 컬러 메타 (Phase 1+2 통합) — 추출 실패 시 null, 빌더가 graceful 처리.
+  // sharp 로 카탈로그 마스터 LAB 평균 + 색온도 추정 → moodHint 문자열을 prompt 에 주입.
+  const catalogMeta = await getCatalogColorMeta(input.catalogId);
+  const catalogColorHint = catalogMeta?.moodHint ?? null;
+
   // ── image_urls + prompt 분기 ────────────────────────────
   let imageUrls: string[];
   let prompt: string;
@@ -179,6 +185,7 @@ export async function POST(req: Request) {
       catalogPromptHint: catalog.promptHint,
       groom: input.groomBody,
       bride: input.brideBody,
+      catalogColorHint,
     });
     pathLabel = 'couple';
   } else {
@@ -189,6 +196,7 @@ export async function POST(req: Request) {
         catalogPromptHint: catalog.promptHint,
         groom: groomBody,
         bride: brideBody,
+        catalogColorHint,
       });
     } else if (catalog.personality === 'groom-solo') {
       imageUrls = [anchor!.groom_anchor_url!, catalogUrl];
@@ -196,6 +204,7 @@ export async function POST(req: Request) {
         slot: 'groom',
         catalogPromptHint: catalog.promptHint,
         groom: groomBody,
+        catalogColorHint,
       });
     } else {
       // bride-solo
@@ -204,6 +213,7 @@ export async function POST(req: Request) {
         slot: 'bride',
         catalogPromptHint: catalog.promptHint,
         bride: brideBody,
+        catalogColorHint,
       });
     }
   }

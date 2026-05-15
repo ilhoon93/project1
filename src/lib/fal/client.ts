@@ -208,3 +208,96 @@ export async function getTopazResult(requestId: string): Promise<string> {
   if (!url) throw new Error('topaz-upscale.result returned no image url');
   return url;
 }
+
+// ─────────────────────────────────────────────────────────────
+// Foreground segmentation (birefnet) — 마스크 기반 색매칭에 사용.
+// 출력: 흑백 마스크 (foreground=white, background=black) PNG.
+// 비용 ~$0.003/장.
+// ─────────────────────────────────────────────────────────────
+
+const BIREFNET_MODEL = 'fal-ai/birefnet';
+
+interface BirefnetResult {
+  image?: { url: string };
+  mask_image?: { url: string };
+}
+
+/**
+ * 생성 이미지에서 foreground (=신랑/신부) 마스크 추출.
+ * harmonize 단계에서 배경엔 강하게, 사람엔 약하게 색매칭하도록 가중치 마스크로 활용.
+ */
+export async function submitBirefnetMask(input: {
+  imageUrl: string;
+}): Promise<string> {
+  ensureConfigured();
+  const { request_id } = await fal.queue.submit(BIREFNET_MODEL, {
+    input: { image_url: input.imageUrl },
+  });
+  if (!request_id) throw new Error('birefnet.submit returned no request_id');
+  return request_id;
+}
+
+export async function getBirefnetResult(requestId: string): Promise<string> {
+  ensureConfigured();
+  const result = await fal.queue.result(BIREFNET_MODEL, { requestId });
+  const data = result.data as BirefnetResult;
+  // birefnet 은 foreground 가 alpha 로 합성된 png 와 별도 mask png 둘 다 반환할 수 있음.
+  // mask_image 가 있으면 우선 사용 (raw 흑백 마스크).
+  const url = data.mask_image?.url ?? data.image?.url;
+  if (!url) throw new Error('birefnet.result returned no mask url');
+  return url;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Flux dev img2img — Phase 2 마감 패스 (저강도 색/조명 통합).
+// strength 0.15~0.25 로 호출해 identity drift 없이 톤/그레인만 정렬.
+// 비용 ~$0.025/장 (flux/dev, medium quality).
+// ─────────────────────────────────────────────────────────────
+
+const FLUX_IMG2IMG_MODEL = 'fal-ai/flux/dev/image-to-image';
+
+interface FluxImg2ImgResult {
+  images: { url: string; content_type?: string }[];
+}
+
+/**
+ * 저강도 img2img 마감 패스. 입력 이미지의 composition / identity / pose 는
+ * 거의 그대로 유지(strength≤0.25) 하면서 prompt 가 묘사하는 톤/조명/그레인으로
+ * 미세 보정. wedding snap 의 카탈로그 결과 → "한 카메라로 찍은 컷" 일관성 부여.
+ *
+ * 권장 파라미터:
+ *   - strength: 0.18~0.22 (0.25 이상은 identity drift 위험)
+ *   - num_inference_steps: 28~30 (기본 28)
+ *   - guidance_scale: 3.5 (낮게) — 프롬프트에 너무 끌려가지 않게
+ */
+export async function submitFluxImg2Img(input: {
+  imageUrl: string;
+  prompt: string;
+  strength?: number;
+  numInferenceSteps?: number;
+  guidanceScale?: number;
+}): Promise<string> {
+  ensureConfigured();
+  const { request_id } = await fal.queue.submit(FLUX_IMG2IMG_MODEL, {
+    input: {
+      image_url: input.imageUrl,
+      prompt: input.prompt,
+      strength: input.strength ?? 0.2,
+      num_inference_steps: input.numInferenceSteps ?? 28,
+      guidance_scale: input.guidanceScale ?? 3.5,
+      num_images: 1,
+      enable_safety_checker: false,
+    },
+  });
+  if (!request_id) throw new Error('flux-img2img.submit returned no request_id');
+  return request_id;
+}
+
+export async function getFluxImg2ImgResult(requestId: string): Promise<string> {
+  ensureConfigured();
+  const result = await fal.queue.result(FLUX_IMG2IMG_MODEL, { requestId });
+  const data = result.data as FluxImg2ImgResult;
+  const url = data.images?.[0]?.url;
+  if (!url) throw new Error('flux-img2img.result returned no image url');
+  return url;
+}
