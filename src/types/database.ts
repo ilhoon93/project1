@@ -331,6 +331,7 @@ export type Database = {
           bride_height_cm: number | null;
           bride_weight_kg: number | null;
           last_batch_at: string | null;
+          free_full_batches_used: number;
           created_at: string;
           updated_at: string;
         };
@@ -344,6 +345,7 @@ export type Database = {
           bride_height_cm?: number | null;
           bride_weight_kg?: number | null;
           last_batch_at?: string | null;
+          free_full_batches_used?: number;
           created_at?: string;
           updated_at?: string;
         };

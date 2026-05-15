@@ -13,6 +13,7 @@ import type { SnapCatalogItem } from '@/lib/snap/catalog';
 import { CatalogThumbnail } from '@/components/snap/CatalogThumbnail';
 import {
   ANCHOR_TEMPLATES,
+  type AnchorExpression,
   type AnchorFraming,
   type AnchorSlot,
 } from '@/lib/snap/anchor-templates';
@@ -55,6 +56,17 @@ interface AnchorInfo {
   groomAnchorUrl: string | null;
   brideAnchorUrl: string | null;
   sourceMode: string | null;
+}
+
+/**
+ * 라이브러리 앵커 — 과거에 만든 앵커 (snap_anchor_history). 카탈로그 생성 시
+ * 현재 앵커 대신 골라 쓸 수 있다.
+ */
+interface LibraryAnchor {
+  id: string;
+  groomAnchorUrl: string;
+  brideAnchorUrl: string;
+  createdAt: string;
 }
 
 interface AnchorCandidate {
@@ -115,8 +127,16 @@ export function SnapGenerator({ catalog }: Props) {
 
   const [snapBalance, setSnapBalance] = useState<number | null>(null);
 
-  // 앵커 생성 옵션 — 사용자가 체크하면 옅은 미소, 안 하면 차분한 표정.
-  const [slightSmile, setSlightSmile] = useState<boolean>(false);
+  // 앵커 생성 표정 옵션 — 3종: 차분한 자연 표정 / 약간 미소 / 환하게 웃는 미소.
+  const [expression, setExpression] = useState<AnchorExpression>('neutral');
+
+  // 무료 full-batch 잔량 (0~2). API 응답으로 채워짐. 화면 안내·버튼 활성에 사용.
+  const [freeBatchesLeft, setFreeBatchesLeft] = useState<number>(2);
+
+  // 앵커 라이브러리 — 과거 anchor (snap_anchor_history). 카탈로그 생성 시 선택지.
+  const [library, setLibrary] = useState<LibraryAnchor[]>([]);
+  // 카탈로그 생성에 쓸 앵커 — 'current' = snap_anchors 현재 앵커, UUID = 라이브러리.
+  const [selectedAnchorId, setSelectedAnchorId] = useState<string>('current');
 
   // 카탈로그 다중 선택 — 한 번에 N개 제출 가능. 비동기 finalize 라 페이지 이탈 OK.
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -176,6 +196,28 @@ export function SnapGenerator({ catalog }: Props) {
           }
         }
         setAnchorFreeAvail(a?.freeActivationAvailable ?? !a?.anchor);
+        if (typeof a?.freeBatchesLeft === 'number') {
+          setFreeBatchesLeft(a.freeBatchesLeft);
+        }
+        // 라이브러리 — 과거 완성 앵커들 (양쪽 URL 모두 있는 것만).
+        if (Array.isArray(a?.library)) {
+          const lib: LibraryAnchor[] = a.library
+            .filter(
+              (e: Record<string, unknown>) => !!e.groom_anchor_url && !!e.bride_anchor_url,
+            )
+            .map((e: Record<string, unknown>) => ({
+              id: e.id as string,
+              groomAnchorUrl: e.groom_anchor_url as string,
+              brideAnchorUrl: e.bride_anchor_url as string,
+              createdAt: (e.anchor_created_at as string) ?? (e.discarded_at as string) ?? '',
+            }));
+          setLibrary(lib);
+          // 현재 앵커가 없는데 라이브러리가 있으면 기본 선택을 첫 라이브러리로.
+          const hasCurrent = !!a.anchor?.groom_anchor_url && !!a.anchor?.bride_anchor_url;
+          if (!hasCurrent && lib.length > 0) {
+            setSelectedAnchorId(lib[0].id);
+          }
+        }
         if (typeof e?.snapCredits === 'number') setSnapBalance(e.snapCredits);
       } catch {
         // 비로그인 등 — 그대로.
@@ -321,7 +363,7 @@ export function SnapGenerator({ catalog }: Props) {
     const payload: Record<string, unknown> = {
       mode: 'selfies' as const,
       slots,
-      slightSmile,
+      expression,
       ...(slots.includes('groom') ? { groomFaceUrls: collectGroomUrls() } : {}),
       ...(slots.includes('bride') ? { brideFaceUrls: collectBrideUrls() } : {}),
       ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
@@ -351,7 +393,14 @@ export function SnapGenerator({ catalog }: Props) {
         status: 'pending',
       }));
       setAnchorBatch(batch);
-      setAnchorFreeAvail(false);
+      // 응답에 freeBatchesLeft 가 오면 그 값으로, 아니면 한 번 사용했다 가정해 -1.
+      if (typeof data?.freeBatchesLeft === 'number') {
+        setFreeBatchesLeft(data.freeBatchesLeft);
+        setAnchorFreeAvail(data.freeBatchesLeft > 0);
+      } else {
+        setFreeBatchesLeft((n) => Math.max(0, n - 1));
+        setAnchorFreeAvail((avail) => avail && freeBatchesLeft - 1 > 0);
+      }
       setAnchorStage('polling');
       void pollAnchorBatch(batch);
     } catch (e) {
@@ -465,7 +514,11 @@ export function SnapGenerator({ catalog }: Props) {
   };
 
   const handleDiscardAnchor = async () => {
-    if (!confirm('현재 앵커를 폐기할까요? 다음 앵커 batch 는 4 스냅 크레딧이 필요합니다.')) return;
+    const willBeFree = freeBatchesLeft > 0;
+    const msg = willBeFree
+      ? `현재 앵커를 폐기할까요? 무료 batch ${freeBatchesLeft}회가 남아 있어요.`
+      : '현재 앵커를 폐기할까요? 다음 앵커 batch 는 4 스냅 크레딧이 필요합니다.';
+    if (!confirm(msg)) return;
     try {
       await fetch('/api/snap/anchor', { method: 'DELETE' });
       setAnchor(null);
@@ -537,7 +590,8 @@ export function SnapGenerator({ catalog }: Props) {
           ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
         };
       }
-      return { mode: 'anchor', catalogId: item.id };
+      // anchorId — 'current' (default, snap_anchors) 또는 라이브러리 UUID.
+      return { mode: 'anchor', catalogId: item.id, anchorId: selectedAnchorId };
     };
 
     // 병렬 제출 — 각각 독립. 부분 실패 케이스를 위해 Promise.allSettled.
@@ -773,10 +827,13 @@ export function SnapGenerator({ catalog }: Props) {
             한 번에 신랑 단독 2장 + 신부 단독 2장 (클로즈업 / 반신) 을 만들어
             드려요. 각 row 에서 마음에 드는 컷을 1장씩 골라 저장하면 모든 카탈로그
             (함께 컷 / 단독 컷) 에 적용됩니다.
-            {anchorFreeAvail ? (
+            {freeBatchesLeft > 0 ? (
               <>
                 {' '}
-                <span className="font-medium text-emerald-700">첫 batch 는 무료</span>예요.
+                <span className="font-medium text-emerald-700">
+                  무료 {freeBatchesLeft}회 남음
+                </span>
+                {' '}(첫 생성 + 재생성 1회까지 무료).
               </>
             ) : (
               <>
@@ -786,20 +843,39 @@ export function SnapGenerator({ catalog }: Props) {
             )}
           </p>
 
-          {/* 표정 옵션 — 체크 시 옅은 미소, 안 함 시 차분한 자연 표정 */}
-          <label className="mt-3 flex items-center gap-2 text-xs text-[#5C4633]">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-[#D4C5B0] accent-[#3D2E1F]"
-              checked={slightSmile}
-              onChange={(e) => setSlightSmile(e.target.checked)}
-              disabled={isAnchorBusy}
-            />
-            <span>
-              <span className="font-medium">약간 미소를 짓는 표정으로</span> (체크 안 하면 차분한
-              자연 표정)
-            </span>
-          </label>
+          {/* 표정 옵션 — 3종 (차분한 자연 표정 / 약간 미소 / 환하게 웃는 미소) */}
+          <div className="mt-3 flex flex-col gap-1.5 text-xs text-[#5C4633]">
+            <span className="font-medium">표정</span>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { v: 'neutral', label: '차분한 자연', hint: '미소 강제 안 함' },
+                { v: 'slight', label: '약간 미소', hint: '입꼬리 살짝' },
+                { v: 'bright', label: '환하게 웃는', hint: '치아 약간 + 눈웃음' },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.v}
+                  type="button"
+                  onClick={() => setExpression(opt.v)}
+                  disabled={isAnchorBusy}
+                  aria-pressed={expression === opt.v}
+                  className={`flex flex-col items-center gap-0.5 rounded-md border px-2 py-1.5 text-[11px] transition-colors disabled:opacity-50 ${
+                    expression === opt.v
+                      ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white'
+                      : 'border-[#D4C5B0] bg-white text-[#3D2E1F] hover:bg-[#F5EDE0]'
+                  }`}
+                >
+                  <span className="font-medium">{opt.label}</span>
+                  <span
+                    className={`text-[10px] ${
+                      expression === opt.v ? 'opacity-80' : 'text-[#8B7355]'
+                    }`}
+                  >
+                    {opt.hint}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div className="mt-3 flex flex-col gap-2">
             {anchorFreeAvail ? (
@@ -924,6 +1000,63 @@ export function SnapGenerator({ catalog }: Props) {
           )}
         </section>
       )}
+
+      {/* 3-a. 앵커 선택 — selfies 모드 + (현재 앵커 또는 라이브러리) 가 있을 때.
+              카탈로그 생성에 어떤 앵커를 적용할지 사용자가 고를 수 있다. */}
+      {mode !== 'couple' &&
+        (!!anchor?.groomAnchorUrl || !!anchor?.brideAnchorUrl || library.length > 0) && (
+          <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
+            <h2 className="text-sm font-medium text-[#3D2E1F]">사용할 앵커 선택</h2>
+            <p className="mt-1 text-xs text-[#8B7355]">
+              과거에 만든 앵커도 골라 쓸 수 있어요. 카탈로그 생성에 적용됩니다.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+              {/* 현재 앵커 카드 */}
+              {(anchor?.groomAnchorUrl || anchor?.brideAnchorUrl) && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedAnchorId('current')}
+                  aria-pressed={selectedAnchorId === 'current'}
+                  className={`relative flex flex-col gap-1 rounded-md border p-2 text-left transition-colors ${
+                    selectedAnchorId === 'current'
+                      ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
+                      : 'border-[#E8DCC9] hover:border-[#8B7355]'
+                  }`}
+                >
+                  <div className="grid grid-cols-2 gap-1">
+                    <AnchorTinyThumb url={anchor.groomAnchorUrl} />
+                    <AnchorTinyThumb url={anchor.brideAnchorUrl} />
+                  </div>
+                  <span className="text-[11px] font-medium text-[#3D2E1F]">현재 앵커</span>
+                  <span className="text-[10px] text-[#8B7355]">최근 저장</span>
+                </button>
+              )}
+              {/* 라이브러리 (과거) */}
+              {library.map((lib) => (
+                <button
+                  key={lib.id}
+                  type="button"
+                  onClick={() => setSelectedAnchorId(lib.id)}
+                  aria-pressed={selectedAnchorId === lib.id}
+                  className={`relative flex flex-col gap-1 rounded-md border p-2 text-left transition-colors ${
+                    selectedAnchorId === lib.id
+                      ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
+                      : 'border-[#E8DCC9] hover:border-[#8B7355]'
+                  }`}
+                >
+                  <div className="grid grid-cols-2 gap-1">
+                    <AnchorTinyThumb url={lib.groomAnchorUrl} />
+                    <AnchorTinyThumb url={lib.brideAnchorUrl} />
+                  </div>
+                  <span className="text-[11px] font-medium text-[#3D2E1F]">라이브러리</span>
+                  <span className="text-[10px] text-[#8B7355]">
+                    {formatLibraryDate(lib.createdAt)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
       {/* 3. 카탈로그 선택 — 다중 선택 가능 */}
       <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
@@ -1311,6 +1444,31 @@ function StatusCard({
       )}
     </div>
   );
+}
+
+/** 라이브러리 picker 카드 안의 작은 thumbnail. 클릭 동작은 부모 button 이 처리. */
+function AnchorTinyThumb({ url }: { url: string | null }) {
+  if (!url) {
+    return (
+      <div className="grid aspect-[3/4] w-full place-items-center rounded border border-dashed border-[#D4C5B0] bg-[#F5EDE0] text-[9px] text-[#8B7355]">
+        없음
+      </div>
+    );
+  }
+  return (
+    <div className="overflow-hidden rounded border border-[#D4C5B0]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url} alt="" className="block aspect-[3/4] w-full object-cover" />
+    </div>
+  );
+}
+
+/** 라이브러리 라벨용 — anchor_created_at 또는 discarded_at 을 짧게 표시. */
+function formatLibraryDate(iso: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 function AnchorThumb({

@@ -49,10 +49,13 @@ const CoupleBodySchema = z.object({
   brideBody: BodyMetricsSchema.optional(),
 });
 
-// 앵커 모드 — 저장된 anchor 만 사용. 추가 입력 없음.
+// 앵커 모드 — 저장된 anchor 사용.
+// anchorId 미지정 또는 'current' → 현재 snap_anchors 행을 사용.
+// UUID 지정 → snap_anchor_history 에서 해당 row 를 라이브러리 앵커로 사용.
 const AnchoredOnlySchema = z.object({
   mode: z.literal('anchor'),
   catalogId: z.string().min(1),
+  anchorId: z.union([z.literal('current'), z.string().uuid()]).optional(),
 });
 
 const BodySchema = z.union([AnchoredOnlySchema, CoupleBodySchema]);
@@ -96,6 +99,8 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
 
   // ── 앵커 모드면 anchor 로드 + personality 별 필요 slot 검증 ───
+  //   anchorId 미지정 / 'current' → snap_anchors (가장 최근 active)
+  //   UUID → snap_anchor_history 에서 해당 row (라이브러리 picker)
   let anchor: {
     groom_anchor_url: string | null;
     bride_anchor_url: string | null;
@@ -105,14 +110,28 @@ export async function POST(req: Request) {
     bride_weight_kg: number | null;
   } | null = null;
   if (input.mode === 'anchor') {
-    const { data } = await admin
-      .from('snap_anchors')
-      .select(
-        'groom_anchor_url, bride_anchor_url, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg',
-      )
-      .eq('user_id', user.id)
-      .maybeSingle();
-    anchor = data;
+    const anchorId = input.anchorId ?? 'current';
+    if (anchorId === 'current') {
+      const { data } = await admin
+        .from('snap_anchors')
+        .select(
+          'groom_anchor_url, bride_anchor_url, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg',
+        )
+        .eq('user_id', user.id)
+        .maybeSingle();
+      anchor = data;
+    } else {
+      // 라이브러리 — user_id 매칭은 RLS 가 아니라 직접 검증 (admin client 사용 중).
+      const { data } = await admin
+        .from('snap_anchor_history')
+        .select(
+          'groom_anchor_url, bride_anchor_url, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg',
+        )
+        .eq('id', anchorId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      anchor = data;
+    }
     if (!anchor) {
       return NextResponse.json(
         { error: '먼저 앵커를 생성하고 선택해주세요.', code: 'no_anchor' },

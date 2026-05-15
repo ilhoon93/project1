@@ -8,17 +8,15 @@ import { markSnapJobCompleted } from '@/lib/snap/jobs';
 /**
  * /api/snap/anchor — solo anchor 아키텍처.
  *
- * GET    — 현재 사용자의 anchor 행 + 무료 활성화 quota 여부.
- *          { groom_anchor_url, bride_anchor_url, source_mode, body 가이드, ... }
+ * GET    — 현재 사용자의 anchor 행 + 라이브러리 (과거 앵커들) + 무료 quota 잔량.
+ *          { anchor: {...}, library: [{...}], freeBatchesLeft, freeActivationAvailable }
  * POST   — 선택한 groom anchor + bride anchor 의 fal requestId 를 받아 둘 다
- *          public-images 로 영구 호스팅 + snap_anchors 갱신. 한쪽만 보내도
- *          허용 (점진 선택). 마지막에 두 URL 모두 채워지면 selection 완료.
- * DELETE — anchor 폐기 (다음 batch 는 4 크레딧).
+ *          public-images 로 영구 호스팅 + snap_anchors 갱신.
+ * DELETE — anchor 폐기 (history 로 복사 + snap_anchors 삭제).
  *
- * 무료 활성화 정책:
- *   * snap_anchors 행이 없음           = 무료 가능
- *   * 행은 있는데 last_batch_at NULL   = 마이그 13 이후 quota 리셋된 상태 (무료 가능)
- *   * 행 + last_batch_at 채워짐        = 이미 batch 만든 적 있음 → 재생성은 유료
+ * 무료 활성화 정책 (마이그 015 적용 후):
+ *   * 사용자당 무료 full-batch 2회 (최초 생성 + 재생성 1회).
+ *   * snap_anchors.free_full_batches_used 카운터로 추적.
  */
 
 // 클라이언트가 한쪽만 선택한 경우 다른 쪽은 null 로 전송한다 (JSON.stringify 가
@@ -47,20 +45,40 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: NO_STORE_HEADERS });
 
   const admin = createAdminClient();
-  const { data } = await admin
-    .from('snap_anchors')
-    .select(
-      'groom_anchor_url, bride_anchor_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, last_batch_at, updated_at',
-    )
-    .eq('user_id', user.id)
-    .maybeSingle();
 
-  // 무료 활성화: 행이 없거나 last_batch_at 이 NULL (legacy reset).
-  const freeActivationAvailable = !data || data.last_batch_at === null;
+  // 현재 anchor + 라이브러리(과거 anchor) 병렬 조회.
+  const [{ data: anchor }, { data: libraryRaw }] = await Promise.all([
+    admin
+      .from('snap_anchors')
+      .select(
+        'groom_anchor_url, bride_anchor_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, last_batch_at, updated_at, free_full_batches_used',
+      )
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    admin
+      .from('snap_anchor_history')
+      .select(
+        'id, groom_anchor_url, bride_anchor_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, anchor_created_at, discarded_at',
+      )
+      .eq('user_id', user.id)
+      .order('discarded_at', { ascending: false })
+      .limit(50),
+  ]);
+
+  // 라이브러리는 양쪽 URL 이 모두 채워진 "완성 앵커" 만. 빈 항목은 의미 없음.
+  const library = (libraryRaw ?? []).filter(
+    (e) => e.groom_anchor_url && e.bride_anchor_url,
+  );
+
+  const freeUsed = anchor?.free_full_batches_used ?? 0;
+  const freeBatchesLeft = Math.max(0, 2 - freeUsed);
+  const freeActivationAvailable = freeBatchesLeft > 0;
 
   return NextResponse.json(
     {
-      anchor: data ?? null,
+      anchor: anchor ?? null,
+      library,
+      freeBatchesLeft,
       freeActivationAvailable,
     },
     { headers: NO_STORE_HEADERS },

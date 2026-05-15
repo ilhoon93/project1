@@ -6,9 +6,9 @@ import { GPT_IMAGE_MODEL, submitMultiImageEdit } from '@/lib/fal/client';
 import {
   ANCHOR_ATTIRE,
   ANCHOR_BASELINE,
-  ANCHOR_EXPRESSION_NEUTRAL,
-  ANCHOR_EXPRESSION_SLIGHT_SMILE,
   ANCHOR_TEMPLATES,
+  expressionCueFor,
+  type AnchorExpression,
   type AnchorFraming,
   type AnchorSlot,
   type AnchorTemplate,
@@ -25,13 +25,18 @@ import { logSnapJobSubmit } from '@/lib/snap/jobs';
  *   * slots = ['groom']: 2 outputs (신랑 closeup + halfbody)
  *   * slots = ['bride']: 2 outputs (신부 closeup + halfbody)
  *
- * 요금 정책:
- *   * 첫 batch (snap_anchors 없거나 last_batch_at NULL): 무료. 단,
- *     full batch 일 때만 — 부분 재생성은 항상 유료.
- *   * 재생성 batch: 1 output 당 1 크레딧 (slots 길이 × 2). 즉
- *     groom only = 2, bride only = 2, both = 4.
+ * 요금 정책 (마이그 015 적용 후):
+ *   * 무료 full-batch: 사용자당 2회 (최초 + 재생성 1회). full batch 일 때만.
+ *     snap_anchors.free_full_batches_used 카운터로 추적.
+ *   * 부분 재생성은 항상 유료. 무료 quota 와 무관 (카운터 영향 없음).
+ *   * 유료 batch: 1 output 당 1 크레딧 = slots 길이 × 2.
  *
- * 응답: { requestIds: [{ slot, framing, requestId }, ...], freeActivation: boolean }
+ * 라이브러리 보존:
+ *   * 새 batch 직전, 기존 snap_anchors 가 양쪽 URL 모두 채워진 "완성 앵커" 면
+ *     snap_anchor_history 에 자동 복사. 사용자가 카탈로그 생성 시 과거 앵커도
+ *     anchorId 로 골라 쓸 수 있게 함.
+ *
+ * 응답: { requestIds: [{ slot, framing, requestId }, ...], freeActivation, freeBatchesLeft }
  */
 
 const BodyMetricsSchema = z.object({
@@ -50,7 +55,11 @@ const BodySchema = z.object({
   brideFaceUrls: z.array(z.string().url()).min(1).max(3).optional(),
   groomBody: BodyMetricsSchema.optional(),
   brideBody: BodyMetricsSchema.optional(),
-  // 사용자 옵션 — 체크하면 약간 미소 표정, 안 하면 차분한 자연 표정.
+  // 표정 옵션 — 'neutral' (기본, 차분한 자연 표정), 'slight' (옅은 미소),
+  // 'bright' (환하게 웃는 미소).
+  expression: z.enum(['neutral', 'slight', 'bright']).optional(),
+  // 레거시 호환 — 옛 클라이언트가 boolean 으로 보낼 수 있어 받아 둠.
+  // expression 이 있으면 expression 이 우선.
   slightSmile: z.boolean().optional(),
 });
 
@@ -93,19 +102,43 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient();
 
-  // 1. 무료 활성화 여부 — snap_anchors 행이 없거나 last_batch_at NULL.
-  //    부분 재생성은 항상 유료 — 무료 quota 는 full batch 만 적용.
+  // 1. 무료 활성화 여부 — 무료 full-batch quota 2회.
+  //    snap_anchors.free_full_batches_used < 2 + full batch 일 때만 무료.
+  //    부분 재생성은 카운터에 영향 없음 (항상 유료).
   const { data: existing } = await admin
     .from('snap_anchors')
-    .select('last_batch_at')
+    .select(
+      'last_batch_at, free_full_batches_used, groom_anchor_url, bride_anchor_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, created_at',
+    )
     .eq('user_id', user.id)
     .maybeSingle();
-  const isFreshUser = !existing || existing.last_batch_at === null;
+  const freeUsed = existing?.free_full_batches_used ?? 0;
   const isFullBatch = uniqueSlots.length === 2;
-  const isFreeActivation = isFreshUser && isFullBatch;
+  const isFreeActivation = isFullBatch && freeUsed < 2;
 
   // 2. 비용 계산 — 1 output 당 1 크레딧. slots 길이 × 2.
   const cost = isFreeActivation ? 0 : uniqueSlots.length * 2;
+
+  // 2-1. 라이브러리 자동 보존 — 기존 snap_anchors 가 "완성 앵커" (양쪽 URL 모두 set)
+  //      일 때만 history 에 복사. 부분 채워진 상태(batch 만 생성된 단계) 는 복사 X.
+  //      카탈로그 생성 시 사용자가 라이브러리에서 어떤 앵커를 쓸지 선택할 수 있도록.
+  if (existing?.groom_anchor_url && existing?.bride_anchor_url) {
+    const { error: histErr } = await admin.from('snap_anchor_history').insert({
+      user_id: user.id,
+      groom_anchor_url: existing.groom_anchor_url,
+      bride_anchor_url: existing.bride_anchor_url,
+      source_mode: existing.source_mode,
+      groom_height_cm: existing.groom_height_cm,
+      groom_weight_kg: existing.groom_weight_kg,
+      bride_height_cm: existing.bride_height_cm,
+      bride_weight_kg: existing.bride_weight_kg,
+      anchor_created_at: existing.created_at,
+    });
+    if (histErr) {
+      // 보존 실패는 본 흐름 차단 X — 사용자가 새 anchor 만드는 걸 막지 말자.
+      console.warn('[snap/anchor/generate] auto-archive failed', histErr);
+    }
+  }
 
   // 3. 유료라면 크레딧 사전 차감 (cost 만큼).
   if (cost > 0) {
@@ -149,10 +182,10 @@ export async function POST(req: Request) {
     bride: input.brideBody,
   };
 
-  // 옵션 미선택 = 차분한 자연 표정. 선택 = 옅은 미소.
-  const expressionCue = input.slightSmile
-    ? ANCHOR_EXPRESSION_SLIGHT_SMILE
-    : ANCHOR_EXPRESSION_NEUTRAL;
+  // 표정 cue 결정 — expression 이 있으면 우선, 없으면 legacy slightSmile 로 폴백.
+  const expression: AnchorExpression =
+    input.expression ?? (input.slightSmile ? 'slight' : 'neutral');
+  const expressionCue = expressionCueFor(expression);
 
   const buildPrompt = (t: AnchorTemplate) => {
     const baselineSceneHint = `${ANCHOR_BASELINE}\n${expressionCue}\n${ANCHOR_ATTIRE[t.slot]}\nFraming: ${t.framingHint}`;
@@ -207,37 +240,33 @@ export async function POST(req: Request) {
   }
 
   // 5. snap_anchors 행 upsert — 부분 재생성이면 기존 다른 slot URL 보존.
-  //    last_batch_at 갱신해 무료 quota 소진 처리.
-  const { data: currentRow } = await admin
-    .from('snap_anchors')
-    .select('groom_anchor_url, bride_anchor_url, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
+  //    last_batch_at 갱신 + 무료 full batch 였으면 카운터 +1.
+  const nextFreeUsed = isFreeActivation ? freeUsed + 1 : freeUsed;
   const upsertPayload = {
     user_id: user.id,
     // 재생성 대상 slot 만 NULL 로 (선택 전 상태), 다른 slot 은 기존 값 유지.
     groom_anchor_url: uniqueSlots.includes('groom')
       ? null
-      : currentRow?.groom_anchor_url ?? null,
+      : existing?.groom_anchor_url ?? null,
     bride_anchor_url: uniqueSlots.includes('bride')
       ? null
-      : currentRow?.bride_anchor_url ?? null,
+      : existing?.bride_anchor_url ?? null,
     source_mode: 'selfies' as const,
     // body metrics 도 재생성 대상 slot 의 값으로 갱신. 다른 slot 은 기존 값.
     groom_height_cm: uniqueSlots.includes('groom')
-      ? input.groomBody?.heightCm ?? currentRow?.groom_height_cm ?? null
-      : currentRow?.groom_height_cm ?? null,
+      ? input.groomBody?.heightCm ?? existing?.groom_height_cm ?? null
+      : existing?.groom_height_cm ?? null,
     groom_weight_kg: uniqueSlots.includes('groom')
-      ? input.groomBody?.weightKg ?? currentRow?.groom_weight_kg ?? null
-      : currentRow?.groom_weight_kg ?? null,
+      ? input.groomBody?.weightKg ?? existing?.groom_weight_kg ?? null
+      : existing?.groom_weight_kg ?? null,
     bride_height_cm: uniqueSlots.includes('bride')
-      ? input.brideBody?.heightCm ?? currentRow?.bride_height_cm ?? null
-      : currentRow?.bride_height_cm ?? null,
+      ? input.brideBody?.heightCm ?? existing?.bride_height_cm ?? null
+      : existing?.bride_height_cm ?? null,
     bride_weight_kg: uniqueSlots.includes('bride')
-      ? input.brideBody?.weightKg ?? currentRow?.bride_weight_kg ?? null
-      : currentRow?.bride_weight_kg ?? null,
+      ? input.brideBody?.weightKg ?? existing?.bride_weight_kg ?? null
+      : existing?.bride_weight_kg ?? null,
     last_batch_at: new Date().toISOString(),
+    free_full_batches_used: nextFreeUsed,
   };
   const { error: upsertErr } = await admin
     .from('snap_anchors')
@@ -251,5 +280,8 @@ export async function POST(req: Request) {
     freeActivation: isFreeActivation,
     slots: uniqueSlots,
     cost,
+    expression,
+    // 무료 full-batch 남은 횟수 (다음번 사용 가능한지). 0 이면 다음 full-batch 는 유료.
+    freeBatchesLeft: Math.max(0, 2 - nextFreeUsed),
   });
 }
