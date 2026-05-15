@@ -43,7 +43,12 @@ export function EditorToolbar({ invitationId }: { invitationId: string }) {
     while (useEditorStore.getState().status === 'saving') {
       await new Promise((r) => setTimeout(r, 50));
     }
-    router.push(`/preview/${invitationId}`);
+    // Router Cache 의 stale RSC 가 옛 저장본을 보여주는 사고 방지:
+    // 1) router.refresh() 로 현재 페이지의 캐시 무효화
+    // 2) ?t=… 쿼리로 미리보기 페이지를 캐시 키 측면에서도 새 인스턴스로 만듦
+    // → 모바일에서 저장 직후 "미리보기" 클릭하면 즉시 최신본이 보임.
+    router.refresh();
+    router.push(`/preview/${invitationId}?t=${Date.now()}`);
   };
 
   // 저장내역 (= 마이페이지) 이동 — 미저장 변경이 있으면 confirm. 사용자가 "이동"
@@ -87,7 +92,14 @@ export function EditorToolbar({ invitationId }: { invitationId: string }) {
         <Button
           variant="default"
           size="sm"
-          onClick={() => void save()}
+          onClick={async () => {
+            await save();
+            // 저장 직후 Router Cache 무효화 — 다음 /edit/[id] 진입(예: /preview 갔다
+            // 돌아오기) 시 stale RSC 가 아니라 방금 저장한 데이터가 즉시 보이도록.
+            if (useEditorStore.getState().status === 'saved') {
+              router.refresh();
+            }
+          }}
           disabled={status === 'saving' || status === 'idle' || status === 'saved'}
         >
           저장

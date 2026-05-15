@@ -41,21 +41,13 @@ export function EditorClient({
 
   // Hydrate the store with server-provided data on first mount.
   //
-  // 정책 (다른 기기 / 같은 기기 / Router Cache stale 까지 모두 정확히 처리):
-  //   1) 청첩장 ID 가 다르거나 로컬에 데이터가 없음 → 서버 데이터로 초기화.
-  //   2) 같은 청첩장 + 미저장 편집(unsaved=true) 이면 로컬 lastEditedAt 와 서버
-  //      updated_at 을 비교:
-  //        - 서버가 더 최신 → 다른 기기에서 저장된 내용이 있음 → 서버 우선.
-  //        - 로컬이 더 최신 → /preview 다녀온 케이스 등 → 로컬 보존.
-  //   3) 같은 청첩장 + 저장 완료(unsaved=false) 일 때:
-  //        a) 우리 마지막 저장의 서버 updated_at(lastSavedServerTs) 가
-  //           prop.serverUpdatedAt 이상이면 — 즉 서버가 우리 마지막 저장 이후
-  //           바뀌지 않았는데 prop 이 그보다 작거나 같다는 뜻 — prop 은 Router
-  //           Cache 의 stale RSC 일 가능성이 높다. 로컬 유지 (사용자가 방금
-  //           저장한 내용을 캐시로 덮어쓰는 회귀 차단).
-  //        b) 그 외(prop 이 더 최신) → 다른 기기에서 저장된 더 최신본이 있으니
-  //           서버 데이터로 초기화.
-  //   4) 그 외 → 서버 데이터로 초기화.
+  // 정책 (사용자 요청 — "저장된 게 있으면 무조건 그걸 우선"):
+  //   1) 같은 청첩장 + 미저장 편집(unsaved=true) → 로컬 보존 (작업 중 손실 방지).
+  //   2) 그 외 모든 경우(다른 청첩장 / 미저장 없음 / 신규) → 서버 데이터로 초기화.
+  //
+  // 즉, 로컬 캐시는 "지금 편집 중인" 변경분 보호 용도로만 쓴다. 저장 완료 후엔
+  // 항상 서버에 저장된 본이 진실이다. Router Cache 의 stale RSC 문제는
+  // EditorToolbar 가 save 직후 router.refresh() 를 호출해 따로 해결한다.
   //
   // 로컬 content 는 현재 스키마로 한 번 reparse 해 신규 필드도 기본값으로 채운다.
   const hydrated = useRef(false);
@@ -63,31 +55,15 @@ export function EditorClient({
     if (hydrated.current) return;
     hydrated.current = true;
     const current = useEditorStore.getState();
-    const sameInvitation = current.invitationId === invitationId && current.content;
+    const sameInvitation =
+      current.invitationId === invitationId && !!current.content;
 
-    const localContent = current.content;
-    if (sameInvitation && localContent) {
-      const propTs = serverUpdatedAt ? new Date(serverUpdatedAt).getTime() : 0;
-
-      // (2) 미저장 편집 — 1 분 이내 동률은 로컬 우선 (시계 어긋남 보정).
-      if (current.unsaved) {
-        const localEditTs = current.lastEditedAt ?? 0;
-        if (localEditTs > propTs + 60_000) {
-          if (keepLocalContent(localContent)) return;
-        }
-      }
-
-      // (3a) 저장 완료 + 우리의 마지막 저장이 prop 의 server updated_at 이상.
-      //      prop 이 stale Router Cache 일 가능성이 높음 → 로컬 유지.
-      const lastSavedTs = current.lastSavedServerTs
-        ? new Date(current.lastSavedServerTs).getTime()
-        : 0;
-      if (lastSavedTs > 0 && lastSavedTs >= propTs) {
-        if (keepLocalContent(localContent)) return;
-      }
+    // (1) 미저장 편집이 있는 경우에만 로컬 보존.
+    if (sameInvitation && current.unsaved && current.content) {
+      if (keepLocalContent(current.content)) return;
     }
 
-    // (1)/(3b)/(4) — 신규 / 다른 청첩장 / 서버가 더 최신 → 서버 데이터로 초기화.
+    // (2) 그 외 — 서버 데이터로 무조건 초기화 (로컬 캐시 덮어쓰기).
     init(invitationId, meta, content, serverUpdatedAt);
   }, [invitationId, meta, content, init, serverUpdatedAt]);
 

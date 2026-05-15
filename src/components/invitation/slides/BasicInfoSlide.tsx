@@ -42,7 +42,7 @@ export function BasicInfoSlide({ basic, groomName, brideName, weddingDate }: Pro
       return (
         <blockquote
           key={key}
-          className="mx-auto max-w-md text-sm italic leading-relaxed opacity-90"
+          className="mx-auto max-w-md whitespace-pre-line text-sm italic leading-relaxed opacity-90"
         >
           “{basic.quote.text}”
         </blockquote>

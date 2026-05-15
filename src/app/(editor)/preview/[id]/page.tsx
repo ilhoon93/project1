@@ -4,6 +4,13 @@ import { InvitationContentSchema } from '@/types/invitation';
 import { PreviewBanner } from './preview-banner';
 import { LivePreview } from './live-preview';
 
+// 저장 → 미리보기 → 편집 → 미리보기 흐름에서 Next.js Router Cache 가
+// 옛 RSC 를 돌려주는 사고를 막기 위해 명시적으로 dynamic 강제 + 캐시 비활성화.
+// Supabase 클라이언트가 cookies() 를 쓰기 때문에 사실상 dynamic 이지만,
+// build/cache 분석에서 우발적으로 캐시되는 일을 차단.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface PageProps {
   params: { id: string };
 }

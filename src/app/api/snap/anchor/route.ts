@@ -21,12 +21,14 @@ import { markSnapJobCompleted } from '@/lib/snap/jobs';
  *   * 행 + last_batch_at 채워짐        = 이미 batch 만든 적 있음 → 재생성은 유료
  */
 
+// 클라이언트가 한쪽만 선택한 경우 다른 쪽은 null 로 전송한다 (JSON.stringify 가
+// undefined 를 dropping 하지 않도록). .nullish() 로 null 과 undefined 둘 다 허용.
 const SaveSchema = z
   .object({
-    groomRequestId: z.string().min(1).optional(),
-    brideRequestId: z.string().min(1).optional(),
+    groomRequestId: z.string().min(1).nullish(),
+    brideRequestId: z.string().min(1).nullish(),
   })
-  .refine((v) => v.groomRequestId || v.brideRequestId, {
+  .refine((v) => !!v.groomRequestId || !!v.brideRequestId, {
     message: 'At least one of groomRequestId or brideRequestId is required',
   });
 
