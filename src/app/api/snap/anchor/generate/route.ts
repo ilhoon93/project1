@@ -103,27 +103,44 @@ export async function POST(req: Request) {
   }
 
   // 입력 검증 — 해상도/밝기/종횡비. errors 가 있으면 차단, warnings 는 응답에 포함.
-  // 검증은 sharp 로컬, 추가 fal 비용 0원. 모든 face URL 병렬.
-  const allFaceUrls = [
-    ...(input.groomFaceUrls ?? []),
-    ...(input.brideFaceUrls ?? []),
+  // 검증은 sharp 로컬, 추가 fal 비용 0원. 어느 사진이 문제인지 사용자가 정확히
+  // 알 수 있도록 라벨 (예: "신랑 사진 2번") 을 붙여 detail 에 넘긴다.
+  const ANGLE_LABELS = ['정면', '좌 45°', '우 45°'] as const;
+  const labeledUrls: { label: string; url: string }[] = [
+    ...(input.groomFaceUrls ?? []).map((url, i) => ({
+      label: `신랑 사진 ${i + 1}번 (${ANGLE_LABELS[i] ?? `${i + 1}장`})`,
+      url,
+    })),
+    ...(input.brideFaceUrls ?? []).map((url, i) => ({
+      label: `신부 사진 ${i + 1}번 (${ANGLE_LABELS[i] ?? `${i + 1}장`})`,
+      url,
+    })),
   ];
-  const validations = await Promise.all(allFaceUrls.map((u) => validateInputImage(u)));
-  const allErrors: string[] = [];
-  const allWarnings: string[] = [];
+  const validations = await Promise.all(
+    labeledUrls.map((entry) => validateInputImage(entry.url)),
+  );
+  const errorDetails: string[] = [];
+  const warningDetails: string[] = [];
   validations.forEach((v, i) => {
+    const label = labeledUrls[i].label;
     if (!v.ok) {
-      allErrors.push(`이미지 ${i + 1}: ${v.errors.join(', ')}`);
+      errorDetails.push(`${label}: ${v.errors.join(', ')}`);
     }
     if (v.warnings.length > 0) {
-      allWarnings.push(`이미지 ${i + 1}: ${v.warnings.join(', ')}`);
+      warningDetails.push(`${label}: ${v.warnings.join(', ')}`);
     }
   });
-  if (allErrors.length > 0) {
+  if (errorDetails.length > 0) {
+    // 사용자 메시지 — 어떤 사진이 문제인지 명확히. detail 의 첫 줄은 그대로
+    // 사용해 "어떤 사진이 어떤 이유로" 까지 한 번에 보이게.
+    const firstLine = errorDetails[0];
     return NextResponse.json(
       {
-        error: '업로드한 사진 일부의 품질이 부족합니다.',
-        details: allErrors,
+        error: errorDetails.length === 1
+          ? `${firstLine}\n다시 업로드해 주세요.`
+          : `${errorDetails.length}장의 사진에 문제가 있어요:\n${errorDetails.join('\n')}\n해당 사진을 다시 업로드해 주세요.`,
+        details: errorDetails,
+        warnings: warningDetails,
         code: 'input_quality',
       },
       { status: 400 },

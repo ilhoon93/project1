@@ -202,12 +202,14 @@ export async function POST(req: Request) {
 
   if (input.mode === 'couple') {
     // 커플 사진 입력 검증 — 해상도/밝기 등 차단 조건. errors 면 400 반환.
+    // 사용자에게 정확한 이유까지 한 줄로 보여 줘서 어떤 부분이 문제인지 즉시 파악 가능.
     const couplePhotoValidation = await validateInputImage(input.couplePhotoUrl);
     if (!couplePhotoValidation.ok) {
       return NextResponse.json(
         {
-          error: '커플 사진의 품질이 부족합니다.',
-          details: couplePhotoValidation.errors,
+          error: `커플 사진: ${couplePhotoValidation.errors.join(', ')}\n다시 업로드해 주세요.`,
+          details: couplePhotoValidation.errors.map((e) => `커플 사진: ${e}`),
+          warnings: couplePhotoValidation.warnings.map((w) => `커플 사진: ${w}`),
           code: 'input_quality',
         },
         { status: 400 },
