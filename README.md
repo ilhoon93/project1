@@ -40,7 +40,9 @@
 | 상태 | Zustand (편집기, persist) · framer-motion (슬라이드 전환) |
 | 백엔드 | Supabase Postgres · RLS · Storage · service-role admin client |
 | 인증 | Supabase Auth + 네이버 OAuth 브릿지 (`/api/auth/naver/*`) |
-| AI | fal.ai 큐 모드 — `gpt-image-1/edit-image` (chatGPT 2.0) |
+| AI 컨셉 이미지 | fal.ai 큐 모드 — `openai/gpt-image-2/edit` (메인 사진 보정) |
+| AI 웨딩스냅 | fal.ai 큐 모드 — `openai/gpt-image-2/edit` + 4단 후처리 (harmonize · img2img finishing · 업스케일 · sharpen) |
+| 이미지 처리 | `sharp` (LAB 분석 · 색매칭 · sharpen · JPEG mozjpeg) |
 | PDF | `pdf-lib` + `@pdf-lib/fontkit` + 런타임 한글 폰트 (Noto Serif KR) |
 | 결제 | PortOne V2 + Toss Payments 채널 / 네이버 스마트스토어 주문번호 등록 |
 | 호스팅 | Vercel (Hobby 60s 함수 제한 호환) |
@@ -122,6 +124,42 @@ POST /api/ai/concept-finalize         (3–5초)  → 결과 저장 + 사용량 
 
 자세한 설치는 [docs/ai-concept-image-setup.md](docs/ai-concept-image-setup.md).
 
+## AI 웨딩스냅 (앵커 + 카탈로그 + 4단 후처리)
+
+`ai_snap` 패키지 보유 사용자가 셀카로 만든 신랑·신부 앵커 + 카탈로그 마스터를
+조합해 웨딩 컨셉별 합성 사진을 생성한다. 큐 모드 + 비동기 finalize 라 사용자는
+페이지를 떠나도 됨 (마이페이지 진입 시 일괄 처리).
+
+### 큐 흐름
+
+```
+POST /api/snap/generate         → fal.queue.submit (gpt-image-2/edit)
+                                   - 카탈로그 컬러 메타 사전 추출 + 프롬프트 동적 주입
+                                   - snap 크레딧 1 차감 (RPC consume_snap_credit)
+                                   - snap_jobs INSERT (status='submitted')
+GET  /api/snap/status?id=...    → 폴링 (5s 간격)
+POST /api/snap/finalize         → fal.queue.result + 4단 후처리 + storage 업로드
+                                   - 또는 /api/snap/jobs/poll-pending 으로 mypage 진입 시 일괄
+```
+
+### 4단 후처리 파이프라인 (카탈로그 결과 한정)
+
+| 단계 | 모듈 | 동작 | env flag |
+|---|---|---|---|
+| 1. Harmonize | `lib/snap/harmonize.ts` | birefnet 마스크 + LAB 색매칭 (배경 강하게, 사람 약하게) | `SNAP_HARMONIZE_MODE` |
+| 2. Finishing | `lib/snap/finishing.ts` | flux/dev img2img strength 0.2 마감 패스 | `SNAP_FINISHING_MODE` |
+| 3. Upscale | `lib/snap/postprocess.ts` | aura-sr / Topaz 2x | `SNAP_UPSCALE_MODE` |
+| 4. Sharpen | sharp 로컬 | unsharp mask + JPEG mozjpeg | (자동) |
+
+각 단계 실패 시 직전 결과로 graceful fallback — 후처리 실패가 finalize 를 깨뜨리지 않음.
+
+### 카탈로그
+- 10종 (studio · outdoor · tradition · urban · beach)
+- Personality: `together` / `groom-solo` / `bride-solo`
+- 정적 자산: `public/wedding-snap/catalog/{id}.jpg` (1024×1536 권장)
+
+자세한 흐름·비용·운영 가이드는 [docs/wedding-snap-pipeline.md](docs/wedding-snap-pipeline.md).
+
 ## 혼인서약서 PDF
 
 발행된 알림장이 있는 사용자는 마이페이지에서 **혼인서약서 PDF** 를
@@ -150,10 +188,13 @@ cp .env.local.example .env.local
 `.env.local` 의 주요 키:
 - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY`
 - `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET`
-- `FAL_KEY` (AI 이미지 생성)
+- `FAL_KEY` (AI 컨셉 이미지 + AI 웨딩스냅 공유)
+- `SNAP_HARMONIZE_MODE` / `SNAP_FINISHING_MODE` / `SNAP_UPSCALE_MODE` (웨딩스냅 후처리 토글, 선택)
 - `PORTONE_*`, `NAVER_COMMERCE_*` (선택)
 - `NEXT_PUBLIC_BASE_URL` (운영 도메인)
 - `CRON_SECRET` (14일 미발행 정리 cron)
+
+전체 환경 변수 + 기본값 + 운영 권장값 일람: [docs/env-variables.md](docs/env-variables.md)
 
 코드의 모든 Supabase 클라이언트는 [src/lib/env.ts](src/lib/env.ts) 의
 `requireEnv()` 로 lazy-evaluated 환경변수를 읽어 빌드 시점이 아닌 런타임에 검사.
@@ -174,6 +215,12 @@ npx supabase db push
 6. `006_ai_usage.sql` — AI 이미지 사용량 추적 (계정당 1회)
 7. `007_owner_view_and_engagement.sql` — `publications.owner_token` + 축하/좋아요 카운트 + RPC
 8. `008_archive_and_packages.sql` — 영구소장 ledger + AI 스냅/영상/가족 패키지 + `publish_invitation_v4` (만료 = 결혼식 날짜 + 30일)
+9. `009_fix_invitation_is_active.sql` — `invitation_is_active()` 가 publications 기반으로 동작하도록 수정 (RLS 거짓 음성 해결)
+10. `010_single_publication.sql` — 1 알림장당 1개 활성 publication 보장
+11. `011_force_active_publications.sql` — 레거시 invitations 행을 publications 로 강제 동기화
+12. `012_snap_credits_and_anchors.sql` — AI 웨딩스냅 크레딧 원장 + `snap_anchors` 테이블
+13. `013_snap_solo_anchors_and_jobs.sql` — solo 앵커(groom/bride 분리) + `snap_jobs` 작업 로그
+14. `014_snap_anchor_history.sql` — 폐기된 앵커 이력 보존
 
 타입 자동 생성 (선택):
 
@@ -212,7 +259,9 @@ src/
 │   ├── [slug]/                     # 하객용 알림장
 │   │   └── o/[token]/              # 신랑신부 소장용 (영구소장 시 만료 없음)
 │   ├── api/
-│   │   ├── ai/concept-{generate,status,finalize}/   # fal.ai 큐 모드
+│   │   ├── ai/concept-{generate,status,finalize}/   # AI 컨셉 이미지 (큐 모드)
+│   │   ├── snap/{generate,status,finalize,anchor}/  # AI 웨딩스냅 (큐 모드)
+│   │   ├── snap/jobs/poll-pending/                  # 배치 finalize (mypage 진입 시)
 │   │   ├── invitations/[id]/{,certificate}/         # CRUD + 혼인서약서 PDF
 │   │   ├── publish/[id]/            # publish_invitation_v4
 │   │   ├── archive/[id]/            # 영구소장 적용
@@ -245,7 +294,17 @@ src/
 │   └── auth/AutoLoginGate · AutoLogout
 ├── lib/
 │   ├── supabase/{client,server,admin,middleware}.ts
-│   ├── fal/{client,prompts,concepts}.ts
+│   ├── fal/{client,prompts,concepts}.ts  # fal 모델 wrappers (gpt-image-2, birefnet, flux img2img, aura-sr, topaz)
+│   ├── snap/
+│   │   ├── catalog.ts              # 10종 카탈로그 정의 + personality
+│   │   ├── catalog-metadata.ts     # 카탈로그 마스터 LAB/Kelvin 메타 추출 (캐시)
+│   │   ├── prompt.ts               # 4개 prompt 빌더 + 카탈로그 컬러 hint 주입
+│   │   ├── harmonize.ts            # Phase 1: 마스크 인지 색매칭
+│   │   ├── finishing.ts            # Phase 2: flux img2img 마감 패스
+│   │   ├── postprocess.ts          # 4단 파이프라인 (harmonize + finishing + upscale + sharpen)
+│   │   ├── finalize.ts             # finalize 공용 헬퍼
+│   │   ├── jobs.ts                 # snap_jobs INSERT/UPDATE
+│   │   └── anchor-templates.ts     # 앵커 baselineSceneHint
 │   ├── presets.ts                  # 노웨딩/스몰웨딩 톤 추천 문구 5종 분야
 │   ├── theme.ts                    # 색상·폰트·페탈 카탈로그
 │   ├── payment/portone.ts
@@ -262,12 +321,21 @@ supabase/migrations/
 ├── 005_retention.sql
 ├── 006_ai_usage.sql
 ├── 007_owner_view_and_engagement.sql
-└── 008_archive_and_packages.sql
+├── 008_archive_and_packages.sql
+├── 009_fix_invitation_is_active.sql        # RLS 거짓 음성 fix
+├── 010_single_publication.sql              # 1 알림장 = 1 publication
+├── 011_force_active_publications.sql       # 레거시 → publications 동기화
+├── 012_snap_credits_and_anchors.sql        # 스냅 크레딧 + 앵커
+├── 013_snap_solo_anchors_and_jobs.sql      # solo 앵커 + snap_jobs
+└── 014_snap_anchor_history.sql             # 앵커 폐기 이력
 
 docs/
-├── ai-concept-image-setup.md
-├── kakao-oauth-setup.md
-└── local-fonts-guide.md
+├── env-variables.md                  # 모든 env 변수 일람 + 운영 권장값
+├── wedding-snap-pipeline.md          # 웨딩스냅 4단 파이프라인 + 비용
+├── ai-concept-image-setup.md         # AI 컨셉 이미지 셋업
+├── kakao-oauth-setup.md              # 카카오 OAuth (선택)
+├── local-fonts-guide.md              # 한글 폰트 추가
+└── testing-guide.md                  # 테스트 가이드
 ```
 
 ## 배포 (Vercel)
