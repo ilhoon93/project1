@@ -265,25 +265,40 @@ export function buildAnchorPromptSolo(opts: AnchorSoloPromptOpts): string {
       ]
     : [];
 
+  // 사용자 피드백 (반복): 앵커 결과에 머리가 비대하게 나오는 실패 모드가 끈질김.
+  // 해결: 비율 룰을 첫 instruction 으로 끌어올리고, 수치 임계값과 self-check
+  // 단계를 명시적으로 박아 모델 attention 이 face fidelity 쪽으로만 쏠리지 않게 함.
+  const headSizeRule = [
+    '',
+    '⚠️ HEAD SIZE — HIGHEST PRIORITY RULE (failure to follow this = re-render):',
+    '- The HEAD must occupy AT MOST 1/8 of the total body height. Eight head-heights stacked = the full body, not less.',
+    '- For a half-body (waist-up) framing, the FACE must occupy LESS THAN 33% of the vertical frame height. If you find yourself rendering the face at 40%+ of frame height, STOP and re-render with the face smaller.',
+    '- For a close-up framing, the face fills ~50% of frame height — never more than 60%. No exception.',
+    '- The FACE is an IDENTITY REFERENCE, not the focal element. The BODY is the focal element. Render the body realistically; the face is the natural-sized portion at the top.',
+    '- ABSOLUTELY FORBIDDEN: oversized "bobblehead" head perched on a small body, shrunken neck/shoulders, head wider than shoulders, face larger than the chest area in a waist-up shot. These are immediate failures.',
+    '- Before finalizing the render: mentally measure the head height in the output. If head_height × 8 ≥ total body height — pass. Otherwise re-render.',
+  ];
+
   return [
     `Compose a clean solo wedding anchor portrait using ${faceCount} input image${faceCount > 1 ? 's' : ''}:`,
     faceLine,
+    ...headSizeRule,
     '',
     `Scene & framing: ${opts.baselineSceneHint}`,
     '',
     'IDENTITY FIDELITY (match identity, not scale):',
-    `- Match the ${role === 'groom' ? "groom's" : "bride's"} identity from ${ref} (eye shape, nose bridge, jawline, skin tone/texture, hair style/color) precisely — but render the face at the anatomically correct size for the chosen framing. Identity, NOT scale.`,
+    `- Match the ${role === 'groom' ? "groom's" : "bride's"} identity from ${ref} (eye shape, nose bridge, jawline, skin tone/texture, hair style/color) precisely — but render the face at the anatomically correct size described in the HEAD SIZE RULE above. Identity ≠ scale.`,
     faceCount > 1
       ? '- Multi-angle references describe a single 3D face. Reconcile them into one consistent face; do NOT produce different-looking siblings.'
       : '- The single reference face is frontal — extrapolate plausible 3D shape without identity drift.',
     `- The frame contains ONLY the ${role === 'groom' ? 'groom' : 'bride'} (one person). Do NOT add a second person.`,
-    '- Do NOT enlarge or up-scale the face in order to make the identity more obvious — preserve natural head-to-body proportions.',
+    '- The face is sharp and well-lit but rendered SMALL relative to the body. Do NOT enlarge the face to "show off" identity.',
     ...bodySection,
     ...ANCHOR_INTEGRATION,
     ...PHOTOREALISM,
     ...NEGATIVES,
     '',
-    'Style: Professional wedding photography, photorealistic, cinematic. Face is sharp but rendered at natural anatomical size.',
+    'Style: Professional wedding photography, photorealistic, cinematic. The face is sharp but rendered at the natural anatomical size — small head, full body proportions.',
   ].join('\n');
 }
 

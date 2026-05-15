@@ -98,7 +98,7 @@ export const ANCHOR_TEMPLATES: AnchorTemplate[] = [
     framing: 'halfbody',
     label: '신랑 반신',
     framingHint:
-      "Waist-up half-body portrait, slightly three-quarter (~15°) camera angle, hands resting naturally at the side or lightly in jacket pocket. Camera distance is realistic for a waist-up portrait shot on a 50–85mm lens — the face occupies roughly 1/3 of the vertical frame height (NOT 1/2, NOT bigger). The face is rendered at its natural anatomical size for this distance, NOT enlarged, NOT zoomed, NOT scaled up to emphasize identity. The torso below the face takes up the remaining 2/3 of the frame. Soft rim light wraps around the shoulder closest to camera so the silhouette blends into the backdrop — explicitly NO sharp outline, NO cutout halo, NO color fringing along shoulders or hair.",
+      "Waist-up half-body portrait, slightly three-quarter (~15°) camera angle, hands resting naturally at the side or lightly in jacket pocket. Camera distance: realistic for a waist-up portrait on a 50–85mm lens (about 2.5–3 meters from subject). EXPLICIT SIZE RULE: the face MUST occupy NO MORE than 28-32% of the vertical frame height (target ~30%). The torso (shoulders → chest → waist) fills the remaining ~60% of the frame, and the head sits in the top portion at its natural anatomical size. If the rendered face appears to take 40% or more of the frame height, the render is WRONG — re-render with a smaller face and more visible torso. The head must look small relative to the broad shoulders. Soft rim light wraps around the shoulder closest to camera so the silhouette blends into the backdrop — explicitly NO sharp outline, NO cutout halo, NO color fringing along shoulders or hair.",
   },
   {
     slot: 'bride',
@@ -112,7 +112,7 @@ export const ANCHOR_TEMPLATES: AnchorTemplate[] = [
     framing: 'halfbody',
     label: '신부 반신',
     framingHint:
-      'Waist-up half-body portrait, slightly three-quarter (~15°) camera angle, holding a small bouquet with both hands at waist level. Camera distance is realistic for a waist-up portrait shot on a 50–85mm lens — the face occupies roughly 1/3 of the vertical frame height (NOT 1/2, NOT bigger). The face is rendered at its natural anatomical size for this distance, NOT enlarged, NOT zoomed, NOT scaled up. The torso (dress bodice, bouquet, hands) takes up the remaining 2/3 of the frame. Soft rim light wraps around the shoulder closest to camera so the silhouette blends into the backdrop — explicitly NO sharp outline, NO cutout halo, NO color fringing along shoulders, hair, dress edge, or bouquet edge.',
+      'Waist-up half-body portrait, slightly three-quarter (~15°) camera angle, holding a small bouquet with both hands at waist level. Camera distance: realistic for a waist-up portrait on a 50–85mm lens (about 2.5–3 meters from subject). EXPLICIT SIZE RULE: the face MUST occupy NO MORE than 28-32% of the vertical frame height (target ~30%). The torso (shoulders → dress bodice → bouquet → waist) fills the remaining ~60% of the frame, with the head sitting in the top portion at its natural anatomical size. If the rendered face appears to take 40% or more of the frame height, the render is WRONG — re-render with a smaller face so the bouquet and dress bodice are clearly visible below the face. Soft rim light wraps around the shoulder closest to camera so the silhouette blends into the backdrop — explicitly NO sharp outline, NO cutout halo, NO color fringing along shoulders, hair, dress edge, or bouquet edge.',
   },
 ];
 

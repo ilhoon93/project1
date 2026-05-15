@@ -15,6 +15,8 @@ import {
 } from '@/lib/snap/anchor-templates';
 import { buildAnchorPromptSolo } from '@/lib/snap/prompt';
 import { logSnapJobSubmit } from '@/lib/snap/jobs';
+import { validateInputImage } from '@/lib/snap/input-validation';
+import { preprocessUrlsParallel } from '@/lib/snap/input-preprocess';
 
 /**
  * POST /api/snap/anchor/generate
@@ -100,21 +102,77 @@ export async function POST(req: Request) {
     );
   }
 
+  // 입력 검증 — 해상도/밝기/종횡비. errors 가 있으면 차단, warnings 는 응답에 포함.
+  // 검증은 sharp 로컬, 추가 fal 비용 0원. 모든 face URL 병렬.
+  const allFaceUrls = [
+    ...(input.groomFaceUrls ?? []),
+    ...(input.brideFaceUrls ?? []),
+  ];
+  const validations = await Promise.all(allFaceUrls.map((u) => validateInputImage(u)));
+  const allErrors: string[] = [];
+  const allWarnings: string[] = [];
+  validations.forEach((v, i) => {
+    if (!v.ok) {
+      allErrors.push(`이미지 ${i + 1}: ${v.errors.join(', ')}`);
+    }
+    if (v.warnings.length > 0) {
+      allWarnings.push(`이미지 ${i + 1}: ${v.warnings.join(', ')}`);
+    }
+  });
+  if (allErrors.length > 0) {
+    return NextResponse.json(
+      {
+        error: '업로드한 사진 일부의 품질이 부족합니다.',
+        details: allErrors,
+        code: 'input_quality',
+      },
+      { status: 400 },
+    );
+  }
+
+  // 입력 선처리 — EXIF auto-rotate + 약한 화이트밸런스. 결과 품질 영향 ≈ 0 또는 +.
+  // 실패 시 원본 URL 유지 (silent fallback). face URLs 만 처리, body 정보엔 영향 없음.
+  let preprocessedGroomUrls = input.groomFaceUrls;
+  let preprocessedBrideUrls = input.brideFaceUrls;
+  try {
+    if (input.groomFaceUrls?.length) {
+      preprocessedGroomUrls = await preprocessUrlsParallel(input.groomFaceUrls, {
+        pathPrefix: 'groom-face',
+      });
+    }
+    if (input.brideFaceUrls?.length) {
+      preprocessedBrideUrls = await preprocessUrlsParallel(input.brideFaceUrls, {
+        pathPrefix: 'bride-face',
+      });
+    }
+  } catch (e) {
+    // preprocessUrlsParallel 은 내부 fallback 처리하지만 만약을 대비.
+    console.warn('[snap/anchor/generate] preprocess failed, using originals', e);
+  }
+  // 위 block 끝나면 preprocessedGroomUrls / preprocessedBrideUrls 가 채워져 있음.
+  // 실패 시 원본 input.*FaceUrls 가 유지됨 (preprocessUrlsParallel 내부 폴백).
+  // 아래 refUrlsBySlot 에서 이 변수들이 fal 호출에 들어감.
+
   const admin = createAdminClient();
 
-  // 1. 무료 활성화 여부 — 무료 full-batch quota 2회.
-  //    snap_anchors.free_full_batches_used < 2 + full batch 일 때만 무료.
+  // 1. 무료 활성화 여부 — 결제한 사용자에게만 (마이그 016 정책).
+  //    조건: has_purchased_snap == true && full batch && freeUsed < 2.
   //    부분 재생성은 카운터에 영향 없음 (항상 유료).
-  const { data: existing } = await admin
-    .from('snap_anchors')
-    .select(
-      'last_batch_at, free_full_batches_used, groom_anchor_url, bride_anchor_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, created_at',
-    )
-    .eq('user_id', user.id)
-    .maybeSingle();
+  //    미결제 사용자는 무료 batch 없음 — 첫 batch 부터 4 크레딧 필요.
+  const [{ data: existing }, { data: hasPurchasedRaw }] = await Promise.all([
+    admin
+      .from('snap_anchors')
+      .select(
+        'last_batch_at, free_full_batches_used, groom_anchor_url, bride_anchor_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, created_at',
+      )
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    admin.rpc('has_purchased_snap', { p_user_id: user.id }),
+  ]);
+  const hasPurchased = !!hasPurchasedRaw;
   const freeUsed = existing?.free_full_batches_used ?? 0;
   const isFullBatch = uniqueSlots.length === 2;
-  const isFreeActivation = isFullBatch && freeUsed < 2;
+  const isFreeActivation = hasPurchased && isFullBatch && freeUsed < 2;
 
   // 2. 비용 계산 — 1 output 당 1 크레딧. slots 길이 × 2.
   const cost = isFreeActivation ? 0 : uniqueSlots.length * 2;
@@ -173,9 +231,10 @@ export async function POST(req: Request) {
   // 4. slots 에 포함된 템플릿만 골라 제출.
   const templates = ANCHOR_TEMPLATES.filter((t) => uniqueSlots.includes(t.slot));
 
+  // 선처리된 URL 우선 사용 — 실패 시 원본 URL 로 폴백 (preprocessUrlsParallel 보장).
   const refUrlsBySlot: Record<AnchorSlot, string[] | undefined> = {
-    groom: input.groomFaceUrls,
-    bride: input.brideFaceUrls,
+    groom: preprocessedGroomUrls,
+    bride: preprocessedBrideUrls,
   };
   const bodyBySlot: Record<AnchorSlot, { heightCm: number; weightKg: number } | undefined> = {
     groom: input.groomBody,

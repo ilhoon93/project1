@@ -11,6 +11,8 @@ import {
   buildTogetherCatalogPrompt,
 } from '@/lib/snap/prompt';
 import { logSnapJobSubmit } from '@/lib/snap/jobs';
+import { validateInputImage } from '@/lib/snap/input-validation';
+import { preprocessAndUpload } from '@/lib/snap/input-preprocess';
 
 /**
  * POST /api/snap/generate
@@ -199,7 +201,29 @@ export async function POST(req: Request) {
   let pathLabel: 'anchored' | 'couple';
 
   if (input.mode === 'couple') {
-    imageUrls = [input.couplePhotoUrl, catalogUrl];
+    // 커플 사진 입력 검증 — 해상도/밝기 등 차단 조건. errors 면 400 반환.
+    const couplePhotoValidation = await validateInputImage(input.couplePhotoUrl);
+    if (!couplePhotoValidation.ok) {
+      return NextResponse.json(
+        {
+          error: '커플 사진의 품질이 부족합니다.',
+          details: couplePhotoValidation.errors,
+          code: 'input_quality',
+        },
+        { status: 400 },
+      );
+    }
+    // 커플 사진 선처리 — EXIF auto-rotate + 약한 화이트밸런스. 실패 시 원본 폴백.
+    let couplePhotoUrl = input.couplePhotoUrl;
+    try {
+      const pp = await preprocessAndUpload(input.couplePhotoUrl, {
+        pathPrefix: 'couple-photo',
+      });
+      couplePhotoUrl = pp.publicUrl;
+    } catch (e) {
+      console.warn('[snap/generate] couple photo preprocess failed', e);
+    }
+    imageUrls = [couplePhotoUrl, catalogUrl];
     prompt = buildCouplePhotoSnapPrompt({
       catalogPromptHint: catalog.promptHint,
       groom: input.groomBody,

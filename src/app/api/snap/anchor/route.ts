@@ -9,14 +9,21 @@ import { markSnapJobCompleted } from '@/lib/snap/jobs';
  * /api/snap/anchor — solo anchor 아키텍처.
  *
  * GET    — 현재 사용자의 anchor 행 + 라이브러리 (과거 앵커들) + 무료 quota 잔량.
- *          { anchor: {...}, library: [{...}], freeBatchesLeft, freeActivationAvailable }
+ *          {
+ *            anchor, library, freeBatchesLeft, freeActivationAvailable,
+ *            hasPurchased,    // 결제 이력 — 무료 batch 자격 결정
+ *            welcomeGranted   // 가입 환영 크레딧 처음 받은 경우 true
+ *          }
+ *          ※ GET 진입 시 가입 환영 +1 크레딧 1회만 자동 적립 (idempotent RPC).
  * POST   — 선택한 groom anchor + bride anchor 의 fal requestId 를 받아 둘 다
  *          public-images 로 영구 호스팅 + snap_anchors 갱신.
  * DELETE — anchor 폐기 (history 로 복사 + snap_anchors 삭제).
  *
- * 무료 활성화 정책 (마이그 015 적용 후):
- *   * 사용자당 무료 full-batch 2회 (최초 생성 + 재생성 1회).
- *   * snap_anchors.free_full_batches_used 카운터로 추적.
+ * 무료 활성화 정책 (마이그 016 적용 후):
+ *   * 앵커 무료 batch 는 "스냅 크레딧 결제 이력이 있는" 사용자에게만 제공.
+ *   * 결제 사용자: free_full_batches_used < 2 → 무료. 최초 생성 + 재생성 1회.
+ *   * 미결제 사용자: 무료 batch 0회 (첫 batch 부터 4 크레딧 필요).
+ *   * 가입 환영 크레딧 +1 은 별도 — 커플 카탈로그 1장 체험용.
  */
 
 // 클라이언트가 한쪽만 선택한 경우 다른 쪽은 null 로 전송한다 (JSON.stringify 가
@@ -46,32 +53,50 @@ export async function GET() {
 
   const admin = createAdminClient();
 
-  // 현재 anchor + 라이브러리(과거 anchor) 병렬 조회.
-  const [{ data: anchor }, { data: libraryRaw }] = await Promise.all([
-    admin
-      .from('snap_anchors')
-      .select(
-        'groom_anchor_url, bride_anchor_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, last_batch_at, updated_at, free_full_batches_used',
-      )
-      .eq('user_id', user.id)
-      .maybeSingle(),
-    admin
-      .from('snap_anchor_history')
-      .select(
-        'id, groom_anchor_url, bride_anchor_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, anchor_created_at, discarded_at',
-      )
-      .eq('user_id', user.id)
-      .order('discarded_at', { ascending: false })
-      .limit(50),
-  ]);
+  // 가입 환영 +1 크레딧 — 첫 진입 시에만 적립. RPC 자체가 idempotent (이미
+  // welcome ledger 행이 있으면 추가 적립 X). 응답 본 흐름 차단하지 않게 try/catch.
+  let welcomeGranted = false;
+  try {
+    const { data: welcome } = await admin.rpc('grant_welcome_snap_credit', {
+      p_user_id: user.id,
+    });
+    const w = welcome as { granted?: boolean } | null;
+    welcomeGranted = !!w?.granted;
+  } catch (e) {
+    console.warn('[snap/anchor GET] welcome grant failed (continuing)', e);
+  }
+
+  // 현재 anchor + 라이브러리 + 결제 이력 병렬 조회.
+  const [{ data: anchor }, { data: libraryRaw }, { data: purchasedRaw }] =
+    await Promise.all([
+      admin
+        .from('snap_anchors')
+        .select(
+          'groom_anchor_url, bride_anchor_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, last_batch_at, updated_at, free_full_batches_used',
+        )
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      admin
+        .from('snap_anchor_history')
+        .select(
+          'id, groom_anchor_url, bride_anchor_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, anchor_created_at, discarded_at',
+        )
+        .eq('user_id', user.id)
+        .order('discarded_at', { ascending: false })
+        .limit(50),
+      admin.rpc('has_purchased_snap', { p_user_id: user.id }),
+    ]);
+
+  const hasPurchased = !!purchasedRaw;
 
   // 라이브러리는 양쪽 URL 이 모두 채워진 "완성 앵커" 만. 빈 항목은 의미 없음.
   const library = (libraryRaw ?? []).filter(
     (e) => e.groom_anchor_url && e.bride_anchor_url,
   );
 
+  // 무료 batch: 결제 사용자에게만 제공. 미결제면 잔량 0.
   const freeUsed = anchor?.free_full_batches_used ?? 0;
-  const freeBatchesLeft = Math.max(0, 2 - freeUsed);
+  const freeBatchesLeft = hasPurchased ? Math.max(0, 2 - freeUsed) : 0;
   const freeActivationAvailable = freeBatchesLeft > 0;
 
   return NextResponse.json(
@@ -80,6 +105,8 @@ export async function GET() {
       library,
       freeBatchesLeft,
       freeActivationAvailable,
+      hasPurchased,
+      welcomeGranted,
     },
     { headers: NO_STORE_HEADERS },
   );

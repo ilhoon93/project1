@@ -295,7 +295,8 @@ export type Database = {
             | 'refund'
             | 'legacy_migration'
             | 'admin_grant'
-            | 'admin_revoke';
+            | 'admin_revoke'
+            | 'welcome';
           ref_table: string | null;
           ref_id: string | null;
           note: string | null;
@@ -311,7 +312,8 @@ export type Database = {
             | 'refund'
             | 'legacy_migration'
             | 'admin_grant'
-            | 'admin_revoke';
+            | 'admin_revoke'
+            | 'welcome';
           ref_table?: string | null;
           ref_id?: string | null;
           note?: string | null;
@@ -588,6 +590,14 @@ export type Database = {
       refund_snap_credit: {
         Args: { p_user_id: string; p_note?: string | null; p_ref_id?: string | null };
         Returns: void;
+      };
+      grant_welcome_snap_credit: {
+        Args: { p_user_id: string };
+        Returns: Json;
+      };
+      has_purchased_snap: {
+        Args: { p_user_id: string };
+        Returns: boolean;
       };
       grant_purchase_credits: {
         Args: {
