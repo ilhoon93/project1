@@ -41,24 +41,6 @@ interface Props {
   count?: number;
   type?: PetalType;
   colors?: readonly string[];
-  /**
-   * 슬라이드 배경색 (#RRGGBB). starlight 효과가 어두운 별을 밝은 배경 위에
-   * 그릴 때 잘 안 보이는 문제 보정용 — 별 개수를 늘려 가시성 확보.
-   * 다른 petal 타입은 영향 없음.
-   */
-  backgroundColor?: string;
-}
-
-/** "#RRGGBB" 의 Rec.601 luminance 가 임계 이상이면 light 테마로 판정. */
-function isLightBackground(hex: string | undefined): boolean {
-  if (!hex || !hex.startsWith('#') || hex.length !== 7) return false;
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  // 0..255. 200 이상이면 충분히 밝은 톤 (cream, blush, sage, sky, pearl, letterPaper,
-  // champagne, ivory 등 모두 200 이상 / dusk #221C2E, midnight 은 훨씬 낮음).
-  const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-  return luminance >= 200;
 }
 
 /**
@@ -74,10 +56,8 @@ export function FallingPetals({
   count = PETAL_COUNT,
   type = 'flower',
   colors = DEFAULT_COLORS,
-  backgroundColor,
 }: Props) {
   const palette = colors.length > 0 ? colors : DEFAULT_COLORS;
-  const lightBg = isLightBackground(backgroundColor);
   const petals = useMemo<Petal[]>(
     () =>
       Array.from({ length: count }, (_, i) => ({
@@ -100,7 +80,7 @@ export function FallingPetals({
 
   if (type === 'none') return null;
   if (type === 'starlight') {
-    return <Starlight palette={palette} lightBg={lightBg} />;
+    return <Starlight palette={palette} />;
   }
   if (type === 'bokeh') {
     return <Bokeh palette={palette} />;
@@ -366,21 +346,11 @@ interface AuroraBlob {
   color: string;
 }
 
-function Starlight({
-  palette,
-  lightBg = false,
-}: {
-  palette: readonly string[];
-  lightBg?: boolean;
-}) {
-  // 밝은 톤 배경(cream / blush / sage / sky / pearl / letterPaper 등) 에서는 별이
-  // 어두운 톤이라 가시성이 떨어진다. 개수를 약간만 늘려 (22 → 30, ~+36%) 자연스럽게
-  // 보이도록 보정. 다크 테마(dusk / midnight) 는 기존 22 그대로 — 이미 잘 보임.
-  const starCount = lightBg ? 30 : 22;
+function Starlight({ palette }: { palette: readonly string[] }) {
   const stars = useMemo<Star[]>(
     () =>
       // 화면 전체에 자잘하게 퍼진 트윙클 별. 색상은 팔레트에서 무작위 선택.
-      Array.from({ length: starCount }, (_, i) => ({
+      Array.from({ length: 22 }, (_, i) => ({
         id: i,
         left: Math.random() * 100,
         top: Math.random() * 100,
@@ -392,7 +362,7 @@ function Starlight({
         rotate: Math.random() * 45 - 22,
         color: palette[Math.floor(Math.random() * palette.length)],
       })),
-    [palette, starCount],
+    [palette],
   );
 
   // 오로라 — 화면 곳곳에 5개 부드러운 글로우가 서로 다른 타이밍으로 나타났다 사라짐.
