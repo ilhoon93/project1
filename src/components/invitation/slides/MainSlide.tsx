@@ -1119,9 +1119,10 @@ function FrameImage({
 
   if (variant === 'polaroid') {
     // 흰 테두리 + 살짝 기울임. 그림자로 입체감.
+    // 사이즈 확대 — 기존 34cqh × 60cqw 에서 ~25% 키워 화면에서 더 존재감.
     return (
       <div className="shrink-0 rotate-[-3deg] bg-white p-3 pb-8 shadow-xl">
-        <div className="flex h-[34cqh] w-[60cqw] max-w-[16rem] items-center justify-center overflow-hidden bg-stone-100">
+        <div className="flex h-[42cqh] w-[74cqw] max-w-[20rem] items-center justify-center overflow-hidden bg-stone-100">
           {src ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -1140,16 +1141,15 @@ function FrameImage({
 
   if (variant === 'arch') {
     // 아치 — 세로 직사각형(3:4) + 상단만 둥근 곡선. 잘림 영역은 imagePosition 으로 조정.
-    // 컨테이너 안쪽에서 살짝 띄운 두 번째 라인(::before) 처럼 매트 효과를 위해
-    // 안쪽 border 한 줄 추가 — outline 으로 아치 외곽선 + 내부 매트 라인을 함께.
+    // 사이즈 확대 (68cqw / 18rem → 86cqw / 22rem) + 테두리 제거 — 사진 자체가
+    // 주인공이 되도록 외곽선과 매트 라인을 모두 빼고 부드러운 그림자만 남김.
     return (
-      <div className="flex w-full shrink-0 items-center justify-center px-6">
+      <div className="flex w-full shrink-0 items-center justify-center px-4">
         <div
-          className="relative overflow-hidden border shadow-md"
+          className="relative overflow-hidden shadow-md"
           style={{
-            width: 'min(68cqw, 18rem)',
+            width: 'min(86cqw, 22rem)',
             aspectRatio: '3 / 4',
-            borderColor: 'currentColor',
             borderRadius: '999px 999px 4px 4px',
           }}
         >
@@ -1172,17 +1172,16 @@ function FrameImage({
   }
 
   if (variant === 'classic') {
-    // 클래식 — 상하좌우에 직각 이중 테두리(액자 매트 효과).
-    // 바깥 border + outline(안쪽 라인) + 패딩 으로 사진 둘레의 매트가 보이도록.
+    // 클래식 — 직각 테두리 단일선 (이전엔 이중 테두리: border + outline).
+    // 안쪽 outline 제거 + p-3 → p-1 로 패딩 감소 → 같은 컨테이너 안에서 사진
+    // 영역이 더 커진다.
     return (
-      <div className="flex w-full shrink-0 items-center justify-center px-6">
+      <div className="flex w-full shrink-0 items-center justify-center px-4">
         <div
-          className="relative bg-background p-3 shadow-md"
+          className="relative bg-background p-1 shadow-md"
           style={{
-            width: 'min(70cqw, 18rem)',
+            width: 'min(78cqw, 20rem)',
             border: '1px solid currentColor',
-            outline: '1px solid currentColor',
-            outlineOffset: '-10px',
           }}
         >
           <div
@@ -1210,14 +1209,14 @@ function FrameImage({
 
   if (variant === 'heart') {
     // 하트 모양 클립 + 외곽 그림자.
-    // 4:5(세로) → 1:1(정사각형) + 너비 확대로 가로로 더 큰 하트로 조정.
-    // 외곽 흰 배경(이전 #f5f5f4) 제거 → 하트 바깥은 슬라이드(테마) 배경이 그대로 보이고,
-    // drop-shadow 가 하트 모양 그대로 살짝 떨어지게 됨.
+    // 기본 사이즈 고정 (이전 98cqw/32rem 은 화면 폭에 따라 과하게 커지는 문제) —
+    // arch / classic 과 비슷한 약 78cqw / 22rem 으로 통일. 사진 길이나 화면 비율과
+    // 무관하게 항상 같은 1:1 정사각형 안에 하트가 자리잡는다.
     return (
       <HeartClip
         className="shrink-0"
         style={{
-          width: 'min(98cqw, 32rem)',
+          width: 'min(78cqw, 22rem)',
           aspectRatio: '1 / 1',
           filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.18))',
         }}
