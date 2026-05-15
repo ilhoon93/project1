@@ -28,6 +28,26 @@ export interface SnapPromptInput {
   catalogPromptHint: string;
   groom?: BodyMetrics;
   bride?: BodyMetrics;
+  /**
+   * 카탈로그 마스터에서 사전 추출한 컬러/조명 메타 (CatalogColorMeta).
+   * "Catalog uses ~5500K warm daylight" 같은 객관 hint 를 동적으로 주입해
+   * 모델이 추상적 "match the tone" 이 아닌 구체 수치 지시를 받게 한다.
+   */
+  catalogColorHint?: string | null;
+}
+
+/**
+ * 카탈로그 메타데이터(CatalogColorMeta) 의 moodHint 를 prompt 친화적 한 줄로 변환.
+ * harmonize/finishing 모듈과 빌더 사이 결합도를 낮추기 위해 빌더는 string 만 받는다.
+ */
+function colorHintSection(hint: string | null | undefined): string[] {
+  if (!hint) return [];
+  return [
+    '',
+    'CATALOG COLOR / LIGHTING GROUND TRUTH (objective measurement from the catalog master):',
+    `- ${hint}`,
+    '- Match this exact white balance, color temperature, and overall mood. Do NOT use the anchor selfies\' lighting as reference for color.',
+  ];
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -275,6 +295,7 @@ export function buildTogetherCatalogPrompt(input: SnapPromptInput | string): str
   const opts: SnapPromptInput =
     typeof input === 'string' ? { catalogPromptHint: input } : input;
   const bodySection = buildBodySection(opts.groom, opts.bride);
+  const colorSection = colorHintSection(opts.catalogColorHint);
 
   return [
     'Compose a couple wedding portrait using THREE input images:',
@@ -305,6 +326,7 @@ export function buildTogetherCatalogPrompt(input: SnapPromptInput | string): str
     '- Camera angle, framing, depth of field, lens character',
     '- Background, environment, outfits, props',
     ...bodySection,
+    ...colorSection,
     ...CATALOG_INTEGRATION,
     ...PHOTOREALISM,
     ...NEGATIVES,
@@ -333,6 +355,7 @@ export function buildSoloCatalogPrompt(opts: SoloCatalogPromptOpts): string {
         '- Keep the face strictly from Image 1; only the body silhouette and proportions follow the guide above.',
       ]
     : [];
+  const colorSection = colorHintSection(opts.catalogColorHint);
 
   return [
     `Compose a SOLO ${role === 'groom' ? 'groom' : 'bride'} wedding portrait using TWO input images:`,
@@ -354,6 +377,7 @@ export function buildSoloCatalogPrompt(opts: SoloCatalogPromptOpts): string {
     '- Camera angle, framing, depth of field, lens character',
     '- Background, environment, outfit, props',
     ...bodySection,
+    ...colorSection,
     ...CATALOG_INTEGRATION,
     ...PHOTOREALISM,
     ...NEGATIVES,
@@ -370,6 +394,7 @@ export function buildCouplePhotoSnapPrompt(input: SnapPromptInput | string): str
   const opts: SnapPromptInput =
     typeof input === 'string' ? { catalogPromptHint: input } : input;
   const bodySection = buildBodySection(opts.groom, opts.bride);
+  const colorSection = colorHintSection(opts.catalogColorHint);
 
   return [
     'Compose a wedding portrait using TWO input images:',
@@ -395,6 +420,7 @@ export function buildCouplePhotoSnapPrompt(input: SnapPromptInput | string): str
     "- Match Image 2's lighting direction, color temperature, and softness across the whole frame",
     '- Add small wedding props (bouquet, boutonniere) only if naturally consistent with Image 2',
     ...bodySection,
+    ...colorSection,
     ...CATALOG_INTEGRATION,
     ...PHOTOREALISM,
     ...NEGATIVES,

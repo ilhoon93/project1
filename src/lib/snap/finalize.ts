@@ -50,17 +50,25 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
   }
 
   // 2. 후처리 (카탈로그 결과만). 앵커는 reference 라 비용 / 시간 절약을 위해 skip.
+  //
+  //    카탈로그면 항상 applyUpscalePostprocess 호출 — 내부에 4단 파이프라인이
+  //    있고 (harmonize / finishing / upscale / sharpen) 각 단계의 env flag 로
+  //    독립 ON/OFF 된다. UPSCALE_MODE='off' 라도 harmonize/finishing 은 여전히
+  //    동작할 수 있어 항상 진입.
+  //
+  //    앵커는 단순 fetch — 그대로 storage 에 올린다.
+  //
   //    어느 단계라도 실패하면 원본으로 fallback — 후처리 실패가 finalize 를 깨뜨리지 않음.
   const mode = getUpscaleMode();
-  const shouldPostprocess = mode !== 'off' && !!input.catalogId;
+  const isCatalog = !!input.catalogId;
   let imageBuf: Buffer;
   try {
-    imageBuf = shouldPostprocess
-      ? await applyUpscalePostprocess(generatedUrl, mode)
+    imageBuf = isCatalog
+      ? await applyUpscalePostprocess(generatedUrl, mode, input.catalogId)
       : await fetchAsBuffer(generatedUrl);
   } catch (e) {
-    if (shouldPostprocess) {
-      // 후처리 실패 — 원본으로 fallback. 로그만 남기고 흐름 계속.
+    if (isCatalog) {
+      // 후처리 파이프라인 실패 — 원본으로 fallback. 로그만 남기고 흐름 계속.
       console.warn(
         '[finalize] postprocess failed, falling back to original',
         input.falRequestId,

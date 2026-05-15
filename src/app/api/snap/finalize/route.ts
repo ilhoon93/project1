@@ -16,7 +16,9 @@ const BodySchema = z.object({
   catalogId: z.string().min(1).optional(),
 });
 
-export const maxDuration = 30;
+// 후처리 파이프라인 (harmonize + finishing + upscale) 모두 ON 일 때 ~20초.
+// Vercel 응답 종료 직전 finalize 가 잘리지 않도록 60초로 상향. Hobby 한도 내.
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   const supabase = createClient();
