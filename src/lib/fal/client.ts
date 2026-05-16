@@ -94,19 +94,31 @@ export async function submitMultiImageEdit(input: {
 
 export type FalQueueStatus = 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
 
-/** 큐 작업 상태 조회 (0.5–1초). */
-export async function getImageEditStatus(requestId: string): Promise<{
-  status: FalQueueStatus;
-  queuePosition?: number;
-}> {
+/**
+ * 임의의 fal model 큐 상태 조회. flux-pulid / gpt-image-2 등 모델별로 다른 endpoint
+ * 가 필요해 model id 를 받아 동적 라우팅.
+ */
+export async function getFalQueueStatus(
+  model: string,
+  requestId: string,
+): Promise<{ status: FalQueueStatus; queuePosition?: number }> {
   ensureConfigured();
-  const status = (await fal.queue.status(GPT_IMAGE_MODEL, {
-    requestId,
-  })) as { status: FalQueueStatus; queue_position?: number };
+  const status = (await fal.queue.status(model, { requestId })) as {
+    status: FalQueueStatus;
+    queue_position?: number;
+  };
   return {
     status: status.status,
     queuePosition: status.queue_position,
   };
+}
+
+/** gpt-image-2 큐 작업 상태 조회 (0.5–1초). 기존 호출자 호환용 wrapper. */
+export async function getImageEditStatus(requestId: string): Promise<{
+  status: FalQueueStatus;
+  queuePosition?: number;
+}> {
+  return getFalQueueStatus(GPT_IMAGE_MODEL, requestId);
 }
 
 /** 완료된 큐 작업의 결과 이미지 URL 반환 (1–2초). status === 'COMPLETED' 일 때만 호출. */
@@ -299,5 +311,117 @@ export async function getFluxImg2ImgResult(requestId: string): Promise<string> {
   const data = result.data as FluxImg2ImgResult;
   const url = data.images?.[0]?.url;
   if (!url) throw new Error('flux-img2img.result returned no image url');
+  return url;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Face swap (identity restore) — SNAP_IDENTITY_MODE=face-swap 일 때 사용.
+//
+// catalog 생성 후 결과물의 얼굴을 원본 selfie 의 얼굴로 교체해 identity drift
+// 를 보정. multi-image composition (gpt-image-2) 의 한계인 얼굴 미세 변형을
+// 사후 처리로 해결. 카탈로그 구도/배경/의상은 그대로 유지.
+//
+// 비용 ~$0.01~0.02/장.
+// ─────────────────────────────────────────────────────────────
+
+const FACE_SWAP_MODEL = 'fal-ai/face-swap';
+
+interface FaceSwapResult {
+  image?: { url: string };
+  images?: { url: string }[];
+}
+
+/**
+ * 얼굴 교체. target_image 의 얼굴(들)을 source_image 의 얼굴로 교체.
+ *
+ * @param input.sourceImageUrl  교체할 얼굴 원본 (사용자 selfie)
+ * @param input.targetImageUrl  교체 대상 (catalog 결과물)
+ * @param input.faceIndex       target 에 여러 얼굴이 있을 때 몇 번째 얼굴을 교체할지 (0-based, optional)
+ */
+export async function submitFaceSwap(input: {
+  sourceImageUrl: string;
+  targetImageUrl: string;
+  faceIndex?: number;
+}): Promise<string> {
+  ensureConfigured();
+  const { request_id } = await fal.queue.submit(FACE_SWAP_MODEL, {
+    input: {
+      source_image_url: input.sourceImageUrl,
+      target_image_url: input.targetImageUrl,
+      ...(typeof input.faceIndex === 'number'
+        ? { face_index: input.faceIndex }
+        : {}),
+    },
+  });
+  if (!request_id) throw new Error('face-swap.submit returned no request_id');
+  return request_id;
+}
+
+export async function getFaceSwapResult(requestId: string): Promise<string> {
+  ensureConfigured();
+  const result = await fal.queue.result(FACE_SWAP_MODEL, { requestId });
+  const data = result.data as FaceSwapResult;
+  const url = data.image?.url ?? data.images?.[0]?.url;
+  if (!url) throw new Error('face-swap.result returned no image url');
+  return url;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Flux PuLID — SNAP_IDENTITY_MODE=flux-pulid 일 때 사용 (solo 한정).
+//
+// face reference image 1장 + text prompt 로 그 사람의 얼굴이 살아 있는 새 이미지를
+// 생성. PuLID 는 face identity 보존이 학습 목표라 gpt-image-2 보다 identity drift
+// 가 현저히 적음. 단, 1인 모델이라 multi-person (together) 미지원.
+//
+// 비용 ~$0.05/장 (flux/dev 베이스).
+// ─────────────────────────────────────────────────────────────
+
+const FLUX_PULID_MODEL = 'fal-ai/flux-pulid';
+
+interface FluxPulidResult {
+  images: { url: string; content_type?: string }[];
+}
+
+/**
+ * Flux PuLID 호출 — face reference + scene prompt 로 generative composition.
+ *
+ * @param input.referenceImageUrl  유지할 얼굴의 원본 (사용자 selfie)
+ * @param input.prompt             장면 / 의상 / 포즈 텍스트 묘사
+ * @param input.negativePrompt     원치 않는 요소 (보통 NEGATIVES 와 비슷)
+ * @param input.idWeight           face identity 가중치 (0.5~1.5, 기본 1.0)
+ * @param input.numInferenceSteps  기본 28
+ * @param input.guidanceScale      기본 4.0
+ */
+export async function submitFluxPulid(input: {
+  referenceImageUrl: string;
+  prompt: string;
+  negativePrompt?: string;
+  idWeight?: number;
+  numInferenceSteps?: number;
+  guidanceScale?: number;
+  imageSize?: 'portrait_4_3' | 'landscape_4_3' | 'square_hd';
+}): Promise<string> {
+  ensureConfigured();
+  const { request_id } = await fal.queue.submit(FLUX_PULID_MODEL, {
+    input: {
+      reference_image_url: input.referenceImageUrl,
+      prompt: input.prompt,
+      ...(input.negativePrompt ? { negative_prompt: input.negativePrompt } : {}),
+      id_weight: input.idWeight ?? 1.0,
+      num_inference_steps: input.numInferenceSteps ?? 28,
+      guidance_scale: input.guidanceScale ?? 4.0,
+      image_size: input.imageSize ?? 'portrait_4_3',
+    },
+  });
+  if (!request_id) throw new Error('flux-pulid.submit returned no request_id');
+  return request_id;
+}
+
+export async function getFluxPulidResult(requestId: string): Promise<string> {
+  ensureConfigured();
+  const result = await fal.queue.result(FLUX_PULID_MODEL, { requestId });
+  const data = result.data as FluxPulidResult;
+  const url = data.images?.[0]?.url;
+  if (!url) throw new Error('flux-pulid.result returned no image url');
   return url;
 }
