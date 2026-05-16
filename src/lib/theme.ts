@@ -463,12 +463,22 @@ export const FONT_OPTIONS: Record<FontKey, FontOption> = {
 // 목록만 보여준다. 두 목록의 키는 서로 겹치지 않아 z.enum 하나로 통합 가능.
 
 export const TITLE_FONT_KEYS_EN = [
+  // Google Fonts (CDN — 기존)
   'playfairDisplay',
   'montserrat',
   'ebGaramond',
   'fraunces',
   'greatVibes',
   'pinyonScript',
+  // 로컬 폰트 (src/app/fonts/english/, layout.tsx 에서 next/font/local 로 등록)
+  'blacksword',
+  'fakeSerif',
+  'finSerifDisplay',
+  'hiatus',
+  'linLibertine',
+  'paintingWithChocolate',
+  'qillseyEinstein',
+  'rockvilleSolid',
 ] as const;
 export type TitleFontKeyEn = (typeof TITLE_FONT_KEYS_EN)[number];
 
@@ -517,6 +527,40 @@ export const TITLE_FONT_OPTIONS: Record<TitleFontKey, FontOption> = {
   pinyonScript: {
     label: 'Pinyon Script',
     family: "var(--font-pinyon-script), cursive",
+  },
+  // 로컬 영문 장식 폰트 — src/app/fonts/english/ 에 woff2 파일 저장됨.
+  // family fallback 은 폰트 성격에 맞게 (필기체 = cursive, 세리프 = serif).
+  blacksword: {
+    label: 'Blacksword',
+    family: "var(--font-blacksword), cursive",
+  },
+  fakeSerif: {
+    label: 'Fake Serif',
+    family: "var(--font-fake-serif), serif",
+  },
+  finSerifDisplay: {
+    label: 'Fin Serif Display',
+    family: "var(--font-fin-serif-display), serif",
+  },
+  hiatus: {
+    label: 'Hiatus',
+    family: "var(--font-hiatus), serif",
+  },
+  linLibertine: {
+    label: 'Lin Libertine',
+    family: "var(--font-lin-libertine), serif",
+  },
+  paintingWithChocolate: {
+    label: 'Painting With Chocolate',
+    family: "var(--font-painting-with-chocolate), cursive",
+  },
+  qillseyEinstein: {
+    label: 'Qillsey Einstein',
+    family: "var(--font-qillsey-einstein), cursive",
+  },
+  rockvilleSolid: {
+    label: 'Rockville Solid',
+    family: "var(--font-rockville-solid), serif",
   },
   // 한글 — FONT_OPTIONS 의 family 와 동일한 변수를 그대로 사용한다.
   koSerif: { label: '명조', family: "var(--font-noto-serif-kr), serif" },

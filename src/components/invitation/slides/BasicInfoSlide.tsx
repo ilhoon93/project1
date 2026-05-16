@@ -49,13 +49,16 @@ export function BasicInfoSlide({ basic, groomName, brideName, weddingDate }: Pro
       );
     }
     if (key === 'greeting' && hasGreeting) {
+      // 인사말은 위/아래 디바이더로 시각적으로 분리 — 방명록의 GuestbookDivider 와
+      // 동일 스타일 (얇은 가로 라인 + 가운데 ✦ 글리프).
       return (
-        <p
-          key={key}
-          className="mx-auto max-w-md whitespace-pre-line text-sm leading-relaxed opacity-90"
-        >
-          {basic.greeting.text}
-        </p>
+        <div key={key} className="flex flex-col items-center gap-4">
+          <BasicInfoDivider />
+          <p className="mx-auto max-w-md whitespace-pre-line text-sm leading-relaxed opacity-90">
+            {basic.greeting.text}
+          </p>
+          <BasicInfoDivider />
+        </div>
       );
     }
     if (key === 'family' && (hasNames || hasFamily)) {
@@ -183,4 +186,22 @@ function formatDate(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return `${d.getFullYear()}. ${String(d.getMonth() + 1).padStart(2, '0')}. ${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * 인사말 위/아래에 그리는 디바이더. 방명록 GuestbookDivider 와 같은 형식 —
+ * 얇은 가로 라인 + 가운데 작은 다이아 글리프. 폭은 max-w-[12rem] 으로 본문보다
+ * 좁게 잡아 인사말을 가운데로 모으는 느낌.
+ */
+function BasicInfoDivider() {
+  return (
+    <div
+      aria-hidden
+      className="mx-auto flex w-full max-w-[12rem] items-center justify-center gap-3 opacity-60"
+    >
+      <span className="h-px flex-1 bg-current" style={{ opacity: 0.55 }} />
+      <span className="text-[0.85em] leading-none">✦</span>
+      <span className="h-px flex-1 bg-current" style={{ opacity: 0.55 }} />
+    </div>
+  );
 }
