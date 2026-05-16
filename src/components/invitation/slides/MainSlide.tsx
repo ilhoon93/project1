@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import {
   FrameDesignSchema,
   IllustrationDesignSchema,
@@ -297,20 +297,25 @@ function PosterFullImageSlide({
 
       {/* 2) 제목 텍스트 — 절대 위치 + 옵션 애니메이션, 슬라이더로 크기 조절.
           폰트별 시각 크기 보정(TITLE_FONT_SIZE_SCALE) 적용 — 장식 폰트가 같은
-          px 에서도 더 크게 보이도록. */}
+          px 에서도 더 크게 보이도록.
+          animate=true 면 글자 단위로 fade-in + 살짝 떨어지는 손글씨 느낌의
+          시퀀스를 띄운다 (기존 좌→우 wipe 는 너무 기계적이라 글자별 stagger 로 교체). */}
       <PositionedBox position={design.title.position}>
         <h1
           key={`${design.title.text}-${design.title.animate}`}
-          className={`whitespace-pre-wrap text-center font-bold leading-snug ${
-            design.title.animate ? 'mw-title-reveal' : ''
-          }`}
+          className="whitespace-pre-wrap text-center font-bold leading-snug"
           style={{
             fontFamily: titleFont,
             color: design.title.color,
             fontSize: `${getDisplayFontSize(design.title.fontSize, design.title.font as TitleFontKey)}px`,
           }}
+          aria-label={design.title.text}
         >
-          {design.title.text}
+          {design.title.animate ? (
+            <HandwritingText text={design.title.text} />
+          ) : (
+            design.title.text
+          )}
         </h1>
       </PositionedBox>
 
@@ -367,24 +372,80 @@ function PosterFullImageSlide({
       <Confetti trigger={confettiTrigger} scoped={scoped} />
 
       <style jsx>{`
-        :global(.mw-title-reveal) {
-          /* 손글씨 느낌 — 일정 속도가 아니라 빠른 시작 → 잠깐 멈춤(주저) → 다시 진행 →
-             끝 직전 슬쩍 멈췄다가 마무리. 여러 키프레임으로 비균등 속도 표현. */
-          animation: mw-title-reveal 3.6s ease-in-out forwards;
-          clip-path: inset(0 100% 0 0);
+        /* 손글씨 느낌의 글자 단위 등장 —
+           각 글자가 살짝 위에서 떨어지면서 blur 가 풀리는 짧은 stroke.
+           HandwritingText 가 글자마다 animation-delay 를 흘려 stagger 를 만든다.
+           기존의 좌→우 한 줄 wipe 는 "한 획씩 쓴다" 는 느낌과 거리가 멀어 제거. */
+        :global(.mw-title-char) {
+          display: inline-block;
+          opacity: 0;
+          transform: translateY(-0.18em) scale(0.7);
+          filter: blur(2.5px);
+          animation: mw-title-char 0.55s cubic-bezier(0.18, 0.78, 0.32, 1.08) forwards;
+          will-change: opacity, transform, filter;
         }
-        @keyframes mw-title-reveal {
-          0%   { clip-path: inset(0 100% 0 0); }
-          12%  { clip-path: inset(0 82% 0 0); }   /* 빠른 시작 */
-          22%  { clip-path: inset(0 78% 0 0); }   /* 첫 주저 (보통 단어 사이) */
-          45%  { clip-path: inset(0 50% 0 0); }   /* 중간 진행 */
-          58%  { clip-path: inset(0 44% 0 0); }   /* 두 번째 주저 */
-          80%  { clip-path: inset(0 18% 0 0); }   /* 막판 가속 */
-          90%  { clip-path: inset(0 14% 0 0); }   /* 끝 직전 짧은 멈춤 */
-          100% { clip-path: inset(0 0 0 0); }     /* 마무리 */
+        @keyframes mw-title-char {
+          0% {
+            opacity: 0;
+            transform: translateY(-0.2em) scale(0.65) rotate(-3deg);
+            filter: blur(3px);
+          }
+          55% {
+            opacity: 1;
+            transform: translateY(0.02em) scale(1.05) rotate(0.5deg);
+            filter: blur(0);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1) rotate(0);
+            filter: blur(0);
+          }
         }
       `}</style>
     </section>
+  );
+}
+
+/**
+ * 손글씨 느낌의 글자 단위 등장 컴포넌트.
+ * - 글자마다 짧은 fade-in + slight overshoot 으로 "한 글자 한 글자 쓴다" 는 인상.
+ * - 공백은 일반 텍스트로 둬 word-wrap 이 자연스럽게 일어나게 한다 (글자마다
+ *   inline-block 으로 감싸면 NBSP 처럼 동작해 긴 문구가 한 줄을 벗어나지 못함).
+ * - 줄바꿈은 <br /> 로 처리.
+ * - 시각 효과는 모두 aria-hidden 으로 숨기고, 부모 h1 의 aria-label 이 본문을 노출.
+ *
+ * stagger 간격은 글자 길이에 따라 약간 조정 — 너무 긴 문구에서 마지막 글자까지
+ * 시간이 과하게 늘어지지 않도록 길수록 짧게.
+ */
+function HandwritingText({ text }: { text: string }) {
+  const chars = Array.from(text);
+  // 6글자 이하: 0.11s, 7~14: 0.085s, 15+: 0.06s — 짧은 문구일수록 또렷한 stagger.
+  const perChar = chars.length <= 6 ? 0.11 : chars.length <= 14 ? 0.085 : 0.06;
+  let visibleIndex = 0;
+  return (
+    <span aria-hidden>
+      {chars.map((ch, i) => {
+        if (ch === '\n') {
+          return <br key={i} />;
+        }
+        if (ch === ' ') {
+          // 일반 공백 그대로 — inline-block span 으로 감싸면 NBSP 처럼 동작해
+          // 긴 문구가 한 줄을 벗어나지 못함. word-wrap 자연스럽게 허용.
+          return <Fragment key={i}> </Fragment>;
+        }
+        const delay = (visibleIndex * perChar).toFixed(3);
+        visibleIndex += 1;
+        return (
+          <span
+            key={i}
+            className="mw-title-char"
+            style={{ animationDelay: `${delay}s` }}
+          >
+            {ch}
+          </span>
+        );
+      })}
+    </span>
   );
 }
 
@@ -577,7 +638,10 @@ function TextLayoutSlide({
     // 통일 레이아웃 — 데코 일러스트(꽃/편지/없음) 중앙, 텍스트는 PositionedBox 로
     // 자유 떠다님. variant === 'none' 이면 데코 안 그림.
     <section className="relative h-full min-h-full w-full overflow-hidden text-center">
-      {/* 데코 일러스트 — 슬라이드 정중앙. variant 'none' 면 skip */}
+      {/* 데코 일러스트 — 슬라이드 정중앙. variant 'none' 면 skip.
+          flower 는 채색 안 된 라인 스케치 → 다크 테마에서 invert 가 필요해
+          --mw-sketch-filter 를 쓰고, letter 는 풀컬러 일러스트라 기존 글로우만
+          더하는 --mw-illust-filter 그대로. */}
       {design.variant !== 'none' && (
         <div className="absolute inset-0 z-0 flex items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -587,7 +651,12 @@ function TextLayoutSlide({
             aria-hidden
             className="block h-auto w-full select-none object-cover"
             draggable={false}
-            style={{ filter: 'var(--mw-illust-filter, none)' }}
+            style={{
+              filter:
+                design.variant === 'flower'
+                  ? 'var(--mw-sketch-filter, none)'
+                  : 'var(--mw-illust-filter, none)',
+            }}
           />
         </div>
       )}
