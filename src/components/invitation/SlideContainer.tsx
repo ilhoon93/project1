@@ -105,6 +105,9 @@ export function SlideContainer({
     // 일러스트형 메인 슬라이드의 PNG 라인아트가 다크 테마에서도 잘 보이도록
     // 테마별 CSS filter 체인(크로마키 + 글로우)을 변수로 흘려 보낸다.
     ['--mw-illust-filter' as string]: palette.illustFilter ?? 'none',
+    // 단색 라인 스케치(text-flower.png 등) 전용 filter. 다크 테마에서는 invert
+    // 로 검은 라인을 흰 라인으로 뒤집어 가독성을 확보한다.
+    ['--mw-sketch-filter' as string]: palette.sketchFilter ?? 'none',
   } as React.CSSProperties;
 
   return (

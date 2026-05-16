@@ -41,6 +41,14 @@ export interface Palette {
    * 조정할 수도 있다.
    */
   illustFilter?: string;
+  /**
+   * 채색되지 않은 라인-스케치 PNG (예: 텍스트형 꽃다발) 전용 filter.
+   * illustFilter 는 채색된 일러스트 가정으로 drop-shadow 글로우만 더하지만,
+   * 단색 스케치는 다크 배경에서 그 정도로는 거의 보이지 않는다 — invert 로
+   * 검은 라인을 흰 라인으로 뒤집어주는 별도 체인을 둔다.
+   * --mw-sketch-filter 변수로 노출.
+   */
+  sketchFilter?: string;
 }
 
 // 펄 — 부드러운 라디얼 그라디언트로 진주빛 광택. 어디에나 무난.
@@ -77,6 +85,13 @@ const SKY_PATTERN =
 // 더한다. 투명 PNG 라면 글로우는 figure 외곽선 주변에 자연스럽게 깔린다.
 const DARK_ILLUST_FILTER =
   'drop-shadow(0 0 1.5px rgba(255,255,255,0.55)) drop-shadow(0 0 4px rgba(255,255,255,0.18))';
+
+// 단색 라인 스케치(예: text-flower.png)는 검은 선만 있고 색이 없어서
+// drop-shadow 글로우만으로는 다크 배경에서 거의 보이지 않는다. invert 로
+// 검은 라인을 흰 라인으로 뒤집고, 옅은 흰 글로우를 더해 가장자리를 또렷하게.
+// 투명 PNG 라 invert 후에도 배경은 그대로 투명 유지된다.
+const DARK_SKETCH_FILTER =
+  'invert(1) drop-shadow(0 0 1.5px rgba(255,255,255,0.35)) drop-shadow(0 0 4px rgba(255,255,255,0.15))';
 
 export const THEME_PALETTES: Record<ColorTheme, Palette> = {
   cream: {
@@ -125,6 +140,7 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     dot: '#5C4F75',
     petals: ['#B8A6D6', '#D4A5DC', '#DDD0EB', '#E8D5F2'],
     illustFilter: DARK_ILLUST_FILTER,
+    sketchFilter: DARK_SKETCH_FILTER,
   },
   // 펄 — 진주빛 배경 위에 남색 계열 글씨로 정갈한 톤.
   pearl: {
@@ -154,6 +170,7 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     dot: '#3A3A42',
     petals: ['#E8D5A8', '#D4AF7F', '#F5E9C8', '#C9A66B'],
     illustFilter: DARK_ILLUST_FILTER,
+    sketchFilter: DARK_SKETCH_FILTER,
   },
   // 샴페인 — 웜 아이보리 + 딥 와인 글자 + 골드 액센트.
   // 결혼 분위기 풀로 살리고 글자 가독성도 강한 조합.
@@ -201,6 +218,7 @@ export const THEME_PALETTES: Record<ColorTheme, Palette> = {
     dot: '#2C3E5C',
     petals: ['#E8D5A8', '#C9A66B', '#F5E9C8', '#D4AF7F'],
     illustFilter: DARK_ILLUST_FILTER,
+    sketchFilter: DARK_SKETCH_FILTER,
   },
 };
 

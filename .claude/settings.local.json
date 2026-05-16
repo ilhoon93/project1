@@ -16,7 +16,11 @@
       "Bash(npx next *)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(gh auth *)"
+      "Bash(gh auth *)",
+      "Bash(git fetch *)",
+      "Bash(python -c \"from PIL import Image; im = Image.open\\('public/illustrations/text-flower.png'\\); pixels = im.load\\(\\); corners = [pixels[0,0], pixels[im.width-1,0], pixels[0,im.height-1], pixels[im.width-1,im.height-1], pixels[im.width//2, im.height//2]]; print\\('mode:', im.mode\\); print\\('corners \\(TL, TR, BL, BR, center\\):', corners\\); print\\('size:', im.size\\)\")",
+      "Bash(node _patch.js)",
+      "Bash(npx eslint *)"
     ]
   }
 }
