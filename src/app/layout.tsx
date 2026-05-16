@@ -145,6 +145,53 @@ const pinyonScript = Pinyon_Script({
 });
 
 /* ─────────────────────────────────────────────────────────────────────
+ * LOCAL ENGLISH FONTS — 메인 슬라이드 제목 picker 에 추가되는 장식 영문 폰트.
+ * 파일은 src/app/fonts/english/ 에 woff2 로 저장. next/font/local 이 빌드 타임에
+ * 자체 호스팅하므로 외부 CDN 영향 없음. picker 노출은 theme.ts 의
+ * TITLE_FONT_KEYS_EN + TITLE_FONT_OPTIONS 에서 처리.
+ * ───────────────────────────────────────────────────────────────────── */
+const blacksword = localFont({
+  src: './fonts/english/Blacksword.woff2',
+  variable: '--font-blacksword',
+  display: 'swap',
+});
+const fakeSerif = localFont({
+  src: './fonts/english/Fake Serif.woff2',
+  variable: '--font-fake-serif',
+  display: 'swap',
+});
+const finSerifDisplay = localFont({
+  src: './fonts/english/FinSerifDisplay-Italic.woff2',
+  variable: '--font-fin-serif-display',
+  display: 'swap',
+});
+const hiatus = localFont({
+  src: './fonts/english/Hiatus.woff2',
+  variable: '--font-hiatus',
+  display: 'swap',
+});
+const linLibertine = localFont({
+  src: './fonts/english/LinLibertine_RB.woff2',
+  variable: '--font-lin-libertine',
+  display: 'swap',
+});
+const paintingWithChocolate = localFont({
+  src: './fonts/english/Painting_With_Chocolate.woff2',
+  variable: '--font-painting-with-chocolate',
+  display: 'swap',
+});
+const qillseyEinstein = localFont({
+  src: './fonts/english/Qillsey Einstein.woff2',
+  variable: '--font-qillsey-einstein',
+  display: 'swap',
+});
+const rockvilleSolid = localFont({
+  src: './fonts/english/Rockville Solid.woff2',
+  variable: '--font-rockville-solid',
+  display: 'swap',
+});
+
+/* ─────────────────────────────────────────────────────────────────────
  * LOCAL KOREAN FONTS (Gabia / G마켓 산스 / 나눔스퀘어 네오 / 김정철 /
  * 교보 이유빈) — Google Fonts 에 없는 9 종.
  *
@@ -259,6 +306,15 @@ const koreanFontVariables = [
   fraunces.variable,
   greatVibes.variable,
   pinyonScript.variable,
+  // 로컬 영문 장식 폰트 (src/app/fonts/english/) — picker 노출은 theme.ts
+  blacksword.variable,
+  fakeSerif.variable,
+  finSerifDisplay.variable,
+  hiatus.variable,
+  linLibertine.variable,
+  paintingWithChocolate.variable,
+  qillseyEinstein.variable,
+  rockvilleSolid.variable,
 ];
 
 export const metadata: Metadata = {
