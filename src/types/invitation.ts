@@ -94,8 +94,10 @@ export const PosterDesignSchema = z
         color: z.string().max(32).default('#FFFFFF'),
         animate: z.boolean().default(true),
         position: PositionSchema.default({ x: 50, y: 12 }),
-        // px 단위 — 슬라이더로 24–72 사이에서 조정.
-        fontSize: z.number().min(24).max(72).default(40),
+        // px 단위 — 슬라이더로 24–100 사이. 일부 장식 폰트는 시각적 크기가
+        // 다른 폰트 대비 작아 보여 렌더 단계에서 추가 배율 (theme.ts 의
+        // TITLE_FONT_SIZE_SCALE) 을 곱한다.
+        fontSize: z.number().min(24).max(100).default(40),
       })
       .default({
         text: TITLE_TEXT_PRESETS[0],
@@ -168,12 +170,17 @@ export const IllustrationDesignSchema = z
     title: z
       .object({
         text: z.string().max(60).default(TITLE_TEXT_PRESETS[4]), // "A day, our way"
+        // 일러스트형은 디자인에 맞는 우아한 세리프 (Fraunces) 가 기본.
+        // 한글 문구로 바뀌면 FontPicker 가 자동으로 한글 폰트 그룹으로 전환.
+        font: z.enum(TITLE_FONT_KEYS).default('fraunces'),
         color: z.string().max(32).default('currentColor'),
-        fontSize: z.number().min(22).max(48).default(34),
+        // 슬라이더 22–100. 일부 장식 폰트는 TITLE_FONT_SIZE_SCALE 로 보정.
+        fontSize: z.number().min(22).max(100).default(34),
         position: PositionSchema.default({ x: 50, y: 12 }),
       })
       .default({
         text: TITLE_TEXT_PRESETS[4],
+        font: 'fraunces',
         color: 'currentColor',
         fontSize: 34,
         position: { x: 50, y: 12 },
@@ -202,7 +209,7 @@ export const IllustrationDesignSchema = z
   })
   .default({
     variant: 'arch',
-    title: { text: TITLE_TEXT_PRESETS[4], color: 'currentColor', fontSize: 34, position: { x: 50, y: 12 } },
+    title: { text: TITLE_TEXT_PRESETS[4], font: 'fraunces', color: 'currentColor', fontSize: 34, position: { x: 50, y: 12 } },
     dateBox: { enabled: true, fontSize: 15, position: { x: 50, y: 78 } },
     nameBox: { enabled: true, fontSize: 16, position: { x: 50, y: 70 } },
     messageBox: { enabled: true, fontSize: 13, position: { x: 50, y: 22 } },
@@ -233,12 +240,16 @@ export const TextDesignSchema = z
     title: z
       .object({
         text: z.string().max(60).default(TITLE_TEXT_PRESETS[0]), // "We are getting married"
+        // 텍스트형은 디자인에 맞는 클래식 세리프 (Playfair Display) 기본.
+        // 한글 문구로 바뀌면 FontPicker 가 자동으로 한글 폰트 그룹으로 전환.
+        font: z.enum(TITLE_FONT_KEYS).default('playfairDisplay'),
         color: z.string().max(32).default('currentColor'),
-        fontSize: z.number().min(22).max(48).default(34),
+        fontSize: z.number().min(22).max(100).default(34),
         position: PositionSchema.default({ x: 50, y: 12 }),
       })
       .default({
         text: TITLE_TEXT_PRESETS[0],
+        font: 'playfairDisplay',
         color: 'currentColor',
         fontSize: 34,
         position: { x: 50, y: 12 },
@@ -271,7 +282,7 @@ export const TextDesignSchema = z
   })
   .default({
     variant: 'flower',
-    title: { text: TITLE_TEXT_PRESETS[0], color: 'currentColor', fontSize: 34, position: { x: 50, y: 12 } },
+    title: { text: TITLE_TEXT_PRESETS[0], font: 'playfairDisplay', color: 'currentColor', fontSize: 34, position: { x: 50, y: 12 } },
     dateBox: { enabled: true, fontSize: 15, position: { x: 50, y: 80 } },
     nameBox: {
       enabled: true,
@@ -309,7 +320,7 @@ export const FrameDesignSchema = z
         text: z.string().max(60).default(TITLE_TEXT_PRESETS[0]),
         font: z.enum(TITLE_FONT_KEYS).default('playfairDisplay'),
         color: z.string().max(32).default('currentColor'),
-        fontSize: z.number().min(18).max(44).default(26),
+        fontSize: z.number().min(18).max(100).default(26),
         position: PositionSchema.default({ x: 50, y: 12 }),
       })
       .default({
