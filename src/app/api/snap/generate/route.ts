@@ -103,9 +103,15 @@ export async function POST(req: Request) {
   // ── 앵커 모드면 anchor 로드 + personality 별 필요 slot 검증 ───
   //   anchorId 미지정 / 'current' → snap_anchors (가장 최근 active)
   //   UUID → snap_anchor_history 에서 해당 row (라이브러리 picker)
+  //
+  // Phase A: anchor URL 외에 selfie URL 도 함께 가져옴 — fal 단계에서 anchor 는
+  // 체형/포즈 ref, selfie 는 face identity ref 로 역할 분리해 2단계 합성 누적
+  // identity drift 를 줄인다.
   let anchor: {
     groom_anchor_url: string | null;
     bride_anchor_url: string | null;
+    groom_selfie_url: string | null;
+    bride_selfie_url: string | null;
     groom_height_cm: number | null;
     groom_weight_kg: number | null;
     bride_height_cm: number | null;
@@ -117,7 +123,7 @@ export async function POST(req: Request) {
       const { data } = await admin
         .from('snap_anchors')
         .select(
-          'groom_anchor_url, bride_anchor_url, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg',
+          'groom_anchor_url, bride_anchor_url, groom_selfie_url, bride_selfie_url, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg',
         )
         .eq('user_id', user.id)
         .maybeSingle();
@@ -127,7 +133,7 @@ export async function POST(req: Request) {
       const { data } = await admin
         .from('snap_anchor_history')
         .select(
-          'groom_anchor_url, bride_anchor_url, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg',
+          'groom_anchor_url, bride_anchor_url, groom_selfie_url, bride_selfie_url, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg',
         )
         .eq('id', anchorId)
         .eq('user_id', user.id)
@@ -235,30 +241,52 @@ export async function POST(req: Request) {
     pathLabel = 'couple';
   } else {
     pathLabel = 'anchored';
+    // Phase A — anchor 옆에 selfie 진본을 함께 fal 에 전달. selfie 가 없으면
+    // (구버전 anchor 또는 라이브러리 입니다) anchor 만 사용하는 폴백.
     if (catalog.personality === 'together') {
-      imageUrls = [anchor!.groom_anchor_url!, anchor!.bride_anchor_url!, catalogUrl];
+      const groomSelfie = anchor!.groom_selfie_url;
+      const brideSelfie = anchor!.bride_selfie_url;
+      const hasSelfies = !!groomSelfie && !!brideSelfie;
+      imageUrls = hasSelfies
+        ? [
+            anchor!.groom_anchor_url!,
+            anchor!.bride_anchor_url!,
+            groomSelfie!,
+            brideSelfie!,
+            catalogUrl,
+          ]
+        : [anchor!.groom_anchor_url!, anchor!.bride_anchor_url!, catalogUrl];
       prompt = buildTogetherCatalogPrompt({
         catalogPromptHint: catalog.promptHint,
         groom: groomBody,
         bride: brideBody,
         catalogColorHint,
+        includeSelfieRefs: hasSelfies,
       });
     } else if (catalog.personality === 'groom-solo') {
-      imageUrls = [anchor!.groom_anchor_url!, catalogUrl];
+      const selfie = anchor!.groom_selfie_url;
+      imageUrls = selfie
+        ? [anchor!.groom_anchor_url!, selfie, catalogUrl]
+        : [anchor!.groom_anchor_url!, catalogUrl];
       prompt = buildSoloCatalogPrompt({
         slot: 'groom',
         catalogPromptHint: catalog.promptHint,
         groom: groomBody,
         catalogColorHint,
+        includeSelfieRef: !!selfie,
       });
     } else {
       // bride-solo
-      imageUrls = [anchor!.bride_anchor_url!, catalogUrl];
+      const selfie = anchor!.bride_selfie_url;
+      imageUrls = selfie
+        ? [anchor!.bride_anchor_url!, selfie, catalogUrl]
+        : [anchor!.bride_anchor_url!, catalogUrl];
       prompt = buildSoloCatalogPrompt({
         slot: 'bride',
         catalogPromptHint: catalog.promptHint,
         bride: brideBody,
         catalogColorHint,
+        includeSelfieRef: !!selfie,
       });
     }
   }

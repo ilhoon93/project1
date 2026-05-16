@@ -327,6 +327,8 @@ export type Database = {
           user_id: string;
           groom_anchor_url: string | null;
           bride_anchor_url: string | null;
+          groom_selfie_url: string | null;
+          bride_selfie_url: string | null;
           source_mode: 'selfies' | 'couple';
           groom_height_cm: number | null;
           groom_weight_kg: number | null;
@@ -341,6 +343,8 @@ export type Database = {
           user_id: string;
           groom_anchor_url?: string | null;
           bride_anchor_url?: string | null;
+          groom_selfie_url?: string | null;
+          bride_selfie_url?: string | null;
           source_mode: 'selfies' | 'couple';
           groom_height_cm?: number | null;
           groom_weight_kg?: number | null;
@@ -400,6 +404,8 @@ export type Database = {
           user_id: string;
           groom_anchor_url: string | null;
           bride_anchor_url: string | null;
+          groom_selfie_url: string | null;
+          bride_selfie_url: string | null;
           source_mode: 'selfies' | 'couple';
           groom_height_cm: number | null;
           groom_weight_kg: number | null;
@@ -413,6 +419,8 @@ export type Database = {
           user_id: string;
           groom_anchor_url?: string | null;
           bride_anchor_url?: string | null;
+          groom_selfie_url?: string | null;
+          bride_selfie_url?: string | null;
           source_mode: 'selfies' | 'couple';
           groom_height_cm?: number | null;
           groom_weight_kg?: number | null;

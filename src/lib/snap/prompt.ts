@@ -34,6 +34,16 @@ export interface SnapPromptInput {
    * 모델이 추상적 "match the tone" 이 아닌 구체 수치 지시를 받게 한다.
    */
   catalogColorHint?: string | null;
+  /**
+   * Phase A — together 카탈로그 입력에 anchor 외에 selfie 진본도 함께 전달했는지.
+   * true 면 5장 입력 (groom anchor, bride anchor, groom selfie, bride selfie, catalog),
+   * false 면 기존 3장 (anchor 만).
+   */
+  includeSelfieRefs?: boolean;
+  /**
+   * Phase A — solo 카탈로그용. true 면 3장 (anchor, selfie, catalog), false 면 2장.
+   */
+  includeSelfieRef?: boolean;
 }
 
 /**
@@ -318,6 +328,45 @@ export function buildTogetherCatalogPrompt(input: SnapPromptInput | string): str
   const bodySection = buildBodySection(opts.groom, opts.bride);
   const colorSection = colorHintSection(opts.catalogColorHint);
 
+  // Phase A — 5장 입력 (anchor + selfie + catalog) vs 3장 fallback (anchor + catalog).
+  if (opts.includeSelfieRefs) {
+    return [
+      'Compose a couple wedding portrait using FIVE input images:',
+      '- Image 1 = Groom anchor (solo wedding portrait of the groom). Use for BODY proportions, silhouette, and pose reference.',
+      '- Image 2 = Bride anchor (solo wedding portrait of the bride). Use for BODY proportions, silhouette, and pose reference.',
+      '- Image 3 = Groom face REFERENCE (ORIGINAL photo of the groom — not AI generated). HIGHEST PRIORITY for facial identity: eye shape, eye color, nose bridge/tip shape, lip shape, jawline contour, skin tone, hair texture, brow shape.',
+      '- Image 4 = Bride face REFERENCE (ORIGINAL photo of the bride — not AI generated). HIGHEST PRIORITY for facial identity (same list as above).',
+      "- Image 5 = Composition reference (catalog master). Replicate pose, framing, camera angle, depth of field, background, outfits, lighting, and overall composition — including face/head SIZE relative to the frame.",
+      '',
+      `Scene context: ${opts.catalogPromptHint}`,
+      '',
+      'IDENTITY FIDELITY — face from REAL photos, body from anchors:',
+      "- The faces in Image 3 and Image 4 are the ground truth. The output faces MUST be unmistakably recognizable as the SAME two people from those photos — never blend, never substitute, never approximate.",
+      "- Image 3's face → groom position in Image 5. Image 4's face → bride position. NO swapping.",
+      "- Anchors (Image 1, 2) describe BODY only — height, build, shoulder width, posture. Their faces are AI-generated approximations and should be considered LESS authoritative than the original photos for face details.",
+      '- If anchor face and selfie face differ (anchor is AI re-rendered), trust the SELFIE for all facial features. The anchor face is just a placeholder.',
+      '- Do NOT add additional people. Do NOT use catalog master (Image 5) as a face reference — its people are unrelated.',
+      '',
+      'SCALE AUTHORITY — catalog reference (Image 5) determines head SIZE:',
+      '- Match output head size relative to frame to Image 5. No bigger. The selfies and anchors are NOT scale references.',
+      '- If anchors are close-up and Image 5 is full-body, the rendered faces must be SMALL (matching Image 5), not large (matching anchors).',
+      '- Oversized head = hard failure. Re-render with smaller head.',
+      '',
+      'COMPOSITION (from Image 5 — replicate):',
+      '- Pose, body positions, gestures, hand positions, interaction between the two',
+      '- Camera angle, framing, depth of field, lens character',
+      '- Background, environment, outfits, props',
+      ...bodySection,
+      ...colorSection,
+      ...CATALOG_INTEGRATION,
+      ...PHOTOREALISM,
+      ...NEGATIVES,
+      '',
+      'Style: Professional wedding photography, photorealistic, cinematic.',
+    ].join('\n');
+  }
+
+  // Fallback (selfie 미보존된 구버전 / 라이브러리 anchor) — 기존 3장 흐름.
   return [
     'Compose a couple wedding portrait using THREE input images:',
     '- Image 1 = Groom anchor (solo portrait of the groom). PRESERVE his face, hair, skin tone, and body proportions exactly.',
@@ -366,8 +415,55 @@ export interface SoloCatalogPromptOpts extends SnapPromptInput {
 
 export function buildSoloCatalogPrompt(opts: SoloCatalogPromptOpts): string {
   const role = opts.slot;
+  const roleEn = role === 'groom' ? 'groom' : 'bride';
+  const RoleEn = role === 'groom' ? 'Groom' : 'Bride';
+  const otherEn = role === 'groom' ? 'bride' : 'groom';
   const bodyMetrics = role === 'groom' ? opts.groom : opts.bride;
   const personGuide = bodyMetrics ? buildPersonGuide(role, bodyMetrics) : null;
+  const colorSection = colorHintSection(opts.catalogColorHint);
+
+  // Phase A — 3장 입력 (anchor + selfie + catalog) vs 2장 fallback (anchor + catalog).
+  if (opts.includeSelfieRef) {
+    const bodySection = personGuide
+      ? [
+          '',
+          'BODY PROPORTIONS:',
+          personGuide,
+          '- Keep facial features strictly from Image 2 (the original photo); body silhouette and proportions follow the guide above + Image 1 (anchor).',
+        ]
+      : [];
+    return [
+      `Compose a SOLO ${roleEn} wedding portrait using THREE input images:`,
+      `- Image 1 = ${RoleEn} anchor (solo wedding portrait). Use for BODY proportions, silhouette, and pose reference.`,
+      `- Image 2 = ${RoleEn} face REFERENCE (ORIGINAL photo — not AI generated). HIGHEST PRIORITY for facial identity: eye shape, eye color, nose bridge/tip shape, lip shape, jawline contour, skin tone, hair texture, brow shape.`,
+      "- Image 3 = Composition reference (catalog master). Replicate pose, framing, camera angle, depth of field, background, outfit, lighting, and composition.",
+      '',
+      `Scene context: ${opts.catalogPromptHint}`,
+      '',
+      'IDENTITY FIDELITY — face from REAL photo, body from anchor:',
+      `- The face in Image 2 is the ground truth. The output face MUST be unmistakably recognizable as the SAME person from that photo. Match: eye shape, eye color, nose, lips, jawline, skin tone, hair, brows.`,
+      `- The anchor (Image 1) describes BODY only — height, build, posture. Its face is AI-rendered, so trust Image 2 for all face details when they differ.`,
+      `- The output contains ONLY the ${roleEn} (one person). Do NOT add a ${otherEn} or any second person, even if the catalog master (Image 3) suggests space for one. Do NOT use Image 3's people as a face reference — they are unrelated.`,
+      '',
+      'SCALE AUTHORITY — catalog reference (Image 3) determines head SIZE:',
+      '- Match output head size relative to frame to Image 3. The anchor (Image 1) and selfie (Image 2) are NOT scale references.',
+      '- If anchor/selfie are close-up and Image 3 is full-body, the rendered face must be SMALL (matching Image 3), not large.',
+      '',
+      'COMPOSITION (from Image 3 — replicate):',
+      '- Pose, body position, gesture, hand position',
+      '- Camera angle, framing, depth of field, lens character',
+      '- Background, environment, outfit, props',
+      ...bodySection,
+      ...colorSection,
+      ...CATALOG_INTEGRATION,
+      ...PHOTOREALISM,
+      ...NEGATIVES,
+      '',
+      'Style: Professional wedding photography, photorealistic, cinematic.',
+    ].join('\n');
+  }
+
+  // Fallback — 2장 입력 (anchor + catalog). 구버전 / 라이브러리 anchor 에 selfie 없음.
   const bodySection = personGuide
     ? [
         '',
@@ -376,18 +472,16 @@ export function buildSoloCatalogPrompt(opts: SoloCatalogPromptOpts): string {
         '- Keep the face strictly from Image 1; only the body silhouette and proportions follow the guide above.',
       ]
     : [];
-  const colorSection = colorHintSection(opts.catalogColorHint);
-
   return [
-    `Compose a SOLO ${role === 'groom' ? 'groom' : 'bride'} wedding portrait using TWO input images:`,
-    `- Image 1 = ${role === 'groom' ? 'Groom' : 'Bride'} anchor (solo portrait). PRESERVE the face, hair, skin tone, and body proportions exactly.`,
+    `Compose a SOLO ${roleEn} wedding portrait using TWO input images:`,
+    `- Image 1 = ${RoleEn} anchor (solo portrait). PRESERVE the face, hair, skin tone, and body proportions exactly.`,
     "- Image 2 = Composition reference (catalog master). Replicate pose, framing, camera angle, depth of field, background, outfit, lighting, and composition.",
     '',
     `Scene context: ${opts.catalogPromptHint}`,
     '',
     'IDENTITY FIDELITY:',
-    `- Image 1's face is the ${role === 'groom' ? 'groom' : 'bride'} — match this identity precisely (eye shape, nose bridge, jawline, skin tone/texture, hair style/color).`,
-    `- The output contains ONLY the ${role === 'groom' ? 'groom' : 'bride'} (one person). Do NOT add a ${role === 'groom' ? 'bride' : 'groom'} or any second person, even if the catalog master suggests space for one.`,
+    `- Image 1's face is the ${roleEn} — match this identity precisely (eye shape, nose bridge, jawline, skin tone/texture, hair style/color).`,
+    `- The output contains ONLY the ${roleEn} (one person). Do NOT add a ${otherEn} or any second person, even if the catalog master suggests space for one.`,
     '',
     'FRAMING MISMATCH HANDLING:',
     "- Image 1 (anchor) may be cropped differently from Image 2. Use Image 1 as the canonical identity / body reference and RE-RENDER at whatever scale Image 2 demands.",

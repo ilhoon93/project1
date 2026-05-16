@@ -91,28 +91,28 @@ export const ANCHOR_TEMPLATES: AnchorTemplate[] = [
     framing: 'closeup',
     label: '신랑 클로즈업',
     framingHint:
-      'Tight chest-up close-up portrait, face clearly featured, frontal camera angle at eye level, shallow depth of field with creamy bokeh on the backdrop. Face fills ~55% of the frame. Soft warm catchlights in the eyes.',
+      'Tight chest-up close-up portrait, frontal camera angle at eye level (no head tilt, no looking aside), shallow depth of field with creamy bokeh on the backdrop. EXACT POSE: head straight, looking directly at camera, shoulders square to the camera, soft natural expression. Face fills ~55% of the frame. Soft warm catchlights in the eyes. This pose must be IDENTICAL every render — no variations in head tilt or gaze.',
   },
   {
     slot: 'groom',
     framing: 'halfbody',
     label: '신랑 반신',
     framingHint:
-      "Waist-up half-body portrait, slightly three-quarter (~15°) camera angle, hands resting naturally at the side or lightly in jacket pocket. Camera distance: realistic for a waist-up portrait on a 50–85mm lens (about 2.5–3 meters from subject). EXPLICIT SIZE RULE: the face MUST occupy NO MORE than 28-32% of the vertical frame height (target ~30%). The torso (shoulders → chest → waist) fills the remaining ~60% of the frame, and the head sits in the top portion at its natural anatomical size. If the rendered face appears to take 40% or more of the frame height, the render is WRONG — re-render with a smaller face and more visible torso. The head must look small relative to the broad shoulders. Soft rim light wraps around the shoulder closest to camera so the silhouette blends into the backdrop — explicitly NO sharp outline, NO cutout halo, NO color fringing along shoulders or hair.",
+      "Waist-up half-body portrait, slightly three-quarter (~15°) camera angle. EXACT POSE: standing upright, RIGHT HAND in front-right jacket pocket with thumb visible outside, LEFT HAND relaxed at left side. NO crossed arms, NO hands in front of chest, NO holding any object. Shoulders square, head level. This exact hand position must be IDENTICAL every render — no variations. Camera distance: realistic for a waist-up portrait on a 50–85mm lens (about 2.5–3 meters from subject). EXPLICIT SIZE RULE: the face MUST occupy NO MORE than 28-32% of the vertical frame height (target ~30%). The torso (shoulders → chest → waist) fills the remaining ~60% of the frame, head at its natural anatomical size in the top portion. If the rendered face is 40%+ of the frame, the render is WRONG — re-render with a smaller face. The head must look small relative to broad shoulders. Soft rim light wraps around the shoulder closest to camera so the silhouette blends into the backdrop — NO sharp outline, NO cutout halo, NO color fringing.",
   },
   {
     slot: 'bride',
     framing: 'closeup',
     label: '신부 클로즈업',
     framingHint:
-      'Tight chest-up close-up portrait, face clearly featured, frontal camera angle at eye level, shallow depth of field with creamy bokeh on the backdrop. Face fills ~55% of the frame. Soft warm catchlights in the eyes, subtle natural makeup.',
+      'Tight chest-up close-up portrait, frontal camera angle at eye level (no head tilt, no looking aside), shallow depth of field with creamy bokeh on the backdrop. EXACT POSE: head straight, looking directly at camera, shoulders square to the camera, soft natural expression. Face fills ~55% of the frame. Soft warm catchlights in the eyes, subtle natural makeup. This pose must be IDENTICAL every render — no variations in head tilt or gaze.',
   },
   {
     slot: 'bride',
     framing: 'halfbody',
     label: '신부 반신',
     framingHint:
-      'Waist-up half-body portrait, slightly three-quarter (~15°) camera angle, holding a small bouquet with both hands at waist level. Camera distance: realistic for a waist-up portrait on a 50–85mm lens (about 2.5–3 meters from subject). EXPLICIT SIZE RULE: the face MUST occupy NO MORE than 28-32% of the vertical frame height (target ~30%). The torso (shoulders → dress bodice → bouquet → waist) fills the remaining ~60% of the frame, with the head sitting in the top portion at its natural anatomical size. If the rendered face appears to take 40% or more of the frame height, the render is WRONG — re-render with a smaller face so the bouquet and dress bodice are clearly visible below the face. Soft rim light wraps around the shoulder closest to camera so the silhouette blends into the backdrop — explicitly NO sharp outline, NO cutout halo, NO color fringing along shoulders, hair, dress edge, or bouquet edge.',
+      'Waist-up half-body portrait, slightly three-quarter (~15°) camera angle. EXACT POSE: standing upright, holding a small white-and-green bridal bouquet WITH BOTH HANDS at WAIST LEVEL (bouquet centered in front of the waist, not chest, not hip — exactly at the navel line). Both forearms relaxed and visible, neither arm crossing the body. Shoulders square, head level. This exact bouquet position must be IDENTICAL every render — no variations in bouquet height or hand placement. Camera distance: realistic for a waist-up portrait on a 50–85mm lens (about 2.5–3 meters from subject). EXPLICIT SIZE RULE: the face MUST occupy NO MORE than 28-32% of the vertical frame height (target ~30%). The torso (shoulders → dress bodice → bouquet → waist) fills the remaining ~60% of the frame, head at natural anatomical size in the top portion. If face is 40%+ of frame, the render is WRONG — re-render with a smaller face so bouquet and dress bodice are clearly visible. Soft rim light wraps around the shoulder closest to camera — NO sharp outline, NO cutout halo, NO color fringing along shoulders, hair, dress edge, or bouquet edge.',
   },
 ];
 
