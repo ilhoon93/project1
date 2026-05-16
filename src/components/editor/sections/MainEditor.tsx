@@ -590,7 +590,7 @@ function IllustrationDesignControls({ design, onChange, greeting, onGreetingChan
         </div>
       </Group>
 
-      {/* 제목 텍스트 — 폰트는 Playfair Display 고정, 문구·색상·크기·상하 위치 조정 가능 */}
+      {/* 제목 텍스트 — 폰트 picker 노출 (포스터형과 동일). 초기화 시 Fraunces 가 기본 */}
       <Group label="제목 텍스트">
         <TitleTextCombobox
           value={design.title.text}
@@ -598,9 +598,13 @@ function IllustrationDesignControls({ design, onChange, greeting, onGreetingChan
             onChange({ ...design, title: { ...design.title, text } })
           }
         />
-        <p className="text-xs text-muted-foreground">
-          폰트는 일러스트 스타일에 맞춰 Playfair Display 로 고정됩니다.
-        </p>
+        <FontPicker
+          value={design.title.font}
+          onChange={(font) =>
+            onChange({ ...design, title: { ...design.title, font } })
+          }
+          previewText={design.title.text || 'Preview'}
+        />
         <ColorPicker
           label="색상"
           value={design.title.color}
@@ -614,7 +618,7 @@ function IllustrationDesignControls({ design, onChange, greeting, onGreetingChan
           label="글자 크기"
           value={design.title.fontSize}
           min={22}
-          max={48}
+          max={100}
           unit="px"
           onChange={(fontSize) =>
             onChange({ ...design, title: { ...design.title, fontSize } })
@@ -799,7 +803,7 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
         </div>
       </Group>
 
-      {/* 제목 텍스트 — 폰트는 Playfair Display 고정, 문구·색상·크기·상하 위치 조정 */}
+      {/* 제목 텍스트 — 폰트 picker 노출 (포스터형과 동일). 초기화 시 Playfair Display 가 기본 */}
       <Group label="제목 텍스트">
         <TitleTextCombobox
           value={design.title.text}
@@ -807,9 +811,13 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
             onChange({ ...design, title: { ...design.title, text } })
           }
         />
-        <p className="text-xs text-muted-foreground">
-          폰트는 텍스트형의 분위기에 맞춰 Playfair Display 로 고정됩니다.
-        </p>
+        <FontPicker
+          value={design.title.font}
+          onChange={(font) =>
+            onChange({ ...design, title: { ...design.title, font } })
+          }
+          previewText={design.title.text || 'Preview'}
+        />
         <ColorPicker
           label="색상"
           value={design.title.color}
@@ -823,7 +831,7 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
           label="글자 크기"
           value={design.title.fontSize}
           min={22}
-          max={48}
+          max={100}
           unit="px"
           onChange={(fontSize) =>
             onChange({ ...design, title: { ...design.title, fontSize } })
@@ -1131,7 +1139,7 @@ function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: F
               label="글자 크기"
               value={design.title.fontSize}
               min={18}
-              max={44}
+              max={100}
               unit="px"
               onChange={(fontSize) =>
                 onChange({ ...design, title: { ...design.title, fontSize } })

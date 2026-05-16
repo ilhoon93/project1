@@ -16,6 +16,8 @@ import {
   TITLE_FONT_OPTIONS,
   isKoreanTitleText,
   DEFAULT_TITLE_FONT_KO,
+  getDisplayFontSize,
+  type TitleFontKey,
 } from '@/lib/theme';
 import { Confetti } from '@/components/shared/Confetti';
 import { HeartClip } from '@/components/shared/HeartClip';
@@ -293,7 +295,9 @@ function PosterFullImageSlide({
         />
       )}
 
-      {/* 2) 제목 텍스트 — 절대 위치 + 옵션 애니메이션, 슬라이더로 크기 조절 */}
+      {/* 2) 제목 텍스트 — 절대 위치 + 옵션 애니메이션, 슬라이더로 크기 조절.
+          폰트별 시각 크기 보정(TITLE_FONT_SIZE_SCALE) 적용 — 장식 폰트가 같은
+          px 에서도 더 크게 보이도록. */}
       <PositionedBox position={design.title.position}>
         <h1
           key={`${design.title.text}-${design.title.animate}`}
@@ -303,7 +307,7 @@ function PosterFullImageSlide({
           style={{
             fontFamily: titleFont,
             color: design.title.color,
-            fontSize: `${design.title.fontSize}px`,
+            fontSize: `${getDisplayFontSize(design.title.fontSize, design.title.font as TitleFontKey)}px`,
           }}
         >
           {design.title.text}
@@ -364,13 +368,20 @@ function PosterFullImageSlide({
 
       <style jsx>{`
         :global(.mw-title-reveal) {
-          animation: mw-title-reveal 2.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          /* 손글씨 느낌 — 일정 속도가 아니라 빠른 시작 → 잠깐 멈춤(주저) → 다시 진행 →
+             끝 직전 슬쩍 멈췄다가 마무리. 여러 키프레임으로 비균등 속도 표현. */
+          animation: mw-title-reveal 3.6s ease-in-out forwards;
           clip-path: inset(0 100% 0 0);
         }
         @keyframes mw-title-reveal {
-          to {
-            clip-path: inset(0 0 0 0);
-          }
+          0%   { clip-path: inset(0 100% 0 0); }
+          12%  { clip-path: inset(0 82% 0 0); }   /* 빠른 시작 */
+          22%  { clip-path: inset(0 78% 0 0); }   /* 첫 주저 (보통 단어 사이) */
+          45%  { clip-path: inset(0 50% 0 0); }   /* 중간 진행 */
+          58%  { clip-path: inset(0 44% 0 0); }   /* 두 번째 주저 */
+          80%  { clip-path: inset(0 18% 0 0); }   /* 막판 가속 */
+          90%  { clip-path: inset(0 14% 0 0); }   /* 끝 직전 짧은 멈춤 */
+          100% { clip-path: inset(0 0 0 0); }     /* 마무리 */
         }
       `}</style>
     </section>
@@ -439,7 +450,11 @@ function IllustrationSlide({
 
   const titleColor = design.title.color || 'currentColor';
   const illustSrc = `/illustrations/illust-${design.variant}.png`;
-  const titleFontFamily = autoTitleFontFor(design.title.text);
+  // 사용자가 picker 에서 고른 폰트 우선. 한글 문구로 바뀌어 한글 폰트로 자동
+  // 전환된 상태라면 design.title.font 가 이미 한글 키 — 그대로 사용.
+  const titleFontFamily =
+    TITLE_FONT_OPTIONS[design.title.font as TitleFontKey]?.family
+    ?? autoTitleFontFor(design.title.text);
 
   return (
     // 통일 레이아웃 — 일러스트 카드 중앙, 텍스트(제목/인사말/이름/날짜)는 슬라이드
@@ -459,7 +474,7 @@ function IllustrationSlide({
           style={{
             fontFamily: titleFontFamily,
             color: titleColor,
-            fontSize: `${design.title.fontSize}px`,
+            fontSize: `${getDisplayFontSize(design.title.fontSize, design.title.font as TitleFontKey)}px`,
           }}
         >
           {design.title.text}
@@ -547,7 +562,11 @@ function TextLayoutSlide({
 
   const titleColor = design.title.color || 'currentColor';
   const decoSrc = `/illustrations/text-${design.variant}.png`;
-  const titleFontFamily = autoTitleFontFor(design.title.text);
+  // 사용자가 picker 에서 고른 폰트 우선. 구버전 데이터로 font 가 없으면
+  // autoTitleFontFor 로 한/영 자동 매핑.
+  const titleFontFamily =
+    TITLE_FONT_OPTIONS[design.title.font as TitleFontKey]?.family
+    ?? autoTitleFontFor(design.title.text);
 
   // 이름 정렬/순서 — brideFirst 면 신부, 신랑 순. layout 'stack' 이면 위·아래 두 줄.
   // "신랑/신부" 접두어는 표시하지 않는다 (사용자 요청).
@@ -580,7 +599,7 @@ function TextLayoutSlide({
           style={{
             fontFamily: titleFontFamily,
             color: titleColor,
-            fontSize: `${design.title.fontSize}px`,
+            fontSize: `${getDisplayFontSize(design.title.fontSize, design.title.font as TitleFontKey)}px`,
           }}
         >
           {design.title.text}
@@ -931,7 +950,7 @@ function FrameSlide({
             style={{
               fontFamily: titleFont,
               color: titleColor,
-              fontSize: `${design.title.fontSize}px`,
+              fontSize: `${getDisplayFontSize(design.title.fontSize, design.title.font as TitleFontKey)}px`,
             }}
           >
             {design.title.text}

@@ -589,6 +589,31 @@ export const DEFAULT_TITLE_FONT_KO: TitleFontKeyKo = 'koGowun';
 export const DEFAULT_TITLE_FONT_EN: TitleFontKeyEn = 'playfairDisplay';
 
 /**
+ * 폰트별 시각 크기 보정 배율. 같은 px 값이라도 폰트의 cap-height / x-height 가
+ * 달라 화면에서 보이는 크기가 제각각인 문제를 보정. 1.0 이 기준. 1보다 크면
+ * 같은 fontSize 슬라이더 값에서 실제 렌더가 더 크게 나옴.
+ *
+ * 적용: MainSlide 의 모든 title 렌더 지점에서 fontSize × scale 로 환산.
+ *
+ * 사용자 결정 (작은 디스플레이/장식 폰트 3종 보정):
+ *   - Fake Serif       : 시각 크기 대비 작음 → 1.4x
+ *   - Rockville Solid  : 디스플레이라 동일 px 에서 작아 보임 → 1.4x
+ *   - Qillsey Einstein : 필기체 ascender 위주라 본문 작음 → 1.5x
+ */
+export const TITLE_FONT_SIZE_SCALE: Partial<Record<TitleFontKey, number>> = {
+  fakeSerif: 1.4,
+  rockvilleSolid: 1.4,
+  qillseyEinstein: 1.5,
+};
+
+/** 폰트별 표시 px 환산. fontSize 슬라이더 값 × scale. */
+export function getDisplayFontSize(fontSize: number, fontKey: TitleFontKey | undefined): number {
+  if (!fontKey) return fontSize;
+  const scale = TITLE_FONT_SIZE_SCALE[fontKey] ?? 1;
+  return Math.round(fontSize * scale);
+}
+
+/**
  * 텍스트에 한글(가-힣 / 자음 / 모음)이 포함돼 있으면 true.
  * 빈 문자열이거나 한글이 한 글자도 없으면 false.
  */
