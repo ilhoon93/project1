@@ -9,9 +9,8 @@
  * 동일한 로직을 공유하기 위해 추출.
  *
  * 토글:
- *   SNAP_IDENTITY_MODE  = 'off' | 'face-swap' | 'flux-pulid'
+ *   SNAP_IDENTITY_MODE  = 'off' | 'face-swap'  (default 'face-swap')
  *      face-swap: fal 결과 + selfie → face swap → 후처리 단계로 진입
- *      flux-pulid: generate 가 flux-pulid 로 이미 generation 했으므로 swap 안 함
  *   SNAP_UPSCALE_MODE    = 'off' | 'aura-sharpen' | 'topaz-sharpen'   (기존)
  *   SNAP_HARMONIZE_MODE  / SNAP_FINISHING_MODE — postprocess 모듈 안에서 처리
  *
@@ -19,10 +18,7 @@
  * 어느 단계라도 실패하면 직전 결과로 fallback — finalize 자체는 안 깨짐.
  */
 
-import {
-  getImageEditResult,
-  getFluxPulidResult,
-} from '@/lib/fal/client';
+import { getImageEditResult } from '@/lib/fal/client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { markSnapJobCompleted, markSnapJobFailed } from '@/lib/snap/jobs';
 import {
@@ -103,15 +99,10 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
   // 0. snap_jobs 컨텍스트 (model + selfie) 로드.
   const ctx = await loadJobContext(input.falRequestId);
 
-  // 1. fal 결과 URL — model 별로 result fetcher 분기.
-  //    snap_jobs 에 model 이 없는 구버전 / 알 수 없는 model 은 gpt-image-2 로 폴백.
+  // 1. fal 결과 URL. 현재는 gpt-image-2 만 사용 (flux-pulid 폐기됨).
   let generatedUrl: string;
   try {
-    if (ctx.model === 'fal-ai/flux-pulid') {
-      generatedUrl = await getFluxPulidResult(input.falRequestId);
-    } else {
-      generatedUrl = await getImageEditResult(input.falRequestId);
-    }
+    generatedUrl = await getImageEditResult(input.falRequestId);
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'result fetch failed';
     void markSnapJobFailed(input.falRequestId, msg);

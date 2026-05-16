@@ -24,6 +24,8 @@
 | `SNAP_HARMONIZE_MODE` | ⬜ | `masked` | 웨딩스냅 색매칭 |
 | `SNAP_FINISHING_MODE` | ⬜ | `img2img` | 웨딩스냅 img2img 마감 패스 |
 | `SNAP_UPSCALE_MODE` | ⬜ | `off` | 웨딩스냅 업스케일 |
+| `SNAP_IDENTITY_MODE` | ⬜ | `face-swap` | 카탈로그 결과의 얼굴 identity 복원 (face-swap) |
+| `SNAP_CATALOG_FACE_BLUR` | ⬜ | `on` | 카탈로그 마스터 얼굴 영역 사전 blur |
 | `NEXT_PUBLIC_PORTONE_STORE_ID` | ✅ | — | PortOne V2 가맹점 |
 | `NEXT_PUBLIC_PORTONE_CHANNEL_KEY` | ✅ | — | Toss 채널 키 |
 | `PORTONE_API_SECRET` | ✅ | — | 서버 전용 |
@@ -101,9 +103,22 @@
 | `aura-sharpen` | aura-sr 2x → unsharp mask. 얼굴 보존 ★★★★★ | ~$0.015 | ~5s |
 | `topaz-sharpen` | Topaz Standard V2 2x → unsharp mask. 디테일 복원 ★★★★★ | ~$0.06 | ~8s |
 
+### `SNAP_IDENTITY_MODE` — 카탈로그 얼굴 identity 복원 (Phase B)
+| 값 | 동작 | 추가 비용 | 추가 시간 |
+|---|---|---|---|
+| `off` | 비활성 (Phase A multi-image 결과 그대로) | $0 | 0s |
+| `face-swap` **(기본)** | catalog 결과 + selfie → fal-ai/face-swap. 카탈로그 구도/의상 유지하고 얼굴만 selfie 진본으로 교체. solo/together 둘 다 작동 | ~$0.01~0.04 | ~3~10s |
+
+### `SNAP_CATALOG_FACE_BLUR` — 카탈로그 마스터 얼굴 영역 사전 blur (Phase C)
+| 값 | 동작 | 추가 비용 | 추가 시간 |
+|---|---|---|---|
+| `off` | 비활성 (원본 그대로 fal 에 전달) | $0 | 0s |
+| `on` **(기본)** | sharp 로 카탈로그 마스터 얼굴 영역만 강한 blur 처리. 모델이 catalog 의 다른 얼굴 특징에 attention 끌려가지 X | $0 (sharp 로컬 + 메모리 캐시) | ~0s |
+
 ### 운영 권장 조합
-- **품질 최우선** (default): `harmonize=masked`, `finishing=img2img`, `upscale=topaz-sharpen` — 1장당 ~$0.16
-- **비용 절감**: `harmonize=global`, `finishing=off`, `upscale=off` — 1장당 ~$0.07 (= 베이스라인)
+- **품질 최우선** (default): `harmonize=masked`, `finishing=img2img`, `identity=face-swap`, `catalog-face-blur=on`, `upscale=topaz-sharpen` — 1장당 ~$0.18
+- **표준** (배포 default): `harmonize=masked`, `finishing=img2img`, `identity=face-swap`, `catalog-face-blur=on`, `upscale=off` — 1장당 ~$0.11
+- **비용 절감**: `harmonize=global`, `finishing=off`, `identity=off`, `catalog-face-blur=on`, `upscale=off` — 1장당 ~$0.07 (= 베이스라인)
 - **긴급 비활성** (이슈 대응): 모두 `off` — 생성 결과 raw 그대로 노출
 
 ## 결제 (PortOne V2)

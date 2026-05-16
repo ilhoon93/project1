@@ -95,8 +95,8 @@ export async function submitMultiImageEdit(input: {
 export type FalQueueStatus = 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
 
 /**
- * 임의의 fal model 큐 상태 조회. flux-pulid / gpt-image-2 등 모델별로 다른 endpoint
- * 가 필요해 model id 를 받아 동적 라우팅.
+ * 임의의 fal model 큐 상태 조회. gpt-image-2 등 모델별로 다른 endpoint 가
+ * 필요해 model id 를 받아 동적 라우팅.
  */
 export async function getFalQueueStatus(
   model: string,
@@ -363,65 +363,5 @@ export async function getFaceSwapResult(requestId: string): Promise<string> {
   const data = result.data as FaceSwapResult;
   const url = data.image?.url ?? data.images?.[0]?.url;
   if (!url) throw new Error('face-swap.result returned no image url');
-  return url;
-}
-
-// ─────────────────────────────────────────────────────────────
-// Flux PuLID — SNAP_IDENTITY_MODE=flux-pulid 일 때 사용 (solo 한정).
-//
-// face reference image 1장 + text prompt 로 그 사람의 얼굴이 살아 있는 새 이미지를
-// 생성. PuLID 는 face identity 보존이 학습 목표라 gpt-image-2 보다 identity drift
-// 가 현저히 적음. 단, 1인 모델이라 multi-person (together) 미지원.
-//
-// 비용 ~$0.05/장 (flux/dev 베이스).
-// ─────────────────────────────────────────────────────────────
-
-const FLUX_PULID_MODEL = 'fal-ai/flux-pulid';
-
-interface FluxPulidResult {
-  images: { url: string; content_type?: string }[];
-}
-
-/**
- * Flux PuLID 호출 — face reference + scene prompt 로 generative composition.
- *
- * @param input.referenceImageUrl  유지할 얼굴의 원본 (사용자 selfie)
- * @param input.prompt             장면 / 의상 / 포즈 텍스트 묘사
- * @param input.negativePrompt     원치 않는 요소 (보통 NEGATIVES 와 비슷)
- * @param input.idWeight           face identity 가중치 (0.5~1.5, 기본 1.0)
- * @param input.numInferenceSteps  기본 28
- * @param input.guidanceScale      기본 4.0
- */
-export async function submitFluxPulid(input: {
-  referenceImageUrl: string;
-  prompt: string;
-  negativePrompt?: string;
-  idWeight?: number;
-  numInferenceSteps?: number;
-  guidanceScale?: number;
-  imageSize?: 'portrait_4_3' | 'landscape_4_3' | 'square_hd';
-}): Promise<string> {
-  ensureConfigured();
-  const { request_id } = await fal.queue.submit(FLUX_PULID_MODEL, {
-    input: {
-      reference_image_url: input.referenceImageUrl,
-      prompt: input.prompt,
-      ...(input.negativePrompt ? { negative_prompt: input.negativePrompt } : {}),
-      id_weight: input.idWeight ?? 1.0,
-      num_inference_steps: input.numInferenceSteps ?? 28,
-      guidance_scale: input.guidanceScale ?? 4.0,
-      image_size: input.imageSize ?? 'portrait_4_3',
-    },
-  });
-  if (!request_id) throw new Error('flux-pulid.submit returned no request_id');
-  return request_id;
-}
-
-export async function getFluxPulidResult(requestId: string): Promise<string> {
-  ensureConfigured();
-  const result = await fal.queue.result(FLUX_PULID_MODEL, { requestId });
-  const data = result.data as FluxPulidResult;
-  const url = data.images?.[0]?.url;
-  if (!url) throw new Error('flux-pulid.result returned no image url');
   return url;
 }

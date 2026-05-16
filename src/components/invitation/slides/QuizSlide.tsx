@@ -29,7 +29,7 @@ export function QuizSlide({ quiz, invitationId, isPreview, mode = 'guest', owner
       <header className="text-center">
         <p className="text-xs tracking-[0.3em] opacity-70">QUIZ</p>
         <h2 className="mt-2 text-xl font-light">
-          {mode === 'owner' ? '하객 퀴즈 결과' : '우리에 대한 퀴즈'}
+          {mode === 'owner' ? '하객 퀴즈 결과' : '우리의 시간, 얼마나 알고 있나요?'}
         </h2>
       </header>
 
@@ -192,7 +192,7 @@ function Question({
       </ul>
       {isAnswered && (
         <p className="text-xs text-[var(--mw-accent)]">
-          {selected === question.answer ? '정답입니다 🎉' : `정답은 "${question.options[question.answer]}" 였어요`}
+          {selected === question.answer ? '정답입니다 🎉' : `정답은 "${question.options[question.answer]}" 입니다`}
         </p>
       )}
     </article>

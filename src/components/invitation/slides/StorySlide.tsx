@@ -9,7 +9,7 @@ export function StorySlide({ story }: { story: InvitationContent['story'] }) {
     <section className="flex min-h-full flex-col gap-10 px-6 py-16">
       <header className="text-center">
         <p className="text-xs tracking-[0.3em] opacity-70">OUR STORY</p>
-        <h2 className="mt-2 text-xl font-light">우리 이야기</h2>
+        <h2 className="mt-2 text-xl font-light">우리의 이야기</h2>
       </header>
 
       <div className="flex flex-col gap-10">

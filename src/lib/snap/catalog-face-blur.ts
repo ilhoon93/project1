@@ -26,13 +26,13 @@ export type CatalogFaceBlurMode = 'off' | 'on';
 
 const VALID_MODES: readonly CatalogFaceBlurMode[] = ['off', 'on'];
 
-/** env SNAP_CATALOG_FACE_BLUR 읽기. 기본 'off'. */
+/** env SNAP_CATALOG_FACE_BLUR 읽기. 기본 'on' (테스트 결과 default 채택). */
 export function getCatalogFaceBlurMode(): CatalogFaceBlurMode {
   const v = process.env.SNAP_CATALOG_FACE_BLUR;
   if (typeof v === 'string' && (VALID_MODES as readonly string[]).includes(v)) {
     return v as CatalogFaceBlurMode;
   }
-  return 'off';
+  return 'on';
 }
 
 /** Vercel function instance 메모리 캐시. key = catalog id, value = public URL. */

@@ -159,55 +159,53 @@ export type PosterDesign = z.infer<typeof PosterDesignSchema>;
 export const ILLUSTRATION_VARIANTS = ['arch', 'dance', 'hanbok', 'ani'] as const;
 export type IllustrationVariant = (typeof ILLUSTRATION_VARIANTS)[number];
 
+// 위치 슬라이더는 모든 레이아웃에서 동일한 UX (x/y 0-100%) 를 쓰도록 통일됨.
+// 각 디자인 스키마는 독립이라 같은 (50, 50) 이어도 레이아웃 전환 시 데이터가
+// 따라가지 않는다 (각 레이아웃에 저장된 위치 사용).
 export const IllustrationDesignSchema = z
   .object({
     variant: z.enum(ILLUSTRATION_VARIANTS).default('arch'),
     title: z
       .object({
         text: z.string().max(60).default(TITLE_TEXT_PRESETS[4]), // "A day, our way"
-        // 색상은 hex / 'currentColor' 둘 다 받는다. 'currentColor' 면 테마 fg.
         color: z.string().max(32).default('currentColor'),
-        // px 단위 — 슬라이더로 22–48 사이에서 조정.
         fontSize: z.number().min(22).max(48).default(34),
-        // 기본 위치(이미지 상단 위쪽)를 기준으로 cqh 단위 상하 미세 조정.
-        // 음수 = 위로, 양수 = 아래로. -10 ~ +10 cqh.
-        offsetY: z.number().min(-10).max(10).default(0),
+        position: PositionSchema.default({ x: 50, y: 12 }),
       })
       .default({
         text: TITLE_TEXT_PRESETS[4],
         color: 'currentColor',
         fontSize: 34,
-        offsetY: 0,
+        position: { x: 50, y: 12 },
       }),
     dateBox: z
       .object({
         enabled: z.boolean().default(true),
         fontSize: z.number().min(11).max(22).default(15),
-        offsetY: z.number().min(-10).max(10).default(0),
+        position: PositionSchema.default({ x: 50, y: 78 }),
       })
-      .default({ enabled: true, fontSize: 15, offsetY: 0 }),
+      .default({ enabled: true, fontSize: 15, position: { x: 50, y: 78 } }),
     nameBox: z
       .object({
         enabled: z.boolean().default(true),
         fontSize: z.number().min(12).max(24).default(16),
-        offsetY: z.number().min(-10).max(10).default(0),
+        position: PositionSchema.default({ x: 50, y: 70 }),
       })
-      .default({ enabled: true, fontSize: 16, offsetY: 0 }),
-    // 인사말 — main.greeting 본문을 표시할지/얼마만큼 보여줄지 결정.
+      .default({ enabled: true, fontSize: 16, position: { x: 50, y: 70 } }),
     messageBox: z
       .object({
         enabled: z.boolean().default(true),
         fontSize: z.number().min(11).max(20).default(13),
-        offsetY: z.number().min(-10).max(10).default(0),
+        position: PositionSchema.default({ x: 50, y: 22 }),
       })
-      .default({ enabled: true, fontSize: 13, offsetY: 0 }),
+      .default({ enabled: true, fontSize: 13, position: { x: 50, y: 22 } }),
   })
   .default({
     variant: 'arch',
-    title: { text: TITLE_TEXT_PRESETS[4], color: 'currentColor', fontSize: 34, offsetY: 0 },
-    dateBox: { enabled: true, fontSize: 15, offsetY: 0 },
-    nameBox: { enabled: true, fontSize: 16, offsetY: 0 },
-    messageBox: { enabled: true, fontSize: 13, offsetY: 0 },
+    title: { text: TITLE_TEXT_PRESETS[4], color: 'currentColor', fontSize: 34, position: { x: 50, y: 12 } },
+    dateBox: { enabled: true, fontSize: 15, position: { x: 50, y: 78 } },
+    nameBox: { enabled: true, fontSize: 16, position: { x: 50, y: 70 } },
+    messageBox: { enabled: true, fontSize: 13, position: { x: 50, y: 22 } },
   });
 
 export type IllustrationDesign = z.infer<typeof IllustrationDesignSchema>;
@@ -237,60 +235,52 @@ export const TextDesignSchema = z
         text: z.string().max(60).default(TITLE_TEXT_PRESETS[0]), // "We are getting married"
         color: z.string().max(32).default('currentColor'),
         fontSize: z.number().min(22).max(48).default(34),
-        offsetY: z.number().min(-10).max(10).default(0),
+        position: PositionSchema.default({ x: 50, y: 12 }),
       })
       .default({
         text: TITLE_TEXT_PRESETS[0],
         color: 'currentColor',
         fontSize: 34,
-        offsetY: 0,
+        position: { x: 50, y: 12 },
       }),
-    // 데코 이미지가 풀너비로 깔리는 텍스트형에선 이름·날짜·인사말이 이미지
-    // 위로 올라가야 자연스럽기 때문에 offsetY 의 음수 범위(상)는 -50 cqh 로
-    // 크게 넓혔지만, 양수 범위(하)는 슬라이드 하단 "축하하기" 버튼 영역을
-    // 침범하지 않도록 +25 cqh 로 제한한다 (1 cqh = 슬라이드 높이의 1%).
     dateBox: z
       .object({
         enabled: z.boolean().default(true),
         fontSize: z.number().min(11).max(22).default(15),
-        offsetY: z.number().min(-50).max(25).default(0),
+        position: PositionSchema.default({ x: 50, y: 80 }),
       })
-      .default({ enabled: true, fontSize: 15, offsetY: 0 }),
+      .default({ enabled: true, fontSize: 15, position: { x: 50, y: 80 } }),
     nameBox: z
       .object({
         enabled: z.boolean().default(true),
-        // 텍스트형의 메인 화면 이름은 굵게·크게 부각하는 디자인 컨셉이라
-        // 다른 레이아웃보다 폰트 크기 상한을 56px 까지 크게 열어준다.
+        // 텍스트형 메인 이름은 굵게·크게 강조 컨셉이라 폰트 상한 56px 까지 열어둠.
         fontSize: z.number().min(14).max(56).default(28),
-        offsetY: z.number().min(-50).max(25).default(0),
+        position: PositionSchema.default({ x: 50, y: 72 }),
         // 'inline' = 한 줄 가운데 점 구분, 'stack' = 위·아래 두 줄 중앙 정렬.
-        // stack 일 때도 두 이름 사이에 작은 구분 점(✦)을 끼워넣어
-        // 짝을 이루는 디자인 톤을 유지한다 (렌더링 단계에서 처리).
         layout: z.enum(TEXT_NAME_LAYOUTS).default('inline'),
-        // true 면 신부 이름을 먼저, 신랑 이름을 뒤로 배치.
         brideFirst: z.boolean().default(false),
       })
-      .default({ enabled: true, fontSize: 28, offsetY: 0, layout: 'inline', brideFirst: false }),
+      .default({ enabled: true, fontSize: 28, position: { x: 50, y: 72 }, layout: 'inline', brideFirst: false }),
     messageBox: z
       .object({
         enabled: z.boolean().default(true),
         fontSize: z.number().min(11).max(20).default(13),
-        offsetY: z.number().min(-50).max(25).default(0),
+        position: PositionSchema.default({ x: 50, y: 22 }),
       })
-      .default({ enabled: true, fontSize: 13, offsetY: 0 }),
+      .default({ enabled: true, fontSize: 13, position: { x: 50, y: 22 } }),
   })
   .default({
     variant: 'flower',
-    title: { text: TITLE_TEXT_PRESETS[0], color: 'currentColor', fontSize: 34, offsetY: 0 },
-    dateBox: { enabled: true, fontSize: 15, offsetY: 0 },
+    title: { text: TITLE_TEXT_PRESETS[0], color: 'currentColor', fontSize: 34, position: { x: 50, y: 12 } },
+    dateBox: { enabled: true, fontSize: 15, position: { x: 50, y: 80 } },
     nameBox: {
       enabled: true,
       fontSize: 28,
-      offsetY: 0,
+      position: { x: 50, y: 72 },
       layout: 'inline',
       brideFirst: false,
     },
-    messageBox: { enabled: true, fontSize: 13, offsetY: 0 },
+    messageBox: { enabled: true, fontSize: 13, position: { x: 50, y: 22 } },
   });
 
 export type TextDesign = z.infer<typeof TextDesignSchema>;
@@ -320,8 +310,7 @@ export const FrameDesignSchema = z
         font: z.enum(TITLE_FONT_KEYS).default('playfairDisplay'),
         color: z.string().max(32).default('currentColor'),
         fontSize: z.number().min(18).max(44).default(26),
-        // 기본 위치 대비 cqh 단위 상하 미세 조정. 음수 = 위로, 양수 = 아래로.
-        offsetY: z.number().min(-10).max(10).default(0),
+        position: PositionSchema.default({ x: 50, y: 12 }),
       })
       .default({
         enabled: true,
@@ -329,29 +318,29 @@ export const FrameDesignSchema = z
         font: 'playfairDisplay',
         color: 'currentColor',
         fontSize: 26,
-        offsetY: 0,
+        position: { x: 50, y: 12 },
       }),
     nameBox: z
       .object({
         enabled: z.boolean().default(true),
         fontSize: z.number().min(12).max(28).default(20),
-        offsetY: z.number().min(-10).max(10).default(0),
+        position: PositionSchema.default({ x: 50, y: 78 }),
       })
-      .default({ enabled: true, fontSize: 20, offsetY: 0 }),
+      .default({ enabled: true, fontSize: 20, position: { x: 50, y: 78 } }),
     dateBox: z
       .object({
         enabled: z.boolean().default(true),
         fontSize: z.number().min(11).max(22).default(14),
-        offsetY: z.number().min(-10).max(10).default(0),
+        position: PositionSchema.default({ x: 50, y: 85 }),
       })
-      .default({ enabled: true, fontSize: 14, offsetY: 0 }),
+      .default({ enabled: true, fontSize: 14, position: { x: 50, y: 85 } }),
     messageBox: z
       .object({
         enabled: z.boolean().default(true),
         fontSize: z.number().min(11).max(22).default(13),
-        offsetY: z.number().min(-10).max(10).default(0),
+        position: PositionSchema.default({ x: 50, y: 22 }),
       })
-      .default({ enabled: true, fontSize: 13, offsetY: 0 }),
+      .default({ enabled: true, fontSize: 13, position: { x: 50, y: 22 } }),
   })
   .default({
     variant: 'polaroid',
@@ -362,11 +351,11 @@ export const FrameDesignSchema = z
       font: 'playfairDisplay',
       color: 'currentColor',
       fontSize: 26,
-      offsetY: 0,
+      position: { x: 50, y: 12 },
     },
-    nameBox: { enabled: true, fontSize: 20, offsetY: 0 },
-    dateBox: { enabled: true, fontSize: 14, offsetY: 0 },
-    messageBox: { enabled: true, fontSize: 13, offsetY: 0 },
+    nameBox: { enabled: true, fontSize: 20, position: { x: 50, y: 78 } },
+    dateBox: { enabled: true, fontSize: 14, position: { x: 50, y: 85 } },
+    messageBox: { enabled: true, fontSize: 13, position: { x: 50, y: 22 } },
   });
 
 export type FrameDesign = z.infer<typeof FrameDesignSchema>;

@@ -1,42 +1,34 @@
 /**
  * Phase B 토글 — catalog 결과의 얼굴 identity 복원.
  *
- * env SNAP_IDENTITY_MODE 값에 따라 3가지:
- *   - 'off'        : 비활성 (현재 Phase A 결과 그대로)
- *   - 'face-swap'  : catalog 생성 결과에 face swap 후처리. 카탈로그 구도/의상/배경
- *                    그대로 유지하면서 얼굴만 selfie 진본으로 교체.
- *                    solo 1번, together 2번 swap (face_index 0=신랑, 1=신부).
- *                    비용 +$0.01~0.04/장.
- *   - 'flux-pulid' : catalog 단계 자체를 flux-pulid 로 대체. text prompt + selfie
- *                    1장으로 generative composition. identity 보존 최고급이지만
- *                    카탈로그 구도는 일부 잃음. together 모드는 flux-pulid 가
- *                    1-ID 모델이라 미지원 → face-swap 으로 자동 폴백.
- *                    비용 ~$0.05/장 (solo).
+ * env SNAP_IDENTITY_MODE 값:
+ *   - 'off'       : 비활성 (Phase A 만)
+ *   - 'face-swap' : catalog 생성 결과에 face swap 후처리. 카탈로그 구도/의상/배경
+ *                   그대로 유지하면서 얼굴만 selfie 진본으로 교체.
+ *                   solo 1회, together 2회 swap (face_index 0=신랑, 1=신부).
+ *                   비용 +$0.01~0.04/장.
  *
- * 본 모듈은 두 모드 모두 라우트 측에서 호출 가능한 단일 entry point 를 제공.
- * generate route 가 `applyIdentityFluxPulid` 로 분기 (replace), finalize
- * 흐름이 `applyFaceSwapRestore` 로 분기 (append) 한다.
+ * finalize 흐름이 `applyFaceSwapRestore` 로 호출 (append). flux-pulid 옵션은
+ * 폐기 (PR Phase B/C 토글 도입 후 비교 결과로 face-swap 만 default 채택).
  */
 
 import {
   submitFaceSwap,
   getFaceSwapResult,
-  submitFluxPulid,
-  getFluxPulidResult,
 } from '@/lib/fal/client';
 import type { CatalogPersonality } from '@/lib/snap/catalog';
 
-export type IdentityMode = 'off' | 'face-swap' | 'flux-pulid';
+export type IdentityMode = 'off' | 'face-swap';
 
-const VALID_MODES: readonly IdentityMode[] = ['off', 'face-swap', 'flux-pulid'];
+const VALID_MODES: readonly IdentityMode[] = ['off', 'face-swap'];
 
-/** env SNAP_IDENTITY_MODE 읽기. 기본 'off'. */
+/** env SNAP_IDENTITY_MODE 읽기. 기본 'face-swap' (PR 결정사항 — default ON). */
 export function getIdentityMode(): IdentityMode {
   const v = process.env.SNAP_IDENTITY_MODE;
   if (typeof v === 'string' && (VALID_MODES as readonly string[]).includes(v)) {
     return v as IdentityMode;
   }
-  return 'off';
+  return 'face-swap';
 }
 
 /**
@@ -95,25 +87,4 @@ export async function applyFaceSwapRestore(input: {
     currentUrl = await getFaceSwapResult(reqId);
   }
   return currentUrl;
-}
-
-/**
- * flux-pulid 생성 — catalog 단계 자체를 대체. solo 모드 한정.
- *
- * @param input.selfieUrl   유지할 얼굴 (사용자 selfie)
- * @param input.scenePrompt 장면 / 의상 / 포즈 텍스트 묘사 (catalog promptHint)
- * @param input.negative    원치 않는 요소
- */
-export async function applyIdentityFluxPulid(input: {
-  selfieUrl: string;
-  scenePrompt: string;
-  negative?: string;
-}): Promise<string> {
-  const reqId = await submitFluxPulid({
-    referenceImageUrl: input.selfieUrl,
-    prompt: input.scenePrompt,
-    negativePrompt: input.negative,
-    imageSize: 'portrait_4_3',
-  });
-  return await getFluxPulidResult(reqId);
 }

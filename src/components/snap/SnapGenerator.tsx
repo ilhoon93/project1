@@ -1678,20 +1678,75 @@ function FaceUploader({
       } ${disabled || face.uploading ? 'opacity-60' : ''} ${wide ? 'col-span-2' : ''}`}
     >
       <div
-        className={`grid w-full place-items-center overflow-hidden rounded bg-[#F5EDE0] ${
+        className={`relative grid w-full place-items-center overflow-hidden rounded bg-[#F5EDE0] ${
           wide ? 'aspect-[4/3] max-w-[280px]' : 'aspect-square max-w-[140px]'
         }`}
       >
         {face.preview ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={face.preview} alt={label} className="block h-full w-full object-contain" />
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={face.preview} alt={label} className="block h-full w-full object-contain" />
+            {/* 업로드 후에도 흐릿한 가이드 — 얼굴 위치 / 크기 점검용 */}
+            <UploadGuideOverlay wide={wide} opacity={0.25} />
+          </>
         ) : (
-          <span className="text-2xl text-[#8B7355]">＋</span>
+          <>
+            <UploadGuideOverlay wide={wide} opacity={0.6} />
+            <span className="absolute text-2xl text-[#8B7355]">＋</span>
+          </>
         )}
       </div>
       <span className="text-xs font-medium text-[#3D2E1F]">
         {face.uploading ? '업로드 중...' : face.preview ? `${label} ✓ 변경` : `${label} 업로드`}
       </span>
     </button>
+  );
+}
+
+/**
+ * 업로드 박스 안에 그리는 얼굴 / 어깨 가이드 오버레이.
+ *
+ * 사용자가 적정 거리·구도로 사진을 찍도록 유도 — 얼굴은 위쪽 가운데 원 안에,
+ * 어깨는 아래 좌우 V 라인 안에 들어오게 안내. 업로드 전엔 진한 라인 (opacity
+ * 0.6), 업로드 후엔 흐린 가이드 (0.25) 로 검토용 표시 유지.
+ *
+ * SVG 정규화 좌표계 (0~100 × 0~100) — wide 박스 / 정사각형 모두 동일 비율로 그려짐.
+ */
+function UploadGuideOverlay({
+  wide = false,
+  opacity = 0.6,
+}: {
+  wide?: boolean;
+  opacity?: number;
+}) {
+  // 얼굴 원 위치: 상단 ~28% 중심, 반지름 ~22%. 어깨 V 라인: 얼굴 아래에서 시작해 박스 좌우 하단까지.
+  // wide 박스(4:3) 일 때는 viewBox 비율을 맞춰 정사각형 가이드를 가운데 정렬.
+  const viewBox = wide ? '0 0 133 100' : '0 0 100 100';
+  const cx = wide ? 66.5 : 50;
+  const faceCy = 32;
+  const faceR = 20;
+  // 어깨: 얼굴 하단에서 시작해 박스 좌우 70% 폭으로 벌어지며 박스 바닥까지.
+  const shoulderTopY = faceCy + faceR + 4; // 얼굴 아래 살짝 띄움
+  const shoulderHalfWidth = wide ? 50 : 38; // 박스에 따른 절반 폭
+  const bottomY = 100;
+  const shoulderPath = wide
+    ? `M ${cx - shoulderHalfWidth} ${bottomY} Q ${cx - 22} ${shoulderTopY + 6} ${cx} ${shoulderTopY} Q ${cx + 22} ${shoulderTopY + 6} ${cx + shoulderHalfWidth} ${bottomY}`
+    : `M ${cx - shoulderHalfWidth} ${bottomY} Q ${cx - 20} ${shoulderTopY + 6} ${cx} ${shoulderTopY} Q ${cx + 20} ${shoulderTopY + 6} ${cx + shoulderHalfWidth} ${bottomY}`;
+
+  return (
+    <svg
+      aria-hidden
+      viewBox={viewBox}
+      preserveAspectRatio="xMidYMid meet"
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      style={{ opacity }}
+    >
+      <g fill="none" stroke="#8B7355" strokeWidth="0.8" strokeDasharray="2 1.6" strokeLinecap="round">
+        {/* 얼굴 가이드 원 */}
+        <circle cx={cx} cy={faceCy} r={faceR} />
+        {/* 어깨 가이드 곡선 */}
+        <path d={shoulderPath} />
+      </g>
+    </svg>
   );
 }

@@ -71,7 +71,7 @@ export function VideoEditor() {
           label="영상 제목"
           value={video.title}
           maxLength={50}
-          placeholder="저희 결혼 이야기"
+          placeholder="함께한 나날"
           onChange={(e) => patch('video', { ...video, title: e.target.value })}
         />
 
