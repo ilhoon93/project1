@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
-import { getImageEditStatus } from '@/lib/fal/client';
+import { GPT_IMAGE_MODEL, getFalQueueStatus } from '@/lib/fal/client';
 import { finalizeSnapJob } from '@/lib/snap/finalize';
 import { markSnapJobFailed } from '@/lib/snap/jobs';
 
@@ -40,7 +40,7 @@ export async function POST() {
   const admin = createAdminClient();
   const { data: pending } = await admin
     .from('snap_jobs')
-    .select('id, fal_request_id, catalog_id')
+    .select('id, fal_request_id, catalog_id, model')
     .eq('user_id', user.id)
     .eq('kind', 'catalog')
     .in('status', ['submitted', 'in_progress']);
@@ -51,10 +51,11 @@ export async function POST() {
 
   const results: PollResult[] = await Promise.all(
     pending.map(async (job): Promise<PollResult> => {
-      // 1. fal 상태 조회.
+      // 1. fal 상태 조회 — model 별 endpoint 분기 (flux-pulid / gpt-image-2 등).
+      const jobModel = (job as { model: string | null }).model ?? GPT_IMAGE_MODEL;
       let status: string;
       try {
-        const s = await getImageEditStatus(job.fal_request_id);
+        const s = await getFalQueueStatus(jobModel, job.fal_request_id);
         status = s.status;
       } catch (e) {
         // fal 일시 오류 — 상태 그대로 두고 다음 poll 에서 재시도.

@@ -40,6 +40,13 @@ export interface SnapCatalogItem {
   image: string;
   /** 모델에 추가로 넘길 scene 컨텍스트 (배경/의상/조명 톤) */
   promptHint: string;
+  /**
+   * SNAP_CATALOG_FACE_BLUR=on 일 때 카탈로그 마스터에서 흐림 처리할 얼굴 영역.
+   * 각 region 은 [x, y, w, h] 형태이며 모두 0~1 정규화 좌표.
+   * together 카탈로그는 두 명 → 2 region, solo 는 1 region 권장.
+   * 정확한 좌표는 마스터 이미지를 보면서 조정해야 함 — 아래 값은 일반적 위치의 추정치.
+   */
+  faceMaskRegions?: readonly (readonly [number, number, number, number])[];
 }
 
 export const SNAP_CATALOG: SnapCatalogItem[] = [
@@ -53,6 +60,11 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     image: '/wedding-snap/catalog/studio-classic.jpg',
     promptHint:
       'Indoor studio with seamless neutral gray backdrop. Two-source softbox lighting from front-left and front-right at 45° down, soft floor pickup creating gentle shadow under the couple, polished floor reflecting the dress hem. Shot on 50–85mm portrait lens, eye-level camera, shallow depth of field. Groom: black peak-lapel tuxedo with white shirt and black bow tie. Bride: ivory A-line wedding dress with off-shoulder neckline and lace bodice, holding a small white bouquet at waist level. Editorial portrait atmosphere, color grade with subtle warm midtones and neutral highlights. Pose: standing close together, slight three-quarter angle, bride leaning gently toward groom, both looking at camera with natural soft smiles.',
+    // together: 신랑(왼쪽), 신부(오른쪽) 얼굴 영역. 정면 풀신/반신 컷 기준 추정치.
+    faceMaskRegions: [
+      [0.30, 0.16, 0.18, 0.22],
+      [0.52, 0.16, 0.18, 0.22],
+    ],
   },
   {
     id: 'meadow-spring',
@@ -63,6 +75,10 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     image: '/wedding-snap/catalog/meadow-spring.jpg',
     promptHint:
       'Outdoor garden with tall cypress and pine trees forming a green backdrop, well-kept lawn underfoot, soft overcast natural lighting (no harsh sun, no blown highlights). Shot on 50–85mm lens, eye-level camera, slight background compression with shallow depth of field. Groom: black formal suit with white shirt and black tie. Bride: ivory satin off-shoulder A-line wedding dress holding a small bouquet of white and green florals. Full-body or three-quarter pose, standing slightly turned toward each other on the lawn, classic Korean studio outdoor wedding aesthetic. Color grade: cool greens with soft warm skin tones, never oversaturated. Gentle breeze hinting at fabric movement.',
+    faceMaskRegions: [
+      [0.28, 0.16, 0.16, 0.18],
+      [0.52, 0.20, 0.16, 0.18],
+    ],
   },
   {
     id: 'hanok-courtyard',
@@ -73,6 +89,10 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     image: '/wedding-snap/catalog/hanok-courtyard.jpg',
     promptHint:
       'Traditional Korean hanok courtyard with falling cherry blossom petals in the air and on the stone path, dappled sunlight filtering through the trees, wooden architecture and gray-tile roofline as backdrop. Shot on 50–85mm lens, slight low-angle to frame the eaves. Groom: black peak-lapel tuxedo with white shirt and black bow tie. Bride: ivory A-line dress with subtle beading, holding a small white-and-pink bouquet. Warm cultural lighting with golden highlights on hair and shoulders, color grade biased toward warm peach and soft pink. Pose: standing close together on the stone path with petals around them, soft natural smiles. No harsh shadows.',
+    faceMaskRegions: [
+      [0.30, 0.18, 0.16, 0.20],
+      [0.52, 0.18, 0.16, 0.20],
+    ],
   },
   {
     id: 'city-goldenhour',
@@ -83,6 +103,10 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     image: '/wedding-snap/catalog/city-goldenhour.jpg',
     promptHint:
       'Modern city street at golden hour (warm orange sun low in the sky, long soft rim light on hair and shoulders — must clearly be golden hour, NOT noon, NOT blue hour). Glass skyscrapers in background reflecting the sunset, wet pavement adding subtle catch lights. Shot on 35–50mm lens for a wider environmental feel, shallow depth of field on subjects. Groom: sharp black tuxedo. Bride: sleek ivory satin A-line dress. Cinematic metropolitan atmosphere, color grade leans warm amber + teal shadow contrast. Pose: walking gently side by side or standing close on the pavement, natural casual movement.',
+    faceMaskRegions: [
+      [0.30, 0.20, 0.14, 0.16],
+      [0.50, 0.22, 0.14, 0.16],
+    ],
   },
   {
     id: 'beach-sunset',
@@ -93,6 +117,10 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     image: '/wedding-snap/catalog/beach-sunset.jpg',
     promptHint:
       'Quiet beach at golden sunset, soft waves rolling on the shore, light sea breeze hinting at fabric movement, warm horizon glow filling the background. Shot on 50–85mm lens, shallow depth of field, slight backlight rim light from the setting sun. Groom: black beach-formal tuxedo (slightly relaxed fit). Bride: ivory chiffon A-line dress with light lace, hem grazing the wet sand. Warm tropical lighting, color grade with warm amber highlights and soft teal shadows. Pose: standing close on the wet sand with bare or simple shoes, looking softly at each other or toward the horizon. No harsh sun glare on faces.',
+    faceMaskRegions: [
+      [0.30, 0.22, 0.16, 0.18],
+      [0.52, 0.22, 0.16, 0.18],
+    ],
   },
   // ── Solo (단독) 컷 ────────────────────────────────────────
   // 이미지 파일은 사용자가 별도로 마스터를 만들어 같은 id 로 저장해야 함.
@@ -106,6 +134,8 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     image: '/wedding-snap/catalog/groom-portrait-studio.jpg',
     promptHint:
       'Solo groom portrait — only the groom is in the frame, no bride, no other people. Indoor studio with seamless neutral gray backdrop, two-source softbox lighting from front-left and front-right at 45° down. Shot on 85mm portrait lens, chest-up to waist-up framing, eye-level camera, shallow depth of field. Groom: black peak-lapel tuxedo with white shirt and black bow tie, perfectly tailored, lapels crisp. Confident natural posture, slight head tilt, soft genuine smile or composed neutral expression. Editorial portrait atmosphere, neutral color grade with subtle warm midtones.',
+    // solo 클로즈업 / 반신: 얼굴 정중앙 상단 — drift 가장 뚜렷한 케이스, blur 효과 큼.
+    faceMaskRegions: [[0.30, 0.10, 0.40, 0.45]],
   },
   {
     id: 'bride-bouquet',
@@ -116,6 +146,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     image: '/wedding-snap/catalog/bride-bouquet.jpg',
     promptHint:
       'Solo bride portrait — only the bride is in the frame, no groom, no other people. Indoor studio with seamless soft cream / off-white backdrop, soft directional light from front-left like a large window. Shot on 85mm portrait lens, waist-up framing, eye-level camera, shallow depth of field. Bride: ivory A-line wedding dress with off-shoulder neckline and lace bodice, holding a lush white-and-blush bouquet near her chest. Soft natural smile, eyes slightly toward the camera, gentle hand grip on the bouquet. Color grade: clean cream highlights, soft warm midtones.',
+    faceMaskRegions: [[0.32, 0.08, 0.36, 0.30]],
   },
   {
     id: 'groom-walk-away',
@@ -126,6 +157,8 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     image: '/wedding-snap/catalog/groom-walk-away.jpg',
     promptHint:
       'Solo groom shot — only the groom in frame, no bride. Long perspective hallway or colonnade with arched windows, soft natural light from the side. Shot on 35–50mm lens, slight low-angle, deep depth of field showing the corridor lines converging. Groom walking away from camera, glancing back over his shoulder with a soft natural smile, jacket gently catching the light. Black peak-lapel tuxedo, polished oxford shoes. Color grade: muted warm earth tones with soft blue shadows, subtle film-like texture. Cinematic narrative atmosphere.',
+    // walking-away 컷은 얼굴이 작고 옆모습이라 drift 가 덜 보이지만 보존성 측면에서 light region 만.
+    faceMaskRegions: [[0.40, 0.18, 0.18, 0.16]],
   },
   {
     id: 'bride-veil-flow',
@@ -136,6 +169,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     image: '/wedding-snap/catalog/bride-veil-flow.jpg',
     promptHint:
       'Solo bride shot — only the bride in frame, no groom, no other people. Soft outdoor setting with a neutral blurred background (light foliage or pale wall), warm late-afternoon natural light from behind producing a gentle rim along the veil. Shot on 85mm portrait lens, three-quarter (knee-up) framing, slight three-quarter (~20°) angle. Bride: ivory A-line wedding dress with a long tulle veil floating gently in a light breeze, holding a small white bouquet, eyes softly looking aside or down. Color grade: warm pastel with soft pink and cream highlights, dreamy but not over-glowed.',
+    faceMaskRegions: [[0.35, 0.12, 0.30, 0.28]],
   },
   {
     id: 'bride-window',
@@ -146,6 +180,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     image: '/wedding-snap/catalog/bride-window.jpg',
     promptHint:
       'Solo bride shot — only the bride in frame, no groom. Indoor room beside a large window with soft natural daylight pouring in from camera-left, sheer curtain diffusing the light. Shot on 50–85mm lens, waist-up framing, three-quarter angle so the window light wraps gently around the face. Bride: ivory A-line wedding dress with off-shoulder neckline, hands resting at her side or lightly on the windowsill, looking softly out the window or toward camera. Color grade: airy clean whites with cool window light tone, soft warm skin midtones. Calm contemplative mood.',
+    faceMaskRegions: [[0.35, 0.12, 0.30, 0.30]],
   },
 ];
 

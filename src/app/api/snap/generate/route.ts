@@ -13,6 +13,12 @@ import {
 import { logSnapJobSubmit } from '@/lib/snap/jobs';
 import { validateInputImage } from '@/lib/snap/input-validation';
 import { preprocessAndUpload } from '@/lib/snap/input-preprocess';
+import {
+  getCatalogFaceBlurMode,
+  getBlurredCatalogUrl,
+} from '@/lib/snap/catalog-face-blur';
+import { getIdentityMode } from '@/lib/snap/identity-restore';
+import { submitFluxPulid } from '@/lib/fal/client';
 
 /**
  * POST /api/snap/generate
@@ -184,8 +190,16 @@ export async function POST(req: Request) {
   }
 
   // ── 카탈로그 마스터 URL ────────────────────────────────
+  // Phase C 토글 (SNAP_CATALOG_FACE_BLUR=on) 면 카탈로그 마스터의 얼굴 영역을
+  // 사전 blur 한 버전 사용 — 모델이 catalog 의 다른 얼굴에 끌려가지 X.
+  // off 또는 catalog 에 faceMaskRegions 미정의면 원본 그대로 통과.
   const origin = req.headers.get('origin') ?? new URL(req.url).origin;
-  const catalogUrl = `${origin}${catalog.image}`;
+  const originalCatalogUrl = `${origin}${catalog.image}`;
+  const faceBlurMode = getCatalogFaceBlurMode();
+  const catalogUrl =
+    faceBlurMode === 'on'
+      ? await getBlurredCatalogUrl(input.catalogId, originalCatalogUrl)
+      : originalCatalogUrl;
 
   const groomBody =
     anchor?.groom_height_cm && anchor.groom_weight_kg
@@ -292,14 +306,44 @@ export async function POST(req: Request) {
   }
 
   // ── fal 큐 제출 ────────────────────────────────────────
+  // Phase B 토글 (SNAP_IDENTITY_MODE=flux-pulid) + solo + selfie 보유 시:
+  //   gpt-image-2 multi-image 경로 대신 flux-pulid 단일 호출 사용. text prompt 만으로
+  //   장면 생성 + face identity 보존. 카탈로그 마스터 이미지는 사용 X (text 만 활용).
+  //   together 는 flux-pulid 1-ID 모델이라 미지원 → gpt-image-2 + face-swap (finalize) 로 폴백.
+  const identityMode = getIdentityMode();
+  const useFluxPulidGeneration =
+    identityMode === 'flux-pulid' &&
+    input.mode === 'anchor' &&
+    catalog.personality !== 'together' &&
+    !!(catalog.personality === 'groom-solo'
+      ? anchor?.groom_selfie_url
+      : anchor?.bride_selfie_url);
+
   let requestId: string;
+  let modelUsed = GPT_IMAGE_MODEL;
   try {
-    requestId = await submitMultiImageEdit({
-      imageUrls,
-      prompt,
-      quality: 'medium',
-      imageSize: 'portrait_4_3',
-    });
+    if (useFluxPulidGeneration) {
+      const selfieUrl =
+        catalog.personality === 'groom-solo'
+          ? anchor!.groom_selfie_url!
+          : anchor!.bride_selfie_url!;
+      // flux-pulid 는 catalog 마스터 이미지 안 받으므로 prompt 에 모든 묘사 집약.
+      // 기존 buildSoloCatalogPrompt 가 만든 prompt 가 그대로 충분 — Image N 라벨은
+      // PuLID 가 무시하지만 scene 묘사는 활용됨.
+      requestId = await submitFluxPulid({
+        referenceImageUrl: selfieUrl,
+        prompt,
+        imageSize: 'portrait_4_3',
+      });
+      modelUsed = 'fal-ai/flux-pulid';
+    } else {
+      requestId = await submitMultiImageEdit({
+        imageUrls,
+        prompt,
+        quality: 'medium',
+        imageSize: 'portrait_4_3',
+      });
+    }
   } catch (e) {
     console.error('[snap/generate] fal.queue.submit error', e);
     await admin.rpc('refund_snap_credit', {
@@ -319,7 +363,7 @@ export async function POST(req: Request) {
     userId: user.id,
     kind: 'catalog',
     falRequestId: requestId,
-    model: GPT_IMAGE_MODEL,
+    model: modelUsed,
     quality: 'medium',
     catalogId: input.catalogId,
     catalogPath: pathLabel,
