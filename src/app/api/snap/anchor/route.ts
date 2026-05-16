@@ -67,19 +67,20 @@ export async function GET() {
   }
 
   // 현재 anchor + 라이브러리 + 결제 이력 병렬 조회.
+  // selfie URL 도 함께 가져와 라이브러리에서 picker 선택 시 catalog 단계에 같이 넘김.
   const [{ data: anchor }, { data: libraryRaw }, { data: purchasedRaw }] =
     await Promise.all([
       admin
         .from('snap_anchors')
         .select(
-          'groom_anchor_url, bride_anchor_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, last_batch_at, updated_at, free_full_batches_used',
+          'groom_anchor_url, bride_anchor_url, groom_selfie_url, bride_selfie_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, last_batch_at, updated_at, free_full_batches_used',
         )
         .eq('user_id', user.id)
         .maybeSingle(),
       admin
         .from('snap_anchor_history')
         .select(
-          'id, groom_anchor_url, bride_anchor_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, anchor_created_at, discarded_at',
+          'id, groom_anchor_url, bride_anchor_url, groom_selfie_url, bride_selfie_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, anchor_created_at, discarded_at',
         )
         .eq('user_id', user.id)
         .order('discarded_at', { ascending: false })
@@ -251,18 +252,21 @@ export async function DELETE() {
   const { data: current } = await admin
     .from('snap_anchors')
     .select(
-      'groom_anchor_url, bride_anchor_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, created_at',
+      'groom_anchor_url, bride_anchor_url, groom_selfie_url, bride_selfie_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, created_at',
     )
     .eq('user_id', user.id)
     .maybeSingle();
 
   // 2. 행이 있고 적어도 한쪽 URL 이 set 이면 history 에 보존. 둘 다 NULL 이면
   //    아직 저장 안 된 상태(batch 만 만든 row) 라 history 가치 없음.
+  //    selfie URL 도 함께 보존 — 라이브러리에서 picker 선택 시 face identity reference 활용.
   if (current && (current.groom_anchor_url || current.bride_anchor_url)) {
     const { error: histErr } = await admin.from('snap_anchor_history').insert({
       user_id: user.id,
       groom_anchor_url: current.groom_anchor_url,
       bride_anchor_url: current.bride_anchor_url,
+      groom_selfie_url: current.groom_selfie_url,
+      bride_selfie_url: current.bride_selfie_url,
       source_mode: current.source_mode,
       groom_height_cm: current.groom_height_cm,
       groom_weight_kg: current.groom_weight_kg,

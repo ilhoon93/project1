@@ -180,7 +180,7 @@ export async function POST(req: Request) {
     admin
       .from('snap_anchors')
       .select(
-        'last_batch_at, free_full_batches_used, groom_anchor_url, bride_anchor_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, created_at',
+        'last_batch_at, free_full_batches_used, groom_anchor_url, bride_anchor_url, groom_selfie_url, bride_selfie_url, source_mode, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, created_at',
       )
       .eq('user_id', user.id)
       .maybeSingle(),
@@ -202,6 +202,10 @@ export async function POST(req: Request) {
       user_id: user.id,
       groom_anchor_url: existing.groom_anchor_url,
       bride_anchor_url: existing.bride_anchor_url,
+      // 마이그 017 — selfie 진본 reference 도 함께 보존해 라이브러리에서 선택해도
+      // 카탈로그 단계에 face identity reference 가 살아 있게.
+      groom_selfie_url: existing.groom_selfie_url ?? null,
+      bride_selfie_url: existing.bride_selfie_url ?? null,
       source_mode: existing.source_mode,
       groom_height_cm: existing.groom_height_cm,
       groom_weight_kg: existing.groom_weight_kg,
@@ -341,6 +345,15 @@ export async function POST(req: Request) {
     bride_weight_kg: uniqueSlots.includes('bride')
       ? input.brideBody?.weightKg ?? existing?.bride_weight_kg ?? null
       : existing?.bride_weight_kg ?? null,
+    // 마이그 017 — 대표 selfie (preprocess 후 첫 번째 = 정면 frontal) URL 저장.
+    // 카탈로그 생성 시 anchor 와 함께 face identity reference 로 사용. 재생성
+    // 대상 slot 만 업데이트, 다른 slot 은 기존 값 보존.
+    groom_selfie_url: uniqueSlots.includes('groom')
+      ? preprocessedGroomUrls?.[0] ?? existing?.groom_selfie_url ?? null
+      : existing?.groom_selfie_url ?? null,
+    bride_selfie_url: uniqueSlots.includes('bride')
+      ? preprocessedBrideUrls?.[0] ?? existing?.bride_selfie_url ?? null
+      : existing?.bride_selfie_url ?? null,
     last_batch_at: new Date().toISOString(),
     free_full_batches_used: nextFreeUsed,
   };
