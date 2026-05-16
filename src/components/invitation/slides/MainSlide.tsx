@@ -442,109 +442,70 @@ function IllustrationSlide({
   const titleFontFamily = autoTitleFontFor(design.title.text);
 
   return (
-    // 레이아웃 구조 (위→아래):
-    //   ┌───────────────────────────────┐
-    //   │ flex-1 (justify-end)          │ ← 제목+인사말이 이 영역의 BOTTOM 에 붙음
-    //   │   (overflow-hidden)           │   = 이미지 상단 바로 위
-    //   │   h1 title                    │
-    //   │   p  greeting                 │
-    //   ├───────────────────────────────┤
-    //   │ shrink-0 image                │ ← 고정 높이, 위치 흔들리지 않음
-    //   ├───────────────────────────────┤
-    //   │ shrink-0 divider/names/date   │ ← 이미지 바로 아래 가깝게 붙음
-    //   │ flex-1 (spacer)               │
-    //   └───────────────────────────────┘
-    //   absolute 축하하기 버튼 (위치 고정)
-    //
-    // 인사말이 길어져도 이미지 자리는 그대로 유지된다 — overflow-hidden 으로
-    // 상단으로 자연스럽게 잘리고, 이미지·이름·날짜·버튼은 흔들리지 않는다.
-    <section
-      className="relative flex h-full min-h-full w-full flex-col items-center overflow-hidden text-center"
-    >
-      {/* 1) 상단 영역 — 제목 + 인사말. justify-end + overflow-hidden 로
-          이미지 상단을 기준으로 위로 자라는 형태.
-          paddingBottom 으로 인사말과 이미지 상단 사이 간격 확보. */}
-      <div
-        className="flex w-full flex-col items-center justify-end overflow-hidden px-6"
-        style={{ flex: '1 1 0', minHeight: 0, paddingTop: '4cqh', paddingBottom: '2.5cqh' }}
-      >
+    // 통일 레이아웃 — 일러스트 카드 중앙, 텍스트(제목/인사말/이름/날짜)는 슬라이드
+    // 전체에서 PositionedBox 로 자유 떠다님. 사용자가 0-100% 슬라이더로 위치 조정.
+    <section className="relative h-full min-h-full w-full overflow-hidden text-center">
+      {/* 일러스트 카드 — 슬라이드 정중앙에 고정 (z-0) */}
+      <div className="absolute inset-0 z-0 flex items-center justify-center px-6">
+        <div className="w-full max-w-sm">
+          <IllustrationImage src={illustSrc} variant={design.variant} />
+        </div>
+      </div>
+
+      {/* 제목 텍스트 — PositionedBox 로 절대 위치 */}
+      <PositionedBox position={design.title.position}>
         <h1
           className="font-bold leading-tight"
           style={{
             fontFamily: titleFontFamily,
             color: titleColor,
             fontSize: `${design.title.fontSize}px`,
-            transform: design.title.offsetY ? `translateY(${design.title.offsetY}cqh)` : undefined,
           }}
         >
           {design.title.text}
         </h1>
+      </PositionedBox>
 
-        {design.messageBox.enabled && main.greeting && (
+      {/* 인사말 */}
+      {design.messageBox.enabled && main.greeting && (
+        <PositionedBox position={design.messageBox.position}>
           <p
             className="max-w-md whitespace-pre-line leading-relaxed opacity-80"
-            style={{
-              fontFamily: 'inherit',
-              fontSize: `${design.messageBox.fontSize}px`,
-              marginTop: '1.4cqh',
-              transform: design.messageBox.offsetY
-                ? `translateY(${design.messageBox.offsetY}cqh)`
-                : undefined,
-            }}
+            style={{ fontSize: `${design.messageBox.fontSize}px` }}
           >
             {main.greeting}
           </p>
-        )}
-      </div>
+        </PositionedBox>
+      )}
 
-      {/* 2) 일러스트 이미지 — 고정 높이, 흔들리지 않음. */}
-      <div
-        className="flex w-full max-w-sm shrink-0 items-center justify-center px-6"
-      >
-        <IllustrationImage src={illustSrc} variant={design.variant} />
-      </div>
-
-      {/* 3) 이미지 하단 디바이더 — 가로폭 절반 정도, 이미지와 살짝 띄움 */}
-      <IllustDivider />
-
-      {/* 4) 이름 — 디바이더 아래 충분한 간격 + offsetY 로 미세 조정 */}
+      {/* 이름 */}
       {design.nameBox.enabled && (
-        <p
-          className="shrink-0 font-light tracking-wide"
-          style={{
-            fontFamily: 'inherit',
-            fontSize: `${design.nameBox.fontSize}px`,
-            marginTop: '2.2cqh',
-            transform: design.nameBox.offsetY
-              ? `translateY(${design.nameBox.offsetY}cqh)`
-              : undefined,
-          }}
-        >
-          신랑 {groomName} · 신부 {brideName}
-        </p>
+        <PositionedBox position={design.nameBox.position}>
+          <p
+            className="font-light tracking-wide"
+            style={{ fontSize: `${design.nameBox.fontSize}px` }}
+          >
+            신랑 {groomName} · 신부 {brideName}
+          </p>
+        </PositionedBox>
       )}
 
-      {/* 5) 날짜 — 이름 바로 아래 + offsetY 로 미세 조정 */}
+      {/* 날짜 */}
       {design.dateBox.enabled && weddingDate && (
-        <p
-          className="shrink-0 tracking-[0.2em]"
-          style={{
-            fontFamily: PLAYFAIR,
-            fontSize: `${design.dateBox.fontSize}px`,
-            marginTop: '0.8cqh',
-            transform: design.dateBox.offsetY
-              ? `translateY(${design.dateBox.offsetY}cqh)`
-              : undefined,
-          }}
-        >
-          {formatDateForIllust(weddingDate)}
-        </p>
+        <PositionedBox position={design.dateBox.position}>
+          <p
+            className="tracking-[0.2em]"
+            style={{
+              fontFamily: PLAYFAIR,
+              fontSize: `${design.dateBox.fontSize}px`,
+            }}
+          >
+            {formatDateForIllust(weddingDate)}
+          </p>
+        </PositionedBox>
       )}
 
-      {/* 6) 하단 spacer — 인사말 길이와 무관하게 축하하기 자리를 비워둠 */}
-      <div style={{ flex: '1 1 0', minHeight: '6cqh' }} />
-
-      {/* 7) 하단 축하하기 / 누적 카운트 — bottom-10 으로 진행 바 바로 위에 배치 */}
+      {/* 축하하기 footer */}
       <div className="absolute bottom-10 left-1/2 z-20 -translate-x-1/2">
         <CelebrationFooter
           mode={mode}
@@ -592,60 +553,14 @@ function TextLayoutSlide({
   // "신랑/신부" 접두어는 표시하지 않는다 (사용자 요청).
   const firstName = design.nameBox.brideFirst ? brideName : groomName;
   const secondName = design.nameBox.brideFirst ? groomName : brideName;
-  const nameTransform = design.nameBox.offsetY
-    ? `translateY(${design.nameBox.offsetY}cqh)`
-    : undefined;
 
   return (
-    <section
-      className="relative flex h-full min-h-full w-full flex-col items-center overflow-hidden text-center"
-    >
-      {/* 1) 상단 영역 — 영문 제목 + 인사말. 일러스트형과 같은
-          flex:1 + justify-end + overflow-hidden 패턴이라 인사말이 길어져도
-          데코·이름·날짜 자리는 흔들리지 않는다.
-          messageBox.offsetY 는 ±50cqh 까지 허용 — 데코 이미지 위로 내려가서
-          오버레이될 수 있도록 한다. (z-10 으로 데코 위에 배치) */}
-      <div
-        className="relative z-10 flex w-full flex-col items-center justify-end overflow-visible px-6"
-        style={{ flex: '1 1 0', minHeight: 0, paddingTop: '4cqh', paddingBottom: '2.5cqh' }}
-      >
-        <h1
-          className="font-bold leading-tight"
-          style={{
-            fontFamily: titleFontFamily,
-            color: titleColor,
-            fontSize: `${design.title.fontSize}px`,
-            transform: design.title.offsetY ? `translateY(${design.title.offsetY}cqh)` : undefined,
-          }}
-        >
-          {design.title.text}
-        </h1>
-        {design.messageBox.enabled && main.greeting && (
-          <p
-            className="max-w-md whitespace-pre-line leading-relaxed opacity-80"
-            style={{
-              fontFamily: 'inherit',
-              fontSize: `${design.messageBox.fontSize}px`,
-              marginTop: '1.4cqh',
-              transform: design.messageBox.offsetY
-                ? `translateY(${design.messageBox.offsetY}cqh)`
-                : undefined,
-            }}
-          >
-            {main.greeting}
-          </p>
-        )}
-      </div>
-
-      {/* 2) 데코 — 꽃/편지 등 텍스트형 일러스트. 슬라이드 폭을 가득 채워(좌우
-          여백 0) 풀너비로 깔린다. 다크 테마에선 --mw-illust-filter 가 자동
-          적용되어 밝은 배경처럼 보이도록 invert/glow 처리.
-          variant === 'none' 이면 데코를 렌더하지 않고, 데코가 차지하던 자리만큼
-          빈 spacer 를 둬서 이름·날짜의 기본 위치가 흐트러지지 않게 한다. */}
-      {design.variant === 'none' ? (
-        <div aria-hidden className="w-full shrink-0" style={{ height: '6cqh' }} />
-      ) : (
-        <div className="flex w-full shrink-0 items-center justify-center">
+    // 통일 레이아웃 — 데코 일러스트(꽃/편지/없음) 중앙, 텍스트는 PositionedBox 로
+    // 자유 떠다님. variant === 'none' 이면 데코 안 그림.
+    <section className="relative h-full min-h-full w-full overflow-hidden text-center">
+      {/* 데코 일러스트 — 슬라이드 정중앙. variant 'none' 면 skip */}
+      {design.variant !== 'none' && (
+        <div className="absolute inset-0 z-0 flex items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={decoSrc}
@@ -658,61 +573,74 @@ function TextLayoutSlide({
         </div>
       )}
 
-      {/* 3) 이름 — 풀너비 데코 아래 자리. offsetY (±50cqh) 로 데코 위쪽까지
-          끌어올릴 수 있어 사용자가 자유롭게 배치 가능. z-10 으로 데코 위에.
-          텍스트형은 이름을 주인공처럼 굵게(font-bold) 보여주고, stack(위·아래)
-          레이아웃일 때는 두 이름 사이에 작은 ✦ 점을 끼워 짝을 시각화한다. */}
+      {/* 제목 */}
+      <PositionedBox position={design.title.position}>
+        <h1
+          className="font-bold leading-tight"
+          style={{
+            fontFamily: titleFontFamily,
+            color: titleColor,
+            fontSize: `${design.title.fontSize}px`,
+          }}
+        >
+          {design.title.text}
+        </h1>
+      </PositionedBox>
+
+      {/* 인사말 */}
+      {design.messageBox.enabled && main.greeting && (
+        <PositionedBox position={design.messageBox.position}>
+          <p
+            className="max-w-md whitespace-pre-line leading-relaxed opacity-80"
+            style={{ fontSize: `${design.messageBox.fontSize}px` }}
+          >
+            {main.greeting}
+          </p>
+        </PositionedBox>
+      )}
+
+      {/* 이름 — stack / inline 레이아웃 */}
       {design.nameBox.enabled && (
-        <div
-          className="relative z-10 flex shrink-0 flex-col items-center font-bold tracking-wide"
-          style={{
-            fontFamily: 'inherit',
-            fontSize: `${design.nameBox.fontSize}px`,
-            marginTop: '2.2cqh',
-            transform: nameTransform,
-          }}
-        >
-          {design.nameBox.layout === 'stack' ? (
-            <>
-              <span className="leading-tight">{firstName}</span>
-              {/* 위·아래 두 이름을 구분하는 작은 점 — 이름 폰트 크기에 비례 */}
-              <span
-                aria-hidden
-                className="font-normal leading-none opacity-50"
-                style={{ fontSize: '0.55em', margin: '0.1em 0' }}
-              >
-                ✦
+        <PositionedBox position={design.nameBox.position}>
+          <div
+            className="flex flex-col items-center font-bold tracking-wide"
+            style={{ fontSize: `${design.nameBox.fontSize}px` }}
+          >
+            {design.nameBox.layout === 'stack' ? (
+              <>
+                <span className="leading-tight">{firstName}</span>
+                <span
+                  aria-hidden
+                  className="font-normal leading-none opacity-50"
+                  style={{ fontSize: '0.55em', margin: '0.1em 0' }}
+                >
+                  ✦
+                </span>
+                <span className="leading-tight">{secondName}</span>
+              </>
+            ) : (
+              <span>
+                {firstName} · {secondName}
               </span>
-              <span className="leading-tight">{secondName}</span>
-            </>
-          ) : (
-            <span>
-              {firstName} · {secondName}
-            </span>
-          )}
-        </div>
+            )}
+          </div>
+        </PositionedBox>
       )}
 
-      {/* 4) 날짜 — 이름 바로 아래. 일러스트형과 같은 Playfair 폰트로 통일.
-          offsetY (±50cqh) 로 데코 위쪽까지 자유롭게 이동 가능. z-10. */}
+      {/* 날짜 */}
       {design.dateBox.enabled && weddingDate && (
-        <p
-          className="relative z-10 shrink-0 tracking-[0.2em]"
-          style={{
-            fontFamily: PLAYFAIR,
-            fontSize: `${design.dateBox.fontSize}px`,
-            marginTop: '0.8cqh',
-            transform: design.dateBox.offsetY
-              ? `translateY(${design.dateBox.offsetY}cqh)`
-              : undefined,
-          }}
-        >
-          {formatDateForIllust(weddingDate)}
-        </p>
+        <PositionedBox position={design.dateBox.position}>
+          <p
+            className="tracking-[0.2em]"
+            style={{
+              fontFamily: PLAYFAIR,
+              fontSize: `${design.dateBox.fontSize}px`,
+            }}
+          >
+            {formatDateForIllust(weddingDate)}
+          </p>
+        </PositionedBox>
       )}
-
-      {/* 5) 하단 spacer — 인사말 길이와 무관하게 축하하기 자리를 비워둠 */}
-      <div style={{ flex: '1 1 0', minHeight: '6cqh' }} />
 
       <div className="absolute bottom-10 left-1/2 z-20 -translate-x-1/2">
         <CelebrationFooter
@@ -727,24 +655,6 @@ function TextLayoutSlide({
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// 일러스트 하단 디바이더 — 가는 라인 + 가운데 작은 다이아 글리프
-// ─────────────────────────────────────────────────────────────
-
-function IllustDivider() {
-  // 가로폭은 화면의 절반 이하 — 이미지·이름과 자연스럽게 어울리도록 컨테이너 width 의 약 40%.
-  return (
-    <div
-      aria-hidden
-      className="flex shrink-0 items-center justify-center gap-2 opacity-60"
-      style={{ marginTop: '1.8cqh', width: 'min(40%, 9rem)' }}
-    >
-      <span className="h-px flex-1 bg-current" style={{ opacity: 0.55 }} />
-      <span className="text-[0.85em] leading-none">✦</span>
-      <span className="h-px flex-1 bg-current" style={{ opacity: 0.55 }} />
-    </div>
-  );
-}
 
 /**
  * 일러스트형 메인의 PNG 라인아트.
@@ -1000,91 +910,71 @@ function FrameSlide({
   }, [isScreen, main.heroImage]);
 
   return (
-    // 슬라이드 배경 = 테마 배경색(var(--mw-bg)). 스크린 변형의 위/아래 letterbox 도
-    // 이 배경이 그대로 노출돼 자연스럽게 이어진다.
-    <section
-      className="relative flex h-full min-h-full w-full flex-col items-center overflow-hidden text-center"
-    >
-      {/* 1) 상단 영역 — 제목 + 인사말. 이미지 위쪽에서 자라고 길어지면 위로 잘림. */}
-      <div
-        className="flex w-full flex-col items-center justify-end overflow-hidden px-6"
-        style={{ flex: '1 1 0', minHeight: 0, paddingTop: '4cqh', paddingBottom: '2cqh' }}
-      >
-        {design.title.enabled && design.title.text && (
+    // 통일 레이아웃 — 액자 카드 중앙 (variant 별 셰이프 유지), 텍스트는 슬라이드
+    // 전체에서 PositionedBox 로 떠다님. 텍스트가 액자 위에 오버레이될 수도 있음.
+    <section className="relative h-full min-h-full w-full overflow-hidden text-center">
+      {/* 액자 이미지 — 슬라이드 정중앙에 카드로 */}
+      <div className="absolute inset-0 z-0 flex items-center justify-center">
+        <FrameImage
+          variant={variant}
+          src={main.heroImage ?? null}
+          imagePosition={imagePos}
+          imageAspect={imageAspect}
+        />
+      </div>
+
+      {/* 제목 */}
+      {design.title.enabled && design.title.text && (
+        <PositionedBox position={design.title.position}>
           <h1
             className="font-bold leading-tight"
             style={{
               fontFamily: titleFont,
               color: titleColor,
               fontSize: `${design.title.fontSize}px`,
-              transform: design.title.offsetY ? `translateY(${design.title.offsetY}cqh)` : undefined,
             }}
           >
             {design.title.text}
           </h1>
-        )}
+        </PositionedBox>
+      )}
 
-        {design.messageBox.enabled && main.greeting && (
+      {/* 인사말 */}
+      {design.messageBox.enabled && main.greeting && (
+        <PositionedBox position={design.messageBox.position}>
           <p
             className="max-w-md whitespace-pre-line leading-relaxed opacity-80"
-            style={{
-              fontSize: `${design.messageBox.fontSize}px`,
-              marginTop: '1.4cqh',
-              transform: design.messageBox.offsetY
-                ? `translateY(${design.messageBox.offsetY}cqh)`
-                : undefined,
-            }}
+            style={{ fontSize: `${design.messageBox.fontSize}px` }}
           >
             {main.greeting}
           </p>
-        )}
-      </div>
+        </PositionedBox>
+      )}
 
-      {/* 2) 액자 이미지 — variant 별로 모양만 달라짐. 잘리는 변형은 imagePosition 으로 보일 영역 선택.
-          screen 변형은 imageAspect 에 따라 가로:세로 vs 정사각형으로 분기. */}
-      <FrameImage
-        variant={variant}
-        src={main.heroImage ?? null}
-        imagePosition={imagePos}
-        imageAspect={imageAspect}
-      />
-
-      {/* 3) 이름 — 이미지 아래 살짝 띄움 */}
+      {/* 이름 */}
       {design.nameBox.enabled && (
-        <p
-          className="shrink-0 font-light tracking-wide"
-          style={{
-            fontSize: `${design.nameBox.fontSize}px`,
-            marginTop: '2.2cqh',
-            transform: design.nameBox.offsetY
-              ? `translateY(${design.nameBox.offsetY}cqh)`
-              : undefined,
-          }}
-        >
-          {groomName} <span className="opacity-60">&amp;</span> {brideName}
-        </p>
+        <PositionedBox position={design.nameBox.position}>
+          <p
+            className="font-light tracking-wide"
+            style={{ fontSize: `${design.nameBox.fontSize}px` }}
+          >
+            {groomName} <span className="opacity-60">&amp;</span> {brideName}
+          </p>
+        </PositionedBox>
       )}
 
-      {/* 4) 날짜 — 이름 바로 아래 */}
+      {/* 날짜 */}
       {design.dateBox.enabled && weddingDate && (
-        <p
-          className="shrink-0 tracking-[0.2em] opacity-90"
-          style={{
-            fontSize: `${design.dateBox.fontSize}px`,
-            marginTop: '0.8cqh',
-            transform: design.dateBox.offsetY
-              ? `translateY(${design.dateBox.offsetY}cqh)`
-              : undefined,
-          }}
-        >
-          {formatDate(weddingDate)}
-        </p>
+        <PositionedBox position={design.dateBox.position}>
+          <p
+            className="tracking-[0.2em] opacity-90"
+            style={{ fontSize: `${design.dateBox.fontSize}px` }}
+          >
+            {formatDate(weddingDate)}
+          </p>
+        </PositionedBox>
       )}
 
-      {/* 5) 하단 spacer */}
-      <div style={{ flex: '1 1 0', minHeight: '5cqh' }} />
-
-      {/* 6) 축하하기 / 누적 카운트 — bottom-10 으로 진행 바 바로 위에 배치 */}
       <div className="absolute bottom-10 left-1/2 z-20 -translate-x-1/2">
         <CelebrationFooter
           mode={mode}
@@ -1202,15 +1092,16 @@ function FrameImage({
 
   if (variant === 'heart') {
     // 하트 모양 클립 + 외곽 그림자.
-    // 기본 사이즈 고정 (이전 98cqw/32rem 은 화면 폭에 따라 과하게 커지는 문제) —
-    // arch / classic 과 비슷한 약 78cqw / 22rem 으로 통일. 사진 길이나 화면 비율과
-    // 무관하게 항상 같은 1:1 정사각형 안에 하트가 자리잡는다.
+    // aspectRatio 대신 width / height 를 동일 값으로 명시 — flex 컨텍스트나
+    // 자식(이미지) 의 intrinsic size 가 컨테이너 높이를 끌어올리는 케이스 차단.
+    // 사진이 세로로 긴 경우에도 항상 같은 정사각형 안에 하트가 자리잡는다.
+    const heartSize = 'min(78cqw, 22rem)';
     return (
       <HeartClip
         className="shrink-0"
         style={{
-          width: 'min(78cqw, 22rem)',
-          aspectRatio: '1 / 1',
+          width: heartSize,
+          height: heartSize,
           filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.18))',
         }}
       >

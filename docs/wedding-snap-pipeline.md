@@ -52,39 +52,48 @@
         사용자 마이페이지에 결과 노출
 ```
 
-### 후처리 4단 파이프라인 (카탈로그 결과 한정)
+### 후처리 파이프라인 (카탈로그 결과 한정)
 
-`src/lib/snap/postprocess.ts` 의 `applyUpscalePostprocess`. 각 단계가 env flag
-로 독립 ON/OFF, 실패 시 직전 결과로 graceful fallback.
+각 단계가 env flag 로 독립 ON/OFF, 실패 시 직전 결과로 graceful fallback.
 
 ```
-fal 결과 URL
+fal 결과 URL (gpt-image-2 multi-image edit, Phase A)
    │
    ▼
-1. Harmonize (Phase 1)        [SNAP_HARMONIZE_MODE]
+[Phase B] face-swap 복원        [SNAP_IDENTITY_MODE=face-swap, default]
+   - fal-ai/face-swap 으로 catalog 결과 얼굴을 selfie 진본으로 교체
+   - solo: 1회 swap / together: 2회 (groom face_index=0, bride face_index=1)
+   - 카탈로그 구도/의상/배경은 100% 그대로
+   - 비용 ~$0.01~0.04/장
+   ▼ (postprocess 모듈 src/lib/snap/postprocess.ts 진입)
+1. Harmonize                    [SNAP_HARMONIZE_MODE]
    - 카탈로그 LAB 평균과의 채널별 게인 적용 (sharp .linear)
    - L 채널 보존(노출 안 망가짐), A/B chroma 만 시프트
-   - masked 모드: birefnet 으로 foreground 마스크
-     → 강한(0.75) 매칭과 약한(0.30) 매칭을 마스크 알파로 합성
-     → 배경 톤은 강하게 끌어오고 사람 피부톤은 보호
+   - masked 모드: birefnet 으로 foreground 마스크 → 배경 강하게, 사람 약하게
    ▼
-2. Finishing (Phase 2)        [SNAP_FINISHING_MODE]
+2. Finishing                    [SNAP_FINISHING_MODE]
    - fal-ai/flux/dev/image-to-image, strength=0.2, guidance=3.5
    - 카탈로그 mood ("warm golden-hour ~3500K") 프롬프트로 주입
-   - identity / pose / composition 거의 그대로 유지
-   - 톤 / 조명 / film grain 만 통합
+   - identity / pose / composition 거의 그대로, 톤·조명·grain 만 통합
    ▼
-3. Upscale                    [SNAP_UPSCALE_MODE]
+3. Upscale                      [SNAP_UPSCALE_MODE]
    - aura-sr: Real-ESRGAN 계열, 얼굴 보존 우수, detail 약함
    - topaz/upscale: 사진 전용 모델, detail 복원 우수
    - 둘 다 2x, face_enhancement=false (identity 보호)
    ▼
-4. Sharpen + JPEG encode      (upscale 이 활성일 때만)
+4. Sharpen + JPEG encode        (upscale 이 활성일 때만)
    - sharp unsharp mask (sigma 1.0, m1 0.5, m2 0.5)
    - JPEG quality 92 (mozjpeg)
    ▼
 storage 업로드
 ```
+
+### Phase C — 카탈로그 마스터 사전 가공      [SNAP_CATALOG_FACE_BLUR]
+
+`on` 일 때 fal 호출 전에 catalog 마스터에 사전 처리:
+- `catalog.ts` 의 `faceMaskRegions` (0~1 정규화 좌표) 영역만 sharp 로 강한 Gaussian blur (sigma 35)
+- 모델이 catalog 의 다른 얼굴에 attention 끌려가는 것 방지
+- in-memory 캐시로 같은 catalog 재사용 시 추가 비용 0
 
 #### 단계 간 URL/Buffer 변환
 
@@ -131,17 +140,17 @@ Vercel Hobby 60s 함수 제한과 충돌 없음.
 
 ## 5. 비용 시나리오
 
-### 베이스라인 (현재 default 가 아님)
+### 베이스라인 (모든 토글 off)
 - 생성만 + raw 결과 → ~**$0.04 / 장**
 
-### Default (production 권장, PR #93 적용 후)
-- `harmonize=masked`, `finishing=img2img`, `upscale=off`
-- 생성 $0.04 + birefnet $0.003 + flux img2img $0.025 = **~$0.07 / 장**
-- 시간: ~25–35s
+### Default (production 권장 — 현재 default 값)
+- `harmonize=masked`, `finishing=img2img`, `identity=face-swap`, `catalog-face-blur=on`, `upscale=off`
+- 생성 $0.04 + birefnet $0.003 + flux img2img $0.025 + face-swap $0.02 = **~$0.09 / 장**
+- 시간: ~30–45s
 
 ### 품질 최우선
 - 위 + `upscale=topaz-sharpen`
-- ~$0.07 + $0.06 = **~$0.13 / 장**
+- ~$0.09 + $0.06 = **~$0.15 / 장**
 - 시간: ~35–45s
 
 ### 비용 절감 (긴급 대응)

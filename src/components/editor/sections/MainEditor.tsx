@@ -375,7 +375,6 @@ function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: 
 
         <PositionSliders
           position={design.title.position}
-          yMax={85}
           onChange={(position) =>
             onChange({ ...design, title: { ...design.title, position } })
           }
@@ -408,7 +407,6 @@ function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: 
             />
             <PositionSliders
               position={design.dateBox.position}
-              yMax={85}
               onChange={(position) =>
                 onChange({ ...design, dateBox: { ...design.dateBox, position } })
               }
@@ -443,7 +441,6 @@ function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: 
             />
             <PositionSliders
               position={design.nameBox.position}
-              yMax={85}
               onChange={(position) =>
                 onChange({ ...design, nameBox: { ...design.nameBox, position } })
               }
@@ -478,7 +475,6 @@ function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: 
             />
             <PositionSliders
               position={design.messageBox.position}
-              yMax={85}
               onChange={(position) =>
                 onChange({ ...design, messageBox: { ...design.messageBox, position } })
               }
@@ -624,15 +620,10 @@ function IllustrationDesignControls({ design, onChange, greeting, onGreetingChan
             onChange({ ...design, title: { ...design.title, fontSize } })
           }
         />
-        <SliderRow
-          label="상하 위치"
-          value={design.title.offsetY}
-          min={-10}
-          max={10}
-          leftHint="상"
-          rightHint="하"
-          onChange={(offsetY) =>
-            onChange({ ...design, title: { ...design.title, offsetY } })
+        <PositionSliders
+          position={design.title.position}
+          onChange={(position) =>
+            onChange({ ...design, title: { ...design.title, position } })
           }
         />
       </Group>
@@ -661,15 +652,10 @@ function IllustrationDesignControls({ design, onChange, greeting, onGreetingChan
                 onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
               }
             />
-            <SliderRow
-              label="상하 위치"
-              value={design.dateBox.offsetY}
-              min={-10}
-              max={10}
-              leftHint="상"
-              rightHint="하"
-              onChange={(offsetY) =>
-                onChange({ ...design, dateBox: { ...design.dateBox, offsetY } })
+            <PositionSliders
+              position={design.dateBox.position}
+              onChange={(position) =>
+                onChange({ ...design, dateBox: { ...design.dateBox, position } })
               }
             />
           </>
@@ -700,15 +686,10 @@ function IllustrationDesignControls({ design, onChange, greeting, onGreetingChan
                 onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
               }
             />
-            <SliderRow
-              label="상하 위치"
-              value={design.nameBox.offsetY}
-              min={-10}
-              max={10}
-              leftHint="상"
-              rightHint="하"
-              onChange={(offsetY) =>
-                onChange({ ...design, nameBox: { ...design.nameBox, offsetY } })
+            <PositionSliders
+              position={design.nameBox.position}
+              onChange={(position) =>
+                onChange({ ...design, nameBox: { ...design.nameBox, position } })
               }
             />
           </>
@@ -739,15 +720,10 @@ function IllustrationDesignControls({ design, onChange, greeting, onGreetingChan
                 onChange({ ...design, messageBox: { ...design.messageBox, fontSize } })
               }
             />
-            <SliderRow
-              label="상하 위치"
-              value={design.messageBox.offsetY}
-              min={-10}
-              max={10}
-              leftHint="상"
-              rightHint="하"
-              onChange={(offsetY) =>
-                onChange({ ...design, messageBox: { ...design.messageBox, offsetY } })
+            <PositionSliders
+              position={design.messageBox.position}
+              onChange={(position) =>
+                onChange({ ...design, messageBox: { ...design.messageBox, position } })
               }
             />
           </>
@@ -853,15 +829,10 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
             onChange({ ...design, title: { ...design.title, fontSize } })
           }
         />
-        <SliderRow
-          label="상하 위치"
-          value={design.title.offsetY}
-          min={-10}
-          max={10}
-          leftHint="상"
-          rightHint="하"
-          onChange={(offsetY) =>
-            onChange({ ...design, title: { ...design.title, offsetY } })
+        <PositionSliders
+          position={design.title.position}
+          onChange={(position) =>
+            onChange({ ...design, title: { ...design.title, position } })
           }
         />
       </Group>
@@ -891,15 +862,10 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
                 onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
               }
             />
-            <SliderRow
-              label="상하 위치"
-              value={design.dateBox.offsetY}
-              min={-50}
-              max={25}
-              leftHint="상"
-              rightHint="하"
-              onChange={(offsetY) =>
-                onChange({ ...design, dateBox: { ...design.dateBox, offsetY } })
+            <PositionSliders
+              position={design.dateBox.position}
+              onChange={(position) =>
+                onChange({ ...design, dateBox: { ...design.dateBox, position } })
               }
             />
           </>
@@ -963,15 +929,10 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
                 onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
               }
             />
-            <SliderRow
-              label="상하 위치"
-              value={design.nameBox.offsetY}
-              min={-50}
-              max={25}
-              leftHint="상"
-              rightHint="하"
-              onChange={(offsetY) =>
-                onChange({ ...design, nameBox: { ...design.nameBox, offsetY } })
+            <PositionSliders
+              position={design.nameBox.position}
+              onChange={(position) =>
+                onChange({ ...design, nameBox: { ...design.nameBox, position } })
               }
             />
           </>
@@ -1002,15 +963,10 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
                 onChange({ ...design, messageBox: { ...design.messageBox, fontSize } })
               }
             />
-            <SliderRow
-              label="상하 위치"
-              value={design.messageBox.offsetY}
-              min={-50}
-              max={25}
-              leftHint="상"
-              rightHint="하"
-              onChange={(offsetY) =>
-                onChange({ ...design, messageBox: { ...design.messageBox, offsetY } })
+            <PositionSliders
+              position={design.messageBox.position}
+              onChange={(position) =>
+                onChange({ ...design, messageBox: { ...design.messageBox, position } })
               }
             />
           </>
@@ -1181,15 +1137,10 @@ function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: F
                 onChange({ ...design, title: { ...design.title, fontSize } })
               }
             />
-            <SliderRow
-              label="상하 위치"
-              value={design.title.offsetY}
-              min={-10}
-              max={10}
-              leftHint="상"
-              rightHint="하"
-              onChange={(offsetY) =>
-                onChange({ ...design, title: { ...design.title, offsetY } })
+            <PositionSliders
+              position={design.title.position}
+              onChange={(position) =>
+                onChange({ ...design, title: { ...design.title, position } })
               }
             />
           </>
@@ -1220,15 +1171,10 @@ function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: F
                 onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
               }
             />
-            <SliderRow
-              label="상하 위치"
-              value={design.dateBox.offsetY}
-              min={-10}
-              max={10}
-              leftHint="상"
-              rightHint="하"
-              onChange={(offsetY) =>
-                onChange({ ...design, dateBox: { ...design.dateBox, offsetY } })
+            <PositionSliders
+              position={design.dateBox.position}
+              onChange={(position) =>
+                onChange({ ...design, dateBox: { ...design.dateBox, position } })
               }
             />
           </>
@@ -1259,15 +1205,10 @@ function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: F
                 onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
               }
             />
-            <SliderRow
-              label="상하 위치"
-              value={design.nameBox.offsetY}
-              min={-10}
-              max={10}
-              leftHint="상"
-              rightHint="하"
-              onChange={(offsetY) =>
-                onChange({ ...design, nameBox: { ...design.nameBox, offsetY } })
+            <PositionSliders
+              position={design.nameBox.position}
+              onChange={(position) =>
+                onChange({ ...design, nameBox: { ...design.nameBox, position } })
               }
             />
           </>
@@ -1298,15 +1239,10 @@ function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: F
                 onChange({ ...design, messageBox: { ...design.messageBox, fontSize } })
               }
             />
-            <SliderRow
-              label="상하 위치"
-              value={design.messageBox.offsetY}
-              min={-10}
-              max={10}
-              leftHint="상"
-              rightHint="하"
-              onChange={(offsetY) =>
-                onChange({ ...design, messageBox: { ...design.messageBox, offsetY } })
+            <PositionSliders
+              position={design.messageBox.position}
+              onChange={(position) =>
+                onChange({ ...design, messageBox: { ...design.messageBox, position } })
               }
             />
             <PresetTextArea
@@ -1639,17 +1575,9 @@ function Switch({
 function PositionSliders({
   position,
   onChange,
-  yMax,
 }: {
   position: { x: number; y: number };
   onChange: (next: { x: number; y: number }) => void;
-  /**
-   * y 축 최대값. 기본 100. 텍스트/이름/날짜/인사말처럼 슬라이드 하단의
-   * "축하하기" 버튼 영역(약 90% 이하 지점) 을 침범하지 않아야 하는 요소엔
-   * 85 정도로 낮춰 사용한다. 이미지 object-position 처럼 화면 전체를 덮는
-   * 요소엔 100 그대로 둔다.
-   */
-  yMax?: number;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -1667,7 +1595,7 @@ function PositionSliders({
         label="상하"
         value={position.y}
         min={0}
-        max={yMax ?? 100}
+        max={100}
         leftHint="상"
         rightHint="하"
         unit="%"

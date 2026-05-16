@@ -51,11 +51,10 @@ export async function POST() {
 
   const results: PollResult[] = await Promise.all(
     pending.map(async (job): Promise<PollResult> => {
-      // 1. fal 상태 조회 — model 별 endpoint 분기 (flux-pulid / gpt-image-2 등).
-      const jobModel = (job as { model: string | null }).model ?? GPT_IMAGE_MODEL;
+      // 1. fal 상태 조회 — 현재는 gpt-image-2 만 사용 (flux-pulid 폐기됨).
       let status: string;
       try {
-        const s = await getFalQueueStatus(jobModel, job.fal_request_id);
+        const s = await getFalQueueStatus(GPT_IMAGE_MODEL, job.fal_request_id);
         status = s.status;
       } catch (e) {
         // fal 일시 오류 — 상태 그대로 두고 다음 poll 에서 재시도.

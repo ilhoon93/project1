@@ -82,10 +82,17 @@ export function BasicInfoSlide({ basic, groomName, brideName, weddingDate }: Pro
   };
 
   return (
-    <section className="flex min-h-full flex-col gap-10 px-6 py-16 text-center">
-      <header className="flex flex-col items-center gap-1.5">
-        <p className="text-xs tracking-[0.3em] opacity-70">SAVE THE DATE</p>
-        <h2 className="text-xl font-light">우리 결혼합니다</h2>
+    // 전체 슬라이드 세로 가운데 정렬 — 요소를 빼도 남은 것들이 항상 화면 중앙
+    // 부근에 모이도록 justify-center. SAVE THE DATE 영문 줄 제거, 제목 톤을
+    // 테마 강조색 (--mw-accent) 으로 변경해 가독성/디자인 일관성 ↑.
+    <section className="flex min-h-full flex-col items-stretch justify-center gap-8 px-6 py-12 text-center">
+      <header className="flex flex-col items-center">
+        <h2
+          className="text-2xl font-medium tracking-wide"
+          style={{ color: 'var(--mw-accent)' }}
+        >
+          우리 결혼합니다
+        </h2>
       </header>
 
       {order.map((k) => renderSub(k))}
