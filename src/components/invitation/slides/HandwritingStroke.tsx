@@ -99,6 +99,26 @@ function findFontFileUrl(families: string[]): string | null {
   return null;
 }
 
+/**
+ * 폰트 URL 을 즉시 찾되, 못 찾으면 짧은 대기 후 몇 차례 재시도.
+ * next/font 가 비동기로 @font-face 를 주입하는 케이스(특히 dev/preview)에서
+ * 첫 시도 시 stylesheet 에 규칙이 아직 없을 수 있어 재시도가 필요하다.
+ * document.fonts.ready 는 외부 @import 폰트가 끝까지 안 끝나면 pending 으로
+ * 잡혀 하염없이 기다리는 일이 있어 사용하지 않는다.
+ */
+async function findFontUrlWithRetry(fontFamily: string): Promise<string | null> {
+  const attempts = [0, 80, 160, 320, 640]; // ms — 첫 시도는 즉시.
+  for (let i = 0; i < attempts.length; i++) {
+    if (attempts[i] > 0) {
+      await new Promise((r) => setTimeout(r, attempts[i]));
+    }
+    const families = resolveFontFamilies(fontFamily);
+    const url = findFontFileUrl(families);
+    if (url) return url;
+  }
+  return null;
+}
+
 interface CharPath {
   d: string;
   line: number;
@@ -204,26 +224,33 @@ export function HandwritingStroke({
     setFont(null);
     setFailed(false);
 
-    // CSS 변수가 fonts.css 가 로드되기 전에 빈 값으로 resolve 될 수 있어,
-    // document.fonts.ready 대기 후 URL 을 찾는다.
     const start = async () => {
       try {
-        if (document.fonts?.ready) {
-          await document.fonts.ready;
-        }
+        // 즉시 + 짧은 재시도로 URL 탐색. document.fonts.ready 는 외부 @import
+        // 폰트가 끝까지 안 끝나면 pending 으로 잡혀 hanging 위험이 있어 안 씀.
+        const url = await findFontUrlWithRetry(fontFamily);
         if (canceled) return;
-        const families = resolveFontFamilies(fontFamily);
-        const url = findFontFileUrl(families);
         if (!url) {
-          if (!canceled) {
-            setFailed(true);
-            onUnsupportedRef.current?.();
+          // 폰트 URL 을 못 찾는 케이스 — 외부 @import 로 로드된 폰트나 cssRules
+          // 접근이 막힌 stylesheet 등. DevTools 에서 어떤 family 로 떨어졌는지
+          // 보일 수 있게 살짝 안내.
+          if (typeof console !== 'undefined') {
+            const families = resolveFontFamilies(fontFamily);
+            console.warn(
+              '[HandwritingStroke] font URL not found in @font-face rules. Falling back to fade animation.',
+              { requestedFontFamily: fontFamily, resolvedFamilies: families },
+            );
           }
+          setFailed(true);
+          onUnsupportedRef.current?.();
           return;
         }
         const f = await loadFont(url);
         if (!canceled) setFont(f);
-      } catch {
+      } catch (err) {
+        if (typeof console !== 'undefined') {
+          console.warn('[HandwritingStroke] font load/parse failed, falling back to fade.', err);
+        }
         if (!canceled) {
           setFailed(true);
           onUnsupportedRef.current?.();
@@ -275,6 +302,10 @@ export function HandwritingStroke({
       }
 
       // 초기 상태 — dash 한 개로 전체 path 를 덮고 offset 만큼 밀어 숨김.
+      // `fill: 'backwards'` + `fill: 'forwards'` 둘 다 보장하려면 합쳐서 'both'
+      // 를 쓰는 게 안전 — delay 동안에도 첫 키프레임 값(invisible)을 유지하게
+      // 해서, 일부 브라우저에서 inline style 이 떨어지고 path 가 잠깐 솔리드로
+      // 보이는 케이스를 막는다.
       path.style.strokeDasharray = `${totalLen}`;
       path.style.strokeDashoffset = `${totalLen}`;
       path.style.fill = 'rgba(0,0,0,0)';
@@ -289,7 +320,7 @@ export function HandwritingStroke({
           {
             duration: drawMs,
             delay: delayMs,
-            fill: 'forwards',
+            fill: 'both',
             easing: 'cubic-bezier(0.55, 0.05, 0.35, 1)',
           },
         ),
@@ -305,7 +336,7 @@ export function HandwritingStroke({
           {
             duration: fillMs,
             delay: delayMs + drawMs * 0.85,
-            fill: 'forwards',
+            fill: 'both',
             easing: 'ease-in',
           },
         ),
@@ -357,7 +388,9 @@ export function HandwritingStroke({
         <g
           fill="rgba(0,0,0,0)"
           stroke={color || 'currentColor'}
-          strokeWidth={Math.max(0.8, fontSize * 0.025)}
+          // stroke width — 너무 얇으면 그려지는 과정이 안 보임. fontSize 대비
+          // 0.05 (5%) 정도면 또렷하고, 폰트 본연의 굵기와 충돌하지 않는 수준.
+          strokeWidth={Math.max(1.2, fontSize * 0.05)}
           strokeLinecap="round"
           strokeLinejoin="round"
         >

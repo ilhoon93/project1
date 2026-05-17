@@ -875,7 +875,7 @@ function NameLayout({
           <span
             style={{
               display: 'inline-block',
-              width: '1.4em',
+              width: '3em',
               height: '1px',
               backgroundColor: 'currentColor',
               opacity: 0.6,
@@ -885,7 +885,7 @@ function NameLayout({
           <span
             style={{
               display: 'inline-block',
-              width: '1.4em',
+              width: '3em',
               height: '1px',
               backgroundColor: 'currentColor',
               opacity: 0.6,
@@ -909,7 +909,7 @@ function NameLayout({
         style={{
           display: 'inline-block',
           width: '1px',
-          height: '0.7em',
+          height: '1.5em',
           backgroundColor: 'currentColor',
           opacity: 0.6,
         }}
@@ -930,7 +930,7 @@ function NameLayout({
         style={{
           display: 'inline-block',
           width: '1px',
-          height: '0.7em',
+          height: '1.5em',
           backgroundColor: 'currentColor',
           opacity: 0.6,
         }}
