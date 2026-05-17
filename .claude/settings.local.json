@@ -26,7 +26,8 @@
       "Bash(git cherry-pick *)",
       "Bash(git ls-tree *)",
       "Bash(cp \"/c/Users/kohkh/OneDrive/Desktop/메인일러스트/illust-car.png\" public/illustrations/illust-car.png && ls -la public/illustrations/illust-car.png)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(git push *)"
     ]
   }
 }
