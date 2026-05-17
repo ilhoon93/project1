@@ -11,8 +11,9 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 `{id}` 는 [`src/lib/snap/catalog.ts`](../../../src/lib/snap/catalog.ts) 의
 `SNAP_CATALOG` 배열에 정의된 항목의 `id` 와 정확히 일치해야 합니다.
 
-현재 정의된 5개 (MVP 샘플):
+현재 정의된 항목:
 
+**Together (커플)**
 | id | 라벨 | 파일 경로 |
 | --- | --- | --- |
 | `studio-classic` | 클래식 스튜디오 | `studio-classic.jpg` |
@@ -20,6 +21,17 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `hanok-courtyard` | 한옥 정원 | `hanok-courtyard.jpg` |
 | `city-goldenhour` | 도심 골든아워 | `city-goldenhour.jpg` |
 | `beach-sunset` | 바닷가 석양 | `beach-sunset.jpg` |
+| `bridge-goldenhour` | 브릿지 골든아워 | `bridge-goldenhour.jpg` |
+
+**Solo (단독)**
+| id | 라벨 | 파일 경로 |
+| --- | --- | --- |
+| `groom-portrait-studio` | 신랑 스튜디오 단독 | `groom-portrait-studio.jpg` |
+| `bride-bouquet` | 신부 부케 | `bride-bouquet.jpg` |
+| `groom-walk-away` | 신랑 뒤돌아 걷는 컷 | `groom-walk-away.jpg` |
+| `bride-veil-flow` | 신부 베일 자연광 | `bride-veil-flow.jpg` |
+| `bride-window` | 신부 창가 자연광 | `bride-window.jpg` |
+| `bride-vintage-car` | 신부 빈티지 카 | `bride-vintage-car.jpg` |
 
 새 카탈로그 추가 시: `SNAP_CATALOG` 에 항목을 추가하고 같은 `id` 의 jpg 를
 이 폴더에 올리면 즉시 노출/사용됩니다.
