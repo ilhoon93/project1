@@ -8,7 +8,9 @@ import { getCatalogColorMeta } from '@/lib/snap/catalog-metadata';
 import {
   buildCouplePhotoSnapPrompt,
   buildSoloCatalogPrompt,
+  buildSoloPromptOnly,
   buildTogetherCatalogPrompt,
+  buildTogetherPromptOnly,
 } from '@/lib/snap/prompt';
 import { logSnapJobSubmit } from '@/lib/snap/jobs';
 import { validateInputImage } from '@/lib/snap/input-validation';
@@ -58,10 +60,16 @@ const CoupleBodySchema = z.object({
 // 앵커 모드 — 저장된 anchor 사용.
 // anchorId 미지정 또는 'current' → 현재 snap_anchors 행을 사용.
 // UUID 지정 → snap_anchor_history 에서 해당 row 를 라이브러리 앵커로 사용.
+//
+// imageReference (default 'strict'):
+//   - 'strict'      : 카탈로그 마스터를 모델 입력에 함께 전달 (포즈/구도 재현 강함)
+//   - 'prompt-only' : 카탈로그 마스터를 빼고 promptHint 텍스트만으로 scene 지시
+//                     (얼굴 보존 우선, 포즈 재현은 텍스트 해석에 의존)
 const AnchoredOnlySchema = z.object({
   mode: z.literal('anchor'),
   catalogId: z.string().min(1),
   anchorId: z.union([z.literal('current'), z.string().uuid()]).optional(),
+  imageReference: z.enum(['strict', 'prompt-only']).optional(),
 });
 
 const BodySchema = z.union([AnchoredOnlySchema, CoupleBodySchema]);
@@ -253,53 +261,104 @@ export async function POST(req: Request) {
     pathLabel = 'couple';
   } else {
     pathLabel = 'anchored';
+    // imageReference 분기 — strict 는 카탈로그 마스터를 모델 입력에 포함,
+    // prompt-only 는 마스터 빼고 promptHint 텍스트로만 scene 지시.
+    const imageReference = input.imageReference ?? 'strict';
+    const isPromptOnly = imageReference === 'prompt-only';
+
     // Phase A — anchor 옆에 selfie 진본을 함께 fal 에 전달. selfie 가 없으면
-    // (구버전 anchor 또는 라이브러리 입니다) anchor 만 사용하는 폴백.
+    // (구버전 anchor 또는 라이브러리) anchor 만 사용하는 폴백.
     if (catalog.personality === 'together') {
       const groomSelfie = anchor!.groom_selfie_url;
       const brideSelfie = anchor!.bride_selfie_url;
       const hasSelfies = !!groomSelfie && !!brideSelfie;
-      imageUrls = hasSelfies
-        ? [
-            anchor!.groom_anchor_url!,
-            anchor!.bride_anchor_url!,
-            groomSelfie!,
-            brideSelfie!,
-            catalogUrl,
-          ]
-        : [anchor!.groom_anchor_url!, anchor!.bride_anchor_url!, catalogUrl];
-      prompt = buildTogetherCatalogPrompt({
-        catalogPromptHint: catalog.promptHint,
-        groom: groomBody,
-        bride: brideBody,
-        catalogColorHint,
-        includeSelfieRefs: hasSelfies,
-      });
+
+      if (isPromptOnly) {
+        // 마스터 미참조 — anchor (+ selfie) 만 입력. catalogUrl 안 넘김.
+        imageUrls = hasSelfies
+          ? [
+              anchor!.groom_anchor_url!,
+              anchor!.bride_anchor_url!,
+              groomSelfie!,
+              brideSelfie!,
+            ]
+          : [anchor!.groom_anchor_url!, anchor!.bride_anchor_url!];
+        prompt = buildTogetherPromptOnly({
+          catalogPromptHint: catalog.promptHint,
+          groom: groomBody,
+          bride: brideBody,
+          catalogColorHint,
+          includeSelfieRefs: hasSelfies,
+        });
+      } else {
+        imageUrls = hasSelfies
+          ? [
+              anchor!.groom_anchor_url!,
+              anchor!.bride_anchor_url!,
+              groomSelfie!,
+              brideSelfie!,
+              catalogUrl,
+            ]
+          : [anchor!.groom_anchor_url!, anchor!.bride_anchor_url!, catalogUrl];
+        prompt = buildTogetherCatalogPrompt({
+          catalogPromptHint: catalog.promptHint,
+          groom: groomBody,
+          bride: brideBody,
+          catalogColorHint,
+          includeSelfieRefs: hasSelfies,
+        });
+      }
     } else if (catalog.personality === 'groom-solo') {
       const selfie = anchor!.groom_selfie_url;
-      imageUrls = selfie
-        ? [anchor!.groom_anchor_url!, selfie, catalogUrl]
-        : [anchor!.groom_anchor_url!, catalogUrl];
-      prompt = buildSoloCatalogPrompt({
-        slot: 'groom',
-        catalogPromptHint: catalog.promptHint,
-        groom: groomBody,
-        catalogColorHint,
-        includeSelfieRef: !!selfie,
-      });
+      if (isPromptOnly) {
+        imageUrls = selfie
+          ? [anchor!.groom_anchor_url!, selfie]
+          : [anchor!.groom_anchor_url!];
+        prompt = buildSoloPromptOnly({
+          slot: 'groom',
+          catalogPromptHint: catalog.promptHint,
+          groom: groomBody,
+          catalogColorHint,
+          includeSelfieRef: !!selfie,
+        });
+      } else {
+        imageUrls = selfie
+          ? [anchor!.groom_anchor_url!, selfie, catalogUrl]
+          : [anchor!.groom_anchor_url!, catalogUrl];
+        prompt = buildSoloCatalogPrompt({
+          slot: 'groom',
+          catalogPromptHint: catalog.promptHint,
+          groom: groomBody,
+          catalogColorHint,
+          includeSelfieRef: !!selfie,
+        });
+      }
     } else {
       // bride-solo
       const selfie = anchor!.bride_selfie_url;
-      imageUrls = selfie
-        ? [anchor!.bride_anchor_url!, selfie, catalogUrl]
-        : [anchor!.bride_anchor_url!, catalogUrl];
-      prompt = buildSoloCatalogPrompt({
-        slot: 'bride',
-        catalogPromptHint: catalog.promptHint,
-        bride: brideBody,
-        catalogColorHint,
-        includeSelfieRef: !!selfie,
-      });
+      if (isPromptOnly) {
+        imageUrls = selfie
+          ? [anchor!.bride_anchor_url!, selfie]
+          : [anchor!.bride_anchor_url!];
+        prompt = buildSoloPromptOnly({
+          slot: 'bride',
+          catalogPromptHint: catalog.promptHint,
+          bride: brideBody,
+          catalogColorHint,
+          includeSelfieRef: !!selfie,
+        });
+      } else {
+        imageUrls = selfie
+          ? [anchor!.bride_anchor_url!, selfie, catalogUrl]
+          : [anchor!.bride_anchor_url!, catalogUrl];
+        prompt = buildSoloCatalogPrompt({
+          slot: 'bride',
+          catalogPromptHint: catalog.promptHint,
+          bride: brideBody,
+          catalogColorHint,
+          includeSelfieRef: !!selfie,
+        });
+      }
     }
   }
 

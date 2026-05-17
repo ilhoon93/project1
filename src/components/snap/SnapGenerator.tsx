@@ -140,6 +140,10 @@ export function SnapGenerator({ catalog }: Props) {
 
   // 카탈로그 다중 선택 — 한 번에 N개 제출 가능. 비동기 finalize 라 페이지 이탈 OK.
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // 카탈로그 합성 방식 — 'strict' (마스터 컷 참조, 포즈 재현 강함)
+  //                  / 'prompt-only' (마스터 안 쓰고 텍스트로만 scene 지시, 얼굴 보존 강함).
+  // 이번 batch 의 모든 선택 카탈로그에 동일하게 적용.
+  const [imageReference, setImageReference] = useState<'strict' | 'prompt-only'>('strict');
   const [stage, setStage] = useState<Stage>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // 다중 제출 결과 — 성공/실패 카운트 표시용.
@@ -591,7 +595,13 @@ export function SnapGenerator({ catalog }: Props) {
         };
       }
       // anchorId — 'current' (default, snap_anchors) 또는 라이브러리 UUID.
-      return { mode: 'anchor', catalogId: item.id, anchorId: selectedAnchorId };
+      // imageReference — strict (마스터 컷 참조) 또는 prompt-only (텍스트만).
+      return {
+        mode: 'anchor',
+        catalogId: item.id,
+        anchorId: selectedAnchorId,
+        imageReference,
+      };
     };
 
     // 병렬 제출 — 각각 독립. 부분 실패 케이스를 위해 Promise.allSettled.
@@ -1099,6 +1109,53 @@ export function SnapGenerator({ catalog }: Props) {
           여러 컷을 선택해 한 번에 만들 수 있어요. 1장당 스냅 크레딧 1개 차감.{' '}
           <span className="text-[10px] text-[#8B7355]">· 현재 경로: {pathHint}</span>
         </p>
+
+        {/* 합성 방식 선택 — 같은 카탈로그라도 두 가지 버전으로 생성 가능. */}
+        {mode !== 'couple' && (
+          <div className="mt-3 flex flex-col gap-2 rounded-md border border-dashed border-[#E8DCC9] bg-[#FAF7F2]/60 p-2.5">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-[11px] font-medium text-[#3D2E1F]">합성 방식</span>
+              <span className="text-[10px] text-[#8B7355]">
+                이번 선택 {selectedIds.size}개에 모두 적용
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={isProgressing}
+                onClick={() => setImageReference('strict')}
+                aria-pressed={imageReference === 'strict'}
+                className={`flex flex-col items-start gap-0.5 rounded-md border px-2.5 py-2 text-left transition-colors ${
+                  imageReference === 'strict'
+                    ? 'border-[#3D2E1F] bg-white ring-2 ring-[#3D2E1F]/20'
+                    : 'border-[#E8DCC9] bg-white hover:border-[#8B7355]'
+                } ${isProgressing ? 'opacity-60' : ''}`}
+              >
+                <span className="text-[11px] font-medium text-[#3D2E1F]">구도 우선 (strict)</span>
+                <span className="text-[10px] leading-snug text-[#8B7355]">
+                  카탈로그 마스터 컷의 포즈/구도/조명을 그대로 재현. 얼굴 보존은 face-swap 단계 의존.
+                </span>
+              </button>
+              <button
+                type="button"
+                disabled={isProgressing}
+                onClick={() => setImageReference('prompt-only')}
+                aria-pressed={imageReference === 'prompt-only'}
+                className={`flex flex-col items-start gap-0.5 rounded-md border px-2.5 py-2 text-left transition-colors ${
+                  imageReference === 'prompt-only'
+                    ? 'border-[#3D2E1F] bg-white ring-2 ring-[#3D2E1F]/20'
+                    : 'border-[#E8DCC9] bg-white hover:border-[#8B7355]'
+                } ${isProgressing ? 'opacity-60' : ''}`}
+              >
+                <span className="text-[11px] font-medium text-[#3D2E1F]">유사도 우선 (prompt-only)</span>
+                <span className="text-[10px] leading-snug text-[#8B7355]">
+                  마스터 컷을 안 쓰고 텍스트로만 scene 지시. 앵커 파이프라인 수준의 얼굴 일치, 포즈는 컨셉만 보장.
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {visibleCatalog.map((item) => {
             const selected = selectedIds.has(item.id);
