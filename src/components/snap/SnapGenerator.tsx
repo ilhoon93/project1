@@ -590,6 +590,7 @@ export function SnapGenerator({ catalog }: Props) {
           mode: 'couple',
           couplePhotoUrl: couple.url,
           catalogId: item.id,
+          imageReference,
           ...(groomBodyValid ? { groomBody: groomBodyValid } : {}),
           ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
         };
@@ -1162,51 +1163,60 @@ export function SnapGenerator({ catalog }: Props) {
           <span className="text-[10px] text-[#8B7355]">· 현재 경로: {pathHint}</span>
         </p>
 
-        {/* 합성 방식 선택 — 같은 카탈로그라도 두 가지 버전으로 생성 가능. */}
-        {mode !== 'couple' && (
-          <div className="mt-3 flex flex-col gap-2 rounded-md border border-dashed border-[#E8DCC9] bg-[#FAF7F2]/60 p-2.5">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-[11px] font-medium text-[#3D2E1F]">합성 방식</span>
-              <span className="text-[10px] text-[#8B7355]">
-                이번 선택 {selectedIds.size}개에 모두 적용
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                disabled={isProgressing}
-                onClick={() => setImageReference('strict')}
-                aria-pressed={imageReference === 'strict'}
-                className={`flex flex-col items-start gap-0.5 rounded-md border px-2.5 py-2 text-left transition-colors ${
-                  imageReference === 'strict'
-                    ? 'border-[#3D2E1F] bg-white ring-2 ring-[#3D2E1F]/20'
-                    : 'border-[#E8DCC9] bg-white hover:border-[#8B7355]'
-                } ${isProgressing ? 'opacity-60' : ''}`}
-              >
-                <span className="text-[11px] font-medium text-[#3D2E1F]">구도 우선 (strict)</span>
-                <span className="text-[10px] leading-snug text-[#8B7355]">
-                  카탈로그 마스터 컷의 포즈/구도/조명을 그대로 재현. 얼굴 보존은 face-swap 단계 의존.
-                </span>
-              </button>
-              <button
-                type="button"
-                disabled={isProgressing}
-                onClick={() => setImageReference('prompt-only')}
-                aria-pressed={imageReference === 'prompt-only'}
-                className={`flex flex-col items-start gap-0.5 rounded-md border px-2.5 py-2 text-left transition-colors ${
-                  imageReference === 'prompt-only'
-                    ? 'border-[#3D2E1F] bg-white ring-2 ring-[#3D2E1F]/20'
-                    : 'border-[#E8DCC9] bg-white hover:border-[#8B7355]'
-                } ${isProgressing ? 'opacity-60' : ''}`}
-              >
-                <span className="text-[11px] font-medium text-[#3D2E1F]">유사도 우선 (prompt-only)</span>
-                <span className="text-[10px] leading-snug text-[#8B7355]">
-                  마스터 컷을 안 쓰고 텍스트로만 scene 지시. 앵커 파이프라인 수준의 얼굴 일치, 포즈는 컨셉만 보장.
-                </span>
-              </button>
-            </div>
+        {/* 합성 방식 선택 — 같은 카탈로그라도 두 가지 버전으로 생성 가능.
+            셀카/앵커 모드와 커플 모드 모두 동일 토글 노출. 라벨/설명은 모드별로 살짝 다름.
+            (커플 모드에서는 "포즈" 가 사용자 사진에서 오므로 trade-off 가 의상/배경
+             충실도 vs 얼굴 보존으로 단순화됨) */}
+        <div className="mt-3 flex flex-col gap-2 rounded-md border border-dashed border-[#E8DCC9] bg-[#FAF7F2]/60 p-2.5">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-[11px] font-medium text-[#3D2E1F]">합성 방식</span>
+            <span className="text-[10px] text-[#8B7355]">
+              이번 선택 {selectedIds.size}개에 모두 적용
+            </span>
           </div>
-        )}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={isProgressing}
+              onClick={() => setImageReference('strict')}
+              aria-pressed={imageReference === 'strict'}
+              className={`flex flex-col items-start gap-0.5 rounded-md border px-2.5 py-2 text-left transition-colors ${
+                imageReference === 'strict'
+                  ? 'border-[#3D2E1F] bg-white ring-2 ring-[#3D2E1F]/20'
+                  : 'border-[#E8DCC9] bg-white hover:border-[#8B7355]'
+              } ${isProgressing ? 'opacity-60' : ''}`}
+            >
+              <span className="text-[11px] font-medium text-[#3D2E1F]">
+                {mode === 'couple' ? '카탈로그 충실 (strict)' : '구도 우선 (strict)'}
+              </span>
+              <span className="text-[10px] leading-snug text-[#8B7355]">
+                {mode === 'couple'
+                  ? '카탈로그 마스터의 의상/배경/조명을 그대로 재현. 얼굴이 미세하게 카탈로그 톤에 끌릴 수 있음.'
+                  : '카탈로그 마스터 컷의 포즈/구도/조명을 그대로 재현. 얼굴 보존은 face-swap 단계 의존.'}
+              </span>
+            </button>
+            <button
+              type="button"
+              disabled={isProgressing}
+              onClick={() => setImageReference('prompt-only')}
+              aria-pressed={imageReference === 'prompt-only'}
+              className={`flex flex-col items-start gap-0.5 rounded-md border px-2.5 py-2 text-left transition-colors ${
+                imageReference === 'prompt-only'
+                  ? 'border-[#3D2E1F] bg-white ring-2 ring-[#3D2E1F]/20'
+                  : 'border-[#E8DCC9] bg-white hover:border-[#8B7355]'
+              } ${isProgressing ? 'opacity-60' : ''}`}
+            >
+              <span className="text-[11px] font-medium text-[#3D2E1F]">
+                {mode === 'couple' ? '얼굴 보존 (prompt-only)' : '유사도 우선 (prompt-only)'}
+              </span>
+              <span className="text-[10px] leading-snug text-[#8B7355]">
+                {mode === 'couple'
+                  ? '마스터 이미지를 빼고 텍스트로만 분위기 지시. 얼굴 보존이 가장 강함. 의상·배경 디테일은 매번 달라짐.'
+                  : '마스터 컷을 안 쓰고 텍스트로만 scene 지시. 앵커 파이프라인 수준의 얼굴 일치, 포즈는 컨셉만 보장.'}
+              </span>
+            </button>
+          </div>
+        </div>
 
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {visibleCatalog.map((item) => {

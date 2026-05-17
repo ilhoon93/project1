@@ -44,6 +44,12 @@ export interface SnapPromptInput {
    * Phase A — solo 카탈로그용. true 면 3장 (anchor, selfie, catalog), false 면 2장.
    */
   includeSelfieRef?: boolean;
+  /**
+   * 커플 모드 전용. true 면 카탈로그 마스터 이미지를 함께 전달 (strict),
+   * false 면 마스터 빼고 텍스트로만 scene 지시 (prompt-only — 얼굴 보존 강함).
+   * 기본 true (backward compat).
+   */
+  includeMasterImage?: boolean;
 }
 
 /**
@@ -747,6 +753,45 @@ export function buildCouplePhotoSnapPrompt(input: SnapPromptInput | string): str
   const colorSection = colorHintSection(opts.catalogColorHint);
   // 인물 묘사를 제거한 환경/조명 only 버전을 모델에 넘긴다.
   const sanitizedHint = sanitizeCatalogHintForCouple(opts.catalogPromptHint);
+  // 기본 strict (마스터 이미지 동봉). prompt-only 모드는 false.
+  const includeMaster = opts.includeMasterImage !== false;
+
+  // prompt-only 분기 — Image 2 자체가 없으므로 "Image 2" 참조 라인 모두 제거하고
+  // scene 묘사를 텍스트로만 전달. 얼굴/포즈 lock 지시는 동일하게 유지.
+  if (!includeMaster) {
+    return [
+      'STRICT preservation task. ONE input image:',
+      '- Image 1 = User couple photo. THIS IS THE LOCKED REFERENCE. Faces, identities, poses, hand positions, head tilts, the way they lean toward each other, eye lines, framing, camera angle, and face/head SIZE relative to the frame ALL come from Image 1 unchanged.',
+      '',
+      `Wedding scene description (environment, lens, lighting, color grade — render from text alone): ${sanitizedHint}`,
+      '',
+      'LOCKED FROM IMAGE 1 — DO NOT CHANGE ANY OF THESE:',
+      '- Faces: identical eye shape, nose bridge, jawline, mouth shape, skin tone/texture, hair shape and color, facial expression. The faces in the output MUST be the same two people as Image 1, indistinguishable from those reference faces.',
+      '- Composition: same camera angle, same framing tightness, same crop. Do not recompose, do not reframe wider or tighter than Image 1.',
+      '- Pose: identical body positions, gestures, hand positions, where each hand rests, head tilts, shoulder angles, who-leans-toward-whom, eye direction, who looks at camera vs. who looks at partner.',
+      '- Relative scale of the two people to each other and to the frame: exact same as Image 1.',
+      '- Face/head SIZE relative to the frame: matches Image 1.',
+      '',
+      'CHANGE ONLY THESE (rendered from the text description above):',
+      '- Wedding attire: replace casual clothes with formal wedding attire — groom in a classic black or navy peak-lapel suit/tuxedo with white shirt and dark tie; bride in an ivory wedding dress matching the catalog mood. Drape onto existing poses without changing them.',
+      '- Background / environment: replace the original background with the scene described above.',
+      '- Lighting and color grade: re-light the couple to match the described lighting direction, color temperature, and overall grade.',
+      '',
+      'EXPLICITLY DO NOT:',
+      '- Replace any face with a different face. The faces are Image 1\'s, period.',
+      '- Add or remove people. Same two people from Image 1, no third person, no removed person.',
+      '- Modify facial expressions to look "more wedding-like" — keep Image 1\'s expressions exactly.',
+      '',
+      'OPTIONAL WEDDING PROPS:',
+      '- A small bouquet or boutonniere may be added ONLY if it can be placed naturally in an existing hand position from Image 1 (bride holding something at waist level, groom\'s pocket). Otherwise, omit.',
+      ...bodySection,
+      ...colorSection,
+      ...PHOTOREALISM,
+      ...NEGATIVES,
+      '',
+      'Style: Professional wedding photography, photorealistic, cinematic. Above all: Image 1 IS the photo — only costumes, environment, and lighting change.',
+    ].join('\n');
+  }
 
   return [
     'STRICT preservation task. Two input images, very different roles:',

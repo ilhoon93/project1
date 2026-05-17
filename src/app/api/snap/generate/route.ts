@@ -49,12 +49,17 @@ const BodyMetricsSchema = z.object({
   weightKg: z.number().min(35).max(150),
 });
 
+// 커플 모드도 anchor 모드와 동일한 imageReference 토글 지원:
+//   - 'strict'      : 카탈로그 마스터 이미지를 함께 전달 (의상/배경 충실도 우선)
+//   - 'prompt-only' : 마스터 이미지 빼고 sanitized 텍스트로만 scene 지시
+//                     (얼굴 보존 강함 — 마스터의 다른 모델 얼굴/포즈 leak 차단)
 const CoupleBodySchema = z.object({
   mode: z.literal('couple'),
   couplePhotoUrl: z.string().url(),
   catalogId: z.string().min(1),
   groomBody: BodyMetricsSchema.optional(),
   brideBody: BodyMetricsSchema.optional(),
+  imageReference: z.enum(['strict', 'prompt-only']).optional(),
 });
 
 // 앵커 모드 — 저장된 anchor 사용.
@@ -251,12 +256,21 @@ export async function POST(req: Request) {
     } catch (e) {
       console.warn('[snap/generate] couple photo preprocess failed', e);
     }
-    imageUrls = [couplePhotoUrl, catalogUrl];
+    // imageReference 분기:
+    //   strict      → 마스터 이미지 동봉 (의상/배경 시각 reference)
+    //   prompt-only → 마스터 빼고 텍스트만 (얼굴 보존 우선)
+    const coupleImageReference = input.imageReference ?? 'strict';
+    if (coupleImageReference === 'prompt-only') {
+      imageUrls = [couplePhotoUrl];
+    } else {
+      imageUrls = [couplePhotoUrl, catalogUrl];
+    }
     prompt = buildCouplePhotoSnapPrompt({
       catalogPromptHint: catalog.promptHint,
       groom: input.groomBody,
       bride: input.brideBody,
       catalogColorHint,
+      includeMasterImage: coupleImageReference === 'strict',
     });
     pathLabel = 'couple';
   } else {
