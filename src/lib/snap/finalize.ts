@@ -51,13 +51,14 @@ async function loadJobContext(falRequestId: string): Promise<{
   model: string | null;
   userId: string | null;
   catalogId: string | null;
+  catalogPath: 'anchored' | 'selfies' | 'couple' | null;
   groomSelfieUrl: string | null;
   brideSelfieUrl: string | null;
 }> {
   const admin = createAdminClient();
   const { data: job } = await admin
     .from('snap_jobs')
-    .select('model, user_id, catalog_id')
+    .select('model, user_id, catalog_id, catalog_path')
     .eq('fal_request_id', falRequestId)
     .maybeSingle();
   if (!job) {
@@ -65,6 +66,7 @@ async function loadJobContext(falRequestId: string): Promise<{
       model: null,
       userId: null,
       catalogId: null,
+      catalogPath: null,
       groomSelfieUrl: null,
       brideSelfieUrl: null,
     };
@@ -84,6 +86,7 @@ async function loadJobContext(falRequestId: string): Promise<{
     model: (job.model as string | null) ?? null,
     userId: (job.user_id as string | null) ?? null,
     catalogId: (job.catalog_id as string | null) ?? null,
+    catalogPath: (job.catalog_path as 'anchored' | 'selfies' | 'couple' | null) ?? null,
     groomSelfieUrl,
     brideSelfieUrl,
   };
@@ -143,7 +146,7 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
   let imageBuf: Buffer;
   try {
     imageBuf = isCatalog
-      ? await applyUpscalePostprocess(generatedUrl, mode, input.catalogId)
+      ? await applyUpscalePostprocess(generatedUrl, mode, input.catalogId, ctx.catalogPath)
       : await fetchAsBuffer(generatedUrl);
   } catch (e) {
     if (isCatalog) {

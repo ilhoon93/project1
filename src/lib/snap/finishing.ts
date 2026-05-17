@@ -84,15 +84,21 @@ export async function applyFinishing(
   catalogId: string | null | undefined,
   catalogMeta: CatalogColorMeta | null,
   mode: FinishingMode,
+  catalogPath?: 'anchored' | 'selfies' | 'couple' | null,
 ): Promise<string | null> {
   if (mode === 'off') return null;
 
   const prompt = buildFinishingPrompt(catalogId, catalogMeta);
 
+  // 커플 사진 모드는 사용자가 직접 업로드한 얼굴을 그대로 보존하는 게 최우선이므로
+  // finishing strength 를 강하게 낮춤 (0.2 → 0.1). 얼굴 drift 위험 vs 톤 통합 트레이드오프
+  // 에서 identity 보존 쪽에 무게.
+  const strength = catalogPath === 'couple' ? 0.1 : 0.2;
+
   const requestId = await submitFluxImg2Img({
     imageUrl: sourceUrl,
     prompt,
-    strength: 0.2,
+    strength,
     numInferenceSteps: 28,
     guidanceScale: 3.5,
   });
