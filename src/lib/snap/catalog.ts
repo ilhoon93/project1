@@ -122,6 +122,22 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
       [0.52, 0.22, 0.16, 0.18],
     ],
   },
+  {
+    id: 'bridge-goldenhour',
+    label: '브릿지 골든아워',
+    hint: '석양 백라이트 + 스톤 발루스트레이드',
+    category: 'urban',
+    personality: 'together',
+    image: '/wedding-snap/catalog/bridge-goldenhour.jpg',
+    promptHint:
+      'Outdoor scene on an ornate stone bridge at golden hour, low sun directly behind the couple creating strong warm backlight with subtle lens flare and hazy atmosphere, distant city skyline barely visible as silhouettes in the haze. Carved stone balustrade visible to one side, light wind moving the bride’s hair. Shot on 50–85mm lens, eye-level, shallow depth of field with cinematic sun-flare. Groom: black peak-lapel suit with white shirt and dark tie, short well-groomed hair with a neat mustache. Bride: ivory off-shoulder wedding dress with structured bodice, holding a small bouquet of eucalyptus and white florals. Pose: intimate close together — groom leaning in to kiss the bride near her temple or cheek while the bride looks softly toward camera with a quiet natural smile, the hairline catching warm rim light. Color grade: honey-amber highlights with gentle teal shadows, slight film haze and grain — must clearly read as warm late-afternoon, NOT noon, NOT blue hour.',
+    // 신랑(왼쪽 상단, 키스 자세로 약간 앞으로 기울임), 신부(오른쪽, 살짝 아래).
+    // 정확한 좌표는 마스터 컷을 보면서 미세조정 권장.
+    faceMaskRegions: [
+      [0.30, 0.32, 0.16, 0.18],
+      [0.46, 0.40, 0.16, 0.18],
+    ],
+  },
   // ── Solo (단독) 컷 ────────────────────────────────────────
   // 이미지 파일은 사용자가 별도로 마스터를 만들어 같은 id 로 저장해야 함.
   // (예: public/wedding-snap/catalog/groom-portrait-studio.jpg)
@@ -181,6 +197,19 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     promptHint:
       'Solo bride shot — only the bride in frame, no groom. Indoor room beside a large window with soft natural daylight pouring in from camera-left, sheer curtain diffusing the light. Shot on 50–85mm lens, waist-up framing, three-quarter angle so the window light wraps gently around the face. Bride: ivory A-line wedding dress with off-shoulder neckline, hands resting at her side or lightly on the windowsill, looking softly out the window or toward camera. Color grade: airy clean whites with cool window light tone, soft warm skin midtones. Calm contemplative mood.',
     faceMaskRegions: [[0.35, 0.12, 0.30, 0.30]],
+  },
+  {
+    id: 'bride-vintage-car',
+    label: '신부 빈티지 카',
+    hint: '클래식 컨버터블 + 풍성한 튤',
+    category: 'outdoor',
+    personality: 'bride-solo',
+    image: '/wedding-snap/catalog/bride-vintage-car.jpg',
+    promptHint:
+      'Solo bride shot — only the bride in frame, no groom, no other people. Seated inside a vintage convertible automobile with polished mahogany wood trim and cream leather interior, the voluminous ivory tulle skirt of her gown overflowing dramatically across the seat and pooling out of frame. Soft sunlit landscape visible through the side window — distant cypress trees and a faint lake horizon with warm hazy glow. Shot on 50–85mm portrait lens, chest-up to waist-up framing, slight three-quarter angle so the bride looks softly out toward the window. Bride: strapless ivory wedding dress with intricate lace bodice and detached lace sleeves on upper arms, pearl drop earrings, hair pulled back into a sleek smooth low style or soft loose waves. One hand resting gently near her collarbone or shoulder, eyes off-camera in a quiet introspective gaze, soft natural lips. Color grade: warm golden ambient with creamy highlights and rich amber midtones, gentle haze. Editorial bridal magazine atmosphere.',
+    // 신부 얼굴이 프레임 우상단에 위치 (가로형 컷). 정확한 좌표는 마스터 컷을
+    // 보면서 미세조정 권장 — SNAP_CATALOG_FACE_BLUR=on 일 때만 영향.
+    faceMaskRegions: [[0.60, 0.10, 0.20, 0.30]],
   },
 ];
 
