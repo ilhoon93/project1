@@ -4,43 +4,55 @@
  * 진짜 손글씨 stroke-by-stroke 애니메이션 컴포넌트.
  *
  * 동작 개요:
- *   1. props.fontFamily(예: 'var(--font-playfair-display), serif') 를 받아
- *      hidden probe span 으로 실제 family 이름을 resolve 한다.
+ *   1. 컨테이너 wrapper <span> 의 computed font-family 를 읽어 실제 family
+ *      이름을 얻는다 (var(--font-...) 가 부모로부터 정상 resolve 된 값).
  *   2. document.styleSheets 의 @font-face 규칙에서 해당 family 의 woff2 URL 을
  *      찾아낸다. (next/font 가 자동 호스팅한 폰트도 동일하게 발견됨)
- *   3. opentype.js 를 dynamic import 해서 폰트를 파싱 → 글자별 path 데이터를 얻는다.
+ *   3. fontkit 을 dynamic import 해서 폰트를 파싱 → 글자별 path 데이터를 얻는다.
+ *      fontkit 은 WOFF2 → 내부 brotli (pure JS) 로 디컴프레스해서 바로 처리한다.
  *   4. <svg> 안에 글자별 <path> 를 그리되 초기엔 stroke-dasharray/dashoffset 로
  *      한 획씩 그려지는 모습, 그 다음 fill 이 채워지는 시퀀스로 애니메이션.
  *
  * 폴백:
  *   - 폰트 URL 을 찾지 못하거나 파싱 실패 시 onUnsupported 콜백 호출. 부모는
  *     이를 받아 일반 텍스트 fade 애니메이션으로 전환한다.
- *   - opentype.js 의 글자별 path 생성은 단일 outline 1 패스라 한글처럼 여러
+ *   - fontkit 의 글자별 path 생성은 단일 outline 1 패스라 한글처럼 여러
  *     획으로 구성된 글자도 outline 한 줄로 이어 그려진다. 사람이 쓰는 획 순서와
  *     완전히 일치하진 않지만 "글자가 그려지는" 시각 효과는 충분히 전달된다.
+ *
+ * fontkit 선택 이유:
+ *   - opentype.js 는 WOFF2 디컴프레서가 없어 wawoff2 (emscripten WASM) 가 필요한데
+ *     Next.js 빌드에선 onRuntimeInitialized 가 안 fire 되어 hang 됨.
+ *   - fontkit 은 내부 brotli (pure JS) + WOFF2 핸들러 포함 → browser 빌드 OK.
  */
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type * as OpenType from 'opentype.js';
+import type * as Fontkit from 'fontkit';
 
 // SSR 환경에선 useLayoutEffect 가 경고를 띄움 — Next.js 'use client' 컴포넌트도
 // 빌드 타임에 SSR 렌더되므로 isomorphic 패턴을 적용.
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 // 모듈 캐시 — 같은 폰트 URL 에 대해 한 번만 fetch + parse.
-const fontCache = new Map<string, Promise<OpenType.Font>>();
+const fontCache = new Map<string, Promise<Fontkit.Font>>();
 
-function loadFont(url: string): Promise<OpenType.Font> {
+function loadFont(url: string): Promise<Fontkit.Font> {
   const cached = fontCache.get(url);
   if (cached) return cached;
   const p = (async () => {
-    // opentype.js 를 dynamic import — 메인 슬라이드에 들어와 stroke 모드가
-    // 켜진 사용자에게만 ~150KB 의 파서 코드를 받게 한다.
-    const opentype = await import('opentype.js');
+    // fontkit 을 dynamic import — 메인 슬라이드에 들어와 stroke 모드가 켜진
+    // 사용자에게만 받게 한다. browser 빌드는 brotli/woff/woff2 모두 처리.
+    const fontkit = (await import('fontkit')) as unknown as {
+      default?: { create: (b: Buffer | Uint8Array) => Fontkit.Font };
+      create?: (b: Buffer | Uint8Array) => Fontkit.Font;
+    };
+    const create = fontkit.create ?? fontkit.default?.create;
+    if (!create) throw new Error('fontkit.create not available');
     const res = await fetch(url, { credentials: 'omit' });
     if (!res.ok) throw new Error(`font fetch failed: ${res.status}`);
-    const buf = await res.arrayBuffer();
-    return opentype.parse(buf);
+    const buf = new Uint8Array(await res.arrayBuffer());
+    const font = create(buf as unknown as Buffer);
+    return font;
   })();
   fontCache.set(url, p);
   // 실패하면 다음 호출에 재시도할 수 있도록 캐시에서 제거.
@@ -49,30 +61,66 @@ function loadFont(url: string): Promise<OpenType.Font> {
 }
 
 /**
- * CSS font-family 문자열을 resolved 패밀리 이름 리스트로 변환.
+ * 호스트 element 의 computed font-family 를 family 이름 리스트로 분해.
  * 'var(--font-playfair-display), serif' → ['__Playfair_Display_abc', '__Playfair_Display_Fallback', 'serif']
+ *
+ * 호스트가 실제 컴포넌트가 마운트되는 컨테이너이어야 한다. body 같은 글로벌
+ * 노드에 가짜 probe 를 띄우면 CSS 변수(--font-...) 가 거기에 정의돼 있지 않아
+ * 변수가 unresolved 로 떨어지고 부모 폰트로 폴백돼 잘못된 family 가 나옴.
  */
-function resolveFontFamilies(cssFontFamily: string): string[] {
+function readResolvedFontFamilies(hostEl: HTMLElement): string[] {
   if (typeof document === 'undefined') return [];
-  const probe = document.createElement('span');
-  probe.style.cssText = `position:absolute;visibility:hidden;left:-9999px;font-family:${cssFontFamily};`;
-  probe.textContent = 'a';
-  document.body.appendChild(probe);
-  const resolved = getComputedStyle(probe).fontFamily;
-  document.body.removeChild(probe);
+  const resolved = getComputedStyle(hostEl).fontFamily;
   return resolved
     .split(',')
     .map((s) => s.trim().replace(/^["']|["']$/g, ''))
     .filter(Boolean);
 }
 
+/** unicode-range 한 토큰을 [start, end] code point 쌍으로 파싱.
+ *  'U+0-FF' → [0, 0xFF]
+ *  'U+41'   → [0x41, 0x41]
+ *  'U+1F?'  → [0x1F0, 0x1FF] (wildcard 단순 처리)
+ */
+function parseUnicodeRangeToken(token: string): [number, number] | null {
+  const m = token.trim().match(/^[Uu]\+([0-9A-Fa-f?]+)(?:-([0-9A-Fa-f]+))?$/);
+  if (!m) return null;
+  const a = m[1];
+  if (m[2]) {
+    return [parseInt(a, 16), parseInt(m[2], 16)];
+  }
+  if (a.includes('?')) {
+    const start = parseInt(a.replace(/\?/g, '0'), 16);
+    const end = parseInt(a.replace(/\?/g, 'F'), 16);
+    return [start, end];
+  }
+  const v = parseInt(a, 16);
+  return [v, v];
+}
+
+function countCovered(rangeStr: string, codePoints: number[]): number {
+  if (!rangeStr || rangeStr.trim() === '') return codePoints.length;
+  const ranges = rangeStr.split(',').map((t) => parseUnicodeRangeToken(t)).filter(Boolean) as [number, number][];
+  if (ranges.length === 0) return codePoints.length;
+  let n = 0;
+  for (const cp of codePoints) {
+    if (ranges.some(([s, e]) => cp >= s && cp <= e)) n += 1;
+  }
+  return n;
+}
+
 /**
  * document.styleSheets 의 @font-face 규칙에서 주어진 family 의 woff2 URL 추출.
- * cross-origin 으로 cssRules 접근이 막힌 sheet 는 건너뛴다.
+ * next/font/google 은 폰트를 unicode-range 별 여러 서브셋(.woff2) 로 분할하므로,
+ * 텍스트의 코드포인트를 가장 많이 커버하는 서브셋을 선택해야 한다.
  */
-function findFontFileUrl(families: string[]): string | null {
+function findFontFileUrl(families: string[], text: string): string | null {
   if (typeof document === 'undefined') return null;
   const familySet = new Set(families.map((f) => f.toLowerCase()));
+  // 한 번에 같은 코드포인트 중복 제거.
+  const codePoints = Array.from(new Set(Array.from(text).map((c) => c.codePointAt(0)!).filter((n): n is number => typeof n === 'number')));
+
+  const candidates: { url: string; coverage: number }[] = [];
   for (const sheet of Array.from(document.styleSheets)) {
     let rules: CSSRuleList | null = null;
     try {
@@ -87,40 +135,47 @@ function findFontFileUrl(families: string[]): string | null {
       const family = r.style.getPropertyValue('font-family').replace(/['"]/g, '').trim();
       if (!familySet.has(family.toLowerCase())) continue;
       const src = r.style.getPropertyValue('src');
-      // woff2 > woff > truetype 순으로 우선.
+      const unicodeRange = r.style.getPropertyValue('unicode-range');
+      // 텍스트의 코드포인트 중 이 서브셋에 들어가는 개수를 점수로.
+      const coverage = countCovered(unicodeRange, codePoints);
+      if (coverage === 0 && unicodeRange) continue;
       const woff2 = src.match(/url\(\s*([^)]*?)\s*\)\s*format\(\s*['"]?woff2['"]?\s*\)/i);
-      if (woff2) return woff2[1].replace(/['"]/g, '').trim();
       const woff = src.match(/url\(\s*([^)]*?)\s*\)\s*format\(\s*['"]?woff['"]?\s*\)/i);
-      if (woff) return woff[1].replace(/['"]/g, '').trim();
       const any = src.match(/url\(\s*([^)]*?)\s*\)/);
-      if (any) return any[1].replace(/['"]/g, '').trim();
+      const url = woff2?.[1] ?? woff?.[1] ?? any?.[1];
+      if (!url) continue;
+      candidates.push({ url: url.replace(/['"]/g, '').trim(), coverage });
     }
   }
-  return null;
+  if (candidates.length === 0) return null;
+  // 코드포인트 커버리지가 가장 높은 서브셋을 선택. 동률이면 처음 발견된 것.
+  candidates.sort((a, b) => b.coverage - a.coverage);
+  return candidates[0].url;
 }
 
 /**
  * 폰트 URL 을 즉시 찾되, 못 찾으면 짧은 대기 후 몇 차례 재시도.
  * next/font 가 비동기로 @font-face 를 주입하는 케이스(특히 dev/preview)에서
  * 첫 시도 시 stylesheet 에 규칙이 아직 없을 수 있어 재시도가 필요하다.
- * document.fonts.ready 는 외부 @import 폰트가 끝까지 안 끝나면 pending 으로
- * 잡혀 하염없이 기다리는 일이 있어 사용하지 않는다.
  */
-async function findFontUrlWithRetry(fontFamily: string): Promise<string | null> {
+async function findFontUrlWithRetry(hostEl: HTMLElement, text: string): Promise<string | null> {
   const attempts = [0, 80, 160, 320, 640]; // ms — 첫 시도는 즉시.
   for (let i = 0; i < attempts.length; i++) {
     if (attempts[i] > 0) {
       await new Promise((r) => setTimeout(r, attempts[i]));
     }
-    const families = resolveFontFamilies(fontFamily);
-    const url = findFontFileUrl(families);
+    const families = readResolvedFontFamilies(hostEl);
+    const url = findFontFileUrl(families, text);
     if (url) return url;
   }
   return null;
 }
 
 interface CharPath {
+  /** SVG path d 문자열 (font units 좌표계, Y up). */
   d: string;
+  /** path 에 적용할 SVG transform — 위치+scale+Y flip. */
+  transform: string;
   line: number;
   index: number;
 }
@@ -135,14 +190,22 @@ interface Layout {
 /**
  * 텍스트를 글자 단위 path 데이터로 변환 + viewBox 정보 계산.
  * 줄바꿈은 \n 으로 처리. 공백은 advance 만 진행하고 path 는 생성하지 않음.
+ *
+ * fontkit 의 path 좌표는 font units (unitsPerEm 기준) + Y-up 타이포그래픽
+ * 컨벤션이라, SVG 의 Y-down 으로 옮기려면 fontSize/unitsPerEm 으로 스케일하고
+ * Y 를 음수로 뒤집어야 한다. 그래서 각 글자마다 transform 으로 처리.
  */
 function layoutText(
-  font: OpenType.Font,
+  font: Fontkit.Font,
   text: string,
   fontSize: number,
 ): Layout {
+  const unitsPerEm = font.unitsPerEm;
+  const scale = fontSize / unitsPerEm;
   const lineHeight = fontSize * 1.25;
-  const baselineOffset = fontSize * 0.82;
+  // baseline 위치 — fontSize 대비 0.82 정도가 ascender 끝에서 적절히 떨어진 baseline.
+  const baselineOffsetInLine = fontSize * 0.82;
+
   let cursorX = 0;
   let line = 0;
   let charIndex = 0;
@@ -157,14 +220,26 @@ function layoutText(
       lineWidths.push(0);
       continue;
     }
-    const glyph = font.charToGlyph(ch);
-    const aw = glyph.advanceWidth ?? 0;
-    const advance = (aw / font.unitsPerEm) * fontSize;
-    if (ch !== ' ' && aw > 0) {
-      const p = font.getPath(ch, cursorX, line * lineHeight + baselineOffset, fontSize);
-      const d = p.toPathData(2);
-      if (d && d.trim().length > 0) {
-        paths.push({ d, line, index: charIndex });
+    const codePoint = ch.codePointAt(0);
+    if (codePoint == null) {
+      charIndex += 1;
+      continue;
+    }
+    let glyph: Fontkit.Glyph;
+    try {
+      glyph = font.glyphForCodePoint(codePoint);
+    } catch {
+      charIndex += 1;
+      continue;
+    }
+    const advance = glyph.advanceWidth * scale;
+    if (ch !== ' ' && glyph.advanceWidth > 0) {
+      const d = glyph.path.toSVG();
+      if (d && d.length > 0) {
+        const baselineY = line * lineHeight + baselineOffsetInLine;
+        // 글자별 transform — 위치 이동 + 스케일 + Y flip 한 번에.
+        const transform = `translate(${cursorX.toFixed(2)} ${baselineY.toFixed(2)}) scale(${scale.toFixed(5)} ${(-scale).toFixed(5)})`;
+        paths.push({ d, transform, line, index: charIndex });
       }
     }
     cursorX += advance;
@@ -208,7 +283,7 @@ export function HandwritingStroke({
   // fill 이 채워지는 시간 — outline 이 거의 다 그려진 직후 자연스럽게 차오름.
   fillSec = 0.22,
 }: Props) {
-  const [font, setFont] = useState<OpenType.Font | null>(null);
+  const [font, setFont] = useState<Fontkit.Font | null>(null);
   const [failed, setFailed] = useState(false);
   const containerRef = useRef<HTMLSpanElement | null>(null);
   // onUnsupported 가 인라인 콜백으로 들어와도 매 렌더마다 재호출되지 않게
@@ -219,6 +294,8 @@ export function HandwritingStroke({
   }, [onUnsupported]);
 
   // 1) 폰트 URL 탐색 + 파싱 — fontFamily 가 바뀌면 다시 시도.
+  //    containerRef 가 마운트된 뒤 실제 DOM 컨텍스트의 computed fontFamily 를
+  //    읽어 변수가 정상 resolve 된 family 이름으로 @font-face 를 찾는다.
   useEffect(() => {
     let canceled = false;
     setFont(null);
@@ -226,16 +303,12 @@ export function HandwritingStroke({
 
     const start = async () => {
       try {
-        // 즉시 + 짧은 재시도로 URL 탐색. document.fonts.ready 는 외부 @import
-        // 폰트가 끝까지 안 끝나면 pending 으로 잡혀 hanging 위험이 있어 안 씀.
-        const url = await findFontUrlWithRetry(fontFamily);
+        if (!containerRef.current) return;
+        const url = await findFontUrlWithRetry(containerRef.current, text);
         if (canceled) return;
         if (!url) {
-          // 폰트 URL 을 못 찾는 케이스 — 외부 @import 로 로드된 폰트나 cssRules
-          // 접근이 막힌 stylesheet 등. DevTools 에서 어떤 family 로 떨어졌는지
-          // 보일 수 있게 살짝 안내.
-          if (typeof console !== 'undefined') {
-            const families = resolveFontFamilies(fontFamily);
+          if (typeof console !== 'undefined' && containerRef.current) {
+            const families = readResolvedFontFamilies(containerRef.current);
             console.warn(
               '[HandwritingStroke] font URL not found in @font-face rules. Falling back to fade animation.',
               { requestedFontFamily: fontFamily, resolvedFamilies: families },
@@ -262,18 +335,13 @@ export function HandwritingStroke({
     return () => {
       canceled = true;
     };
-  }, [fontFamily]);
+  }, [fontFamily, text]);
 
   // 2) 폰트가 준비되면 path 별 stroke-dashoffset (totalLength → 0) → fill 채우기 시퀀스.
-  //    pathLength=1 정규화는 브라우저별 미묘한 차이가 있어 getTotalLength() 로
-  //    실제 path 길이를 측정해서 dasharray/dashoffset 을 절대값으로 직접 셋.
-  //    useLayoutEffect — DOM commit 직후 paint 전에 dash 셋업 + 애니메이션을
-  //    걸어 첫 프레임에 path 가 통째로 노출되는 flash 를 막는다.
   useIsomorphicLayoutEffect(() => {
     if (!font || !containerRef.current) return;
     const paths = Array.from(containerRef.current.querySelectorAll('path')) as SVGPathElement[];
     if (paths.length === 0) return;
-    // 글자 수에 따라 stagger 자동 조절 — 짧을수록 또렷한 stagger, 길수록 빠르게.
     const auto =
       paths.length <= 4
         ? 0.22
@@ -288,7 +356,6 @@ export function HandwritingStroke({
     const animations: Animation[] = [];
 
     paths.forEach((path, i) => {
-      // 실제 path 총 길이 — 여러 subpath 가 있으면 전부 더한 값.
       let totalLen = 0;
       try {
         totalLen = path.getTotalLength();
@@ -296,16 +363,10 @@ export function HandwritingStroke({
         totalLen = 0;
       }
       if (totalLen === 0) {
-        // 길이를 못 구하면 그냥 보이게 둠 — 폴백.
         path.style.visibility = 'visible';
         return;
       }
 
-      // 초기 상태 — dash 한 개로 전체 path 를 덮고 offset 만큼 밀어 숨김.
-      // `fill: 'backwards'` + `fill: 'forwards'` 둘 다 보장하려면 합쳐서 'both'
-      // 를 쓰는 게 안전 — delay 동안에도 첫 키프레임 값(invisible)을 유지하게
-      // 해서, 일부 브라우저에서 inline style 이 떨어지고 path 가 잠깐 솔리드로
-      // 보이는 케이스를 막는다.
       path.style.strokeDasharray = `${totalLen}`;
       path.style.strokeDashoffset = `${totalLen}`;
       path.style.fill = 'rgba(0,0,0,0)';
@@ -313,7 +374,6 @@ export function HandwritingStroke({
 
       const delayMs = i * sg * 1000;
 
-      // outline 그리기 — dashoffset totalLen → 0
       animations.push(
         path.animate(
           [{ strokeDashoffset: totalLen }, { strokeDashoffset: 0 }],
@@ -326,7 +386,6 @@ export function HandwritingStroke({
         ),
       );
 
-      // outline 이 거의 다 그려진 시점부터 fill 채우기.
       animations.push(
         path.animate(
           [
@@ -348,30 +407,36 @@ export function HandwritingStroke({
     };
   }, [font, color, staggerSec, drawSec, fillSec, text, fontSize]);
 
-  // 폴백 — 폰트 URL 을 못 찾았으면 부모가 다른 렌더 방식으로 전환할 때까지
-  // 일반 텍스트를 그대로 보여준다 (애니메이션 없음).
+  // 어떤 상태든 wrapper <span> 은 항상 같은 위치/스타일로 렌더한다. ref 가
+  // 마운트 직후부터 valid 해서, useEffect 의 첫 폰트 URL 탐색이 컴포넌트 자신의
+  // computed fontFamily (CSS 변수 resolve 된 값) 를 읽어 안정적으로 동작한다.
+  const wrapperStyle: React.CSSProperties = {
+    display: 'inline-block',
+    fontFamily,
+    color: color || undefined,
+    lineHeight: 0,
+  };
+
   if (failed) {
-    return <>{text}</>;
+    return (
+      <span ref={containerRef} style={wrapperStyle}>
+        {text}
+      </span>
+    );
   }
 
-  // 로딩 중 — 레이아웃 placeholder 로 invisible 텍스트.
   if (!font) {
-    return <span style={{ visibility: 'hidden' }}>{text}</span>;
+    return (
+      <span ref={containerRef} style={{ ...wrapperStyle, visibility: 'hidden', lineHeight: undefined }}>
+        {text}
+      </span>
+    );
   }
 
   const layout = layoutText(font, text, fontSize);
 
   return (
-    <span
-      ref={containerRef}
-      style={{
-        display: 'inline-block',
-        // fontSize 가 변할 때 SVG 가 폰트 크기에 맞춰 보이도록 lineHeight 정렬.
-        lineHeight: 0,
-        // 색은 path 의 stroke 기본값(currentColor) 으로 사용.
-        color: color || undefined,
-      }}
-    >
+    <span ref={containerRef} style={wrapperStyle}>
       <svg
         viewBox={`0 0 ${layout.viewBoxWidth} ${layout.viewBoxHeight}`}
         width={layout.viewBoxWidth}
@@ -396,11 +461,11 @@ export function HandwritingStroke({
         >
           {layout.paths.map((p, i) => (
             // 초기엔 visibility: hidden — useLayoutEffect 가 getTotalLength 로
-            // dasharray/dashoffset 을 세팅한 뒤 visible 로 바꾼다. 이 한 단계로
-            // 첫 프레임에 path 전체가 통째로 보이는 flash 가 사라짐.
+            // dasharray/dashoffset 을 세팅한 뒤 visible 로 바꾼다.
             <path
               key={`${p.line}-${p.index}-${i}`}
               d={p.d}
+              transform={p.transform}
               style={{ visibility: 'hidden' }}
             />
           ))}
