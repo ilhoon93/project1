@@ -11,6 +11,7 @@ import {
   type PosterDesign,
   type IllustrationDesign,
   type TextDesign,
+  type TextNameLayout,
 } from '@/types/invitation';
 import {
   TITLE_FONT_OPTIONS,
@@ -756,31 +757,15 @@ function TextLayoutSlide({
         </PositionedBox>
       )}
 
-      {/* 이름 — stack / inline 레이아웃 */}
+      {/* 이름 — 4가지 레이아웃 (inline / stack / stackHeart / inlineCross) */}
       {design.nameBox.enabled && (
         <PositionedBox position={design.nameBox.position}>
-          <div
-            className="flex flex-col items-center font-bold tracking-wide"
-            style={{ fontSize: `${design.nameBox.fontSize}px` }}
-          >
-            {design.nameBox.layout === 'stack' ? (
-              <>
-                <span className="leading-tight">{firstName}</span>
-                <span
-                  aria-hidden
-                  className="font-normal leading-none opacity-50"
-                  style={{ fontSize: '0.55em', margin: '0.1em 0' }}
-                >
-                  ✦
-                </span>
-                <span className="leading-tight">{secondName}</span>
-              </>
-            ) : (
-              <span>
-                {firstName} · {secondName}
-              </span>
-            )}
-          </div>
+          <NameLayout
+            layout={design.nameBox.layout}
+            firstName={firstName}
+            secondName={secondName}
+            fontSize={design.nameBox.fontSize}
+          />
         </PositionedBox>
       )}
 
@@ -812,6 +797,147 @@ function TextLayoutSlide({
   );
 }
 
+/**
+ * 텍스트형 이름 박스의 4가지 레이아웃 렌더러.
+ *
+ *   inline      : 신랑 · 신부
+ *   stack       : 신랑
+ *                  ✦
+ *                 신부
+ *   stackHeart  : 신랑
+ *                ── ♥ ──
+ *                 신부
+ *   inlineCross :       │
+ *                 신랑 ♥ 신부
+ *                       │
+ *
+ * 하트는 너무 두드러지지 않게 본문 글자 크기 대비 0.55em 정도로 작게, 색은
+ * currentColor (테마 색) — 라이트 테마면 검정 톤, 다크 테마면 밝은 톤이 되어
+ * "흑백" 표현이 자연스럽게 적용된다. 가로선/세로선 길이도 본문 크기에 비례해
+ * em 단위로 잡아 어떤 fontSize 에서도 균형이 유지됨.
+ */
+function NameLayout({
+  layout,
+  firstName,
+  secondName,
+  fontSize,
+}: {
+  layout: TextNameLayout;
+  firstName: string;
+  secondName: string;
+  fontSize: number;
+}) {
+  if (layout === 'inline') {
+    return (
+      <div
+        className="flex flex-col items-center font-bold tracking-wide"
+        style={{ fontSize: `${fontSize}px` }}
+      >
+        <span>
+          {firstName} · {secondName}
+        </span>
+      </div>
+    );
+  }
+
+  if (layout === 'stack') {
+    return (
+      <div
+        className="flex flex-col items-center font-bold tracking-wide"
+        style={{ fontSize: `${fontSize}px` }}
+      >
+        <span className="leading-tight">{firstName}</span>
+        <span
+          aria-hidden
+          className="font-normal leading-none opacity-50"
+          style={{ fontSize: '0.55em', margin: '0.1em 0' }}
+        >
+          ✦
+        </span>
+        <span className="leading-tight">{secondName}</span>
+      </div>
+    );
+  }
+
+  if (layout === 'stackHeart') {
+    // 신랑 / ── ♥ ── / 신부
+    return (
+      <div
+        className="flex flex-col items-center font-bold tracking-wide"
+        style={{ fontSize: `${fontSize}px` }}
+      >
+        <span className="leading-tight">{firstName}</span>
+        <span
+          aria-hidden
+          className="flex items-center font-normal leading-none"
+          style={{ margin: '0.18em 0', gap: '0.35em' }}
+        >
+          <span
+            style={{
+              display: 'inline-block',
+              width: '1.4em',
+              height: '1px',
+              backgroundColor: 'currentColor',
+              opacity: 0.6,
+            }}
+          />
+          <span style={{ fontSize: '0.6em', lineHeight: 1 }}>♥</span>
+          <span
+            style={{
+              display: 'inline-block',
+              width: '1.4em',
+              height: '1px',
+              backgroundColor: 'currentColor',
+              opacity: 0.6,
+            }}
+          />
+        </span>
+        <span className="leading-tight">{secondName}</span>
+      </div>
+    );
+  }
+
+  // inlineCross : 신랑 ♥ 신부 + 하트 위·아래로 세로선.
+  return (
+    <div
+      className="flex flex-col items-center font-bold tracking-wide"
+      style={{ fontSize: `${fontSize}px`, gap: '0.18em' }}
+    >
+      {/* 위 세로선 — 하트 바로 위에 정렬되도록 좌우 이름의 합산 폭 기준 가운데. */}
+      <span
+        aria-hidden
+        style={{
+          display: 'inline-block',
+          width: '1px',
+          height: '0.7em',
+          backgroundColor: 'currentColor',
+          opacity: 0.6,
+        }}
+      />
+      <span className="flex items-center" style={{ gap: '0.4em' }}>
+        <span className="leading-tight">{firstName}</span>
+        <span
+          aria-hidden
+          className="font-normal leading-none"
+          style={{ fontSize: '0.6em' }}
+        >
+          ♥
+        </span>
+        <span className="leading-tight">{secondName}</span>
+      </span>
+      <span
+        aria-hidden
+        style={{
+          display: 'inline-block',
+          width: '1px',
+          height: '0.7em',
+          backgroundColor: 'currentColor',
+          opacity: 0.6,
+        }}
+      />
+    </div>
+  );
+}
 
 /**
  * 일러스트형 메인의 PNG 라인아트.
@@ -824,7 +950,7 @@ function IllustrationImage({
   variant,
 }: {
   src: string;
-  variant: 'arch' | 'dance' | 'hanbok' | 'ani';
+  variant: 'arch' | 'dance' | 'hanbok' | 'ani' | 'car';
 }) {
   const [errored, setErrored] = useState(false);
 

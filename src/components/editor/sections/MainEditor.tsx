@@ -550,6 +550,7 @@ const ILLUST_VARIANT_LABELS: Record<IllustrationVariant, { name: string; hint: s
   dance: { name: '슬로우 댄스', hint: '댄스 포즈 + 골드 스파클' },
   hanbok: { name: '한복', hint: '전통 한복 차림의 신랑·신부' },
   ani: { name: '애니메이션', hint: '귀여운 일러스트 스타일' },
+  car: { name: '웨딩 카', hint: 'MARRIED 사인 + 자동차에 탄 커플' },
 };
 
 function IllustrationDesignControls({ design, onChange, greeting, onGreetingChange }: IllustProps) {
@@ -895,7 +896,7 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
         </p>
         {design.nameBox.enabled && (
           <>
-            {/* 정렬 — 한 줄(신랑 · 신부) vs 두 줄(위·아래 중앙 정렬) */}
+            {/* 정렬 — 4종: 한 줄(점) / 위·아래(✦) / 위·아래(— ♥ —) / 한 줄+세로선(♥) */}
             <div className="flex flex-col gap-1.5 text-xs">
               <span className="text-muted-foreground">정렬</span>
               <div className="grid grid-cols-2 gap-2">
@@ -913,7 +914,23 @@ function TextDesignControls({ design, onChange, greeting, onGreetingChange }: Te
                     onChange({ ...design, nameBox: { ...design.nameBox, layout: 'stack' } })
                   }
                   title="위·아래"
-                  hint={'신랑\n신부'}
+                  hint={'신랑\n✦\n신부'}
+                />
+                <NameLayoutButton
+                  selected={design.nameBox.layout === 'stackHeart'}
+                  onClick={() =>
+                    onChange({ ...design, nameBox: { ...design.nameBox, layout: 'stackHeart' } })
+                  }
+                  title="위·아래 + 하트"
+                  hint={'신랑\n─ ♥ ─\n신부'}
+                />
+                <NameLayoutButton
+                  selected={design.nameBox.layout === 'inlineCross'}
+                  onClick={() =>
+                    onChange({ ...design, nameBox: { ...design.nameBox, layout: 'inlineCross' } })
+                  }
+                  title="한 줄 + 십자"
+                  hint={'│\n신랑 ♥ 신부\n│'}
                 />
               </div>
             </div>

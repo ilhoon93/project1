@@ -20,8 +20,12 @@
  *     완전히 일치하진 않지만 "글자가 그려지는" 시각 효과는 충분히 전달된다.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type * as OpenType from 'opentype.js';
+
+// SSR 환경에선 useLayoutEffect 가 경고를 띄움 — Next.js 'use client' 컴포넌트도
+// 빌드 타임에 SSR 렌더되므로 isomorphic 패턴을 적용.
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 // 모듈 캐시 — 같은 폰트 URL 에 대해 한 번만 fetch + parse.
 const fontCache = new Map<string, Promise<OpenType.Font>>();
@@ -178,8 +182,11 @@ export function HandwritingStroke({
   color,
   onUnsupported,
   staggerSec,
-  drawSec = 0.45,
-  fillSec = 0.18,
+  // outline 이 한 자 그려지는 시간 — 너무 빠르면 "한 획씩 쓰여진다" 는 인상이
+  // 사라져 그냥 페이드인처럼 보임. 0.6s 정도가 시각적으로 자연스러움.
+  drawSec = 0.6,
+  // fill 이 채워지는 시간 — outline 이 거의 다 그려진 직후 자연스럽게 차오름.
+  fillSec = 0.22,
 }: Props) {
   const [font, setFont] = useState<OpenType.Font | null>(null);
   const [failed, setFailed] = useState(false);
@@ -230,32 +237,85 @@ export function HandwritingStroke({
     };
   }, [fontFamily]);
 
-  // 2) 폰트가 준비되면 path 별 stroke-dashoffset 0 → fill 채우기 애니메이션 적용.
-  useEffect(() => {
+  // 2) 폰트가 준비되면 path 별 stroke-dashoffset (totalLength → 0) → fill 채우기 시퀀스.
+  //    pathLength=1 정규화는 브라우저별 미묘한 차이가 있어 getTotalLength() 로
+  //    실제 path 길이를 측정해서 dasharray/dashoffset 을 절대값으로 직접 셋.
+  //    useLayoutEffect — DOM commit 직후 paint 전에 dash 셋업 + 애니메이션을
+  //    걸어 첫 프레임에 path 가 통째로 노출되는 flash 를 막는다.
+  useIsomorphicLayoutEffect(() => {
     if (!font || !containerRef.current) return;
-    const paths = Array.from(containerRef.current.querySelectorAll('path'));
+    const paths = Array.from(containerRef.current.querySelectorAll('path')) as SVGPathElement[];
     if (paths.length === 0) return;
     // 글자 수에 따라 stagger 자동 조절 — 짧을수록 또렷한 stagger, 길수록 빠르게.
     const auto =
-      paths.length <= 4 ? 0.16 : paths.length <= 10 ? 0.11 : paths.length <= 20 ? 0.075 : 0.055;
+      paths.length <= 4
+        ? 0.22
+        : paths.length <= 10
+          ? 0.16
+          : paths.length <= 20
+            ? 0.11
+            : 0.08;
     const sg = staggerSec ?? auto;
+    const drawMs = drawSec * 1000;
+    const fillMs = fillSec * 1000;
+    const animations: Animation[] = [];
 
     paths.forEach((path, i) => {
+      // 실제 path 총 길이 — 여러 subpath 가 있으면 전부 더한 값.
+      let totalLen = 0;
+      try {
+        totalLen = path.getTotalLength();
+      } catch {
+        totalLen = 0;
+      }
+      if (totalLen === 0) {
+        // 길이를 못 구하면 그냥 보이게 둠 — 폴백.
+        path.style.visibility = 'visible';
+        return;
+      }
+
+      // 초기 상태 — dash 한 개로 전체 path 를 덮고 offset 만큼 밀어 숨김.
+      path.style.strokeDasharray = `${totalLen}`;
+      path.style.strokeDashoffset = `${totalLen}`;
+      path.style.fill = 'rgba(0,0,0,0)';
+      path.style.visibility = 'visible';
+
       const delayMs = i * sg * 1000;
-      const drawMs = drawSec * 1000;
-      const fillMs = fillSec * 1000;
-      // outline 그리기 — dashoffset 1 → 0
-      path.animate(
-        [{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }],
-        { duration: drawMs, delay: delayMs, fill: 'forwards', easing: 'cubic-bezier(0.65, 0, 0.35, 1)' },
+
+      // outline 그리기 — dashoffset totalLen → 0
+      animations.push(
+        path.animate(
+          [{ strokeDashoffset: totalLen }, { strokeDashoffset: 0 }],
+          {
+            duration: drawMs,
+            delay: delayMs,
+            fill: 'forwards',
+            easing: 'cubic-bezier(0.55, 0.05, 0.35, 1)',
+          },
+        ),
       );
-      // 그려진 후 fill 채우기 — transparent → color
-      path.animate(
-        [{ fill: 'rgba(0,0,0,0)' }, { fill: color || 'currentColor' }],
-        { duration: fillMs, delay: delayMs + drawMs * 0.85, fill: 'forwards', easing: 'ease-in' },
+
+      // outline 이 거의 다 그려진 시점부터 fill 채우기.
+      animations.push(
+        path.animate(
+          [
+            { fill: 'rgba(0,0,0,0)' },
+            { fill: color || 'currentColor' },
+          ],
+          {
+            duration: fillMs,
+            delay: delayMs + drawMs * 0.85,
+            fill: 'forwards',
+            easing: 'ease-in',
+          },
+        ),
       );
     });
-  }, [font, color, staggerSec, drawSec, fillSec]);
+
+    return () => {
+      animations.forEach((a) => a.cancel());
+    };
+  }, [font, color, staggerSec, drawSec, fillSec, text, fontSize]);
 
   // 폴백 — 폰트 URL 을 못 찾았으면 부모가 다른 렌더 방식으로 전환할 때까지
   // 일반 텍스트를 그대로 보여준다 (애니메이션 없음).
@@ -302,14 +362,13 @@ export function HandwritingStroke({
           strokeLinejoin="round"
         >
           {layout.paths.map((p, i) => (
+            // 초기엔 visibility: hidden — useLayoutEffect 가 getTotalLength 로
+            // dasharray/dashoffset 을 세팅한 뒤 visible 로 바꾼다. 이 한 단계로
+            // 첫 프레임에 path 전체가 통째로 보이는 flash 가 사라짐.
             <path
               key={`${p.line}-${p.index}-${i}`}
               d={p.d}
-              pathLength={1}
-              style={{
-                strokeDasharray: 1,
-                strokeDashoffset: 1,
-              }}
+              style={{ visibility: 'hidden' }}
             />
           ))}
         </g>
