@@ -149,16 +149,18 @@ export type PosterDesign = z.infer<typeof PosterDesignSchema>;
 
 // ── 일러스트형 디자인 ─────────────────────────────────────
 //
-// 일러스트형은 세 가지 서브 베리언트(arch / dance / hanbok)를 제공한다.
+// 일러스트형은 여러 서브 베리언트를 제공한다.
 //   - arch  : 꽃 아치 아래 손 잡고 걷는 신랑·신부
 //   - dance : 댄스 포즈의 신랑·신부 + 골드 스파클
 //   - hanbok: 한복 차림의 신랑·신부 (전통혼례 톤)
+//   - ani   : 애니풍 신랑·신부
+//   - car   : MARRIED 사인을 단 자동차에 탄 신랑·신부 (수채화 톤)
 //
 // 폰트는 첨부 이미지(Playfair Display)에 맞춰 고정. 색상과 문구만
 // 풀이미지형처럼 사용자가 변경 가능. 날짜·이름 박스는 토글 가능하지만
 // 위치는 고정 레이아웃을 따른다 (드래그 슬라이더 없음).
 
-export const ILLUSTRATION_VARIANTS = ['arch', 'dance', 'hanbok', 'ani'] as const;
+export const ILLUSTRATION_VARIANTS = ['arch', 'dance', 'hanbok', 'ani', 'car'] as const;
 export type IllustrationVariant = (typeof ILLUSTRATION_VARIANTS)[number];
 
 // 위치 슬라이더는 모든 레이아웃에서 동일한 UX (x/y 0-100%) 를 쓰도록 통일됨.
@@ -230,8 +232,12 @@ export type IllustrationDesign = z.infer<typeof IllustrationDesignSchema>;
 export const TEXT_VARIANTS = ['flower', 'letter', 'none'] as const;
 export type TextVariant = (typeof TEXT_VARIANTS)[number];
 
-// 이름 정렬 방식 — 한 줄(가운데 점 구분) vs 위·아래(스택, 중앙 정렬).
-export const TEXT_NAME_LAYOUTS = ['inline', 'stack'] as const;
+// 이름 정렬 방식 —
+//   inline      : "신랑 · 신부"     (한 줄, 가운데 점)
+//   stack       : 위/아래 + ✦         (스택, 중앙 정렬)
+//   stackHeart  : 위/아래 + ─ ♥ ─    (스택, 가로선+하트 구분)
+//   inlineCross : "신랑 ♥ 신부" + 위/아래 세로선 (한 줄, 하트 위·아래로 세로선)
+export const TEXT_NAME_LAYOUTS = ['inline', 'stack', 'stackHeart', 'inlineCross'] as const;
 export type TextNameLayout = (typeof TEXT_NAME_LAYOUTS)[number];
 
 export const TextDesignSchema = z
