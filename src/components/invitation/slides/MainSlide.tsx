@@ -21,6 +21,7 @@ import {
 } from '@/lib/theme';
 import { Confetti } from '@/components/shared/Confetti';
 import { HeartClip } from '@/components/shared/HeartClip';
+import { HandwritingStroke } from '@/components/invitation/slides/HandwritingStroke';
 
 interface Props {
   invitationId: string;
@@ -298,25 +299,19 @@ function PosterFullImageSlide({
       {/* 2) 제목 텍스트 — 절대 위치 + 옵션 애니메이션, 슬라이더로 크기 조절.
           폰트별 시각 크기 보정(TITLE_FONT_SIZE_SCALE) 적용 — 장식 폰트가 같은
           px 에서도 더 크게 보이도록.
-          animate=true 면 글자 단위로 fade-in + 살짝 떨어지는 손글씨 느낌의
-          시퀀스를 띄운다 (기존 좌→우 wipe 는 너무 기계적이라 글자별 stagger 로 교체). */}
+          animate=true 면 SVG path 의 stroke-dashoffset 으로 글자 한 자씩 진짜
+          손글씨처럼 그려진 뒤 fill 이 채워지는 시퀀스 — opentype.js 로 선택된
+          폰트의 글자 outline 을 SVG path 로 변환해 그려낸다. 폰트 URL 을 못
+          찾는 케이스(외부 @import 등) 는 onUnsupported 콜백으로 글자별 fade
+          폴백으로 자동 전환. */}
       <PositionedBox position={design.title.position}>
-        <h1
-          key={`${design.title.text}-${design.title.animate}`}
-          className="whitespace-pre-wrap text-center font-bold leading-snug"
-          style={{
-            fontFamily: titleFont,
-            color: design.title.color,
-            fontSize: `${getDisplayFontSize(design.title.fontSize, design.title.font as TitleFontKey)}px`,
-          }}
-          aria-label={design.title.text}
-        >
-          {design.title.animate ? (
-            <HandwritingText text={design.title.text} />
-          ) : (
-            design.title.text
-          )}
-        </h1>
+        <AnimatedTitleH1
+          text={design.title.text}
+          animate={design.title.animate}
+          fontFamily={titleFont}
+          color={design.title.color}
+          fontSize={getDisplayFontSize(design.title.fontSize, design.title.font as TitleFontKey)}
+        />
       </PositionedBox>
 
       {/* 4) 이름 박스 — 글로벌 테마 폰트·색 그대로 */}
@@ -403,6 +398,80 @@ function PosterFullImageSlide({
         }
       `}</style>
     </section>
+  );
+}
+
+/**
+ * 풀이미지형 메인 슬라이드의 제목 h1 + 애니메이션 분기.
+ *  - animate=false : 그냥 텍스트.
+ *  - animate=true  : 1) HandwritingStroke (SVG path stroke 그려지기) 시도.
+ *                    2) 폰트 URL 을 못 찾거나 파싱 실패시 onUnsupported 콜백
+ *                       을 받아 HandwritingText (글자 단위 fade) 로 폴백.
+ *
+ * Inner 컴포넌트에 key 를 걸어 텍스트/폰트가 바뀌면 fallback state 가 깔끔하게
+ * 초기화되도록 한다 (이전 텍스트가 stroke 실패한 상태를 가져오는 flash 방지).
+ */
+function AnimatedTitleH1({
+  text,
+  animate,
+  fontFamily,
+  color,
+  fontSize,
+}: {
+  text: string;
+  animate: boolean;
+  fontFamily: string;
+  color: string;
+  fontSize: number;
+}) {
+  return (
+    <h1
+      className="whitespace-pre-wrap text-center font-bold leading-snug"
+      style={{
+        fontFamily,
+        color,
+        fontSize: `${fontSize}px`,
+      }}
+      aria-label={text}
+    >
+      {animate ? (
+        <AnimatedTitleInner
+          key={`${text}-${fontFamily}`}
+          text={text}
+          fontFamily={fontFamily}
+          fontSize={fontSize}
+          color={color}
+        />
+      ) : (
+        text
+      )}
+    </h1>
+  );
+}
+
+function AnimatedTitleInner({
+  text,
+  fontFamily,
+  fontSize,
+  color,
+}: {
+  text: string;
+  fontFamily: string;
+  fontSize: number;
+  color: string;
+}) {
+  const [strokeUnsupported, setStrokeUnsupported] = useState(false);
+  if (strokeUnsupported) {
+    return <HandwritingText text={text} />;
+  }
+  return (
+    <HandwritingStroke
+      text={text}
+      fontFamily={fontFamily}
+      fontSize={fontSize}
+      color={color}
+      onUnsupported={() => setStrokeUnsupported(true)}
+    />
   );
 }
 
