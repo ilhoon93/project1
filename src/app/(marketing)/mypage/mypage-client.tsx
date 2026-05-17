@@ -449,7 +449,7 @@ function SnapJobsGallery({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg bg-white p-5 ring-1 ring-[#D4C5B0]">
+    <div className="flex w-full min-w-0 flex-col gap-3 overflow-hidden rounded-lg bg-white p-5 ring-1 ring-[#D4C5B0]">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-medium text-[#3D2E1F]">생성 결과</h3>
         <button
@@ -516,8 +516,13 @@ function SnapJobsGallery({
  *
  * 새로고침/refresh 로 jobs 가 갱신되면 jobs 길이로 totalPages 가 다시 계산되며,
  * 현재 page 가 범위를 벗어나면 마지막 페이지로 클램프.
+ *
+ * 모바일 가로 overflow 방지:
+ *   부모 컨테이너에서 width 가 좁아도 페이지 번호 버튼이 좌우로 삐져나오지 않게
+ *   flex-wrap 으로 줄바꿈 허용 + 컨테이너 자체에 max-w-full 적용. 페이지 번호가
+ *   많아지면 윈도우 5개씩만 보여 주고 ‥ 로 생략 (총 ≤ 6 개면 전체 표시).
  */
-const RESULTS_PAGE_SIZE = 8;
+const RESULTS_PAGE_SIZE = 10;
 
 function CompletedJobsPaged({ jobs }: { jobs: SnapJob[] }) {
   const [page, setPage] = useState(0);
@@ -526,42 +531,56 @@ function CompletedJobsPaged({ jobs }: { jobs: SnapJob[] }) {
   const start = clampedPage * RESULTS_PAGE_SIZE;
   const visible = jobs.slice(start, start + RESULTS_PAGE_SIZE);
 
+  // 모바일 폭에서 번호가 6 개 넘어가면 좌우 ellipsis 로 압축한 윈도우만 표시.
+  // 현재 페이지 기준 좌우 1 칸 + 첫/마지막 페이지를 항상 보여 줘서 점프 가능.
+  const pageItems = computePageItems(clampedPage, totalPages);
+
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex w-full flex-col gap-3">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
         {visible.map((j) => (
           <SnapResultCard key={j.id} job={j} />
         ))}
       </div>
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-1 text-[11px] text-[#5C4633]">
+        <div className="flex w-full max-w-full flex-wrap items-center justify-center gap-1 overflow-hidden text-[11px] text-[#5C4633]">
           <button
             type="button"
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={clampedPage === 0}
-            className="rounded border border-[#E8DCC9] bg-white px-2 py-1 hover:bg-[#FAF7F2] disabled:opacity-40"
+            className="shrink-0 rounded border border-[#E8DCC9] bg-white px-2 py-1 hover:bg-[#FAF7F2] disabled:opacity-40"
           >
             이전
           </button>
-          {Array.from({ length: totalPages }).map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setPage(i)}
-              className={`min-w-[28px] rounded border px-2 py-1 ${
-                i === clampedPage
-                  ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white'
-                  : 'border-[#E8DCC9] bg-white hover:bg-[#FAF7F2]'
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
+          {pageItems.map((item, idx) =>
+            item === 'ellipsis' ? (
+              <span
+                key={`e-${idx}`}
+                className="shrink-0 px-1 text-[#8B7355]"
+                aria-hidden
+              >
+                …
+              </span>
+            ) : (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setPage(item)}
+                className={`min-w-[28px] shrink-0 rounded border px-2 py-1 ${
+                  item === clampedPage
+                    ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white'
+                    : 'border-[#E8DCC9] bg-white hover:bg-[#FAF7F2]'
+                }`}
+              >
+                {item + 1}
+              </button>
+            ),
+          )}
           <button
             type="button"
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={clampedPage >= totalPages - 1}
-            className="rounded border border-[#E8DCC9] bg-white px-2 py-1 hover:bg-[#FAF7F2] disabled:opacity-40"
+            className="shrink-0 rounded border border-[#E8DCC9] bg-white px-2 py-1 hover:bg-[#FAF7F2] disabled:opacity-40"
           >
             다음
           </button>
@@ -569,6 +588,28 @@ function CompletedJobsPaged({ jobs }: { jobs: SnapJob[] }) {
       )}
     </div>
   );
+}
+
+/**
+ * 페이지 번호 표시 항목 계산. 총 6 페이지 이하면 전체, 그 이상이면 현재 페이지를
+ * 중심으로 윈도우 + 첫/마지막을 보여 주고 그 사이에 'ellipsis' 삽입.
+ *
+ * 예시 (totalPages=12, current=5): [0, 'ellipsis', 4, 5, 6, 'ellipsis', 11]
+ */
+function computePageItems(
+  current: number,
+  total: number,
+): Array<number | 'ellipsis'> {
+  if (total <= 6) return Array.from({ length: total }, (_, i) => i);
+  const items: Array<number | 'ellipsis'> = [];
+  const windowStart = Math.max(1, current - 1);
+  const windowEnd = Math.min(total - 2, current + 1);
+  items.push(0);
+  if (windowStart > 1) items.push('ellipsis');
+  for (let i = windowStart; i <= windowEnd; i++) items.push(i);
+  if (windowEnd < total - 2) items.push('ellipsis');
+  items.push(total - 1);
+  return items;
 }
 
 function SnapResultCard({ job }: { job: SnapJob }) {
