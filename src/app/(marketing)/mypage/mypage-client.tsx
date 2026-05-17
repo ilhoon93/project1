@@ -487,13 +487,7 @@ function SnapJobsGallery({
         </div>
       )}
 
-      {completed.length > 0 && (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-          {completed.map((j) => (
-            <SnapResultCard key={j.id} job={j} />
-          ))}
-        </div>
-      )}
+      {completed.length > 0 && <CompletedJobsPaged jobs={completed} />}
 
       {failed.length > 0 && (
         <details className="rounded-md border border-red-200 bg-red-50 p-3 text-[11px] text-red-900">
@@ -508,6 +502,70 @@ function SnapJobsGallery({
             ))}
           </ul>
         </details>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 완성된 결과 카드 페이징.
+ *
+ * 생성 결과가 누적되면 한 화면에 다 펼치면 스크롤이 길어지고 이미지 동시 로딩으로
+ * 모바일 트래픽 부담이 큼. PAGE_SIZE 장씩 끊어 보여 주고, 페이지 번호 + 이전/다음
+ * 버튼으로 이동. 페이지 0-index 로 관리하지만 UI 에는 1-base 로 표시.
+ *
+ * 새로고침/refresh 로 jobs 가 갱신되면 jobs 길이로 totalPages 가 다시 계산되며,
+ * 현재 page 가 범위를 벗어나면 마지막 페이지로 클램프.
+ */
+const RESULTS_PAGE_SIZE = 8;
+
+function CompletedJobsPaged({ jobs }: { jobs: SnapJob[] }) {
+  const [page, setPage] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(jobs.length / RESULTS_PAGE_SIZE));
+  const clampedPage = Math.min(page, totalPages - 1);
+  const start = clampedPage * RESULTS_PAGE_SIZE;
+  const visible = jobs.slice(start, start + RESULTS_PAGE_SIZE);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+        {visible.map((j) => (
+          <SnapResultCard key={j.id} job={j} />
+        ))}
+      </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-1 text-[11px] text-[#5C4633]">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={clampedPage === 0}
+            className="rounded border border-[#E8DCC9] bg-white px-2 py-1 hover:bg-[#FAF7F2] disabled:opacity-40"
+          >
+            이전
+          </button>
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setPage(i)}
+              className={`min-w-[28px] rounded border px-2 py-1 ${
+                i === clampedPage
+                  ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white'
+                  : 'border-[#E8DCC9] bg-white hover:bg-[#FAF7F2]'
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={clampedPage >= totalPages - 1}
+            className="rounded border border-[#E8DCC9] bg-white px-2 py-1 hover:bg-[#FAF7F2] disabled:opacity-40"
+          >
+            다음
+          </button>
+        </div>
       )}
     </div>
   );

@@ -726,29 +726,81 @@ export function SnapGenerator({ catalog }: Props) {
         {/* 셀카 거리 가이드 — 광각 왜곡(볼록렌즈 효과) 회피 안내.
             너무 가까이서 찍은 셀카는 코·얼굴 가운데가 부풀고 옆얼굴이 작아 보여,
             앵커 → 카탈로그 합성 결과의 비율이 어색해진다. */}
-        <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-[11px] text-[#5C4633]">
-          <p className="font-semibold text-amber-800">
-            📸 좋은 결과를 위한 사진 가이드
-          </p>
-          <ul className="mt-1.5 list-disc space-y-1 pl-4">
-            <li>
-              <strong>가까이서 찍은 셀카는 피해주세요.</strong> 휴대폰 전면 카메라는
-              광각이라 얼굴 가운데(코)가 부풀고 비율이 어색해집니다.
-            </li>
-            <li>
-              <strong>팔을 끝까지 뻗어서</strong> 찍거나 (최소), <strong>다른 사람이
-              1.5~2m 거리</strong>에서 찍어주면 가장 좋아요.
-            </li>
-            <li>
-              <strong>증명사진 · 프로필 사진 · 인물 사진</strong>도 매우 좋습니다.
-              꼭 셀카일 필요 없어요.
-            </li>
-            <li>
-              밝은 곳에서 얼굴이 또렷하게 보이도록. 강한 보정 필터·선글라스·마스크는
-              피해주세요.
-            </li>
-          </ul>
-        </div>
+        {mode !== 'couple' && (
+          <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-[11px] text-[#5C4633]">
+            <p className="font-semibold text-amber-800">
+              📸 좋은 결과를 위한 사진 가이드
+            </p>
+            <ul className="mt-1.5 list-disc space-y-1 pl-4">
+              <li>
+                <strong>가까이서 찍은 셀카는 피해주세요.</strong> 휴대폰 전면 카메라는
+                광각이라 얼굴 가운데(코)가 부풀고 비율이 어색해집니다.
+              </li>
+              <li>
+                <strong>팔을 끝까지 뻗어서</strong> 찍거나 (최소), <strong>다른 사람이
+                1.5~2m 거리</strong>에서 찍어주면 가장 좋아요.
+              </li>
+              <li>
+                <strong>증명사진 · 프로필 사진 · 인물 사진</strong>도 매우 좋습니다.
+                꼭 셀카일 필요 없어요.
+              </li>
+              <li>
+                밝은 곳에서 얼굴이 또렷하게 보이도록. 강한 보정 필터·선글라스·마스크는
+                피해주세요.
+              </li>
+            </ul>
+          </div>
+        )}
+
+        {/* 커플 사진 1장 모드 전용 가이드 — 얼굴 변형 / 정체성 손상의 흔한 입력 패턴을
+            사전 차단. 가장 큰 실패 케이스는 (1) 사진이 회전돼 들어옴, (2) 광각 풀샷이라
+            얼굴이 너무 작음, (3) 두꺼운 외투·머플러로 어깨·턱선이 가려짐, (4) 두 사람이
+            정면을 안 봄, (5) 강한 필터·야경/저조도. */}
+        {mode === 'couple' && (
+          <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-[11px] text-[#5C4633]">
+            <p className="font-semibold text-amber-800">
+              📸 무조건 잘 나오는 커플 사진 가이드
+            </p>
+            <p className="mt-1.5 text-[10px] font-semibold text-amber-900">필수</p>
+            <ul className="mt-0.5 list-disc space-y-1 pl-4">
+              <li>
+                <strong>사진이 누워있지 않은지</strong> 미리보기에서 확인. 가로로 보이면
+                회전해서 다시 업로드해주세요.
+              </li>
+              <li>
+                두 사람 모두 <strong>카메라 정면</strong>을 바라보는 사진. 옆모습·딴 데
+                보는 사진은 얼굴이 재구성됩니다.
+              </li>
+              <li>
+                <strong>얼굴이 또렷</strong>해야 해요. 흐림·강한 필터·흑백·세피아·마스크·
+                선글라스는 피해주세요.
+              </li>
+              <li>
+                <strong>반신 ~ 무릎 위</strong> 컷이 가장 안정적이에요. 풍경 위주 풀샷은
+                얼굴이 작아져서 변형 위험이 커집니다.
+              </li>
+            </ul>
+            <p className="mt-2 text-[10px] font-semibold text-amber-900">권장</p>
+            <ul className="mt-0.5 list-disc space-y-1 pl-4">
+              <li>
+                <strong>가벼운 옷차림</strong>. 두꺼운 패딩·롱코트·후드·머플러·하이넥은
+                어깨·턱선을 가려서 합성이 어색해집니다.
+              </li>
+              <li>
+                <strong>밝은 자연광</strong> 또는 균일한 실내 조명. 강한 역광·반쪽 그늘은
+                피해주세요.
+              </li>
+              <li>
+                두 사람 어깨가 <strong>가볍게 닿거나 팔짱</strong>. 멀리 떨어진 투샷보다
+                결과가 안정적이에요.
+              </li>
+              <li>
+                키 차이가 크면 한 사람이 살짝 굽혀서 <strong>얼굴 높이를 비슷하게</strong>
+                맞춰주세요.
+              </li>
+            </ul>
+          </div>
+        )}
 
         {showSelfieInputs && (
           <div className="mt-3 flex flex-col gap-4">
@@ -1743,12 +1795,14 @@ function FaceUploader({
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={face.preview} alt={label} className="block h-full w-full object-contain" />
-            {/* 업로드 후에도 흐릿한 가이드 — 얼굴 위치 / 크기 점검용 */}
-            <UploadGuideOverlay wide={wide} opacity={0.25} />
+            {/* 업로드 후에도 흐릿한 가이드 — 얼굴 위치 / 크기 점검용.
+                커플 사진 모드(wide) 는 한 명이 아니라 두 명이 함께 찍힌 사진이라
+                중앙 얼굴 1개 가이드가 오히려 혼란을 줘서 표시하지 않는다. */}
+            {!wide && <UploadGuideOverlay wide={wide} opacity={0.25} />}
           </>
         ) : (
           <>
-            <UploadGuideOverlay wide={wide} opacity={0.6} />
+            {!wide && <UploadGuideOverlay wide={wide} opacity={0.6} />}
             <span className="absolute text-2xl text-[#8B7355]">＋</span>
           </>
         )}

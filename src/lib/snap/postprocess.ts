@@ -104,6 +104,7 @@ export async function applyUpscalePostprocess(
   sourceUrl: string,
   mode: UpscaleMode,
   catalogId?: string | null,
+  catalogPath?: 'anchored' | 'selfies' | 'couple' | null,
 ): Promise<Buffer> {
   const catalogMeta = catalogId ? await getCatalogColorMeta(catalogId) : null;
 
@@ -144,6 +145,7 @@ export async function applyUpscalePostprocess(
         catalogId,
         catalogMeta,
         finishingMode,
+        catalogPath,
       );
       if (finishedUrl) {
         state.currentUrl = finishedUrl;

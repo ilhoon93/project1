@@ -664,6 +664,71 @@ export function buildSoloPromptOnly(opts: SoloCatalogPromptOpts): string {
 // ──────────────────────────────────────────────────────────────
 
 /**
+ * 카탈로그 promptHint 에서 인물 외모·포즈·표정 묘사를 제거하고 환경·조명·색 그레이드
+ * 묘사만 남긴 sanitized 버전을 반환.
+ *
+ * 배경: 카탈로그 promptHint 가 "Groom: ... neat mustache", "Pose: ... kiss the bride",
+ * "natural smile" 같은 인물 묘사를 포함하면, 커플 모드 STRICT 프롬프트가 "얼굴/포즈
+ * 바꾸지 마" 라고 차단해도 gpt-image-2 가 long context 안의 외모 키워드를 부분 흡수해
+ * 사용자의 얼굴에 콧수염을 더하거나 포즈를 카탈로그식으로 재구성한다.
+ *
+ * 규칙: "Groom:", "Bride:", "Pose:" 같은 인물 섹션 라벨로 시작하는 sentence 와,
+ * 외모/포즈/표정 키워드를 포함한 sentence 를 통째로 제거. 환경·렌즈·조명·컬러
+ * sentence 는 유지. 결과가 너무 짧으면 원본 폴백 (mood 정보 손실 방지).
+ */
+function sanitizeCatalogHintForCouple(promptHint: string): string {
+  // 인물 관련 키워드 (소문자 비교) — 이 단어 중 하나라도 포함한 문장은 drop.
+  const personKeywords = [
+    'groom:',
+    'bride:',
+    'pose:',
+    'mustache',
+    'beard',
+    'hairline',
+    'hair with',
+    'hair texture',
+    'hairstyle',
+    'kiss',
+    'kissing',
+    'smile',
+    'smiling',
+    'expression',
+    'looking at camera',
+    'looks at camera',
+    'looking softly',
+    'looks softly',
+    'eye line',
+    'eye contact',
+    'gaze',
+    'leaning in',
+    'leaning toward',
+    'lean toward',
+    'leans toward',
+    'leaning gently',
+    'holding hands',
+    'holding a bouquet',
+    'holding a small bouquet',
+    'bouquet at',
+    'bouquet of',
+    'arm around',
+    'cheek',
+    'temple',
+    'jawline',
+  ];
+
+  const sentences = promptHint.split(/(?<=\.)\s+/);
+  const kept = sentences.filter((s) => {
+    const lower = s.toLowerCase();
+    return !personKeywords.some((kw) => lower.includes(kw));
+  });
+
+  const sanitized = kept.join(' ').trim();
+  // 너무 많이 잘려나가면 (≤30%) 원본 사용 — mood 정보 자체가 사라지면 무의미.
+  if (sanitized.length < promptHint.length * 0.3) return promptHint;
+  return sanitized;
+}
+
+/**
  * 커플 사진 직결 — anchor 우회. STRICT 모드:
  *
  *   업로드된 커플 사진(Image 1)의 얼굴·구도·포즈·프레이밍은 절대 변형하지 않고,
@@ -680,13 +745,15 @@ export function buildCouplePhotoSnapPrompt(input: SnapPromptInput | string): str
     typeof input === 'string' ? { catalogPromptHint: input } : input;
   const bodySection = buildBodySection(opts.groom, opts.bride);
   const colorSection = colorHintSection(opts.catalogColorHint);
+  // 인물 묘사를 제거한 환경/조명 only 버전을 모델에 넘긴다.
+  const sanitizedHint = sanitizeCatalogHintForCouple(opts.catalogPromptHint);
 
   return [
     'STRICT preservation task. Two input images, very different roles:',
     "- Image 1 = User couple photo. THIS IS THE LOCKED REFERENCE. Faces, identities, poses, hand positions, head tilts, the way they lean toward each other, eye lines, framing, camera angle, and face/head SIZE relative to the frame ALL come from Image 1 unchanged.",
     "- Image 2 = Catalog style reference. ONLY THREE ELEMENTS come from Image 2: (a) wedding outfits, (b) background / environment, (c) overall lighting tone, color grade, and atmospheric mood. NOTHING else.",
     '',
-    `Scene context (mood only, NOT for composition): ${opts.catalogPromptHint}`,
+    `Scene context (environment, lens, lighting, color grade only — NOT for composition, faces, or poses): ${sanitizedHint}`,
     '',
     'LOCKED FROM IMAGE 1 — DO NOT CHANGE ANY OF THESE:',
     '- Faces: identical eye shape, nose bridge, jawline, mouth shape, skin tone/texture, hair shape and color, facial expression. The faces in the output MUST be the same two people as Image 1, indistinguishable from those reference faces.',
