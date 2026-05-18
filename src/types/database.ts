@@ -379,6 +379,12 @@ export type Database = {
           face_similarity_groom: number | null;
           face_similarity_bride: number | null;
           face_similarity_ref: 'selfie' | 'anchor' | 'couple_input' | null;
+          fal_cost_usd: number | null;
+          phase_timings: Record<string, number> | null;
+          pipeline_stages: Record<string, string | boolean | null> | null;
+          input_face_count: number | null;
+          input_face_min_size: number | null;
+          input_avg_luminance: number | null;
         };
         Insert: {
           id?: string;
@@ -400,8 +406,38 @@ export type Database = {
           face_similarity_groom?: number | null;
           face_similarity_bride?: number | null;
           face_similarity_ref?: 'selfie' | 'anchor' | 'couple_input' | null;
+          fal_cost_usd?: number | null;
+          phase_timings?: Record<string, number> | null;
+          pipeline_stages?: Record<string, string | boolean | null> | null;
+          input_face_count?: number | null;
+          input_face_min_size?: number | null;
+          input_avg_luminance?: number | null;
         };
         Update: Partial<Database['public']['Tables']['snap_jobs']['Insert']>;
+        Relationships: [];
+      };
+      snap_consent: {
+        Row: {
+          id: string;
+          user_id: string;
+          scope: 'personal_info' | 'ai_generation' | 'external_share';
+          version: number;
+          accepted: boolean;
+          accepted_at: string;
+          user_agent: string | null;
+          ip_address: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          scope: 'personal_info' | 'ai_generation' | 'external_share';
+          version: number;
+          accepted?: boolean;
+          accepted_at?: string;
+          user_agent?: string | null;
+          ip_address?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['snap_consent']['Insert']>;
         Relationships: [];
       };
       snap_anchor_history: {
@@ -600,6 +636,10 @@ export type Database = {
       consume_snap_credit: {
         Args: { p_user_id: string; p_note?: string | null };
         Returns: Json;
+      };
+      snap_has_required_consent: {
+        Args: { p_user_id: string; p_version: number };
+        Returns: boolean;
       };
       refund_snap_credit: {
         Args: { p_user_id: string; p_note?: string | null; p_ref_id?: string | null };

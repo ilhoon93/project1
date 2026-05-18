@@ -17,6 +17,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import type { Database } from '@/types/database';
 
 type SnapJobInsert = Database['public']['Tables']['snap_jobs']['Insert'];
+type SnapJobUpdate = Database['public']['Tables']['snap_jobs']['Update'];
 
 export interface SnapJobLogInput {
   userId: string;
@@ -30,6 +31,10 @@ export interface SnapJobLogInput {
   anchorFraming?: 'closeup' | 'halfbody' | null;
   /** 차감/적립된 크레딧 (catalog -1, anchor 0 또는 -4) */
   creditDelta?: number;
+  /** 입력 사진 검증 메타 — input-validation.ts 의 ImageValidationResult.meta 에서. */
+  inputFaceCount?: number | null;
+  inputFaceMinSize?: number | null;
+  inputAvgLuminance?: number | null;
 }
 
 /** submit 직후 호출 — 행 insert. 실패는 로그만 남기고 throw 안 함. */
@@ -47,6 +52,9 @@ export async function logSnapJobSubmit(input: SnapJobLogInput): Promise<void> {
     anchor_framing: input.anchorFraming ?? null,
     status: 'submitted',
     credit_delta: input.creditDelta ?? 0,
+    input_face_count: input.inputFaceCount ?? null,
+    input_face_min_size: input.inputFaceMinSize ?? null,
+    input_avg_luminance: input.inputAvgLuminance ?? null,
   };
   const { error } = await admin.from('snap_jobs').insert(payload);
   if (error) {
@@ -54,18 +62,59 @@ export async function logSnapJobSubmit(input: SnapJobLogInput): Promise<void> {
   }
 }
 
-export async function markSnapJobCompleted(
+/**
+ * 단계별 비용·타이밍·실행 stage 갱신 API.
+ *
+ * finalize 흐름에서 각 단계(harmonize/finishing/upscale 등) 종료 후 호출해
+ * snap_jobs 의 fal_cost_usd / phase_timings / pipeline_stages 를 patch.
+ * 일부 단계만 채워도 됨 (병합은 application 측에서 — JSONB merge 가 아닌 replace).
+ *
+ * 실패 시 로그만 — 본 흐름 영향 없음.
+ */
+export interface SnapJobPostprocessLog {
+  falCostUsd?: number | null;
+  phaseTimings?: Record<string, number> | null;
+  pipelineStages?: Record<string, string | boolean | null> | null;
+}
+
+export async function patchSnapJobLogs(
   falRequestId: string,
-  resultUrl: string,
+  patch: SnapJobPostprocessLog,
 ): Promise<void> {
+  const update: SnapJobUpdate = {};
+  if (patch.falCostUsd !== undefined) update.fal_cost_usd = patch.falCostUsd;
+  if (patch.phaseTimings !== undefined) update.phase_timings = patch.phaseTimings;
+  if (patch.pipelineStages !== undefined) update.pipeline_stages = patch.pipelineStages;
+  if (Object.keys(update).length === 0) return;
+
   const admin = createAdminClient();
   const { error } = await admin
     .from('snap_jobs')
-    .update({
-      status: 'completed',
-      result_url: resultUrl,
-      completed_at: new Date().toISOString(),
-    })
+    .update(update)
+    .eq('fal_request_id', falRequestId);
+  if (error) {
+    console.warn('[snap_jobs] logs patch failed', { falRequestId }, error);
+  }
+}
+
+export async function markSnapJobCompleted(
+  falRequestId: string,
+  resultUrl: string,
+  logs?: SnapJobPostprocessLog,
+): Promise<void> {
+  const admin = createAdminClient();
+  const update: SnapJobUpdate = {
+    status: 'completed',
+    result_url: resultUrl,
+    completed_at: new Date().toISOString(),
+  };
+  if (logs?.falCostUsd !== undefined) update.fal_cost_usd = logs.falCostUsd;
+  if (logs?.phaseTimings !== undefined) update.phase_timings = logs.phaseTimings;
+  if (logs?.pipelineStages !== undefined) update.pipeline_stages = logs.pipelineStages;
+
+  const { error } = await admin
+    .from('snap_jobs')
+    .update(update)
     .eq('fal_request_id', falRequestId);
   if (error) {
     console.warn('[snap_jobs] complete update failed', { falRequestId }, error);
