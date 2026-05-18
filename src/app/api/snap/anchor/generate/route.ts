@@ -128,11 +128,27 @@ export async function POST(req: Request) {
       url,
     })),
   ];
+  // 앵커 입력은 인물 사진 1명씩 — face detection 켜고 1명 기대.
+  // 검출 0이면 차단 (회전된 사진 / 너무 멀어서 얼굴 픽셀 부족 등).
   const validations = await Promise.all(
-    labeledUrls.map((entry) => validateInputImage(entry.url)),
+    labeledUrls.map((entry) =>
+      validateInputImage(entry.url, {
+        faceDetection: true,
+        expectedFaces: 1,
+      }),
+    ),
   );
   const errorDetails: string[] = [];
   const warningDetails: string[] = [];
+  // slot 별 aggregate 검증 메타 — snap_jobs 행에 가장 나쁜 케이스 (최소 얼굴 크기 /
+  // 가장 어두운 luminance) 를 기록해 추후 quality 분석에 활용. 슬롯 식별은
+  // labeledUrls 의 인덱스 분배로 (groom 먼저, bride 뒤).
+  const slotMeta: Record<'groom' | 'bride', {
+    faceCount: number | null;
+    minFaceSize: number | null;
+    avgLuminance: number;
+  } | null> = { groom: null, bride: null };
+  const groomCount = input.groomFaceUrls?.length ?? 0;
   validations.forEach((v, i) => {
     const label = labeledUrls[i].label;
     if (!v.ok) {
@@ -140,6 +156,26 @@ export async function POST(req: Request) {
     }
     if (v.warnings.length > 0) {
       warningDetails.push(`${label}: ${v.warnings.join(', ')}`);
+    }
+    const slot: 'groom' | 'bride' = i < groomCount ? 'groom' : 'bride';
+    const cur = slotMeta[slot];
+    // 가장 나쁜 케이스 (얼굴 가장 작음 / luminance 가장 낮음) 누적.
+    const incoming = {
+      faceCount: v.meta.faceCount,
+      minFaceSize: v.meta.minFaceSize,
+      avgLuminance: v.meta.avgLuminance,
+    };
+    if (!cur) {
+      slotMeta[slot] = incoming;
+    } else {
+      slotMeta[slot] = {
+        faceCount: cur.faceCount,
+        minFaceSize:
+          cur.minFaceSize !== null && incoming.minFaceSize !== null
+            ? Math.min(cur.minFaceSize, incoming.minFaceSize)
+            : (cur.minFaceSize ?? incoming.minFaceSize),
+        avgLuminance: Math.min(cur.avgLuminance, incoming.avgLuminance),
+      };
     }
   });
   if (errorDetails.length > 0) {
@@ -300,6 +336,7 @@ export async function POST(req: Request) {
           quality: 'high',
           imageSize: 'portrait_4_3',
         });
+        const meta = slotMeta[t.slot];
         void logSnapJobSubmit({
           userId: user.id,
           kind: 'anchor',
@@ -309,6 +346,9 @@ export async function POST(req: Request) {
           anchorSlot: t.slot,
           anchorFraming: t.framing,
           creditDelta: isFreeActivation ? 0 : -1,
+          inputFaceCount: meta?.faceCount ?? null,
+          inputFaceMinSize: meta?.minFaceSize ?? null,
+          inputAvgLuminance: meta?.avgLuminance ?? null,
         });
         return { slot: t.slot, framing: t.framing, requestId };
       }),

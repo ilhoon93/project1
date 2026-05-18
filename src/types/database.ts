@@ -376,6 +376,12 @@ export type Database = {
           error_message: string | null;
           submitted_at: string;
           completed_at: string | null;
+          fal_cost_usd: number | null;
+          phase_timings: Record<string, number> | null;
+          pipeline_stages: Record<string, string | boolean | null> | null;
+          input_face_count: number | null;
+          input_face_min_size: number | null;
+          input_avg_luminance: number | null;
         };
         Insert: {
           id?: string;
@@ -394,6 +400,12 @@ export type Database = {
           error_message?: string | null;
           submitted_at?: string;
           completed_at?: string | null;
+          fal_cost_usd?: number | null;
+          phase_timings?: Record<string, number> | null;
+          pipeline_stages?: Record<string, string | boolean | null> | null;
+          input_face_count?: number | null;
+          input_face_min_size?: number | null;
+          input_avg_luminance?: number | null;
         };
         Update: Partial<Database['public']['Tables']['snap_jobs']['Insert']>;
         Relationships: [];
