@@ -76,7 +76,12 @@ const CoupleBodySchema = z.object({
 const AnchoredOnlySchema = z.object({
   mode: z.literal('anchor'),
   catalogId: z.string().min(1),
-  anchorId: z.union([z.literal('current'), z.string().uuid()]).optional(),
+  // 신랑 / 신부 앵커를 각각 별도 source 에서 선택 가능 (PR slot-level anchor).
+  //   'current' → 현재 snap_anchors 의 해당 slot
+  //   UUID      → snap_anchor_history 의 그 row 의 해당 slot
+  // 미지정은 'current' 로 간주. personality 가 solo 인 경우 반대쪽은 무시.
+  groomAnchorId: z.union([z.literal('current'), z.string().uuid()]).optional(),
+  brideAnchorId: z.union([z.literal('current'), z.string().uuid()]).optional(),
   imageReference: z.enum(['strict', 'prompt-only']).optional(),
 });
 
@@ -132,13 +137,14 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient();
 
-  // ── 앵커 모드면 anchor 로드 + personality 별 필요 slot 검증 ───
-  //   anchorId 미지정 / 'current' → snap_anchors (가장 최근 active)
-  //   UUID → snap_anchor_history 에서 해당 row (라이브러리 picker)
+  // ── 앵커 모드: 신랑 / 신부 각자 source 에서 slot 로드 ───
+  //   각 slot 의 source:
+  //     'current' → snap_anchors 의 해당 slot
+  //     UUID      → snap_anchor_history 의 그 row 의 해당 slot
+  //   personality 가 solo 면 반대쪽 slot 은 불러오지 않음.
   //
-  // Phase A: anchor URL 외에 selfie URL 도 함께 가져옴 — fal 단계에서 anchor 는
-  // 체형/포즈 ref, selfie 는 face identity ref 로 역할 분리해 2단계 합성 누적
-  // identity drift 를 줄인다.
+  // Phase A: anchor URL 외에 selfie URL / 체형도 함께 — fal 단계에서 anchor 는
+  // 포즈/체형 ref, selfie 는 face identity ref 로 역할 분리.
   let anchor: {
     groom_anchor_url: string | null;
     bride_anchor_url: string | null;
@@ -150,52 +156,95 @@ export async function POST(req: Request) {
     bride_weight_kg: number | null;
   } | null = null;
   if (input.mode === 'anchor') {
-    const anchorId = input.anchorId ?? 'current';
-    if (anchorId === 'current') {
-      const { data } = await admin
-        .from('snap_anchors')
-        .select(
-          'groom_anchor_url, bride_anchor_url, groom_selfie_url, bride_selfie_url, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg',
-        )
-        .eq('user_id', user.id)
-        .maybeSingle();
-      anchor = data;
-    } else {
-      // 라이브러리 — user_id 매칭은 RLS 가 아니라 직접 검증 (admin client 사용 중).
+    const needGroom =
+      catalog.personality === 'together' || catalog.personality === 'groom-solo';
+    const needBride =
+      catalog.personality === 'together' || catalog.personality === 'bride-solo';
+
+    const groomSourceId = input.groomAnchorId ?? 'current';
+    const brideSourceId = input.brideAnchorId ?? 'current';
+
+    // source 별로 1회 조회 후 캐시. 같은 source 두 slot 이 가리키면 1회로 끝남.
+    const sources = new Map<
+      string,
+      {
+        groom_anchor_url: string | null;
+        bride_anchor_url: string | null;
+        groom_selfie_url: string | null;
+        bride_selfie_url: string | null;
+        groom_height_cm: number | null;
+        groom_weight_kg: number | null;
+        bride_height_cm: number | null;
+        bride_weight_kg: number | null;
+      } | null
+    >();
+    const loadSource = async (
+      sourceId: string,
+    ): Promise<typeof sources extends Map<string, infer V> ? V : never> => {
+      if (sources.has(sourceId)) return sources.get(sourceId)!;
+      if (sourceId === 'current') {
+        const { data } = await admin
+          .from('snap_anchors')
+          .select(
+            'groom_anchor_url, bride_anchor_url, groom_selfie_url, bride_selfie_url, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg',
+          )
+          .eq('user_id', user.id)
+          .maybeSingle();
+        sources.set(sourceId, data);
+        return data;
+      }
       const { data } = await admin
         .from('snap_anchor_history')
         .select(
           'groom_anchor_url, bride_anchor_url, groom_selfie_url, bride_selfie_url, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg',
         )
-        .eq('id', anchorId)
+        .eq('id', sourceId)
         .eq('user_id', user.id)
         .maybeSingle();
-      anchor = data;
-    }
-    if (!anchor) {
+      sources.set(sourceId, data);
+      return data;
+    };
+
+    const groomSource = needGroom ? await loadSource(groomSourceId) : null;
+    const brideSource = needBride ? await loadSource(brideSourceId) : null;
+
+    // 각 slot 검증 — 필요한 slot 의 source 가 없거나 anchor URL 이 비면 명확한 에러.
+    if (needGroom && !groomSource?.groom_anchor_url) {
       return NextResponse.json(
-        { error: '먼저 앵커를 생성하고 선택해주세요.', code: 'no_anchor' },
+        {
+          error:
+            catalog.personality === 'groom-solo'
+              ? '신랑 단독 컷에는 신랑 앵커가 필요합니다. 선택된 source 에 신랑 앵커가 없어요.'
+              : '함께 컷에는 신랑 앵커가 필요합니다. 선택된 source 에 신랑 앵커가 없어요.',
+          code: 'no_anchor_slot',
+        },
         { status: 400 },
       );
     }
-    if (catalog.personality === 'together') {
-      if (!anchor.groom_anchor_url || !anchor.bride_anchor_url) {
-        return NextResponse.json(
-          { error: '함께 컷에는 신랑 앵커와 신부 앵커가 모두 필요합니다.', code: 'no_anchor_slot' },
-          { status: 400 },
-        );
-      }
-    } else if (catalog.personality === 'groom-solo' && !anchor.groom_anchor_url) {
+    if (needBride && !brideSource?.bride_anchor_url) {
       return NextResponse.json(
-        { error: '신랑 단독 컷에는 신랑 앵커가 필요합니다.', code: 'no_anchor_slot' },
-        { status: 400 },
-      );
-    } else if (catalog.personality === 'bride-solo' && !anchor.bride_anchor_url) {
-      return NextResponse.json(
-        { error: '신부 단독 컷에는 신부 앵커가 필요합니다.', code: 'no_anchor_slot' },
+        {
+          error:
+            catalog.personality === 'bride-solo'
+              ? '신부 단독 컷에는 신부 앵커가 필요합니다. 선택된 source 에 신부 앵커가 없어요.'
+              : '함께 컷에는 신부 앵커가 필요합니다. 선택된 source 에 신부 앵커가 없어요.',
+          code: 'no_anchor_slot',
+        },
         { status: 400 },
       );
     }
+
+    // 두 source 에서 각자 자기 slot 만 합성한 anchor 객체 구성.
+    anchor = {
+      groom_anchor_url: groomSource?.groom_anchor_url ?? null,
+      bride_anchor_url: brideSource?.bride_anchor_url ?? null,
+      groom_selfie_url: groomSource?.groom_selfie_url ?? null,
+      bride_selfie_url: brideSource?.bride_selfie_url ?? null,
+      groom_height_cm: groomSource?.groom_height_cm ?? null,
+      groom_weight_kg: groomSource?.groom_weight_kg ?? null,
+      bride_height_cm: brideSource?.bride_height_cm ?? null,
+      bride_weight_kg: brideSource?.bride_weight_kg ?? null,
+    };
   }
 
   // ── 크레딧 1 차감 (원자적) ─────────────────────────────
