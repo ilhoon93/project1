@@ -269,6 +269,16 @@ export async function POST(req: Request) {
       minFaceSize: couplePhotoValidation.meta.minFaceSize,
       avgLuminance: couplePhotoValidation.meta.avgLuminance,
     };
+    // 진단 로그 — face_count / min_face_size 가 NULL 로 들어가는 케이스 추적.
+    // detectFaces 가 실패하면 meta.faceCount = null 이고 ok 는 여전히 true 일 수 있음.
+    console.info('[snap/generate] couple input validation', {
+      ok: couplePhotoValidation.ok,
+      faceCount: couplePhotoValidation.meta.faceCount,
+      minFaceSize: couplePhotoValidation.meta.minFaceSize,
+      avgLuminance: couplePhotoValidation.meta.avgLuminance,
+      errors: couplePhotoValidation.errors,
+      warnings: couplePhotoValidation.warnings,
+    });
     if (!couplePhotoValidation.ok) {
       return NextResponse.json(
         {
@@ -441,8 +451,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 502 });
   }
 
-  // snap_jobs 로깅 — 본 흐름에 영향 없게 비동기.
-  void logSnapJobSubmit({
+  // snap_jobs 로깅 — await 로 인덱스에 잡힌 row 가 실제로 만들어진 뒤 응답.
+  // (과거 void 호출은 Vercel 서버리스에서 응답 직후 freeze 되어 INSERT 자체가
+  // 컷오프 → input_face_*, quality, image_reference 가 NULL 로 남는 원인이었음.
+  // 응답 latency 가 ~50–200ms 늘어나지만 데이터 일관성 우선.)
+  const resolvedImageReference = input.imageReference ?? 'strict';
+  await logSnapJobSubmit({
     userId: user.id,
     kind: 'catalog',
     falRequestId: requestId,
@@ -454,23 +468,30 @@ export async function POST(req: Request) {
     inputFaceCount: inputMeta?.faceCount ?? null,
     inputFaceMinSize: inputMeta?.minFaceSize ?? null,
     inputAvgLuminance: inputMeta?.avgLuminance ?? null,
+    imageReference: resolvedImageReference,
+  });
+  console.info('[snap/generate] job submitted', {
+    falRequestId: requestId,
+    catalogId: input.catalogId,
+    pathLabel,
+    quality: imageQuality,
+    imageReference: resolvedImageReference,
+    inputFaceCount: inputMeta?.faceCount ?? null,
+    inputFaceMinSize: inputMeta?.minFaceSize ?? null,
   });
 
   // 커플 모드: finalize 단계의 face-swap restore / similarity 측정에 사용할
-  // 커플 사진 URL 을 snap_jobs 에 별도 저장 (logSnapJobSubmit 후 patch).
-  // 023 migration 에서 추가된 columns. logSnapJobSubmit 가 비동기라 여기서
-  // 다시 admin.from.update 로 patch — race condition 없음 (같은 row 의 다른 필드).
+  // 커플 사진 URL 을 snap_jobs 에 별도 저장. await 로 처리해 logSnapJobSubmit
+  // → patch 순서가 보장되고 응답 후 컷오프되지 않음.
   if (input.mode === 'couple' && coupleStoredPhotoUrl) {
-    void admin
+    const { error: patchErr } = await admin
       .from('snap_jobs')
       .update({
         couple_photo_url: coupleStoredPhotoUrl,
         // path 저장은 PR 3 (private storage) 머지 후 별도 작업. 우선 URL 만.
       } as never)
-      .eq('fal_request_id', requestId)
-      .then(({ error }) => {
-        if (error) console.warn('[snap/generate] couple url patch failed', error);
-      });
+      .eq('fal_request_id', requestId);
+    if (patchErr) console.warn('[snap/generate] couple url patch failed', patchErr);
   }
 
   return NextResponse.json({
