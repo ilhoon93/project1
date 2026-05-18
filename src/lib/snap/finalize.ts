@@ -273,22 +273,29 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
     pipelineStages: stages,
   });
 
-  // 6. (옵션) Face similarity 측정 — quality gate / 분석용. 비차단 (PR 7).
+  // 6. (옵션) Face similarity 측정 — quality gate / 분석용.
   //    reference 선정:
   //      커플 모드 → 사용자 커플 사진
   //      셀카 모드 → groomSelfie (있으면) / brideSelfie
   //    similarity 점수가 임계 미만이면 warn 로깅 (자동 차단/환불 X — 사용자가
   //    이미 결과를 받고 있어 환불 처리가 복잡해짐. 분석용 누적 기록만).
-  void (async () => {
-    try {
-      const ref = pickFaceSimRef(ctx);
-      if (!ref) return;
+  //
+  //    과거에는 void IIFE 로 fire-and-forget 처리했으나, Vercel 서버리스에서
+  //    HTTP 응답 반환 직후 인스턴스가 freeze 되어 측정/UPDATE 가 자주 컷오프됐다
+  //    (face_similarity_* 컬럼이 거의 NULL 인 원인). await 로 바꿔 응답이
+  //    +2~5초 늦더라도 데이터가 일관되게 쌓이게 한다. 측정 실패는 try/catch 로
+  //    삼켜 사용자 결과(URL) 에는 영향 없음.
+  try {
+    const ref = pickFaceSimRef(ctx);
+    if (ref) {
       const score = await compareFaces(ref.url, publicUrl);
       const admin = createAdminClient();
-      const update: Record<string, unknown> = { face_similarity_ref: ref.kind };
-      // groom-only / together 케이스 단순화: 일단 groom 칼럼에 저장.
-      // 추후 fal 응답에서 per-face score 가 가능하면 양쪽 모두 채움.
-      update.face_similarity_groom = score;
+      const update: Record<string, unknown> = {
+        face_similarity_ref: ref.kind,
+        // groom-only / together 케이스 단순화: 일단 groom 칼럼에 저장.
+        // 추후 fal 응답에서 per-face score 가 가능하면 양쪽 모두 채움.
+        face_similarity_groom: score,
+      };
       await admin
         .from('snap_jobs')
         .update(update as never)
@@ -306,11 +313,11 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
           score.toFixed(3),
         );
       }
-    } catch (e) {
-      // 비차단. 측정 실패해도 사용자 결과에는 영향 X.
-      console.warn('[finalize] face similarity skipped', input.falRequestId, e);
     }
-  })();
+  } catch (e) {
+    // 측정 실패해도 사용자 결과(URL)에는 영향 X.
+    console.warn('[finalize] face similarity skipped', input.falRequestId, e);
+  }
 
   return { url: publicUrl };
 }

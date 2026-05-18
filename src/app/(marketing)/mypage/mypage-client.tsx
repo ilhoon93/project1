@@ -522,7 +522,7 @@ function SnapJobsGallery({
  *   flex-wrap 으로 줄바꿈 허용 + 컨테이너 자체에 max-w-full 적용. 페이지 번호가
  *   많아지면 윈도우 5개씩만 보여 주고 ‥ 로 생략 (총 ≤ 6 개면 전체 표시).
  */
-const RESULTS_PAGE_SIZE = 10;
+const RESULTS_PAGE_SIZE = 12;
 
 function CompletedJobsPaged({ jobs }: { jobs: SnapJob[] }) {
   const [page, setPage] = useState(0);
