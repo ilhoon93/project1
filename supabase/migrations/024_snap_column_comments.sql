@@ -181,9 +181,6 @@ comment on table public.snap_anchors is
 comment on column public.snap_anchors.user_id is
   '앵커 소유자. PK — 사용자당 1행만. auth.users(id) FK ON DELETE CASCADE.';
 
-comment on column public.snap_anchors.image_url is
-  '012 마이그 당시 legacy 단일 이미지 URL. 013 이후 groom_anchor_url / bride_anchor_url 로 분리되면서 신규 흐름에선 사용 안 함. 기존 row 호환용으로 보존.';
-
 comment on column public.snap_anchors.groom_anchor_url is
   '신랑 정면 합성 anchor URL (fal 결과 + 후처리). NULL = 아직 생성 안 함 / 폐기됨. (013 마이그 추가)';
 
@@ -323,9 +320,10 @@ comment on function public.consume_snap_credit(uuid, text) is
   '원자적 크레딧 차감. 잔액 부족 시 { ok:false, balance } 반환, 차감 안 됨.
    성공 시 { ok:true, balance } + snap_credits_ledger 에 delta=-1 row 추가.';
 
-comment on function public.refund_snap_credit(uuid, text, text) is
-  '크레딧 환불. snap_credits_ledger 에 delta=+N row 추가.
-   019 트리거가 snap_jobs.status → failed/timeout 시 자동 호출.';
+comment on function public.refund_snap_credit(uuid, text, uuid) is
+  '크레딧 환불. snap_credits_ledger 에 delta=+1 row 추가 (reason=''refund'').
+   019 트리거가 snap_jobs.status → failed/timeout 전이 시 자동 호출.
+   p_ref_id (uuid) 는 호출 측이 멱등성 관리용으로 전달 (보통 snap_jobs.id).';
 
 comment on function public.snap_has_required_consent(uuid, integer) is
   '필수 scope(personal_info, ai_generation) 모두 지정 version 이상으로 accepted=true 인지 확인.
