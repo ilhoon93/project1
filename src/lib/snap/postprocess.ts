@@ -32,13 +32,22 @@ export type UpscaleMode = 'off' | 'aura-sharpen' | 'topaz-sharpen';
 
 const VALID_MODES: readonly UpscaleMode[] = ['off', 'aura-sharpen', 'topaz-sharpen'];
 
-/** env 변수 SNAP_UPSCALE_MODE 읽어 검증. 잘못된 값이면 'off'. */
+/**
+ * env 변수 SNAP_UPSCALE_MODE 읽어 검증. 잘못된 값이면 'topaz-sharpen' (최고 품질
+ * 기본). 비용 절감을 위해 'off' 또는 'aura-sharpen' 으로 override 가능.
+ *
+ * 기본 'topaz-sharpen' 채택 이유:
+ *   - 디테일이 가장 강함 (사진 전용 학습된 모델)
+ *   - face_enhancement=false 설정으로 얼굴 변형 위험 차단 (fal/client.ts 참조)
+ *   - upscale 은 face-swap 단계 이후에 실행되므로 identity 가 이미 locked-in
+ *   - 비용 +$0.015/장 — 결혼사진 한 장의 가치 대비 합리적
+ */
 export function getUpscaleMode(): UpscaleMode {
   const v = process.env.SNAP_UPSCALE_MODE;
   if (typeof v === 'string' && (VALID_MODES as readonly string[]).includes(v)) {
     return v as UpscaleMode;
   }
-  return 'off';
+  return 'topaz-sharpen';
 }
 
 /**
@@ -74,22 +83,24 @@ async function ensureUrl(state: PipelineState): Promise<string> {
 /**
  * harmonize buffer 를 finishing(fal) 에 넘기기 위해 임시 supabase storage 에 업로드.
  * fal img2img 가 image_url 만 받고 base64 / inline data 미지원이라 이 우회가 필요.
- * public-images/wedding-snap/ephemeral/ 경로에 업로드. 별도 cron 으로 정리 가능.
+ *
+ * 사용자 PII 가 포함될 수 있어 private-uploads 에 업로드. 경로는
+ * wedding-snap/system/ephemeral/ — admin (service role) 만 쓰고 fal 만 signed URL
+ * 로 단기 접근. 사용자 직접 접근 불가 (RLS 정책상 user_id segment 미일치).
+ * 별도 cron 으로 일정 시간 후 정리.
  */
 async function uploadEphemeralForFal(
   buf: Buffer,
   catalogId: string | null,
 ): Promise<string> {
-  const { createAdminClient } = await import('@/lib/supabase/admin');
-  const admin = createAdminClient();
+  const { uploadPrivate, SIGNED_URL_TTL_SHORT } = await import(
+    '@/lib/snap/private-storage'
+  );
   const slug = catalogId ? `${catalogId}-` : '';
   const rand = Math.random().toString(36).slice(2, 8);
-  const path = `wedding-snap/ephemeral/${slug}${Date.now()}-${rand}.jpg`;
-  const { error } = await admin.storage
-    .from('public-images')
-    .upload(path, buf, { contentType: 'image/jpeg', upsert: false });
-  if (error) throw new Error(`ephemeral upload failed: ${error.message}`);
-  return admin.storage.from('public-images').getPublicUrl(path).data.publicUrl;
+  const path = `wedding-snap/system/ephemeral/${slug}${Date.now()}-${rand}.jpg`;
+  const { signedUrl } = await uploadPrivate(path, buf, 'image/jpeg', SIGNED_URL_TTL_SHORT);
+  return signedUrl;
 }
 
 /**

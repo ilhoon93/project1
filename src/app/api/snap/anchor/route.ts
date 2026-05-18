@@ -4,6 +4,10 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getImageEditResult } from '@/lib/fal/client';
 import { markSnapJobCompleted } from '@/lib/snap/jobs';
+import {
+  uploadPrivate,
+  SIGNED_URL_TTL_LONG,
+} from '@/lib/snap/private-storage';
 
 /**
  * /api/snap/anchor — solo anchor 아키텍처.
@@ -155,14 +159,17 @@ export async function POST(req: Request) {
         return r.blob();
       });
       const path = `wedding-snap/${user.id}/anchor-${slot}-${Date.now()}.jpg`;
-      const { error: upErr } = await admin.storage
-        .from('public-images')
-        .upload(path, blob, { contentType: 'image/jpeg', upsert: false });
-      if (upErr) throw upErr;
-      const publicUrl = admin.storage.from('public-images').getPublicUrl(path).data.publicUrl;
+      // 앵커는 사용자 얼굴 정체성 reference — private-uploads 에 저장하고 long TTL
+      // signed URL (1년) 로 노출. 만료 시 별도 갱신 흐름 필요 (TODO).
+      const { signedUrl } = await uploadPrivate(
+        path,
+        Buffer.from(await blob.arrayBuffer()),
+        'image/jpeg',
+        SIGNED_URL_TTL_LONG,
+      );
       // snap_jobs 의 해당 row 를 completed 로 마크.
-      void markSnapJobCompleted(requestId, publicUrl);
-      return { url: publicUrl };
+      void markSnapJobCompleted(requestId, signedUrl);
+      return { url: signedUrl };
     } catch (e) {
       console.error(`[snap/anchor save] ${slot} storage upload error`, e);
       return {
