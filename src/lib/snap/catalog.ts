@@ -171,6 +171,84 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
       [0.46, 0.40, 0.16, 0.18],
     ],
   },
+  {
+    id: 'beach-classic-white',
+    label: '비치 클래식 화이트',
+    hint: '화이트 슈트 + 베일 + 잔잔한 파도',
+    category: 'beach',
+    personality: 'together',
+    intensity: 'medium',
+    image: '/wedding-snap/catalog/beach-classic-white.jpg',
+    promptHint:
+      'Quiet seaside at warm late-afternoon daylight (soft low sun in clear pale-blue sky, gently breaking waves on calm shoreline in the background, light sea breeze hinting at fabric movement). Shot on 50–85mm portrait lens, full-body / three-quarter framing, eye-level camera, shallow depth of field with crisp soft natural light. Groom: clean ivory/white formal suit with mandarin/Nehru-style collar, no tie, dark hair tied back in a low bun and a neat short beard. Bride: ivory A-line wedding dress with delicate lace bodice and off-shoulder neckline, a long flowing tulle veil/cape draping behind her, hair pulled back in a soft updo with small pearl pins. Pose: standing close facing each other in profile, foreheads gently touching, holding hands in front at waist level, soft natural smiles with eyes closed or softly cast down. Color grade: bright airy whites with pale-blue sky tones and warm cream skin midtones, gentle film softness — must clearly read as warm bright daylight, NOT night, NOT studio.',
+    // 신부(왼쪽, 살짝 아래), 신랑(오른쪽, 살짝 위) — 프로파일-투-프로파일 자세 기준 추정치.
+    // 정확한 좌표는 마스터 컷을 보면서 미세조정 권장.
+    faceMaskRegions: [
+      [0.30, 0.32, 0.18, 0.18],
+      [0.48, 0.28, 0.18, 0.18],
+    ],
+  },
+  {
+    id: 'seoul-nightview',
+    label: '서울 야경 루프탑',
+    hint: '루프탑 + N서울타워 야경',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'medium',
+    image: '/wedding-snap/catalog/seoul-nightview.jpg',
+    promptHint:
+      'Outdoor rooftop terrace overlooking the Seoul city skyline at twilight / blue hour — Namsan mountain and N Seoul Tower clearly visible in the distance, dense cityscape of mid-rise buildings with warm tungsten window lights glowing across the frame, glass guardrail at the rooftop edge with subtle uplight LEDs along the floor. Shot on 35–50mm lens for a wider environmental feel, full-body framing, eye-level camera, shallow depth of field on subjects with soft city bokeh behind. Groom: charcoal / dark-gray three-piece suit with dark tie and white shirt, short neat black hair, calm composed soft smile. Bride: sleek ivory satin floor-length wedding dress with subtle cowl / draped neckline, hair pulled back in a low chignon with small pearl drop earrings. Pose: standing close side by side at the railing, bride’s hand resting on the groom’s lapel or arm, both facing camera with soft natural smiles. Color grade: cinematic blue-hour palette with cool city-light blues, warm tungsten window glow as accent, gentle film grain — must clearly read as evening twilight / blue hour, NOT noon, NOT golden hour.',
+    // 야경 + 강한 도시광·tungsten 윈도우 글로우 혼재 → 평균 RGB 휴리스틱이 부정확.
+    // 명시적으로 블루아워 색온도 + mood 지정.
+    manualKelvin: 4200,
+    manualMoodHint:
+      'Seoul blue-hour cityscape, cool ambient blue sky with warm tungsten window-light accents, gentle film grain',
+    // 신랑(왼쪽), 신부(오른쪽, 살짝 아래) — 풀신 투샷 루프탑 기준 추정치.
+    // 정확한 좌표는 마스터 컷을 보면서 미세조정 권장.
+    faceMaskRegions: [
+      [0.28, 0.20, 0.16, 0.16],
+      [0.50, 0.22, 0.14, 0.14],
+    ],
+  },
+  {
+    id: 'studio-floral-pastel',
+    label: '플라워 파스텔 스튜디오',
+    hint: '파스텔 라일락·핑크 플라워 + 화이트 벽',
+    category: 'studio',
+    personality: 'together',
+    intensity: 'low',
+    image: '/wedding-snap/catalog/studio-floral-pastel.jpg',
+    promptHint:
+      'Indoor studio with seamless bright white wall backdrop and abundant floral arrangements framing the couple — tall stems of pastel lilac delphinium, blush garden roses, soft pink lisianthus, cream hydrangea, and fresh green foliage flanking both sides of the frame and trailing along the floor. Soft diffused natural light (large window / softbox) creating gentle floral shadows on the wall. Shot on 50–85mm portrait lens, eye-level camera, three-quarter to full-body framing, shallow depth of field. Couple seated close together on a low cream platform or bench, low enough that the dress drapes naturally. Groom: black peak-lapel suit with white shirt and pale champagne / ivory tie, short neat black hair, soft natural smile. Bride: strapless ivory ball-gown wedding dress with full tulle skirt and subtle beaded bodice, hair in soft long waves with small earring accent, one hand resting lightly on the groom’s arm. Pose: groom seated, bride leaning gently into him with her arm wrapped around his, both facing camera with soft genuine smiles. Color grade: airy bright whites with pastel lilac and blush highlights, clean warm skin midtones — romantic dreamy bridal magazine atmosphere, never oversaturated.',
+    // 신랑(왼쪽), 신부(오른쪽, 거의 같은 높이) — 앉은 자세 투샷 기준 추정치.
+    // 정확한 좌표는 마스터 컷을 보면서 미세조정 권장.
+    faceMaskRegions: [
+      [0.30, 0.30, 0.16, 0.18],
+      [0.48, 0.32, 0.16, 0.18],
+    ],
+  },
+  {
+    id: 'desert-warm-walk',
+    label: '사막 웨딩 워킹',
+    hint: '모래언덕 + 햇살 + 캐주얼 워킹',
+    category: 'outdoor',
+    personality: 'together',
+    intensity: 'medium',
+    image: '/wedding-snap/catalog/desert-warm-walk.jpg',
+    promptHint:
+      'Outdoor sand dune landscape with soft rolling beige sand stretching to a distant horizon, sparse tufts of pale dune grass in the mid-ground, hazy bright daylight (high sun softened by light haze, NOT golden hour, NOT noon glare). Shot on 35–50mm lens for environmental walking feel, full-body framing, eye-level camera, shallow depth of field on subjects with creamy sand bokeh behind. Groom: clean white button-up shirt (sleeves casually rolled or pushed up) with tan / khaki chinos, short dark hair with a neat short beard, relaxed natural posture. Bride: vivid coral-red lace mermaid dress with ruffle V-neckline shoulder straps and small bead detailing, long loose blonde-toned waves blowing in the breeze, a small matching red feather hair accent. Pose: couple walking side by side across the dune holding hands, both laughing and looking at each other with big genuine smiles mid-step — candid joyful prewedding movement, not a static pose. Color grade: warm sandy beige highlights with pale-cream sky and rich saturated red on the dress, soft daylight haze. Sense of warmth and joy, light wind motion in fabric and hair.',
+    // 강한 채도 빨강 드레스 + 햇살 haze → 평균 RGB 휴리스틱이 빨강 쪽으로 치우칠 위험.
+    // 톤은 자연 햇살 daylight 로 명시 고정.
+    manualKelvin: 5200,
+    manualMoodHint:
+      'warm hazy daylight on beige sand dunes, saturated red dress as focal accent, joyful candid walking motion',
+    // 신랑(왼쪽), 신부(오른쪽) — 양쪽으로 벌어진 워킹 투샷이라 얼굴 간격이 넓음.
+    // 정확한 좌표는 마스터 컷을 보면서 미세조정 권장.
+    faceMaskRegions: [
+      [0.18, 0.18, 0.16, 0.18],
+      [0.62, 0.20, 0.16, 0.18],
+    ],
+  },
   // ── Solo (단독) 컷 ────────────────────────────────────────
   // 이미지 파일은 사용자가 별도로 마스터를 만들어 같은 id 로 저장해야 함.
   // (예: public/wedding-snap/catalog/groom-portrait-studio.jpg)
