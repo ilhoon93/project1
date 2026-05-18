@@ -31,10 +31,6 @@ export interface SnapJobLogInput {
   anchorFraming?: 'closeup' | 'halfbody' | null;
   /** 차감/적립된 크레딧 (catalog -1, anchor 0 또는 -4) */
   creditDelta?: number;
-  /** 입력 사진 검증 메타 — input-validation.ts 의 ImageValidationResult.meta 에서. */
-  inputFaceCount?: number | null;
-  inputFaceMinSize?: number | null;
-  inputAvgLuminance?: number | null;
   /** 합성 방식 선택 — UI 토글의 값. catalog kind 만 의미 있음. (025 마이그) */
   imageReference?: 'strict' | 'prompt-only' | null;
 }
@@ -54,9 +50,6 @@ export async function logSnapJobSubmit(input: SnapJobLogInput): Promise<void> {
     anchor_framing: input.anchorFraming ?? null,
     status: 'submitted',
     credit_delta: input.creditDelta ?? 0,
-    input_face_count: input.inputFaceCount ?? null,
-    input_face_min_size: input.inputFaceMinSize ?? null,
-    input_avg_luminance: input.inputAvgLuminance ?? null,
     image_reference: input.imageReference ?? null,
   };
   const { error } = await admin.from('snap_jobs').insert(payload);

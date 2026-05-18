@@ -294,40 +294,15 @@ export async function POST(req: Request) {
   let imageUrls: string[];
   let prompt: string;
   let pathLabel: 'anchored' | 'couple';
-  // 커플 모드 한정 — finalize 의 face-swap restore / similarity 측정에
-  // 사용할 (선처리된) 커플 사진 URL. 모드가 아니면 null 유지.
+  // 커플 모드 한정 — finalize 의 face-swap restore 에 사용할 (선처리된)
+  // 커플 사진 URL. 모드가 아니면 null 유지.
   let coupleStoredPhotoUrl: string | null = null;
-  // 입력 사진 검증 메타 — snap_jobs 로깅에 전달해서 어떤 입력 조건에서 어떤 결과가
-  // 나왔는지 추적 가능하게 한다.
-  let inputMeta: {
-    faceCount: number | null;
-    minFaceSize: number | null;
-    avgLuminance: number;
-  } | null = null;
 
   if (input.mode === 'couple') {
-    // 커플 사진 입력 검증 — 해상도/밝기 + 얼굴 2명 검출 / 얼굴 크기 임계.
-    // errors 면 400 반환. 사용자에게 정확한 이유까지 한 줄로 보여 줘서 어떤 부분이
-    // 문제인지 즉시 파악 가능.
-    const couplePhotoValidation = await validateInputImage(input.couplePhotoUrl, {
-      faceDetection: true,
-      expectedFaces: 2,
-    });
-    inputMeta = {
-      faceCount: couplePhotoValidation.meta.faceCount,
-      minFaceSize: couplePhotoValidation.meta.minFaceSize,
-      avgLuminance: couplePhotoValidation.meta.avgLuminance,
-    };
-    // 진단 로그 — face_count / min_face_size 가 NULL 로 들어가는 케이스 추적.
-    // detectFaces 가 실패하면 meta.faceCount = null 이고 ok 는 여전히 true 일 수 있음.
-    console.info('[snap/generate] couple input validation', {
-      ok: couplePhotoValidation.ok,
-      faceCount: couplePhotoValidation.meta.faceCount,
-      minFaceSize: couplePhotoValidation.meta.minFaceSize,
-      avgLuminance: couplePhotoValidation.meta.avgLuminance,
-      errors: couplePhotoValidation.errors,
-      warnings: couplePhotoValidation.warnings,
-    });
+    // 커플 사진 입력 검증 — sharp 로컬 (해상도/밝기/종횡비) 만. 얼굴 수 검증은
+    // fal face-detection endpoint 사라져 (2026-05) 제거됨. 1명 사진을 커플 자리에
+    // 올리는 케이스는 사용자 인지 / 결과 확인 의존 — 대체 솔루션 도입 시 복원.
+    const couplePhotoValidation = await validateInputImage(input.couplePhotoUrl);
     if (!couplePhotoValidation.ok) {
       return NextResponse.json(
         {
@@ -500,10 +475,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 502 });
   }
 
-  // snap_jobs 로깅 — await 로 인덱스에 잡힌 row 가 실제로 만들어진 뒤 응답.
-  // (과거 void 호출은 Vercel 서버리스에서 응답 직후 freeze 되어 INSERT 자체가
-  // 컷오프 → input_face_*, quality, image_reference 가 NULL 로 남는 원인이었음.
-  // 응답 latency 가 ~50–200ms 늘어나지만 데이터 일관성 우선.)
+  // snap_jobs 로깅 — await 로 row 가 실제로 만들어진 뒤 응답.
+  // 과거 void 호출은 Vercel 서버리스에서 응답 직후 freeze 되어 INSERT 자체가
+  // 컷오프 → quality / image_reference 가 NULL 로 남는 원인. 응답 latency 가
+  // ~50–200ms 늘어나지만 데이터 일관성 우선.
   const resolvedImageReference = input.imageReference ?? 'strict';
   await logSnapJobSubmit({
     userId: user.id,
@@ -514,9 +489,6 @@ export async function POST(req: Request) {
     catalogId: input.catalogId,
     catalogPath: pathLabel,
     creditDelta: -1,
-    inputFaceCount: inputMeta?.faceCount ?? null,
-    inputFaceMinSize: inputMeta?.minFaceSize ?? null,
-    inputAvgLuminance: inputMeta?.avgLuminance ?? null,
     imageReference: resolvedImageReference,
   });
   console.info('[snap/generate] job submitted', {
@@ -525,13 +497,11 @@ export async function POST(req: Request) {
     pathLabel,
     quality: imageQuality,
     imageReference: resolvedImageReference,
-    inputFaceCount: inputMeta?.faceCount ?? null,
-    inputFaceMinSize: inputMeta?.minFaceSize ?? null,
   });
 
-  // 커플 모드: finalize 단계의 face-swap restore / similarity 측정에 사용할
-  // 커플 사진 URL 을 snap_jobs 에 별도 저장. await 로 처리해 logSnapJobSubmit
-  // → patch 순서가 보장되고 응답 후 컷오프되지 않음.
+  // 커플 모드: finalize 단계의 face-swap restore 에 사용할 커플 사진 URL 을
+  // snap_jobs 에 별도 저장. await 로 처리해 logSnapJobSubmit → patch 순서가
+  // 보장되고 응답 후 컷오프되지 않음.
   if (input.mode === 'couple' && coupleStoredPhotoUrl) {
     const { error: patchErr } = await admin
       .from('snap_jobs')
