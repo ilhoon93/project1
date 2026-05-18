@@ -365,3 +365,76 @@ export async function getFaceSwapResult(requestId: string): Promise<string> {
   if (!url) throw new Error('face-swap.result returned no image url');
   return url;
 }
+
+// ─────────────────────────────────────────────────────────────
+// Face detection — 입력 사진의 얼굴 수 / 위치 / 크기 검증.
+// Anchor / couple 입력 단계에서 호출해 너무 작거나 detect 안 되는 얼굴이 들어가
+// 하류 실패율을 키우는 케이스를 사전 차단.
+//
+// fal-ai/imageutils/face-detection 사용 (~$0.001/장 추정).
+// 응답: faces[].bbox = [x_min, y_min, x_max, y_max], optional score / landmarks.
+//
+// 응답 schema 가 모델별로 다를 수 있어 보수적 파싱: faces 배열만 있으면 OK.
+// ─────────────────────────────────────────────────────────────
+
+const FACE_DETECTION_MODEL = 'fal-ai/imageutils/face-detection';
+
+export interface DetectedFace {
+  /** [x_min, y_min, x_max, y_max] pixel coords */
+  bbox: [number, number, number, number];
+  /** detection confidence 0..1 (있을 때만) */
+  score?: number;
+}
+
+interface FaceDetectionResult {
+  faces?: Array<{
+    bbox?: number[];
+    box?: number[];
+    score?: number;
+    confidence?: number;
+  }>;
+  // 일부 변형 endpoint 는 image_size 도 함께 반환.
+  image?: { width?: number; height?: number };
+}
+
+export async function submitFaceDetection(input: {
+  imageUrl: string;
+}): Promise<string> {
+  ensureConfigured();
+  const { request_id } = await fal.queue.submit(FACE_DETECTION_MODEL, {
+    input: { image_url: input.imageUrl },
+  });
+  if (!request_id) throw new Error('face-detection.submit returned no request_id');
+  return request_id;
+}
+
+export async function getFaceDetectionResult(
+  requestId: string,
+): Promise<DetectedFace[]> {
+  ensureConfigured();
+  const result = await fal.queue.result(FACE_DETECTION_MODEL, { requestId });
+  const data = result.data as FaceDetectionResult;
+  const raw = data.faces ?? [];
+  // bbox / box 둘 다 지원 (모델 변형 대응). score / confidence 도 union.
+  return raw
+    .map((f): DetectedFace | null => {
+      const arr = f.bbox ?? f.box;
+      if (!arr || arr.length < 4) return null;
+      return {
+        bbox: [arr[0]!, arr[1]!, arr[2]!, arr[3]!],
+        score: f.score ?? f.confidence,
+      };
+    })
+    .filter((f): f is DetectedFace => f !== null);
+}
+
+/**
+ * submit + result 를 한 번에 처리하는 편의 함수.
+ * input validation 처럼 한 번만 호출하면 되는 곳에서 사용.
+ *
+ * 큐 wait timeout 은 fal SDK 의 기본값 사용 (보통 face detection 은 1-3초).
+ */
+export async function detectFaces(imageUrl: string): Promise<DetectedFace[]> {
+  const requestId = await submitFaceDetection({ imageUrl });
+  return await getFaceDetectionResult(requestId);
+}
