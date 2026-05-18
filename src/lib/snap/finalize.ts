@@ -274,9 +274,11 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
   });
 
   // 6. (옵션) Face similarity 측정 — quality gate / 분석용.
-  //    reference 선정:
-  //      커플 모드 → 사용자 커플 사진
-  //      셀카 모드 → groomSelfie (있으면) / brideSelfie
+  //    reference 선정은 catalog personality 에 따라 분기:
+  //      커플 모드 → 사용자 커플 사진 1장 (groom 컬럼에 단일 점수)
+  //      groom-solo → groomSelfie → face_similarity_groom
+  //      bride-solo → brideSelfie → face_similarity_bride
+  //      together   → 양쪽 셀카 모두 있으면 병렬 측정 → 각각 컬럼에 저장
   //    similarity 점수가 임계 미만이면 warn 로깅 (자동 차단/환불 X — 사용자가
   //    이미 결과를 받고 있어 환불 처리가 복잡해짐. 분석용 누적 기록만).
   //
@@ -286,32 +288,59 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
   //    +2~5초 늦더라도 데이터가 일관되게 쌓이게 한다. 측정 실패는 try/catch 로
   //    삼켜 사용자 결과(URL) 에는 영향 없음.
   try {
-    const ref = pickFaceSimRef(ctx);
-    if (ref) {
-      const score = await compareFaces(ref.url, publicUrl);
-      const admin = createAdminClient();
-      const update: Record<string, unknown> = {
-        face_similarity_ref: ref.kind,
-        // groom-only / together 케이스 단순화: 일단 groom 칼럼에 저장.
-        // 추후 fal 응답에서 per-face score 가 가능하면 양쪽 모두 채움.
-        face_similarity_groom: score,
-      };
-      await admin
-        .from('snap_jobs')
-        .update(update as never)
-        .eq('fal_request_id', input.falRequestId);
-      if (score < FACE_SIM_BAD) {
-        console.warn(
-          '[finalize] face similarity LOW',
-          input.falRequestId,
-          score.toFixed(3),
-        );
-      } else if (score < FACE_SIM_GOOD) {
-        console.info(
-          '[finalize] face similarity moderate',
-          input.falRequestId,
-          score.toFixed(3),
-        );
+    const refs = pickFaceSimRefs(ctx, input.catalogId ?? null);
+    if (refs.length > 0) {
+      // 병렬 측정 — 한쪽 실패해도 다른 쪽은 저장. together 케이스에서 latency 절감.
+      const measurements = await Promise.all(
+        refs.map(async (ref) => {
+          try {
+            const score = await compareFaces(ref.url, publicUrl);
+            return { ref, score };
+          } catch (e) {
+            console.warn(
+              '[finalize] face similarity failed for',
+              ref.target,
+              input.falRequestId,
+              e,
+            );
+            return null;
+          }
+        }),
+      );
+      const ok = measurements.filter(
+        (m): m is { ref: FaceSimRef; score: number } => m !== null,
+      );
+      if (ok.length > 0) {
+        const admin = createAdminClient();
+        const update: Record<string, unknown> = {
+          face_similarity_ref: ok[0]!.ref.kind,
+        };
+        for (const m of ok) {
+          if (m.ref.target === 'bride') {
+            update.face_similarity_bride = m.score;
+          } else {
+            update.face_similarity_groom = m.score;
+          }
+        }
+        await admin
+          .from('snap_jobs')
+          .update(update as never)
+          .eq('fal_request_id', input.falRequestId);
+        // quality gate 는 최저 점수 기준 (어느 쪽이든 식별 실패가 더 큰 이슈).
+        const minScore = Math.min(...ok.map((m) => m.score));
+        if (minScore < FACE_SIM_BAD) {
+          console.warn(
+            '[finalize] face similarity LOW',
+            input.falRequestId,
+            minScore.toFixed(3),
+          );
+        } else if (minScore < FACE_SIM_GOOD) {
+          console.info(
+            '[finalize] face similarity moderate',
+            input.falRequestId,
+            minScore.toFixed(3),
+          );
+        }
       }
     }
   } catch (e) {
@@ -322,20 +351,58 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
   return { url: publicUrl };
 }
 
-function pickFaceSimRef(ctx: {
-  catalogPath: 'anchored' | 'selfies' | 'couple' | null;
-  groomSelfieUrl: string | null;
-  brideSelfieUrl: string | null;
-  couplePhotoUrl: string | null;
-}): { url: string; kind: 'selfie' | 'couple_input' | 'anchor' } | null {
+interface FaceSimRef {
+  url: string;
+  kind: 'selfie' | 'couple_input' | 'anchor';
+  /** 어느 컬럼에 점수를 저장할지 — face_similarity_groom / face_similarity_bride */
+  target: 'groom' | 'bride';
+}
+
+/**
+ * 측정할 reference 목록 산출. catalog personality 가 의미적 기준이고,
+ * couple 모드는 path 로 결정 (catalog 미지정인 직결 케이스 포함 가능).
+ *
+ * 반환 길이:
+ *   - 커플 모드: 1 (커플 사진, groom 컬럼에 기록)
+ *   - solo 모드: 0 또는 1 (해당 selfie 가 있어야 측정)
+ *   - together: 0 / 1 / 2 (양쪽 selfie 가 있는지에 따라)
+ *
+ * personality 미상(카탈로그 누락 등)인 경우 together 와 동일하게 두 쪽 다 시도.
+ */
+function pickFaceSimRefs(
+  ctx: {
+    catalogPath: 'anchored' | 'selfies' | 'couple' | null;
+    groomSelfieUrl: string | null;
+    brideSelfieUrl: string | null;
+    couplePhotoUrl: string | null;
+  },
+  catalogId: string | null,
+): FaceSimRef[] {
+  // 커플 모드: 사용자가 업로드한 커플 사진을 단일 reference 로 사용.
+  // 사진 자체가 두 얼굴이라 fal face-similarity 가 가장 가까운 매칭을 자동 선택해
+  // 단일 점수를 돌려준다. 한쪽 컬럼(groom)에 저장 — couple_input 으로 ref 표시.
   if (ctx.catalogPath === 'couple' && ctx.couplePhotoUrl) {
-    return { url: ctx.couplePhotoUrl, kind: 'couple_input' };
+    return [{ url: ctx.couplePhotoUrl, kind: 'couple_input', target: 'groom' }];
   }
+  const catalog = catalogId ? findSnapCatalog(catalogId) : null;
+  const personality = catalog?.personality;
+  if (personality === 'bride-solo') {
+    return ctx.brideSelfieUrl
+      ? [{ url: ctx.brideSelfieUrl, kind: 'selfie', target: 'bride' }]
+      : [];
+  }
+  if (personality === 'groom-solo') {
+    return ctx.groomSelfieUrl
+      ? [{ url: ctx.groomSelfieUrl, kind: 'selfie', target: 'groom' }]
+      : [];
+  }
+  // together (또는 personality 미상): 가능한 양쪽 모두 측정.
+  const refs: FaceSimRef[] = [];
   if (ctx.groomSelfieUrl) {
-    return { url: ctx.groomSelfieUrl, kind: 'selfie' };
+    refs.push({ url: ctx.groomSelfieUrl, kind: 'selfie', target: 'groom' });
   }
   if (ctx.brideSelfieUrl) {
-    return { url: ctx.brideSelfieUrl, kind: 'selfie' };
+    refs.push({ url: ctx.brideSelfieUrl, kind: 'selfie', target: 'bride' });
   }
-  return null;
+  return refs;
 }
