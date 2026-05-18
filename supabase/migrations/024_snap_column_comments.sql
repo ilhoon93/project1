@@ -181,9 +181,6 @@ comment on table public.snap_anchors is
 comment on column public.snap_anchors.user_id is
   '앵커 소유자. PK — 사용자당 1행만. auth.users(id) FK ON DELETE CASCADE.';
 
-comment on column public.snap_anchors.image_url is
-  '012 마이그 당시 legacy 단일 이미지 URL. 013 이후 groom_anchor_url / bride_anchor_url 로 분리되면서 신규 흐름에선 사용 안 함. 기존 row 호환용으로 보존.';
-
 comment on column public.snap_anchors.groom_anchor_url is
   '신랑 정면 합성 anchor URL (fal 결과 + 후처리). NULL = 아직 생성 안 함 / 폐기됨. (013 마이그 추가)';
 
