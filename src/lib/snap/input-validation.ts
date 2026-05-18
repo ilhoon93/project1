@@ -45,24 +45,35 @@ function serializeFalError(e: unknown): string {
   if (!(e instanceof Error)) return String(e).slice(0, 500);
   const parts: string[] = [`message=${e.message}`];
   const obj = e as unknown as Record<string, unknown>;
-  // fal SDK 의 ValidationError / ApiError 가 status / body 를 가질 수 있음.
-  if (typeof obj.status === 'number') parts.push(`status=${obj.status}`);
-  if (typeof obj.statusText === 'string') parts.push(`statusText=${obj.statusText}`);
-  // body 는 객체 / 문자열 모두 가능. 너무 길어지지 않게 cap.
-  if (obj.body !== undefined) {
+  // 알려진 메타 필드 (status / body / statusText) 우선 + 그 외 모든 own property
+  // 캡처. fal SDK 의 ApiError 가 어떤 필드를 노출할지 모르므로 conservative 로
+  // 전부 시리얼라이즈. (cause / message / stack 은 별도 처리하므로 제외.)
+  const skip = new Set(['cause', 'message', 'stack', 'name']);
+  for (const key of Object.getOwnPropertyNames(e)) {
+    if (skip.has(key)) continue;
     try {
-      const body = typeof obj.body === 'string' ? obj.body : JSON.stringify(obj.body);
-      parts.push(`body=${body.slice(0, 400)}`);
+      const val = obj[key];
+      if (val === undefined || val === null) continue;
+      const valStr = typeof val === 'string' ? val : JSON.stringify(val);
+      parts.push(`${key}=${valStr.slice(0, 300)}`);
     } catch {
-      parts.push('body=<unserializable>');
+      parts.push(`${key}=<unserializable>`);
     }
   }
-  // cause chaining (node 18+).
+  // cause chaining (node 18+) — 별도 처리해 chain 깊이도 노출.
   let cause: unknown = obj.cause;
   let depth = 0;
   while (cause && depth < 3) {
-    if (cause instanceof Error) parts.push(`cause[${depth}]=${cause.message}`);
-    else parts.push(`cause[${depth}]=${String(cause).slice(0, 200)}`);
+    if (cause instanceof Error) {
+      const causeObj = cause as unknown as Record<string, unknown>;
+      const causeStatus = causeObj.status !== undefined ? ` status=${String(causeObj.status)}` : '';
+      const causeBody = causeObj.body !== undefined
+        ? ` body=${(typeof causeObj.body === 'string' ? causeObj.body : JSON.stringify(causeObj.body)).slice(0, 200)}`
+        : '';
+      parts.push(`cause[${depth}]=${cause.message}${causeStatus}${causeBody}`);
+    } else {
+      parts.push(`cause[${depth}]=${String(cause).slice(0, 200)}`);
+    }
     cause = (cause as { cause?: unknown })?.cause;
     depth += 1;
   }

@@ -88,21 +88,31 @@ function serializeFalError(e: unknown): string {
   if (!(e instanceof Error)) return String(e).slice(0, 500);
   const parts: string[] = [`message=${e.message}`];
   const obj = e as unknown as Record<string, unknown>;
-  if (typeof obj.status === 'number') parts.push(`status=${obj.status}`);
-  if (typeof obj.statusText === 'string') parts.push(`statusText=${obj.statusText}`);
-  if (obj.body !== undefined) {
+  const skip = new Set(['cause', 'message', 'stack', 'name']);
+  for (const key of Object.getOwnPropertyNames(e)) {
+    if (skip.has(key)) continue;
     try {
-      const body = typeof obj.body === 'string' ? obj.body : JSON.stringify(obj.body);
-      parts.push(`body=${body.slice(0, 400)}`);
+      const val = obj[key];
+      if (val === undefined || val === null) continue;
+      const valStr = typeof val === 'string' ? val : JSON.stringify(val);
+      parts.push(`${key}=${valStr.slice(0, 300)}`);
     } catch {
-      parts.push('body=<unserializable>');
+      parts.push(`${key}=<unserializable>`);
     }
   }
   let cause: unknown = obj.cause;
   let depth = 0;
   while (cause && depth < 3) {
-    if (cause instanceof Error) parts.push(`cause[${depth}]=${cause.message}`);
-    else parts.push(`cause[${depth}]=${String(cause).slice(0, 200)}`);
+    if (cause instanceof Error) {
+      const causeObj = cause as unknown as Record<string, unknown>;
+      const causeStatus = causeObj.status !== undefined ? ` status=${String(causeObj.status)}` : '';
+      const causeBody = causeObj.body !== undefined
+        ? ` body=${(typeof causeObj.body === 'string' ? causeObj.body : JSON.stringify(causeObj.body)).slice(0, 200)}`
+        : '';
+      parts.push(`cause[${depth}]=${cause.message}${causeStatus}${causeBody}`);
+    } else {
+      parts.push(`cause[${depth}]=${String(cause).slice(0, 200)}`);
+    }
     cause = (cause as { cause?: unknown })?.cause;
     depth += 1;
   }
