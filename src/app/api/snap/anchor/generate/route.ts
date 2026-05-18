@@ -17,6 +17,7 @@ import { buildAnchorPromptSolo } from '@/lib/snap/prompt';
 import { logSnapJobSubmit } from '@/lib/snap/jobs';
 import { validateInputImage } from '@/lib/snap/input-validation';
 import { preprocessUrlsParallel } from '@/lib/snap/input-preprocess';
+import { hasRequiredConsent } from '@/lib/snap/consent';
 
 /**
  * POST /api/snap/anchor/generate
@@ -73,6 +74,17 @@ export async function POST(req: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // 동의 게이트 — 앵커 생성은 셀카(얼굴 PII) + AI 처리가 동시 일어남.
+  if (!(await hasRequiredConsent(user.id))) {
+    return NextResponse.json(
+      {
+        error: '얼굴 정보 처리 및 AI 합성에 대한 동의가 필요합니다.',
+        code: 'consent_required',
+      },
+      { status: 403 },
+    );
+  }
 
   let input;
   try {

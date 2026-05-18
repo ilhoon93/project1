@@ -15,6 +15,7 @@ import {
 import { logSnapJobSubmit } from '@/lib/snap/jobs';
 import { validateInputImage } from '@/lib/snap/input-validation';
 import { preprocessAndUpload } from '@/lib/snap/input-preprocess';
+import { hasRequiredConsent } from '@/lib/snap/consent';
 import {
   getCatalogFaceBlurMode,
   getBlurredCatalogUrl,
@@ -101,6 +102,18 @@ export async function POST(req: Request) {
   const catalog = findSnapCatalog(input.catalogId);
   if (!catalog) {
     return NextResponse.json({ error: 'Unknown catalog id' }, { status: 400 });
+  }
+
+  // 동의 게이트 — 필수 scope (personal_info + ai_generation) 동의가 현재 버전
+  // 이상으로 있어야 진행. 한국 PIPA / ICN 법 대응.
+  if (!(await hasRequiredConsent(user.id))) {
+    return NextResponse.json(
+      {
+        error: '얼굴 정보 처리 및 AI 합성에 대한 동의가 필요합니다.',
+        code: 'consent_required',
+      },
+      { status: 403 },
+    );
   }
 
   // Couple 모드 + solo 카탈로그 조합은 의미가 약함 (커플 사진에서 한 명만 추출
