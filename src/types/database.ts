@@ -398,6 +398,30 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['snap_jobs']['Insert']>;
         Relationships: [];
       };
+      snap_consent: {
+        Row: {
+          id: string;
+          user_id: string;
+          scope: 'personal_info' | 'ai_generation' | 'external_share';
+          version: number;
+          accepted: boolean;
+          accepted_at: string;
+          user_agent: string | null;
+          ip_address: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          scope: 'personal_info' | 'ai_generation' | 'external_share';
+          version: number;
+          accepted?: boolean;
+          accepted_at?: string;
+          user_agent?: string | null;
+          ip_address?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['snap_consent']['Insert']>;
+        Relationships: [];
+      };
       snap_anchor_history: {
         Row: {
           id: string;
@@ -594,6 +618,10 @@ export type Database = {
       consume_snap_credit: {
         Args: { p_user_id: string; p_note?: string | null };
         Returns: Json;
+      };
+      snap_has_required_consent: {
+        Args: { p_user_id: string; p_version: number };
+        Returns: boolean;
       };
       refund_snap_credit: {
         Args: { p_user_id: string; p_note?: string | null; p_ref_id?: string | null };
