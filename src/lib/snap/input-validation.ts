@@ -35,6 +35,55 @@ function safeHost(url: string): string {
   }
 }
 
+/**
+ * fal SDK 가 throw 한 error 객체를 가능한 모든 정보로 시리얼라이즈.
+ *   - message + cause chain (최대 3단)
+ *   - status / body / cause 같은 추가 필드 (fal SDK 의 ValidationError 등에 있음)
+ *   - Vercel 로그에서 한 줄로 정확한 원인 추적 가능
+ */
+function serializeFalError(e: unknown): string {
+  if (!(e instanceof Error)) return String(e).slice(0, 500);
+  const parts: string[] = [`message=${e.message}`];
+  const obj = e as unknown as Record<string, unknown>;
+  // fal SDK 의 ValidationError / ApiError 가 status / body 를 가질 수 있음.
+  if (typeof obj.status === 'number') parts.push(`status=${obj.status}`);
+  if (typeof obj.statusText === 'string') parts.push(`statusText=${obj.statusText}`);
+  // body 는 객체 / 문자열 모두 가능. 너무 길어지지 않게 cap.
+  if (obj.body !== undefined) {
+    try {
+      const body = typeof obj.body === 'string' ? obj.body : JSON.stringify(obj.body);
+      parts.push(`body=${body.slice(0, 400)}`);
+    } catch {
+      parts.push('body=<unserializable>');
+    }
+  }
+  // cause chaining (node 18+).
+  let cause: unknown = obj.cause;
+  let depth = 0;
+  while (cause && depth < 3) {
+    if (cause instanceof Error) parts.push(`cause[${depth}]=${cause.message}`);
+    else parts.push(`cause[${depth}]=${String(cause).slice(0, 200)}`);
+    cause = (cause as { cause?: unknown })?.cause;
+    depth += 1;
+  }
+  return parts.join(' | ');
+}
+
+/**
+ * SNAP_INPUT_VALIDATION_MODE 환경변수 읽기.
+ *   strict (default)  : fal face-detection 호출 실패 시 errors 차단.
+ *   permissive        : 호출 실패 시 warnings 만 — 사용자는 진행 가능, 단
+ *                       input_face_* 컬럼은 NULL 로 남음. 호출 성공 + face count
+ *                       mismatch 는 여전히 차단 (1명 사진을 커플 자리에 등).
+ *   off               : face-detection 자체 skip — 비용 절약 / 검증 비활성.
+ */
+type InputValidationMode = 'strict' | 'permissive' | 'off';
+function getInputValidationMode(): InputValidationMode {
+  const v = process.env.SNAP_INPUT_VALIDATION_MODE;
+  if (v === 'strict' || v === 'permissive' || v === 'off') return v;
+  return 'strict';
+}
+
 export interface ImageValidationResult {
   ok: boolean;
   errors: string[];
@@ -188,10 +237,13 @@ export async function validateInputImage(
 
   // ── Step B — fal face detection (옵션) ────────────────────
   // sharp 단계가 통과한 경우에만 호출 (이미 거른 케이스에 비용 안 씀).
+  // SNAP_INPUT_VALIDATION_MODE=off 면 호출 자체 skip (비용 절약 / 비활성).
   let faceCount: number | null = null;
   let minFaceSize: number | null = null;
+  const validationMode = getInputValidationMode();
   if (
     options.faceDetection &&
+    validationMode !== 'off' &&
     errors.length === 0 &&
     typeof source === 'string'
   ) {
@@ -224,19 +276,26 @@ export async function validateInputImage(
         );
       }
     } catch (e) {
-      // 검출 자체 실패 시 차단. 과거에는 warning 으로 통과시켰지만 사용자가
-      // 1명 사진을 커플 사진 자리에 올려도 진행되어 검증의 의미가 사라졌음.
-      // 자동 검증 실패는 명확한 error 로 표시하고 재시도 유도 — 일시적 fal
-      // 장애여도 사용자가 한 번 더 시도하면 통과.
-      const detail = e instanceof Error ? e.message : 'unknown';
+      // 검출 자체 실패. SNAP_INPUT_VALIDATION_MODE 로 분기:
+      //   strict (default): errors 차단 — 사용자에게 재시도 안내.
+      //   permissive      : warnings 만 — 사용자 진행 가능, 메타는 NULL.
+      // raw error 를 cause / status / body 까지 시리얼라이즈해서 Vercel 로그에
+      // 한 줄로 노출 — fal endpoint 응답 형태 / 인증 실패 / 네트워크 실패 즉시 진단.
       console.warn('[input-validation] face detection failed', {
         sourceHost: typeof source === 'string' ? safeHost(source) : '(buffer)',
         expectedFaces: expected,
-        detail,
+        mode: validationMode,
+        error: serializeFalError(e),
       });
-      errors.push(
-        '얼굴 자동 검증에 실패했어요 (자동 검증 서비스 일시 장애 가능성). 잠시 후 다시 시도해 주세요.',
-      );
+      if (validationMode === 'permissive') {
+        warnings.push(
+          '얼굴 자동 검증을 건너뛰었어요 (자동 검증 서비스 일시 장애). 진행은 가능하지만 사진 확인을 한 번 더 부탁드려요.',
+        );
+      } else {
+        errors.push(
+          '얼굴 자동 검증에 실패했어요 (자동 검증 서비스 일시 장애 가능성). 잠시 후 다시 시도해 주세요.',
+        );
+      }
     }
   }
 

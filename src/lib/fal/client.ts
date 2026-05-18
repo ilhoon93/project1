@@ -444,13 +444,17 @@ export async function compareFaces(
     requestId = await submitFaceSimilarity({ imageUrl1, imageUrl2 });
   } catch (e) {
     const detail = e instanceof Error ? e.message : 'unknown';
-    throw new Error(`face-similarity submit failed (${FACE_SIMILARITY_MODEL}): ${detail}`);
+    throw new Error(`face-similarity submit failed (${FACE_SIMILARITY_MODEL}): ${detail}`, {
+      cause: e,
+    });
   }
   try {
     return await getFaceSimilarityResult(requestId);
   } catch (e) {
     const detail = e instanceof Error ? e.message : 'unknown';
-    throw new Error(`face-similarity result failed (${FACE_SIMILARITY_MODEL}): ${detail}`);
+    throw new Error(`face-similarity result failed (${FACE_SIMILARITY_MODEL}): ${detail}`, {
+      cause: e,
+    });
   }
 }
 
@@ -534,12 +538,18 @@ export async function detectFaces(imageUrl: string): Promise<DetectedFace[]> {
     requestId = await submitFaceDetection({ imageUrl });
   } catch (e) {
     const detail = e instanceof Error ? e.message : 'unknown';
-    throw new Error(`face-detection submit failed (${FACE_DETECTION_MODEL}): ${detail}`);
+    // cause 로 원본 error 전달 — caller (input-validation.ts) 가 status/body 등
+    // 추가 메타까지 시리얼라이즈해 진단 로그에 노출 가능.
+    throw new Error(`face-detection submit failed (${FACE_DETECTION_MODEL}): ${detail}`, {
+      cause: e,
+    });
   }
   try {
     return await getFaceDetectionResult(requestId);
   } catch (e) {
     const detail = e instanceof Error ? e.message : 'unknown';
-    throw new Error(`face-detection result failed (${FACE_DETECTION_MODEL}): ${detail}`);
+    throw new Error(`face-detection result failed (${FACE_DETECTION_MODEL}): ${detail}`, {
+      cause: e,
+    });
   }
 }
