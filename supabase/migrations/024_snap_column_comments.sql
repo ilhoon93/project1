@@ -179,10 +179,13 @@ comment on table public.snap_anchors is
    user_id 당 row 1개 (UNIQUE). 새 anchor batch 시 기존 row 가 완성 앵커면 snap_anchor_history 로 자동 백업.';
 
 comment on column public.snap_anchors.user_id is
-  '앵커 소유자. UNIQUE — 사용자당 1행만.';
+  '앵커 소유자. PK — 사용자당 1행만. auth.users(id) FK ON DELETE CASCADE.';
+
+comment on column public.snap_anchors.image_url is
+  '012 마이그 당시 legacy 단일 이미지 URL. 013 이후 groom_anchor_url / bride_anchor_url 로 분리되면서 신규 흐름에선 사용 안 함. 기존 row 호환용으로 보존.';
 
 comment on column public.snap_anchors.groom_anchor_url is
-  '신랑 정면 합성 anchor URL (fal 결과 + 후처리). NULL = 아직 생성 안 함 / 폐기됨.';
+  '신랑 정면 합성 anchor URL (fal 결과 + 후처리). NULL = 아직 생성 안 함 / 폐기됨. (013 마이그 추가)';
 
 comment on column public.snap_anchors.bride_anchor_url is
   '신부 정면 합성 anchor URL. NULL 가능.';
@@ -216,10 +219,13 @@ comment on column public.snap_anchors.free_full_batches_used is
    부분 재생성은 항상 유료라 이 카운터에 영향 X.';
 
 comment on column public.snap_anchors.last_batch_at is
-  '가장 최근 anchor batch 생성 시각.';
+  '가장 최근 anchor batch 생성 시각. 무료 활성화 소비 여부 판별용.';
 
 comment on column public.snap_anchors.created_at is
   '행 생성 시각.';
+
+comment on column public.snap_anchors.updated_at is
+  '행 마지막 갱신 시각. touch_snap_anchor_updated_at 트리거가 자동 갱신.';
 
 -- ═════════════════════════════════════════════════════════════
 -- snap_anchor_history
@@ -243,13 +249,31 @@ comment on column public.snap_anchor_history.bride_anchor_url is
   '백업 시점의 신부 anchor URL.';
 
 comment on column public.snap_anchor_history.groom_selfie_url is
-  '백업 시점의 신랑 셀카 reference URL. 카탈로그 생성 시 face-swap 단계에 사용.';
+  '백업 시점의 신랑 셀카 reference URL. 카탈로그 생성 시 face-swap 단계에 사용. PR 017 마이그 이후 추가된 컬럼.';
 
 comment on column public.snap_anchor_history.bride_selfie_url is
-  '백업 시점의 신부 셀카 reference URL.';
+  '백업 시점의 신부 셀카 reference URL. PR 017 마이그 이후 추가.';
 
-comment on column public.snap_anchor_history.created_at is
-  '히스토리 저장 시각.';
+comment on column public.snap_anchor_history.source_mode is
+  '원본 앵커가 만들어진 입력 모드 — ''selfies'' (셀카 3장) 또는 ''couple'' (커플 사진).';
+
+comment on column public.snap_anchor_history.groom_height_cm is
+  '백업 시점의 신랑 키 cm.';
+
+comment on column public.snap_anchor_history.groom_weight_kg is
+  '백업 시점의 신랑 몸무게 kg.';
+
+comment on column public.snap_anchor_history.bride_height_cm is
+  '백업 시점의 신부 키 cm.';
+
+comment on column public.snap_anchor_history.bride_weight_kg is
+  '백업 시점의 신부 몸무게 kg.';
+
+comment on column public.snap_anchor_history.anchor_created_at is
+  '원래 snap_anchors 행의 created_at — 앵커가 처음 만들어진 시점. 라이브러리 정렬용.';
+
+comment on column public.snap_anchor_history.discarded_at is
+  '히스토리로 백업된 시각 (= 새 anchor batch 로 대체된 시각). 기본 now().';
 
 -- ═════════════════════════════════════════════════════════════
 -- snap_credits_ledger
@@ -267,21 +291,26 @@ comment on column public.snap_credits_ledger.user_id is
   '크레딧 변동 대상.';
 
 comment on column public.snap_credits_ledger.delta is
-  '크레딧 변동량. 양수 = 충전/환불, 음수 = 차감.
-   현재 잔액 = sum(delta) over (user_id).';
+  '크레딧 변동량 (integer). 양수 = 충전/환불, 음수 = 차감.
+   사용자 잔액 = sum(delta) over (user_id) — snap_credits_balance(uid) RPC 가 동일 계산.';
 
-comment on column public.snap_credits_ledger.kind is
-  '이벤트 종류:
-     ''welcome''   = 가입 보너스
-     ''purchase''  = 패키지 구매
-     ''consume''   = 작업 차감
-     ''refund''    = 환불 (작업 실패 시 자동 또는 운영자 수동)';
+comment on column public.snap_credits_ledger.reason is
+  '이벤트 종류 (check 제약):
+     ''purchase''         = 패키지 구매로 적립
+     ''consume''          = 작업 1건 차감
+     ''refund''           = 작업 실패 환불 (트리거 019 자동 또는 운영자 수동)
+     ''legacy_migration'' = 기존 ai_snap 잔액 일괄 이관
+     ''admin_grant''      = 운영자 수동 적립 (보상/이벤트)
+     ''admin_revoke''     = 운영자 수동 차감 (어뷰징 대응 등)';
+
+comment on column public.snap_credits_ledger.ref_table is
+  '관련 테이블 이름 — 예: ''snap_jobs'', ''purchase_orders''. 디버깅 / 추적용.';
+
+comment on column public.snap_credits_ledger.ref_id is
+  '관련 외부 식별자 (uuid). ''consume'' / ''refund'' 의 경우 snap_jobs.id 와 매칭 가능.';
 
 comment on column public.snap_credits_ledger.note is
   '자유 텍스트 메모 — 디버깅 / 운영 대응용 (예: ''catalog bridge-goldenhour'', ''fal timeout'').';
-
-comment on column public.snap_credits_ledger.ref_id is
-  '관련 외부 식별자. ''consume'' / ''refund'' 의 경우 snap_jobs.id 또는 fal_request_id 와 매칭.';
 
 comment on column public.snap_credits_ledger.created_at is
   '이벤트 발생 시각.';
