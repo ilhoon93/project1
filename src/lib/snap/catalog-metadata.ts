@@ -124,8 +124,11 @@ export async function getCatalogColorMeta(
     if (!rCh || !gCh || !bCh) return null;
     const avgRgb = { r: rCh.mean, g: gCh.mean, b: bCh.mean };
     const avgLab = rgbToLab(avgRgb.r, avgRgb.g, avgRgb.b);
-    const kelvin = estimateKelvin(avgRgb.r, avgRgb.g, avgRgb.b);
-    const moodHint = kelvinToLabel(kelvin);
+    // catalog 정의에 manualKelvin / manualMoodHint 가 있으면 우선 사용 (휴리스틱은
+    // 평균 RGB 기반이라 강한 색 그레이드 카탈로그에서 정확도가 떨어질 수 있음).
+    const heuristicKelvin = estimateKelvin(avgRgb.r, avgRgb.g, avgRgb.b);
+    const kelvin = item.manualKelvin ?? heuristicKelvin;
+    const moodHint = item.manualMoodHint ?? kelvinToLabel(kelvin);
 
     const meta: CatalogColorMeta = { avgLab, avgRgb, kelvin, moodHint };
     cache.set(catalogId, meta);

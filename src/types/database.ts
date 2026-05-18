@@ -376,6 +376,9 @@ export type Database = {
           error_message: string | null;
           submitted_at: string;
           completed_at: string | null;
+          face_similarity_groom: number | null;
+          face_similarity_bride: number | null;
+          face_similarity_ref: 'selfie' | 'anchor' | 'couple_input' | null;
         };
         Insert: {
           id?: string;
@@ -394,6 +397,9 @@ export type Database = {
           error_message?: string | null;
           submitted_at?: string;
           completed_at?: string | null;
+          face_similarity_groom?: number | null;
+          face_similarity_bride?: number | null;
+          face_similarity_ref?: 'selfie' | 'anchor' | 'couple_input' | null;
         };
         Update: Partial<Database['public']['Tables']['snap_jobs']['Insert']>;
         Relationships: [];
