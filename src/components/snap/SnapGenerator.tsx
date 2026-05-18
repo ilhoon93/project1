@@ -528,18 +528,22 @@ export function SnapGenerator({ catalog }: Props) {
     }
   };
 
-  const handleDiscardAnchor = async () => {
-    const willBeFree = freeBatchesLeft > 0;
-    const msg = willBeFree
-      ? `현재 앵커를 폐기할까요? 무료 batch ${freeBatchesLeft}회가 남아 있어요.`
-      : '현재 앵커를 폐기할까요? 다음 앵커 batch 는 4 스냅 크레딧이 필요합니다.';
-    if (!confirm(msg)) return;
+  // 라이브러리(과거 앵커)의 한 행을 영구 삭제.
+  //   - 현재 active 앵커는 다음 batch 저장 시 POST /api/snap/anchor 가 자동으로
+  //     history 에 archive → 따로 "현재 앵커 폐기" UX 가 필요 없음.
+  //   - 삭제 후 그 항목이 선택돼 있었다면 selection 을 'current' 로 되돌려
+  //     상단 status card 가 stale URL 을 가리키지 않게.
+  const handleDiscardLibrary = async (id: string) => {
+    if (!confirm('이 라이브러리 앵커를 영구 삭제할까요?')) return;
     try {
-      await fetch('/api/snap/anchor', { method: 'DELETE' });
-      setAnchor(null);
-      setAnchorFreeAvail(false);
+      const res = await fetch(`/api/snap/anchor/history?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('delete failed');
+      setLibrary((prev) => prev.filter((l) => l.id !== id));
+      if (selectedAnchorId === id) setSelectedAnchorId('current');
     } catch {
-      setAnchorErr('앵커 폐기에 실패했습니다.');
+      setAnchorErr('라이브러리 삭제에 실패했습니다.');
     }
   };
 
@@ -674,6 +678,25 @@ export function SnapGenerator({ catalog }: Props) {
     return '신랑·신부 앵커 합성';
   })();
 
+  // 상단 StatusCard 가 표시할 앵커 URL — selectedAnchorId 기준.
+  //   - 'current'  : active anchor (snap_anchors 의 단일 행)
+  //   - library id : 해당 라이브러리 항목 URL. 없으면 active 로 fallback.
+  // 사용자가 picker 에서 라이브러리를 고르면 상단 thumbnail 이 즉시 그쪽으로 바뀜.
+  const displayedAnchor = (() => {
+    if (selectedAnchorId === 'current') {
+      return {
+        groom: anchor?.groomAnchorUrl ?? null,
+        bride: anchor?.brideAnchorUrl ?? null,
+      };
+    }
+    const lib = library.find((l) => l.id === selectedAnchorId);
+    if (lib) return { groom: lib.groomAnchorUrl, bride: lib.brideAnchorUrl };
+    return {
+      groom: anchor?.groomAnchorUrl ?? null,
+      bride: anchor?.brideAnchorUrl ?? null,
+    };
+  })();
+
   return (
     <div className="mt-6 flex flex-col gap-6">
       {/* 동의 모달 — 첫 사용 또는 약관 버전 업데이트 시 표시. */}
@@ -681,13 +704,14 @@ export function SnapGenerator({ catalog }: Props) {
         <ConsentModal onAccept={() => setNeedsConsent(false)} />
       )}
 
-      {/* 0. 현재 상태 카드 — 크레딧 + 신랑/신부 앵커 썸네일 */}
+      {/* 0. 현재 상태 카드 — 크레딧 + 선택된 앵커 썸네일.
+            selectedAnchorId 가 'current' 면 active anchor URL, library id 면 해당
+            라이브러리 항목 URL. 라이브러리에서 골랐을 때 즉시 상단에 반영. */}
       <StatusCard
         snapBalance={snapBalance}
-        groomAnchorUrl={anchor?.groomAnchorUrl ?? null}
-        brideAnchorUrl={anchor?.brideAnchorUrl ?? null}
+        groomAnchorUrl={displayedAnchor.groom}
+        brideAnchorUrl={displayedAnchor.bride}
         freeActivationAvailable={anchorFreeAvail}
-        onDiscardAnchor={handleDiscardAnchor}
       />
 
       {/* 1. 입력 모드 + 업로드 */}
@@ -1137,28 +1161,44 @@ export function SnapGenerator({ catalog }: Props) {
                   <span className="text-[10px] text-[#8B7355]">최근 저장</span>
                 </button>
               )}
-              {/* 라이브러리 (과거) */}
+              {/* 라이브러리 (과거).
+                  선택 button 과 ✕ 삭제 button 을 같은 DOM 레벨에 두어
+                  button-in-button HTML 무효 이슈 회피. ✕ 는 우상단 코너에
+                  absolute 로 띄움. */}
               {library.map((lib) => (
-                <button
+                <div
                   key={lib.id}
-                  type="button"
-                  onClick={() => setSelectedAnchorId(lib.id)}
-                  aria-pressed={selectedAnchorId === lib.id}
-                  className={`relative flex flex-col gap-1 rounded-md border p-2 text-left transition-colors ${
+                  className={`relative rounded-md border transition-colors ${
                     selectedAnchorId === lib.id
                       ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
                       : 'border-[#E8DCC9] hover:border-[#8B7355]'
                   }`}
                 >
-                  <div className="grid grid-cols-2 gap-1">
-                    <AnchorTinyThumb url={lib.groomAnchorUrl} />
-                    <AnchorTinyThumb url={lib.brideAnchorUrl} />
-                  </div>
-                  <span className="text-[11px] font-medium text-[#3D2E1F]">라이브러리</span>
-                  <span className="text-[10px] text-[#8B7355]">
-                    {formatLibraryDate(lib.createdAt)}
-                  </span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAnchorId(lib.id)}
+                    aria-pressed={selectedAnchorId === lib.id}
+                    className="flex w-full flex-col gap-1 p-2 text-left"
+                  >
+                    <div className="grid grid-cols-2 gap-1">
+                      <AnchorTinyThumb url={lib.groomAnchorUrl} />
+                      <AnchorTinyThumb url={lib.brideAnchorUrl} />
+                    </div>
+                    <span className="text-[11px] font-medium text-[#3D2E1F]">라이브러리</span>
+                    <span className="text-[10px] text-[#8B7355]">
+                      {formatLibraryDate(lib.createdAt)}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDiscardLibrary(lib.id)}
+                    title="라이브러리에서 영구 삭제"
+                    aria-label="라이브러리에서 영구 삭제"
+                    className="absolute right-1 top-1 z-10 grid h-5 w-5 place-items-center rounded-full bg-white/95 text-[10px] leading-none text-[#8B7355] shadow-sm ring-1 ring-[#E8DCC9] hover:text-red-600 hover:ring-red-300"
+                  >
+                    ✕
+                  </button>
+                </div>
               ))}
             </div>
           </section>
@@ -1556,13 +1596,11 @@ function StatusCard({
   groomAnchorUrl,
   brideAnchorUrl,
   freeActivationAvailable,
-  onDiscardAnchor,
 }: {
   snapBalance: number | null;
   groomAnchorUrl: string | null;
   brideAnchorUrl: string | null;
   freeActivationAvailable: boolean;
-  onDiscardAnchor: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const hasAny = !!groomAnchorUrl || !!brideAnchorUrl;
@@ -1597,16 +1635,9 @@ function StatusCard({
               <button
                 type="button"
                 onClick={() => setExpanded((v) => !v)}
-                className="text-[11px] text-[#8B7355] underline underline-offset-2 hover:text-[#3D2E1F]"
+                className="ml-auto text-[11px] text-[#8B7355] underline underline-offset-2 hover:text-[#3D2E1F]"
               >
                 {expanded ? '접기' : '크게 보기'}
-              </button>
-              <button
-                type="button"
-                onClick={onDiscardAnchor}
-                className="ml-auto text-[11px] text-[#8B7355] underline underline-offset-2 hover:text-red-600"
-              >
-                폐기
               </button>
             </>
           ) : (
