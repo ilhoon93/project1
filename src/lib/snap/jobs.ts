@@ -35,6 +35,8 @@ export interface SnapJobLogInput {
   inputFaceCount?: number | null;
   inputFaceMinSize?: number | null;
   inputAvgLuminance?: number | null;
+  /** 합성 방식 선택 — UI 토글의 값. catalog kind 만 의미 있음. (025 마이그) */
+  imageReference?: 'strict' | 'prompt-only' | null;
 }
 
 /** submit 직후 호출 — 행 insert. 실패는 로그만 남기고 throw 안 함. */
@@ -55,10 +57,15 @@ export async function logSnapJobSubmit(input: SnapJobLogInput): Promise<void> {
     input_face_count: input.inputFaceCount ?? null,
     input_face_min_size: input.inputFaceMinSize ?? null,
     input_avg_luminance: input.inputAvgLuminance ?? null,
+    image_reference: input.imageReference ?? null,
   };
   const { error } = await admin.from('snap_jobs').insert(payload);
   if (error) {
-    console.warn('[snap_jobs] insert failed', { falRequestId: input.falRequestId }, error);
+    console.warn(
+      '[snap_jobs] insert failed',
+      { falRequestId: input.falRequestId, kind: input.kind },
+      error,
+    );
   }
 }
 

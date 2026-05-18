@@ -387,6 +387,7 @@ export type Database = {
           input_face_count: number | null;
           input_face_min_size: number | null;
           input_avg_luminance: number | null;
+          image_reference: 'strict' | 'prompt-only' | null;
         };
         Insert: {
           id?: string;
@@ -416,6 +417,7 @@ export type Database = {
           input_face_count?: number | null;
           input_face_min_size?: number | null;
           input_avg_luminance?: number | null;
+          image_reference?: 'strict' | 'prompt-only' | null;
         };
         Update: Partial<Database['public']['Tables']['snap_jobs']['Insert']>;
         Relationships: [];
