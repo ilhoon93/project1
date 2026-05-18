@@ -367,6 +367,75 @@ export async function getFaceSwapResult(requestId: string): Promise<string> {
 }
 
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Face similarity (ArcFace embedding 기반).
+//
+// 두 이미지의 얼굴 정체성 일치도를 0..1 cosine similarity 로 반환.
+// PR 7 의 finalize 단계 quality gate / face restore 의존성.
+//
+// 정확한 fal endpoint 는 환경에 따라 다를 수 있음 (예: fal-ai/face-similarity,
+// fal-ai/insightface/compare 등). 환경 변수로 override 가능하게 설계.
+//
+// 응답 schema (보수적 파싱): { similarity?: number, score?: number, cosine?: number }
+// 위 세 키 중 하나라도 있으면 사용.
+// ─────────────────────────────────────────────────────────────
+
+const FACE_SIMILARITY_MODEL =
+  process.env.FAL_FACE_SIMILARITY_MODEL ?? 'fal-ai/face-similarity';
+
+interface FaceSimilarityResult {
+  similarity?: number;
+  score?: number;
+  cosine?: number;
+  /** 일부 endpoint 는 0..100 % 로 반환 — 100 보다 크면 0..1 로 정규화. */
+  similarity_percent?: number;
+}
+
+export async function submitFaceSimilarity(input: {
+  imageUrl1: string;
+  imageUrl2: string;
+}): Promise<string> {
+  ensureConfigured();
+  const { request_id } = await fal.queue.submit(FACE_SIMILARITY_MODEL, {
+    input: {
+      image_url_1: input.imageUrl1,
+      image_url_2: input.imageUrl2,
+    },
+  });
+  if (!request_id) throw new Error('face-similarity.submit returned no request_id');
+  return request_id;
+}
+
+export async function getFaceSimilarityResult(requestId: string): Promise<number> {
+  ensureConfigured();
+  const result = await fal.queue.result(FACE_SIMILARITY_MODEL, { requestId });
+  const data = result.data as FaceSimilarityResult;
+  // 다양한 응답 키 순서대로 시도.
+  let score: number | undefined =
+    data.similarity ?? data.cosine ?? data.score ?? undefined;
+  if (score === undefined && data.similarity_percent !== undefined) {
+    score = data.similarity_percent / 100;
+  }
+  if (typeof score !== 'number' || !Number.isFinite(score)) {
+    throw new Error('face-similarity.result returned no usable score');
+  }
+  // 0..1 로 클램핑.
+  return Math.max(0, Math.min(1, score));
+}
+
+/**
+ * 두 이미지 간 face similarity 한 번에 측정. 실패 시 throw.
+ * 호출 측에서 catch 후 quality gate 결정.
+ */
+export async function compareFaces(
+  imageUrl1: string,
+  imageUrl2: string,
+): Promise<number> {
+  const requestId = await submitFaceSimilarity({ imageUrl1, imageUrl2 });
+  return await getFaceSimilarityResult(requestId);
+}
+
+// ─────────────────────────────────────────────────────────────
 // Face detection — 입력 사진의 얼굴 수 / 위치 / 크기 검증.
 // Anchor / couple 입력 단계에서 호출해 너무 작거나 detect 안 되는 얼굴이 들어가
 // 하류 실패율을 키우는 케이스를 사전 차단.

@@ -47,6 +47,19 @@ export interface SnapCatalogItem {
    * 정확한 좌표는 마스터 이미지를 보면서 조정해야 함 — 아래 값은 일반적 위치의 추정치.
    */
   faceMaskRegions?: readonly (readonly [number, number, number, number])[];
+  /**
+   * (선택) 마스터의 색온도 휴리스틱 계산 대신 수동 지정. 강한 색 그레이드
+   * (예: 골든아워 backlit, 시네마틱 teal&orange) 카탈로그는 평균 RGB 기반 추정이
+   * 부정확해 명시적으로 지정하는 게 좋다.
+   * 일반적 범위: 2700K(warm tungsten) ~ 6500K(daylight). 골든아워 ≈ 2800-3200K.
+   */
+  manualKelvin?: number;
+  /**
+   * (선택) moodHint 텍스트도 수동 override. catalog 가 사용하는 컬러 그레이드
+   * 분위기를 한 줄로 (예: "honey-amber backlight, soft golden hour film grain").
+   * 지정 시 finishing/harmonize 프롬프트에 그대로 주입.
+   */
+  manualMoodHint?: string;
 }
 
 export const SNAP_CATALOG: SnapCatalogItem[] = [
@@ -131,6 +144,11 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     image: '/wedding-snap/catalog/bridge-goldenhour.jpg',
     promptHint:
       'Outdoor scene on an ornate stone bridge at golden hour, low sun directly behind the couple creating strong warm backlight with subtle lens flare and hazy atmosphere, distant city skyline barely visible as silhouettes in the haze. Carved stone balustrade visible to one side, light wind moving the bride’s hair. Shot on 50–85mm lens, eye-level, shallow depth of field with cinematic sun-flare. Groom: black peak-lapel suit with white shirt and dark tie, short well-groomed hair with a neat mustache. Bride: ivory off-shoulder wedding dress with structured bodice, holding a small bouquet of eucalyptus and white florals. Pose: intimate close together — groom leaning in to kiss the bride near her temple or cheek while the bride looks softly toward camera with a quiet natural smile, the hairline catching warm rim light. Color grade: honey-amber highlights with gentle teal shadows, slight film haze and grain — must clearly read as warm late-afternoon, NOT noon, NOT blue hour.',
+    // 강한 backlit + honey-amber 시네마틱 그레이드라 평균 RGB 휴리스틱이 부정확.
+    // 명시적으로 골든아워 색온도 + mood 지정.
+    manualKelvin: 3000,
+    manualMoodHint:
+      'honey-amber backlit golden hour, warm rim light with teal-shadow film grade, late-afternoon haze',
     // 신랑(왼쪽 상단, 키스 자세로 약간 앞으로 기울임), 신부(오른쪽, 살짝 아래).
     // 정확한 좌표는 마스터 컷을 보면서 미세조정 권장.
     faceMaskRegions: [
