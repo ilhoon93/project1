@@ -32,13 +32,22 @@ export type UpscaleMode = 'off' | 'aura-sharpen' | 'topaz-sharpen';
 
 const VALID_MODES: readonly UpscaleMode[] = ['off', 'aura-sharpen', 'topaz-sharpen'];
 
-/** env 변수 SNAP_UPSCALE_MODE 읽어 검증. 잘못된 값이면 'off'. */
+/**
+ * env 변수 SNAP_UPSCALE_MODE 읽어 검증. 잘못된 값이면 'topaz-sharpen' (최고 품질
+ * 기본). 비용 절감을 위해 'off' 또는 'aura-sharpen' 으로 override 가능.
+ *
+ * 기본 'topaz-sharpen' 채택 이유:
+ *   - 디테일이 가장 강함 (사진 전용 학습된 모델)
+ *   - face_enhancement=false 설정으로 얼굴 변형 위험 차단 (fal/client.ts 참조)
+ *   - upscale 은 face-swap 단계 이후에 실행되므로 identity 가 이미 locked-in
+ *   - 비용 +$0.015/장 — 결혼사진 한 장의 가치 대비 합리적
+ */
 export function getUpscaleMode(): UpscaleMode {
   const v = process.env.SNAP_UPSCALE_MODE;
   if (typeof v === 'string' && (VALID_MODES as readonly string[]).includes(v)) {
     return v as UpscaleMode;
   }
-  return 'off';
+  return 'topaz-sharpen';
 }
 
 /**
