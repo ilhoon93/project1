@@ -80,6 +80,22 @@ const FACE_SIM_GOOD = 0.5;
 const FACE_SIM_BAD = 0.3;
 
 /**
+ * SNAP_FACE_SIMILARITY 환경변수 읽기.
+ *   on               : compareFaces 호출해 face_similarity_* 컬럼 채움.
+ *   off (default)    : 측정 자체 skip — fal 호출 0, 컬럼 NULL.
+ *
+ * default 가 `off` 인 배경:
+ *   - fal 측에서 face-detection / face-similarity 류 모델 endpoint 가 제거됨
+ *     (2026-05 기준). face-detection 은 404 확인됨, face-similarity 도 같은
+ *     namespace pattern 이라 동일하게 동작 안 할 가능성 매우 높음.
+ *   - 자동 차단/환불 없는 측정용 데이터라 비활성이 사용자 체감 영향 0.
+ *   - 대체 솔루션 도입 또는 fal 측 복구 후 env 로 켤 수 있음.
+ */
+function isFaceSimilarityEnabled(): boolean {
+  return process.env.SNAP_FACE_SIMILARITY === 'on';
+}
+
+/**
  * fal SDK 가 throw 한 error 객체를 cause chain / status / body 까지 한 줄로 시리얼라이즈.
  * input-validation.ts 의 동명 함수와 동일 정책 — 별도 추출 안 한 이유는 중복이
  * 두 곳 뿐이고 module 의존성을 단순하게 유지하기 위해.
@@ -342,6 +358,10 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
   });
 
   // 6. (옵션) Face similarity 측정 — quality gate / 분석용.
+  //    SNAP_FACE_SIMILARITY=on 일 때만 실행. default off — fal 측 face-similarity
+  //    모델이 face-detection 과 함께 404 처리되는 정황이라 비활성. 대체 솔루션
+  //    도입 시점에 다시 켤 수 있음.
+  //
   //    reference 선정은 catalog personality 에 따라 분기:
   //      커플 모드 → 사용자 커플 사진 1장 (groom 컬럼에 단일 점수, couple_input ref)
   //      groom-solo → groomSelfie → face_similarity_groom
@@ -352,9 +372,9 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
   //
   //    측정 실패는 try/catch 가 삼킴 — 사용자 결과(URL) 에는 영향 X. await 로
   //    응답 전에 UPDATE 가 끝나도록 보장. Vercel 서버리스 컷오프 방지.
-  //
-  //    진단 로깅 — 컬럼이 NULL 인 케이스 추적을 위해 단계별로 결과를 남김
-  //    (refs 개수 / 각 score / UPDATE 결과). 운영 트래픽이 늘면 info → debug 로 조정.
+  if (!isFaceSimilarityEnabled()) {
+    return { url: publicUrl };
+  }
   try {
     const refs = pickFaceSimRefs(ctx, input.catalogId ?? null);
     console.info('[finalize] face similarity refs', {
