@@ -48,6 +48,8 @@ export async function submitImageEdit(input: {
   prompt: string;
   quality?: GptImageQuality;
   imageSize?: GptImageSize;
+  /** fal 완료 시 콜백 받을 webhook URL. 미지정 시 polling 으로만 처리. */
+  webhookUrl?: string;
 }): Promise<string> {
   ensureConfigured();
   const { request_id } = await fal.queue.submit(GPT_IMAGE_MODEL, {
@@ -58,6 +60,7 @@ export async function submitImageEdit(input: {
       ...(input.quality ? { quality: input.quality } : {}),
       ...(input.imageSize ? { image_size: input.imageSize } : {}),
     },
+    ...(input.webhookUrl ? { webhookUrl: input.webhookUrl } : {}),
   });
   if (!request_id) throw new Error('fal.queue.submit returned no request_id');
   return request_id;
@@ -74,6 +77,8 @@ export async function submitMultiImageEdit(input: {
   prompt: string;
   quality?: GptImageQuality;
   imageSize?: GptImageSize;
+  /** fal 완료 시 콜백 받을 webhook URL. 미지정 시 polling 으로만 처리. */
+  webhookUrl?: string;
 }): Promise<string> {
   ensureConfigured();
   if (input.imageUrls.length === 0) {
@@ -87,6 +92,7 @@ export async function submitMultiImageEdit(input: {
       ...(input.quality ? { quality: input.quality } : {}),
       ...(input.imageSize ? { image_size: input.imageSize } : {}),
     },
+    ...(input.webhookUrl ? { webhookUrl: input.webhookUrl } : {}),
   });
   if (!request_id) throw new Error('fal.queue.submit returned no request_id');
   return request_id;

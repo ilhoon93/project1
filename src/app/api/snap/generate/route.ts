@@ -15,6 +15,7 @@ import {
 import { logSnapJobSubmit } from '@/lib/snap/jobs';
 import { validateInputImage } from '@/lib/snap/input-validation';
 import { preprocessAndUpload } from '@/lib/snap/input-preprocess';
+import { buildFalWebhookUrl } from '@/lib/snap/fal-webhook';
 import { hasRequiredConsent } from '@/lib/snap/consent';
 import {
   getCatalogFaceBlurMode,
@@ -407,6 +408,9 @@ export async function POST(req: Request) {
   }
 
   // ── fal 큐 제출 — gpt-image-2 multi-image edit ──────────
+  // webhookUrl 동봉 시 fal 완료 시점에 자동으로 /api/snap/fal-webhook 호출돼
+  // finalize 가 즉시 트리거됨. polling (poll-pending) 은 fallback 으로 유지.
+  const webhookUrl = buildFalWebhookUrl(origin, 'catalog');
   let requestId: string;
   try {
     requestId = await submitMultiImageEdit({
@@ -414,6 +418,7 @@ export async function POST(req: Request) {
       prompt,
       quality: 'medium',
       imageSize: 'portrait_4_3',
+      ...(webhookUrl ? { webhookUrl } : {}),
     });
   } catch (e) {
     console.error('[snap/generate] fal.queue.submit error', e);
