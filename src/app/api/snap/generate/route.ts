@@ -280,6 +280,7 @@ export async function POST(req: Request) {
     try {
       const pp = await preprocessAndUpload(input.couplePhotoUrl, {
         pathPrefix: 'couple-photo',
+        userId: user.id,
       });
       couplePhotoUrl = pp.publicUrl;
     } catch (e) {

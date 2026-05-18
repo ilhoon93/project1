@@ -203,11 +203,13 @@ export async function POST(req: Request) {
     if (input.groomFaceUrls?.length) {
       preprocessedGroomUrls = await preprocessUrlsParallel(input.groomFaceUrls, {
         pathPrefix: 'groom-face',
+        userId: user.id,
       });
     }
     if (input.brideFaceUrls?.length) {
       preprocessedBrideUrls = await preprocessUrlsParallel(input.brideFaceUrls, {
         pathPrefix: 'bride-face',
+        userId: user.id,
       });
     }
   } catch (e) {

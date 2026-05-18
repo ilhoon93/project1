@@ -18,17 +18,19 @@
  */
 
 import sharp from 'sharp';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { uploadPrivate } from '@/lib/snap/private-storage';
 
 export interface PreprocessOptions {
   /** false 면 화이트밸런스 정규화도 skip. 기본 true. */
   normalise?: boolean;
   /** 저장 시 파일명 prefix (디버깅 / 추적용). */
   pathPrefix?: string;
+  /** 업로드 경로의 user_id segment. RLS 정책상 권장. 없으면 'unknown' 사용. */
+  userId?: string;
 }
 
 export interface PreprocessResult {
-  /** 선처리 결과가 업로드된 public URL. */
+  /** 선처리 결과의 signed URL (단기, fal 호출용). */
   publicUrl: string;
   /** 처리 전 metadata (디버깅 용). */
   beforeMeta: { width: number; height: number; format: string | undefined };
@@ -44,7 +46,7 @@ export async function preprocessAndUpload(
   sourceUrl: string,
   options: PreprocessOptions = {},
 ): Promise<PreprocessResult> {
-  const { normalise = true, pathPrefix = 'face' } = options;
+  const { normalise = true, pathPrefix = 'face', userId } = options;
 
   // 1) Fetch 원본.
   const res = await fetch(sourceUrl);
@@ -64,18 +66,16 @@ export async function preprocessAndUpload(
   }
   const outBuf = await pipeline.jpeg({ quality: 95, mozjpeg: true }).toBuffer();
 
-  // 3) public-images 에 임시 업로드.
-  const admin = createAdminClient();
+  // 3) private-uploads 에 업로드 (개인 정보 격리). RLS 정책상 user_id segment 필요.
+  //    userId 미지정 케이스는 'unknown' 으로 — 다만 호출 측이 항상 user.id 를
+  //    넘겨야 안전. 호출 사이트 점검 후 미지정 fallback 은 제거 가능.
   const rand = Math.random().toString(36).slice(2, 8);
-  const path = `wedding-snap/preprocessed/${pathPrefix}-${Date.now()}-${rand}.jpg`;
-  const { error: upErr } = await admin.storage
-    .from('public-images')
-    .upload(path, outBuf, { contentType: 'image/jpeg', upsert: false });
-  if (upErr) throw new Error(`preprocessed upload: ${upErr.message}`);
-  const publicUrl = admin.storage.from('public-images').getPublicUrl(path).data.publicUrl;
+  const uid = userId ?? 'unknown';
+  const path = `wedding-snap/${uid}/preprocessed/${pathPrefix}-${Date.now()}-${rand}.jpg`;
+  const { signedUrl } = await uploadPrivate(path, outBuf, 'image/jpeg');
 
   return {
-    publicUrl,
+    publicUrl: signedUrl,
     beforeMeta: {
       width: beforeMeta.width ?? 0,
       height: beforeMeta.height ?? 0,
