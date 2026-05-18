@@ -95,6 +95,70 @@ storage 업로드
 - 모델이 catalog 의 다른 얼굴에 attention 끌려가는 것 방지
 - in-memory 캐시로 같은 catalog 재사용 시 추가 비용 0
 
+### Face similarity 측정 (finalize 마지막 단계)
+
+생성된 결과의 얼굴이 입력(셀카 / 커플 사진)의 사람과 얼마나 일치하는지 fal
+face-similarity 모델로 측정. **자동 차단 / 환불은 하지 않는다** — 사용자가 이미
+결과를 받고 있어 환불 충돌 위험이 있어 분석 / quality gate 로깅 용도만.
+
+위치: [`src/lib/snap/finalize.ts`](../src/lib/snap/finalize.ts) 의
+`pickFaceSimRefs` + Promise.all 측정 블록.
+
+#### Reference 선정 매트릭스
+
+| 모드 | personality | 측정 호출 | `_groom` | `_bride` | `_ref` |
+|---|---|---|---|---|---|
+| couple | — | 1 (커플 사진) | ✅ | — | `couple_input` |
+| selfies / anchored | groom-solo | 1 (groomSelfie) | ✅ | — | `selfie` |
+| selfies / anchored | bride-solo | 1 (brideSelfie) | — | ✅ | `selfie` |
+| selfies / anchored | together | 1~2 (양쪽 selfie 가능한 만큼) | ✅ | ✅ | `selfie` |
+| selfies / anchored | 미상 (catalog 누락) | 0~2 | ✅ | ✅ | `selfie` |
+
+핵심 규칙:
+- **커플 모드는 단일 점수만 `_groom` 컬럼에 저장**. 커플 사진은 두 얼굴을 다
+  포함해 fal 가 자동으로 가장 가까운 매칭을 선택 — 누가 매칭됐는지 모델
+  응답에서 구분 불가하므로 컬럼 분리 안 함. `_ref` 값으로 `couple_input` 임을
+  표시해 후속 분석에서 구분 가능.
+- together 케이스는 양쪽 selfie 가 둘 다 있으면 `Promise.all` 로 병렬 호출 →
+  각각의 selfie 와 결과를 비교해 두 컬럼 모두 채움.
+- 한쪽 측정만 실패해도 다른 쪽은 그대로 저장 (개별 try/catch).
+- bride-solo 카탈로그는 brideSelfie 만으로 측정 — 과거 personality 무시하고
+  groomSelfie 부터 잡던 회귀 버그는 PR #129 에서 수정.
+
+#### Quality gate 임계 (logging only)
+
+[`finalize.ts:62`](../src/lib/snap/finalize.ts:62)
+
+| 점수 범위 | 분류 | 로깅 레벨 |
+|---|---|---|
+| ≥ 0.5 (`FACE_SIM_GOOD`) | 동일 인물 강한 매칭 — 정상 | (로그 X) |
+| 0.3 ~ 0.5 | 동일 인물 가능 — moderate | `console.info` |
+| < 0.3 (`FACE_SIM_BAD`) | 다른 사람 — LOW | `console.warn` |
+
+together 처럼 점수가 2개일 때는 **최저 점수 기준** 으로 로깅 (어느 쪽이든
+식별 실패가 더 큰 이슈).
+
+#### Latency / 비용
+
+- ~$0.001 ~ 0.003 / 호출 (fal face-similarity 모델 추정)
+- ~2~5초 / 호출. together 케이스는 병렬이라 단일 호출과 동일 latency
+- finalize 응답 전 `await` 로 대기 — 과거 `void` fire-and-forget IIFE 가
+  Vercel 서버리스에서 컷오프되어 컬럼이 NULL 인 문제가 있었음 (PR #128 에서
+  await 로 전환). 응답이 ~2~5초 늦더라도 데이터 일관성 우선.
+- 측정 실패는 try/catch 가 삼켜 사용자 결과(URL)에는 영향 없음.
+
+#### env
+
+- `FAL_FACE_SIMILARITY_MODEL` — fal 엔드포인트 override. default `fal-ai/face-similarity`.
+- 측정 자체를 끄는 env 는 의도적으로 없음 (생산 데이터 누적 우선). 일시 비활성이
+  필요하면 `FAL_FACE_SIMILARITY_MODEL=` 빈 값으로 두면 fal SDK 가 실패 → catch 가
+  삼키고 NULL 로 저장됨.
+
+#### 알려진 한계 (follow-up 후보)
+- 커플 모드에서 두 사람 각각의 점수를 분리하려면 fal 가 per-face score 응답을
+  주거나, 별도로 얼굴 검출 후 crop → 1대1 비교를 두 번 돌리는 방식이 필요.
+- together 카탈로그라도 사용자가 한쪽 selfie 만 등록한 경우 그쪽만 측정됨.
+
 #### 단계 간 URL/Buffer 변환
 
 - fal 모델(birefnet, flux, aura, topaz) 은 image_url 만 받음
@@ -247,13 +311,36 @@ SNAP_FINISHING_MODE=off
 앵커 폐기 시 보존되는 이력 (사용자가 이전 앵커로 복원 가능하도록).
 
 ### `snap_jobs`
-생성/앵커 작업 단위 로그.
-- `id`, `user_id`, `kind` (`catalog`|`anchor`)
-- `fal_request_id`, `model`, `quality`
-- `catalog_id`, `catalog_path` (`anchored`|`couple`)
-- `status` (`submitted`|`in_progress`|`completed`|`failed`)
-- `result_url`, `error_message`, `completed_at`
-- `credit_delta` — 차감/환불 회계
+생성 / 앵커 작업 단위 로그. 컬럼은 마이그레이션이 누적되며 늘어났고 채워지는
+시점도 분기별로 다르다.
+
+기본 식별 / 상태:
+- `id` (PK), `user_id`, `kind` (`catalog` | `anchor`)
+- `fal_request_id` (unique), `model`, `quality` — quality 는 `SNAP_IMAGE_QUALITY`
+  env 가 실제로 적용된 값이 그대로 기록 (PR #128)
+- `status` (`submitted` | `in_progress` | `completed` | `failed` | `timeout`)
+- `result_url`, `error_message`, `completed_at`, `submitted_at`
+- `credit_delta` — 차감 / 환불 회계 (-1 차감 등)
+
+분기 메타 (어느 모드 / 카탈로그였는지):
+- `catalog_id`, `catalog_path` (`anchored` | `selfies` | `couple`)
+- `anchor_slot` (`groom` | `bride`) — 앵커 작업만
+- `anchor_framing` (`closeup` | `halfbody`) — 앵커 작업만
+- `couple_photo_url` — 커플 모드 입력 사진 URL (face-swap reference / face similarity reference 로 사용)
+
+입력 품질 메타 ([`input-validation.ts`](../src/lib/snap/input-validation.ts) 측정):
+- `input_face_count`, `input_face_min_size`, `input_avg_luminance`
+
+비용 / 타이밍 / 단계 로그 (PR 114):
+- `fal_cost_usd` — `COST_ESTIMATES_USD` 누적 (`finalize.ts:47`)
+- `phase_timings` (jsonb) — `{fal_wait_ms, face_swap_ms, postprocess_ms, storage_upload_ms}`
+- `pipeline_stages` (jsonb) — `{face_swap, upscale, harmonize, finishing}` 의 실행 모드 / 성공 여부
+
+Face similarity 측정 결과 (PR #128 + #129 — 위 "Face similarity 측정" 섹션 매트릭스 참조):
+- `face_similarity_groom numeric(4,3)` — 결과 vs groom 측 reference 의 cosine 유사도
+- `face_similarity_bride numeric(4,3)` — 결과 vs bride 측 reference 의 cosine 유사도
+  - **커플 모드는 항상 `_groom` 에만 단일 점수 저장** (커플 사진이 두 얼굴을 다 포함해 fal 가 자동 매칭 → 누가 매칭됐는지 응답에서 구분 불가)
+- `face_similarity_ref text` (`selfie` | `couple_input` | `anchor`) — 어떤 reference 와 비교했는지 표시
 
 ### `snap_credits_ledger`
 스냅 크레딧 ±. RPC `consume_snap_credit` / `refund_snap_credit` 가 원자적 변경.
