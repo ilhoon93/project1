@@ -210,6 +210,45 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
       [0.50, 0.22, 0.14, 0.14],
     ],
   },
+  {
+    id: 'studio-floral-pastel',
+    label: '플라워 파스텔 스튜디오',
+    hint: '파스텔 라일락·핑크 플라워 + 화이트 벽',
+    category: 'studio',
+    personality: 'together',
+    intensity: 'low',
+    image: '/wedding-snap/catalog/studio-floral-pastel.jpg',
+    promptHint:
+      'Indoor studio with seamless bright white wall backdrop and abundant floral arrangements framing the couple — tall stems of pastel lilac delphinium, blush garden roses, soft pink lisianthus, cream hydrangea, and fresh green foliage flanking both sides of the frame and trailing along the floor. Soft diffused natural light (large window / softbox) creating gentle floral shadows on the wall. Shot on 50–85mm portrait lens, eye-level camera, three-quarter to full-body framing, shallow depth of field. Couple seated close together on a low cream platform or bench, low enough that the dress drapes naturally. Groom: black peak-lapel suit with white shirt and pale champagne / ivory tie, short neat black hair, soft natural smile. Bride: strapless ivory ball-gown wedding dress with full tulle skirt and subtle beaded bodice, hair in soft long waves with small earring accent, one hand resting lightly on the groom’s arm. Pose: groom seated, bride leaning gently into him with her arm wrapped around his, both facing camera with soft genuine smiles. Color grade: airy bright whites with pastel lilac and blush highlights, clean warm skin midtones — romantic dreamy bridal magazine atmosphere, never oversaturated.',
+    // 신랑(왼쪽), 신부(오른쪽, 거의 같은 높이) — 앉은 자세 투샷 기준 추정치.
+    // 정확한 좌표는 마스터 컷을 보면서 미세조정 권장.
+    faceMaskRegions: [
+      [0.30, 0.30, 0.16, 0.18],
+      [0.48, 0.32, 0.16, 0.18],
+    ],
+  },
+  {
+    id: 'desert-warm-walk',
+    label: '사막 웨딩 워킹',
+    hint: '모래언덕 + 햇살 + 캐주얼 워킹',
+    category: 'outdoor',
+    personality: 'together',
+    intensity: 'medium',
+    image: '/wedding-snap/catalog/desert-warm-walk.jpg',
+    promptHint:
+      'Outdoor sand dune landscape with soft rolling beige sand stretching to a distant horizon, sparse tufts of pale dune grass in the mid-ground, hazy bright daylight (high sun softened by light haze, NOT golden hour, NOT noon glare). Shot on 35–50mm lens for environmental walking feel, full-body framing, eye-level camera, shallow depth of field on subjects with creamy sand bokeh behind. Groom: clean white button-up shirt (sleeves casually rolled or pushed up) with tan / khaki chinos, short dark hair with a neat short beard, relaxed natural posture. Bride: vivid coral-red lace mermaid dress with ruffle V-neckline shoulder straps and small bead detailing, long loose blonde-toned waves blowing in the breeze, a small matching red feather hair accent. Pose: couple walking side by side across the dune holding hands, both laughing and looking at each other with big genuine smiles mid-step — candid joyful prewedding movement, not a static pose. Color grade: warm sandy beige highlights with pale-cream sky and rich saturated red on the dress, soft daylight haze. Sense of warmth and joy, light wind motion in fabric and hair.',
+    // 강한 채도 빨강 드레스 + 햇살 haze → 평균 RGB 휴리스틱이 빨강 쪽으로 치우칠 위험.
+    // 톤은 자연 햇살 daylight 로 명시 고정.
+    manualKelvin: 5200,
+    manualMoodHint:
+      'warm hazy daylight on beige sand dunes, saturated red dress as focal accent, joyful candid walking motion',
+    // 신랑(왼쪽), 신부(오른쪽) — 양쪽으로 벌어진 워킹 투샷이라 얼굴 간격이 넓음.
+    // 정확한 좌표는 마스터 컷을 보면서 미세조정 권장.
+    faceMaskRegions: [
+      [0.18, 0.18, 0.16, 0.18],
+      [0.62, 0.20, 0.16, 0.18],
+    ],
+  },
   // ── Solo (단독) 컷 ────────────────────────────────────────
   // 이미지 파일은 사용자가 별도로 마스터를 만들어 같은 id 로 저장해야 함.
   // (예: public/wedding-snap/catalog/groom-portrait-studio.jpg)
