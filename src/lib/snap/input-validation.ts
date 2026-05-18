@@ -82,17 +82,24 @@ function serializeFalError(e: unknown): string {
 
 /**
  * SNAP_INPUT_VALIDATION_MODE 환경변수 읽기.
- *   strict (default)  : fal face-detection 호출 실패 시 errors 차단.
- *   permissive        : 호출 실패 시 warnings 만 — 사용자는 진행 가능, 단
- *                       input_face_* 컬럼은 NULL 로 남음. 호출 성공 + face count
- *                       mismatch 는 여전히 차단 (1명 사진을 커플 자리에 등).
- *   off               : face-detection 자체 skip — 비용 절약 / 검증 비활성.
+ *   strict             : fal face-detection 호출 실패 시 errors 차단.
+ *   permissive         : 호출 실패 시 warnings 만 — 사용자는 진행 가능, 단
+ *                        input_face_* 컬럼은 NULL 로 남음. 호출 성공 + face count
+ *                        mismatch 는 여전히 차단 (1명 사진을 커플 자리에 등).
+ *   off (default)      : face-detection 자체 skip — 비용 0, sharp 검증만.
+ *
+ * default 가 `off` 로 변경된 배경:
+ *   - fal 측에서 `fal-ai/imageutils/face-detection` endpoint 가 제거됨 (404).
+ *     공식 모델 카탈로그에서 face detection 모델 자체가 사라진 상태 (2026-05).
+ *   - 무조건 차단(strict) 로 두면 정상 사진 업로드도 막혀 사용자 차단.
+ *   - 대안 솔루션(Google Vision / face-api.js 등) 도입 전까지 임시 비활성.
+ *     fal 측에서 다시 endpoint 가 살아나거나 다른 모델로 교체되면 env 로 켤 수 있음.
  */
 type InputValidationMode = 'strict' | 'permissive' | 'off';
 function getInputValidationMode(): InputValidationMode {
   const v = process.env.SNAP_INPUT_VALIDATION_MODE;
   if (v === 'strict' || v === 'permissive' || v === 'off') return v;
-  return 'strict';
+  return 'off';
 }
 
 export interface ImageValidationResult {
