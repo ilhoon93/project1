@@ -94,10 +94,34 @@ export async function GET() {
 
   const hasPurchased = !!purchasedRaw;
 
-  // 라이브러리는 양쪽 URL 이 모두 채워진 "완성 앵커" 만. 빈 항목은 의미 없음.
-  const library = (libraryRaw ?? []).filter(
-    (e) => e.groom_anchor_url && e.bride_anchor_url,
-  );
+  // 라이브러리는 슬롯 단위로 분리해서 노출. 한 history row 가 양쪽 slot 모두
+  // 채워져 있으면 groomLibrary / brideLibrary 양쪽에 동시에 (같은 row id 로) 노출.
+  // 사용자가 신랑은 row A, 신부는 row B 로 따로 골라 조합할 수 있게 함.
+  const rawHistory = libraryRaw ?? [];
+  const groomLibrary = rawHistory
+    .filter((e) => !!e.groom_anchor_url)
+    .map((e) => ({
+      id: e.id as string,
+      anchorUrl: e.groom_anchor_url as string,
+      selfieUrl: (e.groom_selfie_url as string | null) ?? null,
+      heightCm: (e.groom_height_cm as number | null) ?? null,
+      weightKg: (e.groom_weight_kg as number | null) ?? null,
+      sourceMode: e.source_mode as string,
+      anchorCreatedAt: e.anchor_created_at as string | null,
+      discardedAt: e.discarded_at as string,
+    }));
+  const brideLibrary = rawHistory
+    .filter((e) => !!e.bride_anchor_url)
+    .map((e) => ({
+      id: e.id as string,
+      anchorUrl: e.bride_anchor_url as string,
+      selfieUrl: (e.bride_selfie_url as string | null) ?? null,
+      heightCm: (e.bride_height_cm as number | null) ?? null,
+      weightKg: (e.bride_weight_kg as number | null) ?? null,
+      sourceMode: e.source_mode as string,
+      anchorCreatedAt: e.anchor_created_at as string | null,
+      discardedAt: e.discarded_at as string,
+    }));
 
   // 무료 batch: 결제 사용자에게만 제공. 미결제면 잔량 0.
   const freeUsed = anchor?.free_full_batches_used ?? 0;
@@ -107,7 +131,8 @@ export async function GET() {
   return NextResponse.json(
     {
       anchor: anchor ?? null,
-      library,
+      groomLibrary,
+      brideLibrary,
       freeBatchesLeft,
       freeActivationAvailable,
       hasPurchased,

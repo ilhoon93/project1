@@ -61,14 +61,21 @@ interface AnchorInfo {
 }
 
 /**
- * 라이브러리 앵커 — 과거에 만든 앵커 (snap_anchor_history). 카탈로그 생성 시
- * 현재 앵커 대신 골라 쓸 수 있다.
+ * 라이브러리 앵커 (slot 단위) — 과거에 만든 앵커들의 신랑 또는 신부 slot 만.
+ * 한 history row 가 양쪽 slot 모두 채워져 있으면 groomLibrary / brideLibrary 양쪽에
+ * 같은 id 로 동시에 나타나며, 사용자는 신랑/신부를 다른 row 의 slot 으로 조합 가능.
+ *
+ * 백엔드 (/api/snap/anchor GET) 가 row 를 slot 별로 분리해서 반환.
  */
-interface LibraryAnchor {
+interface LibraryAnchorSlot {
   id: string;
-  groomAnchorUrl: string;
-  brideAnchorUrl: string;
-  createdAt: string;
+  anchorUrl: string;
+  selfieUrl: string | null;
+  heightCm: number | null;
+  weightKg: number | null;
+  sourceMode: string;
+  anchorCreatedAt: string | null;
+  discardedAt: string;
 }
 
 interface AnchorCandidate {
@@ -135,10 +142,16 @@ export function SnapGenerator({ catalog }: Props) {
   // 무료 full-batch 잔량 (0~2). API 응답으로 채워짐. 화면 안내·버튼 활성에 사용.
   const [freeBatchesLeft, setFreeBatchesLeft] = useState<number>(2);
 
-  // 앵커 라이브러리 — 과거 anchor (snap_anchor_history). 카탈로그 생성 시 선택지.
-  const [library, setLibrary] = useState<LibraryAnchor[]>([]);
-  // 카탈로그 생성에 쓸 앵커 — 'current' = snap_anchors 현재 앵커, UUID = 라이브러리.
-  const [selectedAnchorId, setSelectedAnchorId] = useState<string>('current');
+  // 앵커 라이브러리 — slot 단위. groomLibrary / brideLibrary 각각 자기 slot 만의 카드.
+  // 한 history row 가 양쪽 slot 다 있으면 양쪽에 같은 id 로 노출 가능.
+  const [groomLibrary, setGroomLibrary] = useState<LibraryAnchorSlot[]>([]);
+  const [brideLibrary, setBrideLibrary] = useState<LibraryAnchorSlot[]>([]);
+  // 카탈로그 생성에 쓸 앵커 — slot 별 분리.
+  //   'current' = snap_anchors 의 해당 slot
+  //   UUID      = snap_anchor_history 의 그 row 의 해당 slot
+  // 신랑은 row A, 신부는 row B 로 조합 가능.
+  const [selectedGroomAnchorId, setSelectedGroomAnchorId] = useState<string>('current');
+  const [selectedBrideAnchorId, setSelectedBrideAnchorId] = useState<string>('current');
 
   // 카탈로그 다중 선택 — 한 번에 N개 제출 가능. 비동기 finalize 라 페이지 이탈 OK.
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -214,25 +227,29 @@ export function SnapGenerator({ catalog }: Props) {
         if (typeof a?.freeBatchesLeft === 'number') {
           setFreeBatchesLeft(a.freeBatchesLeft);
         }
-        // 라이브러리 — 과거 완성 앵커들 (양쪽 URL 모두 있는 것만).
-        if (Array.isArray(a?.library)) {
-          const lib: LibraryAnchor[] = a.library
-            .filter(
-              (e: Record<string, unknown>) => !!e.groom_anchor_url && !!e.bride_anchor_url,
-            )
-            .map((e: Record<string, unknown>) => ({
-              id: e.id as string,
-              groomAnchorUrl: e.groom_anchor_url as string,
-              brideAnchorUrl: e.bride_anchor_url as string,
-              createdAt: (e.anchor_created_at as string) ?? (e.discarded_at as string) ?? '',
-            }));
-          setLibrary(lib);
-          // 현재 앵커가 없는데 라이브러리가 있으면 기본 선택을 첫 라이브러리로.
-          const hasCurrent = !!a.anchor?.groom_anchor_url && !!a.anchor?.bride_anchor_url;
-          if (!hasCurrent && lib.length > 0) {
-            setSelectedAnchorId(lib[0].id);
-          }
-        }
+        // 라이브러리 — slot 단위. 백엔드가 groomLibrary / brideLibrary 분리 응답.
+        const parseSlotLibrary = (raw: unknown): LibraryAnchorSlot[] => {
+          if (!Array.isArray(raw)) return [];
+          return raw.map((e: Record<string, unknown>) => ({
+            id: e.id as string,
+            anchorUrl: e.anchorUrl as string,
+            selfieUrl: (e.selfieUrl as string | null) ?? null,
+            heightCm: (e.heightCm as number | null) ?? null,
+            weightKg: (e.weightKg as number | null) ?? null,
+            sourceMode: (e.sourceMode as string) ?? 'selfies',
+            anchorCreatedAt: (e.anchorCreatedAt as string | null) ?? null,
+            discardedAt: (e.discardedAt as string) ?? '',
+          }));
+        };
+        const gLib = parseSlotLibrary(a?.groomLibrary);
+        const bLib = parseSlotLibrary(a?.brideLibrary);
+        setGroomLibrary(gLib);
+        setBrideLibrary(bLib);
+        // 각 slot 의 현재 앵커가 없는데 라이브러리가 있으면 그쪽 첫 항목 자동 선택.
+        const hasCurrentGroom = !!a?.anchor?.groom_anchor_url;
+        const hasCurrentBride = !!a?.anchor?.bride_anchor_url;
+        if (!hasCurrentGroom && gLib.length > 0) setSelectedGroomAnchorId(gLib[0].id);
+        if (!hasCurrentBride && bLib.length > 0) setSelectedBrideAnchorId(bLib[0].id);
         if (typeof e?.snapCredits === 'number') setSnapBalance(e.snapCredits);
       } catch {
         // 비로그인 등 — 그대로.
@@ -528,20 +545,28 @@ export function SnapGenerator({ catalog }: Props) {
     }
   };
 
-  // 라이브러리(과거 앵커)의 한 행을 영구 삭제.
+  // 라이브러리 항목의 한 slot 을 영구 삭제 (slot 단위).
   //   - 현재 active 앵커는 다음 batch 저장 시 POST /api/snap/anchor 가 자동으로
-  //     history 에 archive → 따로 "현재 앵커 폐기" UX 가 필요 없음.
+  //     history 에 archive → 따로 "현재 앵커 폐기" UX 필요 없음.
+  //   - history row 의 반대쪽 slot 이 NULL 인 경우 백엔드가 row 자체를 삭제.
   //   - 삭제 후 그 항목이 선택돼 있었다면 selection 을 'current' 로 되돌려
   //     상단 status card 가 stale URL 을 가리키지 않게.
-  const handleDiscardLibrary = async (id: string) => {
-    if (!confirm('이 라이브러리 앵커를 영구 삭제할까요?')) return;
+  const handleDiscardLibrarySlot = async (id: string, slot: 'groom' | 'bride') => {
+    const label = slot === 'groom' ? '신랑' : '신부';
+    if (!confirm(`이 라이브러리 ${label} 앵커를 영구 삭제할까요?`)) return;
     try {
-      const res = await fetch(`/api/snap/anchor/history?id=${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-      });
+      const res = await fetch(
+        `/api/snap/anchor/history?id=${encodeURIComponent(id)}&slot=${slot}`,
+        { method: 'DELETE' },
+      );
       if (!res.ok) throw new Error('delete failed');
-      setLibrary((prev) => prev.filter((l) => l.id !== id));
-      if (selectedAnchorId === id) setSelectedAnchorId('current');
+      if (slot === 'groom') {
+        setGroomLibrary((prev) => prev.filter((l) => l.id !== id));
+        if (selectedGroomAnchorId === id) setSelectedGroomAnchorId('current');
+      } else {
+        setBrideLibrary((prev) => prev.filter((l) => l.id !== id));
+        if (selectedBrideAnchorId === id) setSelectedBrideAnchorId('current');
+      }
     } catch {
       setAnchorErr('라이브러리 삭제에 실패했습니다.');
     }
@@ -610,12 +635,14 @@ export function SnapGenerator({ catalog }: Props) {
           ...(brideBodyValid ? { brideBody: brideBodyValid } : {}),
         };
       }
-      // anchorId — 'current' (default, snap_anchors) 또는 라이브러리 UUID.
+      // groomAnchorId / brideAnchorId — slot 별로 'current' 또는 라이브러리 UUID.
+      //   personality 가 solo 면 반대쪽 slot 값은 백엔드에서 무시.
       // imageReference — strict (마스터 컷 참조) 또는 prompt-only (텍스트만).
       return {
         mode: 'anchor',
         catalogId: item.id,
-        anchorId: selectedAnchorId,
+        groomAnchorId: selectedGroomAnchorId,
+        brideAnchorId: selectedBrideAnchorId,
         imageReference,
       };
     };
@@ -678,22 +705,23 @@ export function SnapGenerator({ catalog }: Props) {
     return '신랑·신부 앵커 합성';
   })();
 
-  // 상단 StatusCard 가 표시할 앵커 URL — selectedAnchorId 기준.
-  //   - 'current'  : active anchor (snap_anchors 의 단일 행)
-  //   - library id : 해당 라이브러리 항목 URL. 없으면 active 로 fallback.
-  // 사용자가 picker 에서 라이브러리를 고르면 상단 thumbnail 이 즉시 그쪽으로 바뀜.
+  // 상단 StatusCard 가 표시할 앵커 URL — slot 별 selectedXxxAnchorId 기준.
+  //   - 'current'  : active anchor (snap_anchors 의 해당 slot)
+  //   - library id : 해당 slot 라이브러리 항목 URL. 없으면 active 로 fallback.
+  // 사용자가 신랑/신부 picker 에서 골라도 상단 thumbnail 즉시 반영.
   const displayedAnchor = (() => {
-    if (selectedAnchorId === 'current') {
-      return {
-        groom: anchor?.groomAnchorUrl ?? null,
-        bride: anchor?.brideAnchorUrl ?? null,
-      };
-    }
-    const lib = library.find((l) => l.id === selectedAnchorId);
-    if (lib) return { groom: lib.groomAnchorUrl, bride: lib.brideAnchorUrl };
+    const resolveSlot = (
+      sel: string,
+      lib: LibraryAnchorSlot[],
+      activeUrl: string | null,
+    ): string | null => {
+      if (sel === 'current') return activeUrl;
+      const item = lib.find((l) => l.id === sel);
+      return item ? item.anchorUrl : activeUrl;
+    };
     return {
-      groom: anchor?.groomAnchorUrl ?? null,
-      bride: anchor?.brideAnchorUrl ?? null,
+      groom: resolveSlot(selectedGroomAnchorId, groomLibrary, anchor?.groomAnchorUrl ?? null),
+      bride: resolveSlot(selectedBrideAnchorId, brideLibrary, anchor?.brideAnchorUrl ?? null),
     };
   })();
 
@@ -1131,76 +1159,39 @@ export function SnapGenerator({ catalog }: Props) {
         </section>
       )}
 
-      {/* 3-a. 앵커 선택 — selfies 모드 + (현재 앵커 또는 라이브러리) 가 있을 때.
-              카탈로그 생성에 어떤 앵커를 적용할지 사용자가 고를 수 있다. */}
+      {/* 3-a. 앵커 선택 — slot 별 별도 picker.
+              사용자가 신랑은 row A 의 신랑 slot, 신부는 row B 의 신부 slot 처럼
+              조합해서 가장 마음에 드는 페어를 만들 수 있게 한다.
+              각 slot 카드의 ✕ 는 그 slot 만 라이브러리에서 영구 삭제. */}
       {mode !== 'couple' &&
-        (!!anchor?.groomAnchorUrl || !!anchor?.brideAnchorUrl || library.length > 0) && (
+        (!!anchor?.groomAnchorUrl ||
+          !!anchor?.brideAnchorUrl ||
+          groomLibrary.length > 0 ||
+          brideLibrary.length > 0) && (
           <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
             <h2 className="text-sm font-medium text-[#3D2E1F]">사용할 앵커 선택</h2>
             <p className="mt-1 text-xs text-[#8B7355]">
-              과거에 만든 앵커도 골라 쓸 수 있어요. 카탈로그 생성에 적용됩니다.
+              신랑·신부를 각자 골라 조합할 수 있어요. ✕ 는 라이브러리에서 그 slot 만 영구 삭제.
             </p>
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-              {/* 현재 앵커 카드 */}
-              {(anchor?.groomAnchorUrl || anchor?.brideAnchorUrl) && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedAnchorId('current')}
-                  aria-pressed={selectedAnchorId === 'current'}
-                  className={`relative flex flex-col gap-1 rounded-md border p-2 text-left transition-colors ${
-                    selectedAnchorId === 'current'
-                      ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
-                      : 'border-[#E8DCC9] hover:border-[#8B7355]'
-                  }`}
-                >
-                  <div className="grid grid-cols-2 gap-1">
-                    <AnchorTinyThumb url={anchor.groomAnchorUrl} />
-                    <AnchorTinyThumb url={anchor.brideAnchorUrl} />
-                  </div>
-                  <span className="text-[11px] font-medium text-[#3D2E1F]">현재 앵커</span>
-                  <span className="text-[10px] text-[#8B7355]">최근 저장</span>
-                </button>
-              )}
-              {/* 라이브러리 (과거).
-                  선택 button 과 ✕ 삭제 button 을 같은 DOM 레벨에 두어
-                  button-in-button HTML 무효 이슈 회피. ✕ 는 우상단 코너에
-                  absolute 로 띄움. */}
-              {library.map((lib) => (
-                <div
-                  key={lib.id}
-                  className={`relative rounded-md border transition-colors ${
-                    selectedAnchorId === lib.id
-                      ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
-                      : 'border-[#E8DCC9] hover:border-[#8B7355]'
-                  }`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAnchorId(lib.id)}
-                    aria-pressed={selectedAnchorId === lib.id}
-                    className="flex w-full flex-col gap-1 p-2 text-left"
-                  >
-                    <div className="grid grid-cols-2 gap-1">
-                      <AnchorTinyThumb url={lib.groomAnchorUrl} />
-                      <AnchorTinyThumb url={lib.brideAnchorUrl} />
-                    </div>
-                    <span className="text-[11px] font-medium text-[#3D2E1F]">라이브러리</span>
-                    <span className="text-[10px] text-[#8B7355]">
-                      {formatLibraryDate(lib.createdAt)}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDiscardLibrary(lib.id)}
-                    title="라이브러리에서 영구 삭제"
-                    aria-label="라이브러리에서 영구 삭제"
-                    className="absolute right-1 top-1 z-10 grid h-5 w-5 place-items-center rounded-full bg-white/95 text-[10px] leading-none text-[#8B7355] shadow-sm ring-1 ring-[#E8DCC9] hover:text-red-600 hover:ring-red-300"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
+
+            <AnchorSlotPicker
+              slot="groom"
+              label="신랑 앵커"
+              activeUrl={anchor?.groomAnchorUrl ?? null}
+              library={groomLibrary}
+              selectedId={selectedGroomAnchorId}
+              onSelect={setSelectedGroomAnchorId}
+              onDiscard={(id) => handleDiscardLibrarySlot(id, 'groom')}
+            />
+            <AnchorSlotPicker
+              slot="bride"
+              label="신부 앵커"
+              activeUrl={anchor?.brideAnchorUrl ?? null}
+              library={brideLibrary}
+              selectedId={selectedBrideAnchorId}
+              onSelect={setSelectedBrideAnchorId}
+              onDiscard={(id) => handleDiscardLibrarySlot(id, 'bride')}
+            />
           </section>
         )}
 
@@ -1660,6 +1651,96 @@ function StatusCard({
           <AnchorBigPreview url={brideAnchorUrl} label="신부 앵커" />
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * slot 단위 앵커 picker. 한 줄에 "현재 (active)" 카드 + 라이브러리 카드들.
+ * 각 카드 우상단 ✕ → onDiscard(id) 호출 (active 카드는 ✕ 없음, 다음 batch 저장
+ * 시 자동 archive 흐름이라 별도 폐기 UX 불필요).
+ */
+function AnchorSlotPicker({
+  slot,
+  label,
+  activeUrl,
+  library,
+  selectedId,
+  onSelect,
+  onDiscard,
+}: {
+  slot: 'groom' | 'bride';
+  label: string;
+  activeUrl: string | null;
+  library: LibraryAnchorSlot[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+  onDiscard: (id: string) => void;
+}) {
+  const hasAny = !!activeUrl || library.length > 0;
+  if (!hasAny) {
+    return (
+      <div className="mt-3">
+        <h3 className="text-[12px] font-medium text-[#3D2E1F]">{label}</h3>
+        <p className="mt-1 text-[11px] text-[#8B7355]">
+          아직 저장된 {slot === 'groom' ? '신랑' : '신부'} 앵커가 없어요.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-3">
+      <h3 className="text-[12px] font-medium text-[#3D2E1F]">{label}</h3>
+      <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+        {activeUrl && (
+          <button
+            type="button"
+            onClick={() => onSelect('current')}
+            aria-pressed={selectedId === 'current'}
+            className={`relative flex flex-col gap-1 rounded-md border p-2 text-left transition-colors ${
+              selectedId === 'current'
+                ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
+                : 'border-[#E8DCC9] hover:border-[#8B7355]'
+            }`}
+          >
+            <AnchorTinyThumb url={activeUrl} />
+            <span className="text-[11px] font-medium text-[#3D2E1F]">현재</span>
+            <span className="text-[10px] text-[#8B7355]">최근 저장</span>
+          </button>
+        )}
+        {library.map((lib) => (
+          <div
+            key={lib.id}
+            className={`relative rounded-md border transition-colors ${
+              selectedId === lib.id
+                ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
+                : 'border-[#E8DCC9] hover:border-[#8B7355]'
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => onSelect(lib.id)}
+              aria-pressed={selectedId === lib.id}
+              className="flex w-full flex-col gap-1 p-2 text-left"
+            >
+              <AnchorTinyThumb url={lib.anchorUrl} />
+              <span className="text-[11px] font-medium text-[#3D2E1F]">라이브러리</span>
+              <span className="text-[10px] text-[#8B7355]">
+                {formatLibraryDate(lib.anchorCreatedAt ?? lib.discardedAt)}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onDiscard(lib.id)}
+              title="이 slot 만 라이브러리에서 영구 삭제"
+              aria-label="이 slot 만 라이브러리에서 영구 삭제"
+              className="absolute right-1 top-1 z-10 grid h-5 w-5 place-items-center rounded-full bg-white/95 text-[10px] leading-none text-[#8B7355] shadow-sm ring-1 ring-[#E8DCC9] hover:text-red-600 hover:ring-red-300"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
