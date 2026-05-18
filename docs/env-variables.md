@@ -30,6 +30,7 @@
 | `FAL_WEBHOOK_SECRET` | ⬜ | — | fal 콜백 인증 토큰 (미설정 시 polling 만 사용) |
 | `FAL_WEBHOOK_BASE_URL` | ⬜ | (요청 origin) | fal webhook 의 호스트 override |
 | `FAL_FACE_SIMILARITY_MODEL` | ⬜ | `fal-ai/face-similarity` | face similarity 측정용 fal 엔드포인트 |
+| `FAL_FACE_DETECTION_MODEL` | ⬜ | `fal-ai/imageutils/face-detection` | 입력 사진 얼굴 수/크기 검증용 fal 엔드포인트 |
 | `NEXT_PUBLIC_PORTONE_STORE_ID` | ✅ | — | PortOne V2 가맹점 |
 | `NEXT_PUBLIC_PORTONE_CHANNEL_KEY` | ✅ | — | Toss 채널 키 |
 | `PORTONE_API_SECRET` | ✅ | — | 서버 전용 |

@@ -431,13 +431,27 @@ export async function getFaceSimilarityResult(requestId: string): Promise<number
 /**
  * 두 이미지 간 face similarity 한 번에 측정. 실패 시 throw.
  * 호출 측에서 catch 후 quality gate 결정.
+ *
+ * stage prefix 부착 throw — finalize 의 진단 로그 / Vercel 로그에서 어느 단계가
+ * 실패하는지 (submit / result / fal endpoint 자체) 즉시 식별 가능.
  */
 export async function compareFaces(
   imageUrl1: string,
   imageUrl2: string,
 ): Promise<number> {
-  const requestId = await submitFaceSimilarity({ imageUrl1, imageUrl2 });
-  return await getFaceSimilarityResult(requestId);
+  let requestId: string;
+  try {
+    requestId = await submitFaceSimilarity({ imageUrl1, imageUrl2 });
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : 'unknown';
+    throw new Error(`face-similarity submit failed (${FACE_SIMILARITY_MODEL}): ${detail}`);
+  }
+  try {
+    return await getFaceSimilarityResult(requestId);
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : 'unknown';
+    throw new Error(`face-similarity result failed (${FACE_SIMILARITY_MODEL}): ${detail}`);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -451,7 +465,10 @@ export async function compareFaces(
 // 응답 schema 가 모델별로 다를 수 있어 보수적 파싱: faces 배열만 있으면 OK.
 // ─────────────────────────────────────────────────────────────
 
-const FACE_DETECTION_MODEL = 'fal-ai/imageutils/face-detection';
+// fal 의 face-detection endpoint 가 변경되거나 일시 장애일 때 사용자가 env 로
+// 즉시 교체할 수 있도록 override 허용. default 는 imageutils 의 face-detection.
+const FACE_DETECTION_MODEL =
+  process.env.FAL_FACE_DETECTION_MODEL ?? 'fal-ai/imageutils/face-detection';
 
 export interface DetectedFace {
   /** [x_min, y_min, x_max, y_max] pixel coords */
@@ -507,8 +524,22 @@ export async function getFaceDetectionResult(
  * input validation 처럼 한 번만 호출하면 되는 곳에서 사용.
  *
  * 큐 wait timeout 은 fal SDK 의 기본값 사용 (보통 face detection 은 1-3초).
+ *
+ * 실패 시 어디 단계에서 죽었는지 호출 측에서 알 수 있도록 stage 정보를
+ * Error.message 에 prefix 로 부착해 throw.
  */
 export async function detectFaces(imageUrl: string): Promise<DetectedFace[]> {
-  const requestId = await submitFaceDetection({ imageUrl });
-  return await getFaceDetectionResult(requestId);
+  let requestId: string;
+  try {
+    requestId = await submitFaceDetection({ imageUrl });
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : 'unknown';
+    throw new Error(`face-detection submit failed (${FACE_DETECTION_MODEL}): ${detail}`);
+  }
+  try {
+    return await getFaceDetectionResult(requestId);
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : 'unknown';
+    throw new Error(`face-detection result failed (${FACE_DETECTION_MODEL}): ${detail}`);
+  }
 }
