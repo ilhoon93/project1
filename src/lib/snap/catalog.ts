@@ -48,6 +48,15 @@ export interface SnapCatalogItem {
    */
   faceMaskRegions?: readonly (readonly [number, number, number, number])[];
   /**
+   * (옵션) 카탈로그 스타일 강도 — 입력↔카탈로그 갭이 얼마나 크게 작용할지의 정성적 등급.
+   *   - 'low'    : 중립 스튜디오, 부드러운 자연광. 거의 어떤 입력과도 잘 어울림.
+   *   - 'medium' : 일반 야외 / 한옥. 평균적 변환량.
+   *   - 'high'   : 강한 backlight / 시네마틱 그레이드 / 강한 sun-flare 등. 야경·저조도
+   *                입력 사진에서 얼굴 변형 위험 증가. UI 에서 사용자에게 사전 경고.
+   * 미지정 시 'medium' 으로 간주.
+   */
+  intensity?: 'low' | 'medium' | 'high';
+  /**
    * (선택) 마스터의 색온도 휴리스틱 계산 대신 수동 지정. 강한 색 그레이드
    * (예: 골든아워 backlit, 시네마틱 teal&orange) 카탈로그는 평균 RGB 기반 추정이
    * 부정확해 명시적으로 지정하는 게 좋다.
@@ -70,6 +79,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     hint: '뉴트럴 그레이 + 소프트박스',
     category: 'studio',
     personality: 'together',
+    intensity: 'low',
     image: '/wedding-snap/catalog/studio-classic.jpg',
     promptHint:
       'Indoor studio with seamless neutral gray backdrop. Two-source softbox lighting from front-left and front-right at 45° down, soft floor pickup creating gentle shadow under the couple, polished floor reflecting the dress hem. Shot on 50–85mm portrait lens, eye-level camera, shallow depth of field. Groom: black peak-lapel tuxedo with white shirt and black bow tie. Bride: ivory A-line wedding dress with off-shoulder neckline and lace bodice, holding a small white bouquet at waist level. Editorial portrait atmosphere, color grade with subtle warm midtones and neutral highlights. Pose: standing close together, slight three-quarter angle, bride leaning gently toward groom, both looking at camera with natural soft smiles.',
@@ -85,6 +95,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     hint: '사이프러스 배경 + 잔디 + 자연광',
     category: 'outdoor',
     personality: 'together',
+    intensity: 'low',
     image: '/wedding-snap/catalog/meadow-spring.jpg',
     promptHint:
       'Outdoor garden with tall cypress and pine trees forming a green backdrop, well-kept lawn underfoot, soft overcast natural lighting (no harsh sun, no blown highlights). Shot on 50–85mm lens, eye-level camera, slight background compression with shallow depth of field. Groom: black formal suit with white shirt and black tie. Bride: ivory satin off-shoulder A-line wedding dress holding a small bouquet of white and green florals. Full-body or three-quarter pose, standing slightly turned toward each other on the lawn, classic Korean studio outdoor wedding aesthetic. Color grade: cool greens with soft warm skin tones, never oversaturated. Gentle breeze hinting at fabric movement.',
@@ -99,6 +110,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     hint: '벚꽃 + 기왓장 햇살',
     category: 'tradition',
     personality: 'together',
+    intensity: 'medium',
     image: '/wedding-snap/catalog/hanok-courtyard.jpg',
     promptHint:
       'Traditional Korean hanok courtyard with falling cherry blossom petals in the air and on the stone path, dappled sunlight filtering through the trees, wooden architecture and gray-tile roofline as backdrop. Shot on 50–85mm lens, slight low-angle to frame the eaves. Groom: black peak-lapel tuxedo with white shirt and black bow tie. Bride: ivory A-line dress with subtle beading, holding a small white-and-pink bouquet. Warm cultural lighting with golden highlights on hair and shoulders, color grade biased toward warm peach and soft pink. Pose: standing close together on the stone path with petals around them, soft natural smiles. No harsh shadows.',
@@ -113,6 +125,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     hint: '노을빛 유리벽',
     category: 'urban',
     personality: 'together',
+    intensity: 'high',
     image: '/wedding-snap/catalog/city-goldenhour.jpg',
     promptHint:
       'Modern city street at golden hour (warm orange sun low in the sky, long soft rim light on hair and shoulders — must clearly be golden hour, NOT noon, NOT blue hour). Glass skyscrapers in background reflecting the sunset, wet pavement adding subtle catch lights. Shot on 35–50mm lens for a wider environmental feel, shallow depth of field on subjects. Groom: sharp black tuxedo. Bride: sleek ivory satin A-line dress. Cinematic metropolitan atmosphere, color grade leans warm amber + teal shadow contrast. Pose: walking gently side by side or standing close on the pavement, natural casual movement.',
@@ -127,6 +140,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     hint: '잔잔한 파도 + 노을',
     category: 'beach',
     personality: 'together',
+    intensity: 'high',
     image: '/wedding-snap/catalog/beach-sunset.jpg',
     promptHint:
       'Quiet beach at golden sunset, soft waves rolling on the shore, light sea breeze hinting at fabric movement, warm horizon glow filling the background. Shot on 50–85mm lens, shallow depth of field, slight backlight rim light from the setting sun. Groom: black beach-formal tuxedo (slightly relaxed fit). Bride: ivory chiffon A-line dress with light lace, hem grazing the wet sand. Warm tropical lighting, color grade with warm amber highlights and soft teal shadows. Pose: standing close on the wet sand with bare or simple shoes, looking softly at each other or toward the horizon. No harsh sun glare on faces.',
@@ -141,6 +155,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     hint: '석양 백라이트 + 스톤 발루스트레이드',
     category: 'urban',
     personality: 'together',
+    intensity: 'high',
     image: '/wedding-snap/catalog/bridge-goldenhour.jpg',
     promptHint:
       'Outdoor scene on an ornate stone bridge at golden hour, low sun directly behind the couple creating strong warm backlight with subtle lens flare and hazy atmosphere, distant city skyline barely visible as silhouettes in the haze. Carved stone balustrade visible to one side, light wind moving the bride’s hair. Shot on 50–85mm lens, eye-level, shallow depth of field with cinematic sun-flare. Groom: black peak-lapel suit with white shirt and dark tie, short well-groomed hair with a neat mustache. Bride: ivory off-shoulder wedding dress with structured bodice, holding a small bouquet of eucalyptus and white florals. Pose: intimate close together — groom leaning in to kiss the bride near her temple or cheek while the bride looks softly toward camera with a quiet natural smile, the hairline catching warm rim light. Color grade: honey-amber highlights with gentle teal shadows, slight film haze and grain — must clearly read as warm late-afternoon, NOT noon, NOT blue hour.',

@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import type { SnapCatalogItem } from '@/lib/snap/catalog';
 import { CatalogThumbnail } from '@/components/snap/CatalogThumbnail';
+import { scoreCompatibility } from '@/lib/snap/catalog-compatibility';
 import { ConsentModal } from '@/components/snap/ConsentModal';
 import {
   ANCHOR_TEMPLATES,
@@ -1238,6 +1239,12 @@ export function SnapGenerator({ catalog }: Props) {
             const selected = selectedIds.has(item.id);
             const enabled = isCatalogGeneratable(item);
             const dim = isProgressing || !enabled;
+            // 카탈로그 호환성 — intensity 기반 정성적 경고.
+            // input meta 를 알 수 있는 경우 더 정확하지만, 현재 단계에선 catalog
+            // 자체의 intensity 만으로 판단 (커플 모드에서 추후 입력 face size 결합 가능).
+            const compat = scoreCompatibility(item, {
+              mode: mode === 'couple' ? 'couple' : 'anchor',
+            });
             return (
               <button
                 key={item.id}
@@ -1245,7 +1252,11 @@ export function SnapGenerator({ catalog }: Props) {
                 disabled={isProgressing || !enabled}
                 onClick={() => toggleCatalogSelection(item.id)}
                 aria-pressed={selected}
-                title={!enabled ? '이 컷을 만들려면 필요한 앵커 / 입력이 부족해요' : undefined}
+                title={
+                  !enabled
+                    ? '이 컷을 만들려면 필요한 앵커 / 입력이 부족해요'
+                    : compat.reasons[0]
+                }
                 className={`relative flex flex-col overflow-hidden rounded-md border text-left transition-colors ${
                   selected
                     ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
@@ -1265,6 +1276,18 @@ export function SnapGenerator({ catalog }: Props) {
                 >
                   ✓
                 </span>
+                {/* 호환성 배지 — 좌하단 (PersonalityBadge 는 좌상단). caution 이상에서만 표시. */}
+                {compat.level !== 'safe' && (
+                  <span
+                    className={`pointer-events-none absolute bottom-12 left-2 z-20 rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none shadow-md ${
+                      compat.level === 'risky'
+                        ? 'bg-red-600/95 text-white'
+                        : 'bg-amber-500/95 text-white'
+                    }`}
+                  >
+                    {compat.level === 'risky' ? '⚠ 변형 위험' : '⚠ 강한 스타일'}
+                  </span>
+                )}
                 <CatalogThumbnail src={item.image} alt={item.label} />
                 <PersonalityBadge personality={item.personality} />
                 <div className="p-2">
