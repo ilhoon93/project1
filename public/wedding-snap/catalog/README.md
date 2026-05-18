@@ -22,6 +22,8 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `city-goldenhour` | 도심 골든아워 | `city-goldenhour.jpg` |
 | `beach-sunset` | 바닷가 석양 | `beach-sunset.jpg` |
 | `bridge-goldenhour` | 브릿지 골든아워 | `bridge-goldenhour.jpg` |
+| `beach-classic-white` | 비치 클래식 화이트 | `beach-classic-white.jpg` |
+| `seoul-nightview` | 서울 야경 루프탑 | `seoul-nightview.jpg` |
 
 **Solo (단독)**
 | id | 라벨 | 파일 경로 |

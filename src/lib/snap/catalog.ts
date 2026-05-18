@@ -171,6 +171,45 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
       [0.46, 0.40, 0.16, 0.18],
     ],
   },
+  {
+    id: 'beach-classic-white',
+    label: '비치 클래식 화이트',
+    hint: '화이트 슈트 + 베일 + 잔잔한 파도',
+    category: 'beach',
+    personality: 'together',
+    intensity: 'medium',
+    image: '/wedding-snap/catalog/beach-classic-white.jpg',
+    promptHint:
+      'Quiet seaside at warm late-afternoon daylight (soft low sun in clear pale-blue sky, gently breaking waves on calm shoreline in the background, light sea breeze hinting at fabric movement). Shot on 50–85mm portrait lens, full-body / three-quarter framing, eye-level camera, shallow depth of field with crisp soft natural light. Groom: clean ivory/white formal suit with mandarin/Nehru-style collar, no tie, dark hair tied back in a low bun and a neat short beard. Bride: ivory A-line wedding dress with delicate lace bodice and off-shoulder neckline, a long flowing tulle veil/cape draping behind her, hair pulled back in a soft updo with small pearl pins. Pose: standing close facing each other in profile, foreheads gently touching, holding hands in front at waist level, soft natural smiles with eyes closed or softly cast down. Color grade: bright airy whites with pale-blue sky tones and warm cream skin midtones, gentle film softness — must clearly read as warm bright daylight, NOT night, NOT studio.',
+    // 신부(왼쪽, 살짝 아래), 신랑(오른쪽, 살짝 위) — 프로파일-투-프로파일 자세 기준 추정치.
+    // 정확한 좌표는 마스터 컷을 보면서 미세조정 권장.
+    faceMaskRegions: [
+      [0.30, 0.32, 0.18, 0.18],
+      [0.48, 0.28, 0.18, 0.18],
+    ],
+  },
+  {
+    id: 'seoul-nightview',
+    label: '서울 야경 루프탑',
+    hint: '루프탑 + N서울타워 야경',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'medium',
+    image: '/wedding-snap/catalog/seoul-nightview.jpg',
+    promptHint:
+      'Outdoor rooftop terrace overlooking the Seoul city skyline at twilight / blue hour — Namsan mountain and N Seoul Tower clearly visible in the distance, dense cityscape of mid-rise buildings with warm tungsten window lights glowing across the frame, glass guardrail at the rooftop edge with subtle uplight LEDs along the floor. Shot on 35–50mm lens for a wider environmental feel, full-body framing, eye-level camera, shallow depth of field on subjects with soft city bokeh behind. Groom: charcoal / dark-gray three-piece suit with dark tie and white shirt, short neat black hair, calm composed soft smile. Bride: sleek ivory satin floor-length wedding dress with subtle cowl / draped neckline, hair pulled back in a low chignon with small pearl drop earrings. Pose: standing close side by side at the railing, bride’s hand resting on the groom’s lapel or arm, both facing camera with soft natural smiles. Color grade: cinematic blue-hour palette with cool city-light blues, warm tungsten window glow as accent, gentle film grain — must clearly read as evening twilight / blue hour, NOT noon, NOT golden hour.',
+    // 야경 + 강한 도시광·tungsten 윈도우 글로우 혼재 → 평균 RGB 휴리스틱이 부정확.
+    // 명시적으로 블루아워 색온도 + mood 지정.
+    manualKelvin: 4200,
+    manualMoodHint:
+      'Seoul blue-hour cityscape, cool ambient blue sky with warm tungsten window-light accents, gentle film grain',
+    // 신랑(왼쪽), 신부(오른쪽, 살짝 아래) — 풀신 투샷 루프탑 기준 추정치.
+    // 정확한 좌표는 마스터 컷을 보면서 미세조정 권장.
+    faceMaskRegions: [
+      [0.28, 0.20, 0.16, 0.16],
+      [0.50, 0.22, 0.14, 0.14],
+    ],
+  },
   // ── Solo (단독) 컷 ────────────────────────────────────────
   // 이미지 파일은 사용자가 별도로 마스터를 만들어 같은 id 로 저장해야 함.
   // (예: public/wedding-snap/catalog/groom-portrait-studio.jpg)
