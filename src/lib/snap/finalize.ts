@@ -18,7 +18,7 @@
  * 어느 단계라도 실패하면 직전 결과로 fallback — finalize 자체는 안 깨짐.
  */
 
-import { getImageEditResult } from '@/lib/fal/client';
+import { compareFaces, getImageEditResult } from '@/lib/fal/client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { markSnapJobCompleted, markSnapJobFailed } from '@/lib/snap/jobs';
 import {
@@ -30,7 +30,17 @@ import { findSnapCatalog } from '@/lib/snap/catalog';
 import {
   getIdentityMode,
   applyFaceSwapRestore,
+  applyCoupleFaceSwapRestore,
 } from '@/lib/snap/identity-restore';
+
+/**
+ * face similarity quality gate threshold.
+ *   ≥ 0.5 : 동일 인물 강한 매칭 — 정상
+ *   0.3 ~ 0.5: 동일 인물 가능 — warning 로깅만
+ *   < 0.3 : 다른 사람 — 로깅만 (자동 차단은 환불 처리와 충돌 위험 있어 미적용)
+ */
+const FACE_SIM_GOOD = 0.5;
+const FACE_SIM_BAD = 0.3;
 
 export interface FinalizeInput {
   userId: string;
@@ -54,11 +64,12 @@ async function loadJobContext(falRequestId: string): Promise<{
   catalogPath: 'anchored' | 'selfies' | 'couple' | null;
   groomSelfieUrl: string | null;
   brideSelfieUrl: string | null;
+  couplePhotoUrl: string | null;
 }> {
   const admin = createAdminClient();
   const { data: job } = await admin
     .from('snap_jobs')
-    .select('model, user_id, catalog_id, catalog_path')
+    .select('model, user_id, catalog_id, catalog_path, couple_photo_url')
     .eq('fal_request_id', falRequestId)
     .maybeSingle();
   if (!job) {
@@ -69,6 +80,7 @@ async function loadJobContext(falRequestId: string): Promise<{
       catalogPath: null,
       groomSelfieUrl: null,
       brideSelfieUrl: null,
+      couplePhotoUrl: null,
     };
   }
   let groomSelfieUrl: string | null = null;
@@ -89,6 +101,8 @@ async function loadJobContext(falRequestId: string): Promise<{
     catalogPath: (job.catalog_path as 'anchored' | 'selfies' | 'couple' | null) ?? null,
     groomSelfieUrl,
     brideSelfieUrl,
+    couplePhotoUrl:
+      ((job as { couple_photo_url?: string | null }).couple_photo_url) ?? null,
   };
 }
 
@@ -113,23 +127,30 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
   }
 
   // 2. Phase B face-swap 복원 (SNAP_IDENTITY_MODE=face-swap 일 때만).
-  //    카탈로그 결과 + selfie 있어야 의미 있음. flux-pulid 모드는 이미 generation 단계에서
-  //    identity 보존됐으므로 skip. 실패 시 generatedUrl 그대로.
+  //    카탈로그 결과 + reference 있어야 의미 있음.
+  //    - 셀카 모드: selfie URL reference 사용
+  //    - 커플 모드: 사용자가 업로드한 커플 사진을 reference 로 사용 (PR 7)
+  //    실패 시 generatedUrl 그대로.
   const identityMode = getIdentityMode();
-  if (
-    identityMode === 'face-swap' &&
-    input.catalogId &&
-    (ctx.groomSelfieUrl || ctx.brideSelfieUrl)
-  ) {
+  if (identityMode === 'face-swap' && input.catalogId) {
     const catalog = findSnapCatalog(input.catalogId);
     if (catalog) {
       try {
-        generatedUrl = await applyFaceSwapRestore({
-          generatedUrl,
-          personality: catalog.personality,
-          groomSelfieUrl: ctx.groomSelfieUrl,
-          brideSelfieUrl: ctx.brideSelfieUrl,
-        });
+        if (ctx.catalogPath === 'couple' && ctx.couplePhotoUrl) {
+          // 커플 모드: 커플 사진의 두 얼굴을 결과에 입혀 identity 보존.
+          generatedUrl = await applyCoupleFaceSwapRestore({
+            generatedUrl,
+            couplePhotoUrl: ctx.couplePhotoUrl,
+          });
+        } else if (ctx.groomSelfieUrl || ctx.brideSelfieUrl) {
+          // 셀카 / 앵커 모드: 기존 흐름.
+          generatedUrl = await applyFaceSwapRestore({
+            generatedUrl,
+            personality: catalog.personality,
+            groomSelfieUrl: ctx.groomSelfieUrl,
+            brideSelfieUrl: ctx.brideSelfieUrl,
+          });
+        }
       } catch (e) {
         console.warn(
           '[finalize] face-swap failed, continuing with original generation',
@@ -189,5 +210,63 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
 
   // 5. snap_jobs 완료 마크.
   void markSnapJobCompleted(input.falRequestId, publicUrl);
+
+  // 6. (옵션) Face similarity 측정 — quality gate / 분석용. 비차단.
+  //    reference 선정:
+  //      커플 모드 → 사용자 커플 사진
+  //      셀카 모드 → groomSelfie (있으면) / brideSelfie
+  //    similarity 점수가 임계 미만이면 warn 로깅 (자동 차단/환불 X — 사용자가
+  //    이미 결과를 받고 있어 환불 처리가 복잡해짐. 분석용 누적 기록만).
+  void (async () => {
+    try {
+      const ref = pickFaceSimRef(ctx);
+      if (!ref) return;
+      const score = await compareFaces(ref.url, publicUrl);
+      const admin = createAdminClient();
+      const update: Record<string, unknown> = { face_similarity_ref: ref.kind };
+      // groom-only / together 케이스 단순화: 일단 groom 칼럼에 저장.
+      // 추후 fal 응답에서 per-face score 가 가능하면 양쪽 모두 채움.
+      update.face_similarity_groom = score;
+      await admin
+        .from('snap_jobs')
+        .update(update as never)
+        .eq('fal_request_id', input.falRequestId);
+      if (score < FACE_SIM_BAD) {
+        console.warn(
+          '[finalize] face similarity LOW',
+          input.falRequestId,
+          score.toFixed(3),
+        );
+      } else if (score < FACE_SIM_GOOD) {
+        console.info(
+          '[finalize] face similarity moderate',
+          input.falRequestId,
+          score.toFixed(3),
+        );
+      }
+    } catch (e) {
+      // 비차단. 측정 실패해도 사용자 결과에는 영향 X.
+      console.warn('[finalize] face similarity skipped', input.falRequestId, e);
+    }
+  })();
+
   return { url: publicUrl };
+}
+
+function pickFaceSimRef(ctx: {
+  catalogPath: 'anchored' | 'selfies' | 'couple' | null;
+  groomSelfieUrl: string | null;
+  brideSelfieUrl: string | null;
+  couplePhotoUrl: string | null;
+}): { url: string; kind: 'selfie' | 'couple_input' | 'anchor' } | null {
+  if (ctx.catalogPath === 'couple' && ctx.couplePhotoUrl) {
+    return { url: ctx.couplePhotoUrl, kind: 'couple_input' };
+  }
+  if (ctx.groomSelfieUrl) {
+    return { url: ctx.groomSelfieUrl, kind: 'selfie' };
+  }
+  if (ctx.brideSelfieUrl) {
+    return { url: ctx.brideSelfieUrl, kind: 'selfie' };
+  }
+  return null;
 }

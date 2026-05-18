@@ -365,3 +365,39 @@ export async function getFaceSwapResult(requestId: string): Promise<string> {
   if (!url) throw new Error('face-swap.result returned no image url');
   return url;
 }
+
+// ─────────────────────────────────────────────────────────────
+// Face similarity (PR 6 와 정의 중복 — 머지 시 단일화).
+// 두 이미지의 얼굴 cosine similarity 0..1 반환.
+// ─────────────────────────────────────────────────────────────
+
+const FACE_SIMILARITY_MODEL =
+  process.env.FAL_FACE_SIMILARITY_MODEL ?? 'fal-ai/face-similarity';
+
+interface FaceSimilarityResult {
+  similarity?: number;
+  score?: number;
+  cosine?: number;
+  similarity_percent?: number;
+}
+
+export async function compareFaces(
+  imageUrl1: string,
+  imageUrl2: string,
+): Promise<number> {
+  ensureConfigured();
+  const { request_id } = await fal.queue.submit(FACE_SIMILARITY_MODEL, {
+    input: { image_url_1: imageUrl1, image_url_2: imageUrl2 },
+  });
+  if (!request_id) throw new Error('face-similarity.submit returned no request_id');
+  const result = await fal.queue.result(FACE_SIMILARITY_MODEL, { requestId: request_id });
+  const data = result.data as FaceSimilarityResult;
+  let score: number | undefined = data.similarity ?? data.cosine ?? data.score;
+  if (score === undefined && data.similarity_percent !== undefined) {
+    score = data.similarity_percent / 100;
+  }
+  if (typeof score !== 'number' || !Number.isFinite(score)) {
+    throw new Error('face-similarity.result returned no usable score');
+  }
+  return Math.max(0, Math.min(1, score));
+}

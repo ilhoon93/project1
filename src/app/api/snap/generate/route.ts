@@ -230,6 +230,9 @@ export async function POST(req: Request) {
   let imageUrls: string[];
   let prompt: string;
   let pathLabel: 'anchored' | 'couple';
+  // 커플 모드 한정 — finalize 의 face-swap restore / similarity 측정에
+  // 사용할 (선처리된) 커플 사진 URL. 모드가 아니면 null 유지.
+  let coupleStoredPhotoUrl: string | null = null;
 
   if (input.mode === 'couple') {
     // 커플 사진 입력 검증 — 해상도/밝기 등 차단 조건. errors 면 400 반환.
@@ -256,6 +259,8 @@ export async function POST(req: Request) {
     } catch (e) {
       console.warn('[snap/generate] couple photo preprocess failed', e);
     }
+    // finalize 단계 face-swap restore / similarity 측정에 사용할 URL 저장.
+    coupleStoredPhotoUrl = couplePhotoUrl;
     // imageReference 분기:
     //   strict      → 마스터 이미지 동봉 (의상/배경 시각 reference)
     //   prompt-only → 마스터 빼고 텍스트만 (얼굴 보존 우선)
@@ -410,6 +415,23 @@ export async function POST(req: Request) {
     catalogPath: pathLabel,
     creditDelta: -1,
   });
+
+  // 커플 모드: finalize 단계의 face-swap restore / similarity 측정에 사용할
+  // 커플 사진 URL 을 snap_jobs 에 별도 저장 (logSnapJobSubmit 후 patch).
+  // 023 migration 에서 추가된 columns. logSnapJobSubmit 가 비동기라 여기서
+  // 다시 admin.from.update 로 patch — race condition 없음 (같은 row 의 다른 필드).
+  if (input.mode === 'couple' && coupleStoredPhotoUrl) {
+    void admin
+      .from('snap_jobs')
+      .update({
+        couple_photo_url: coupleStoredPhotoUrl,
+        // path 저장은 PR 3 (private storage) 머지 후 별도 작업. 우선 URL 만.
+      } as never)
+      .eq('fal_request_id', requestId)
+      .then(({ error }) => {
+        if (error) console.warn('[snap/generate] couple url patch failed', error);
+      });
+  }
 
   return NextResponse.json({
     requestId,
