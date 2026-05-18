@@ -17,6 +17,7 @@ import { buildAnchorPromptSolo } from '@/lib/snap/prompt';
 import { logSnapJobSubmit } from '@/lib/snap/jobs';
 import { validateInputImage } from '@/lib/snap/input-validation';
 import { preprocessUrlsParallel } from '@/lib/snap/input-preprocess';
+import { buildFalWebhookUrl } from '@/lib/snap/fal-webhook';
 
 /**
  * POST /api/snap/anchor/generate
@@ -277,6 +278,11 @@ export async function POST(req: Request) {
     });
   };
 
+  // webhookUrl 동봉 — fal 완료 시 /api/snap/fal-webhook 자동 호출. anchor 작업은
+  // 사용자가 명시적 저장 액션을 해야 finalize 되므로 webhook 은 상태 노티로만 활용.
+  const origin = req.headers.get('origin') ?? new URL(req.url).origin;
+  const webhookUrl = buildFalWebhookUrl(origin, 'anchor');
+
   let submissions: Array<{ slot: AnchorSlot; framing: AnchorFraming; requestId: string }>;
   try {
     submissions = await Promise.all(
@@ -287,6 +293,7 @@ export async function POST(req: Request) {
           prompt: buildPrompt(t),
           quality: 'high',
           imageSize: 'portrait_4_3',
+          ...(webhookUrl ? { webhookUrl } : {}),
         });
         void logSnapJobSubmit({
           userId: user.id,
