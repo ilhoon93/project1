@@ -82,12 +82,9 @@ export async function POST() {
       }
 
       if (status === 'FAILED') {
-        // 3. fal 자체 실패 — 환불 + mark.
-        await admin.rpc('refund_snap_credit', {
-          p_user_id: user.id,
-          p_note: 'catalog generation failed',
-          p_ref_id: null,
-        });
+        // 3. fal 자체 실패 — mark 만. snap_jobs.status 가 'failed' 로 전이되면
+        //    migration 019 의 snap_jobs_auto_refund_trg 트리거가 자동으로
+        //    snap_credits_ledger 에 환불 행을 추가. application 측 별도 호출 불필요.
         void markSnapJobFailed(job.fal_request_id, 'fal returned FAILED');
         return {
           falRequestId: job.fal_request_id,

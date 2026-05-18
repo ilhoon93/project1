@@ -16,6 +16,7 @@ import { logSnapJobSubmit } from '@/lib/snap/jobs';
 import { validateInputImage } from '@/lib/snap/input-validation';
 import { preprocessAndUpload } from '@/lib/snap/input-preprocess';
 import { buildFalWebhookUrl } from '@/lib/snap/fal-webhook';
+import { hasRequiredConsent } from '@/lib/snap/consent';
 import {
   getCatalogFaceBlurMode,
   getBlurredCatalogUrl,
@@ -102,6 +103,18 @@ export async function POST(req: Request) {
   const catalog = findSnapCatalog(input.catalogId);
   if (!catalog) {
     return NextResponse.json({ error: 'Unknown catalog id' }, { status: 400 });
+  }
+
+  // 동의 게이트 — 필수 scope (personal_info + ai_generation) 동의가 현재 버전
+  // 이상으로 있어야 진행. 한국 PIPA / ICN 법 대응.
+  if (!(await hasRequiredConsent(user.id))) {
+    return NextResponse.json(
+      {
+        error: '얼굴 정보 처리 및 AI 합성에 대한 동의가 필요합니다.',
+        code: 'consent_required',
+      },
+      { status: 403 },
+    );
   }
 
   // Couple 모드 + solo 카탈로그 조합은 의미가 약함 (커플 사진에서 한 명만 추출
@@ -231,11 +244,27 @@ export async function POST(req: Request) {
   let imageUrls: string[];
   let prompt: string;
   let pathLabel: 'anchored' | 'couple';
+  // 입력 사진 검증 메타 — snap_jobs 로깅에 전달해서 어떤 입력 조건에서 어떤 결과가
+  // 나왔는지 추적 가능하게 한다.
+  let inputMeta: {
+    faceCount: number | null;
+    minFaceSize: number | null;
+    avgLuminance: number;
+  } | null = null;
 
   if (input.mode === 'couple') {
-    // 커플 사진 입력 검증 — 해상도/밝기 등 차단 조건. errors 면 400 반환.
-    // 사용자에게 정확한 이유까지 한 줄로 보여 줘서 어떤 부분이 문제인지 즉시 파악 가능.
-    const couplePhotoValidation = await validateInputImage(input.couplePhotoUrl);
+    // 커플 사진 입력 검증 — 해상도/밝기 + 얼굴 2명 검출 / 얼굴 크기 임계.
+    // errors 면 400 반환. 사용자에게 정확한 이유까지 한 줄로 보여 줘서 어떤 부분이
+    // 문제인지 즉시 파악 가능.
+    const couplePhotoValidation = await validateInputImage(input.couplePhotoUrl, {
+      faceDetection: true,
+      expectedFaces: 2,
+    });
+    inputMeta = {
+      faceCount: couplePhotoValidation.meta.faceCount,
+      minFaceSize: couplePhotoValidation.meta.minFaceSize,
+      avgLuminance: couplePhotoValidation.meta.avgLuminance,
+    };
     if (!couplePhotoValidation.ok) {
       return NextResponse.json(
         {
@@ -252,6 +281,7 @@ export async function POST(req: Request) {
     try {
       const pp = await preprocessAndUpload(input.couplePhotoUrl, {
         pathPrefix: 'couple-photo',
+        userId: user.id,
       });
       couplePhotoUrl = pp.publicUrl;
     } catch (e) {
@@ -414,6 +444,9 @@ export async function POST(req: Request) {
     catalogId: input.catalogId,
     catalogPath: pathLabel,
     creditDelta: -1,
+    inputFaceCount: inputMeta?.faceCount ?? null,
+    inputFaceMinSize: inputMeta?.minFaceSize ?? null,
+    inputAvgLuminance: inputMeta?.avgLuminance ?? null,
   });
 
   return NextResponse.json({
