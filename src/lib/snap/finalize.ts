@@ -79,6 +79,36 @@ const COST_ESTIMATES_USD = {
 const FACE_SIM_GOOD = 0.5;
 const FACE_SIM_BAD = 0.3;
 
+/**
+ * fal SDK 가 throw 한 error 객체를 cause chain / status / body 까지 한 줄로 시리얼라이즈.
+ * input-validation.ts 의 동명 함수와 동일 정책 — 별도 추출 안 한 이유는 중복이
+ * 두 곳 뿐이고 module 의존성을 단순하게 유지하기 위해.
+ */
+function serializeFalError(e: unknown): string {
+  if (!(e instanceof Error)) return String(e).slice(0, 500);
+  const parts: string[] = [`message=${e.message}`];
+  const obj = e as unknown as Record<string, unknown>;
+  if (typeof obj.status === 'number') parts.push(`status=${obj.status}`);
+  if (typeof obj.statusText === 'string') parts.push(`statusText=${obj.statusText}`);
+  if (obj.body !== undefined) {
+    try {
+      const body = typeof obj.body === 'string' ? obj.body : JSON.stringify(obj.body);
+      parts.push(`body=${body.slice(0, 400)}`);
+    } catch {
+      parts.push('body=<unserializable>');
+    }
+  }
+  let cause: unknown = obj.cause;
+  let depth = 0;
+  while (cause && depth < 3) {
+    if (cause instanceof Error) parts.push(`cause[${depth}]=${cause.message}`);
+    else parts.push(`cause[${depth}]=${String(cause).slice(0, 200)}`);
+    cause = (cause as { cause?: unknown })?.cause;
+    depth += 1;
+  }
+  return parts.join(' | ');
+}
+
 export interface FinalizeInput {
   userId: string;
   falRequestId: string;
@@ -336,12 +366,14 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
             const score = await compareFaces(ref.url, publicUrl);
             return { ref, score };
           } catch (e) {
-            console.warn(
-              '[finalize] face similarity failed for',
-              ref.target,
-              input.falRequestId,
-              e,
-            );
+            // cause chain + status/body 까지 한 줄로 시리얼라이즈해 Vercel 로그에
+            // 정확한 fal 실패 원인 노출. compareFaces 가 cause 로 raw error 전달.
+            console.warn('[finalize] face similarity failed', {
+              falRequestId: input.falRequestId,
+              target: ref.target,
+              kind: ref.kind,
+              error: serializeFalError(e),
+            });
             return null;
           }
         }),

@@ -26,6 +26,7 @@
 | `SNAP_UPSCALE_MODE` | ⬜ | `topaz-sharpen` | 웨딩스냅 업스케일 (최고 품질 default) |
 | `SNAP_IDENTITY_MODE` | ⬜ | `face-swap` | 카탈로그 결과의 얼굴 identity 복원 (face-swap) |
 | `SNAP_IMAGE_QUALITY` | ⬜ | `medium` | 카탈로그 gpt-image-2 quality (`low`/`medium`/`high`/`auto`) |
+| `SNAP_INPUT_VALIDATION_MODE` | ⬜ | `strict` | 커플 모드 입력 검증 정책 (`strict`/`permissive`/`off`) |
 | `SNAP_CATALOG_FACE_BLUR` | ⬜ | `on` | 카탈로그 마스터 얼굴 영역 사전 blur |
 | `FAL_WEBHOOK_SECRET` | ⬜ | — | fal 콜백 인증 토큰 (미설정 시 polling 만 사용) |
 | `FAL_WEBHOOK_BASE_URL` | ⬜ | (요청 origin) | fal webhook 의 호스트 override |
@@ -113,6 +114,17 @@
 |---|---|---|---|
 | `off` | 비활성 (Phase A multi-image 결과 그대로) | $0 | 0s |
 | `face-swap` **(기본)** | catalog 결과 + selfie / 커플 사진 → fal-ai/face-swap. 카탈로그 구도/의상 유지하고 얼굴만 사용자 진본으로 교체. solo/together/couple 모두 작동 | ~$0.01~0.04 | ~3~10s |
+
+### `SNAP_INPUT_VALIDATION_MODE` — 커플 모드 입력 검증 정책
+| 값 | 동작 | 추가 비용 |
+|---|---|---|
+| `strict` **(기본)** | sharp 검증 + fal face-detection. 호출 실패 시 errors 차단 — "잠시 후 다시 시도" | ~$0.001/장 |
+| `permissive` | sharp 검증 + fal face-detection. 호출 **성공 + face count mismatch** 는 차단 유지. 호출 **자체 실패** 시 warnings 만 — 사용자 진행 가능, `input_face_*` 컬럼은 NULL | ~$0.001/장 |
+| `off` | fal face-detection 자체 skip. sharp 검증(해상도/밝기/종횡비) 만. `input_face_*` 항상 NULL | $0 |
+
+fal face-detection endpoint 일시 장애 / 변경으로 정상 사진까지 차단되면 `permissive` 로 임시 우회. 안정화되면 다시 `strict` 권장. 비용 가시성을 완전히 끊으려면 `off`.
+
+진단 로그: `[input-validation] face detection failed { sourceHost, expectedFaces, mode, error }` 에 cause chain / status / body 시리얼라이즈된 raw 메시지가 포함됨. Vercel 로그에서 fal 응답 형태 즉시 식별.
 
 ### `SNAP_IMAGE_QUALITY` — 카탈로그 gpt-image-2 quality
 | 값 | 동작 | 추가 비용 | 추가 시간 |
