@@ -23,6 +23,18 @@
 import sharp from 'sharp';
 import { detectFaces, type DetectedFace } from '@/lib/fal/client';
 
+/**
+ * URL 의 host 만 추출해 로깅 — 전체 URL 은 PII (signed token 등) 포함 가능.
+ * 파싱 실패하면 '(invalid url)' 로 fallback.
+ */
+function safeHost(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return '(invalid url)';
+  }
+}
+
 export interface ImageValidationResult {
   ok: boolean;
   errors: string[];
@@ -212,10 +224,18 @@ export async function validateInputImage(
         );
       }
     } catch (e) {
-      // 검출 자체 실패는 차단하지 않고 warning. fal 일시 장애로 사용자 차단 X.
-      console.warn('[input-validation] face detection failed', e);
-      warnings.push(
-        '얼굴 자동 검증을 건너뛰었어요 (일시적 문제). 사진을 확인하지 못했지만 진행은 가능합니다.',
+      // 검출 자체 실패 시 차단. 과거에는 warning 으로 통과시켰지만 사용자가
+      // 1명 사진을 커플 사진 자리에 올려도 진행되어 검증의 의미가 사라졌음.
+      // 자동 검증 실패는 명확한 error 로 표시하고 재시도 유도 — 일시적 fal
+      // 장애여도 사용자가 한 번 더 시도하면 통과.
+      const detail = e instanceof Error ? e.message : 'unknown';
+      console.warn('[input-validation] face detection failed', {
+        sourceHost: typeof source === 'string' ? safeHost(source) : '(buffer)',
+        expectedFaces: expected,
+        detail,
+      });
+      errors.push(
+        '얼굴 자동 검증에 실패했어요 (자동 검증 서비스 일시 장애 가능성). 잠시 후 다시 시도해 주세요.',
       );
     }
   }
