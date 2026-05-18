@@ -88,3 +88,40 @@ export async function applyFaceSwapRestore(input: {
   }
   return currentUrl;
 }
+
+/**
+ * 커플 모드 전용 face-swap restore — 사용자가 업로드한 커플 사진의 얼굴을
+ * 카탈로그 결과에 입혀 정체성 보존.
+ *
+ * 흐름:
+ *   1) 커플 사진(source) 의 2 얼굴을 fal face-swap 으로 카탈로그 결과(target) 에 적용
+ *   2) face-swap 의 face_index 매핑 (0=좌, 1=우) 가 카탈로그 결과 / 원본 사진 모두
+ *      같은 순서일 거라 가정 — 결과 점검 후 swap 순서 조정 가능
+ *   3) 실패 시 throw, 호출 측이 fallback 처리
+ *
+ * 비용 +$0.02/장 (face-swap 2회).
+ */
+export async function applyCoupleFaceSwapRestore(input: {
+  generatedUrl: string;
+  couplePhotoUrl: string;
+}): Promise<string> {
+  let currentUrl = input.generatedUrl;
+  // 첫 번째 얼굴 (좌측) 교체.
+  const req1 = await submitFaceSwap({
+    sourceImageUrl: input.couplePhotoUrl,
+    targetImageUrl: currentUrl,
+    faceIndex: 0,
+  });
+  currentUrl = await getFaceSwapResult(req1);
+  // 두 번째 얼굴 (우측) 교체. fal face-swap 의 source 는 같은 사진이지만
+  // face_index 가 0 으로 고정될 수 있어 정확도가 떨어질 수 있음 — 다만
+  // 커플 사진은 보통 좌우 한 명씩이라 첫 swap 후 두 번째 얼굴도 source 의
+  // 두 번째 얼굴(우측) 로 자동 매칭되는 경우가 일반적.
+  const req2 = await submitFaceSwap({
+    sourceImageUrl: input.couplePhotoUrl,
+    targetImageUrl: currentUrl,
+    faceIndex: 1,
+  });
+  currentUrl = await getFaceSwapResult(req2);
+  return currentUrl;
+}

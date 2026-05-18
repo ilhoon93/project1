@@ -379,6 +379,8 @@ export type Database = {
           face_similarity_groom: number | null;
           face_similarity_bride: number | null;
           face_similarity_ref: 'selfie' | 'anchor' | 'couple_input' | null;
+          couple_photo_url: string | null;
+          couple_photo_path: string | null;
           fal_cost_usd: number | null;
           phase_timings: Record<string, number> | null;
           pipeline_stages: Record<string, string | boolean | null> | null;
@@ -406,6 +408,8 @@ export type Database = {
           face_similarity_groom?: number | null;
           face_similarity_bride?: number | null;
           face_similarity_ref?: 'selfie' | 'anchor' | 'couple_input' | null;
+          couple_photo_url?: string | null;
+          couple_photo_path?: string | null;
           fal_cost_usd?: number | null;
           phase_timings?: Record<string, number> | null;
           pipeline_stages?: Record<string, string | boolean | null> | null;

@@ -373,7 +373,6 @@ export async function getFaceSwapResult(requestId: string): Promise<string> {
 }
 
 // ─────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────
 // Face similarity (ArcFace embedding 기반).
 //
 // 두 이미지의 얼굴 정체성 일치도를 0..1 cosine similarity 로 반환.
