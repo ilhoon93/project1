@@ -430,31 +430,77 @@ export async function getFaceSimilarityResult(requestId: string): Promise<number
 
 /**
  * 두 이미지 간 face similarity 한 번에 측정. 실패 시 throw.
- * 호출 측에서 catch 후 quality gate 결정.
  *
- * stage prefix 부착 throw — finalize 의 진단 로그 / Vercel 로그에서 어느 단계가
- * 실패하는지 (submit / result / fal endpoint 자체) 즉시 식별 가능.
+ * fal.subscribe() 사용 — submit/status/result 를 SDK 가 자동 polling.
+ * `logs: true` 로 fal worker 실행 로그를 함께 받아 job 이 실패할 때 정확한 원인
+ * (예: URL fetch 불가 / 모델 입력 거부) 을 진단 로그에 노출. job 의 request_id
+ * 도 error message 에 부착해 fal 대시보드에서 추적 가능.
  */
 export async function compareFaces(
   imageUrl1: string,
   imageUrl2: string,
 ): Promise<number> {
-  let requestId: string;
+  ensureConfigured();
+  let requestId: string | undefined;
+  let result: unknown;
   try {
-    requestId = await submitFaceSimilarity({ imageUrl1, imageUrl2 });
+    result = await fal.subscribe(FACE_SIMILARITY_MODEL, {
+      input: { image_url_1: imageUrl1, image_url_2: imageUrl2 },
+      logs: true,
+      onQueueUpdate: (update) => {
+        captureRequestIdAndLogs(update, 'face-similarity', (rid) => {
+          requestId = rid;
+        });
+      },
+    });
   } catch (e) {
     const detail = e instanceof Error ? e.message : 'unknown';
-    throw new Error(`face-similarity submit failed (${FACE_SIMILARITY_MODEL}): ${detail}`, {
-      cause: e,
-    });
+    throw new Error(
+      `face-similarity failed (${FACE_SIMILARITY_MODEL}, requestId=${requestId ?? 'n/a'}): ${detail}`,
+      { cause: e },
+    );
   }
-  try {
-    return await getFaceSimilarityResult(requestId);
-  } catch (e) {
-    const detail = e instanceof Error ? e.message : 'unknown';
-    throw new Error(`face-similarity result failed (${FACE_SIMILARITY_MODEL}): ${detail}`, {
-      cause: e,
-    });
+  const data = (result as { data?: FaceSimilarityResult }).data ?? (result as FaceSimilarityResult);
+  let score: number | undefined =
+    data.similarity ?? data.cosine ?? data.score ?? undefined;
+  if (score === undefined && data.similarity_percent !== undefined) {
+    score = data.similarity_percent / 100;
+  }
+  if (typeof score !== 'number' || !Number.isFinite(score)) {
+    throw new Error(
+      `face-similarity returned no usable score (${FACE_SIMILARITY_MODEL}, requestId=${requestId ?? 'n/a'}): keys=${Object.keys(data).join(',')}`,
+    );
+  }
+  return Math.max(0, Math.min(1, score));
+}
+
+/**
+ * fal.subscribe 의 onQueueUpdate 콜백 헬퍼.
+ * request_id 캡처 + IN_PROGRESS 의 마지막 log 라인만 콘솔로 노출 — job 이 실패할
+ * 때 그 마지막 라인이 보통 진짜 원인 (예: "Failed to download image", "Invalid
+ * input format" 등) 을 담는다.
+ */
+function captureRequestIdAndLogs(
+  update: unknown,
+  label: string,
+  onRequestId: (rid: string) => void,
+): void {
+  const u = update as {
+    status?: string;
+    request_id?: string;
+    logs?: Array<{ message?: string; level?: string; timestamp?: string }>;
+  };
+  if (u.request_id) onRequestId(u.request_id);
+  if (Array.isArray(u.logs) && u.logs.length > 0) {
+    const last = u.logs[u.logs.length - 1];
+    if (last?.message) {
+      console.info(`[fal/${label}]`, {
+        requestId: u.request_id,
+        status: u.status,
+        level: last.level,
+        message: last.message,
+      });
+    }
   }
 }
 
@@ -524,32 +570,47 @@ export async function getFaceDetectionResult(
 }
 
 /**
- * submit + result 를 한 번에 처리하는 편의 함수.
- * input validation 처럼 한 번만 호출하면 되는 곳에서 사용.
+ * fal.subscribe() 로 submit/poll/result 를 SDK 가 한 번에 처리.
  *
- * 큐 wait timeout 은 fal SDK 의 기본값 사용 (보통 face detection 은 1-3초).
+ * 과거 submit+result 분리 방식에서 result() 가 "Bad Request" 류로 throw 되는
+ * 케이스 보고됨 (fal queue 가 result 호출 시 job 실패를 그대로 전파). subscribe
+ * 는 worker 실행 로그(`logs: true`) 와 함께 진짜 원인을 노출 — fal 측 URL
+ * fetch 실패 / 모델 입력 거부 / endpoint 변경 등을 IN_PROGRESS 단계 로그에서
+ * 확인 가능.
  *
- * 실패 시 어디 단계에서 죽었는지 호출 측에서 알 수 있도록 stage 정보를
- * Error.message 에 prefix 로 부착해 throw.
+ * request_id 도 error message 에 부착해 fal 대시보드에서 추적 가능.
  */
 export async function detectFaces(imageUrl: string): Promise<DetectedFace[]> {
-  let requestId: string;
+  ensureConfigured();
+  let requestId: string | undefined;
+  let result: unknown;
   try {
-    requestId = await submitFaceDetection({ imageUrl });
+    result = await fal.subscribe(FACE_DETECTION_MODEL, {
+      input: { image_url: imageUrl },
+      logs: true,
+      onQueueUpdate: (update) => {
+        captureRequestIdAndLogs(update, 'face-detection', (rid) => {
+          requestId = rid;
+        });
+      },
+    });
   } catch (e) {
     const detail = e instanceof Error ? e.message : 'unknown';
-    // cause 로 원본 error 전달 — caller (input-validation.ts) 가 status/body 등
-    // 추가 메타까지 시리얼라이즈해 진단 로그에 노출 가능.
-    throw new Error(`face-detection submit failed (${FACE_DETECTION_MODEL}): ${detail}`, {
-      cause: e,
-    });
+    throw new Error(
+      `face-detection failed (${FACE_DETECTION_MODEL}, requestId=${requestId ?? 'n/a'}): ${detail}`,
+      { cause: e },
+    );
   }
-  try {
-    return await getFaceDetectionResult(requestId);
-  } catch (e) {
-    const detail = e instanceof Error ? e.message : 'unknown';
-    throw new Error(`face-detection result failed (${FACE_DETECTION_MODEL}): ${detail}`, {
-      cause: e,
-    });
-  }
+  const data = (result as { data?: FaceDetectionResult }).data ?? (result as FaceDetectionResult);
+  const raw = data.faces ?? [];
+  return raw
+    .map((f): DetectedFace | null => {
+      const arr = f.bbox ?? f.box;
+      if (!arr || arr.length < 4) return null;
+      return {
+        bbox: [arr[0]!, arr[1]!, arr[2]!, arr[3]!],
+        score: f.score ?? f.confidence,
+      };
+    })
+    .filter((f): f is DetectedFace => f !== null);
 }
