@@ -74,22 +74,24 @@ async function ensureUrl(state: PipelineState): Promise<string> {
 /**
  * harmonize buffer 를 finishing(fal) 에 넘기기 위해 임시 supabase storage 에 업로드.
  * fal img2img 가 image_url 만 받고 base64 / inline data 미지원이라 이 우회가 필요.
- * public-images/wedding-snap/ephemeral/ 경로에 업로드. 별도 cron 으로 정리 가능.
+ *
+ * 사용자 PII 가 포함될 수 있어 private-uploads 에 업로드. 경로는
+ * wedding-snap/system/ephemeral/ — admin (service role) 만 쓰고 fal 만 signed URL
+ * 로 단기 접근. 사용자 직접 접근 불가 (RLS 정책상 user_id segment 미일치).
+ * 별도 cron 으로 일정 시간 후 정리.
  */
 async function uploadEphemeralForFal(
   buf: Buffer,
   catalogId: string | null,
 ): Promise<string> {
-  const { createAdminClient } = await import('@/lib/supabase/admin');
-  const admin = createAdminClient();
+  const { uploadPrivate, SIGNED_URL_TTL_SHORT } = await import(
+    '@/lib/snap/private-storage'
+  );
   const slug = catalogId ? `${catalogId}-` : '';
   const rand = Math.random().toString(36).slice(2, 8);
-  const path = `wedding-snap/ephemeral/${slug}${Date.now()}-${rand}.jpg`;
-  const { error } = await admin.storage
-    .from('public-images')
-    .upload(path, buf, { contentType: 'image/jpeg', upsert: false });
-  if (error) throw new Error(`ephemeral upload failed: ${error.message}`);
-  return admin.storage.from('public-images').getPublicUrl(path).data.publicUrl;
+  const path = `wedding-snap/system/ephemeral/${slug}${Date.now()}-${rand}.jpg`;
+  const { signedUrl } = await uploadPrivate(path, buf, 'image/jpeg', SIGNED_URL_TTL_SHORT);
+  return signedUrl;
 }
 
 /**
