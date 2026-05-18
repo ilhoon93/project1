@@ -18,7 +18,7 @@
  * 어느 단계라도 실패하면 직전 결과로 fallback — finalize 자체는 안 깨짐.
  */
 
-import { getImageEditResult } from '@/lib/fal/client';
+import { compareFaces, getImageEditResult } from '@/lib/fal/client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { markSnapJobCompleted, markSnapJobFailed } from '@/lib/snap/jobs';
 import {
@@ -30,7 +30,38 @@ import { findSnapCatalog } from '@/lib/snap/catalog';
 import {
   getIdentityMode,
   applyFaceSwapRestore,
+  applyCoupleFaceSwapRestore,
 } from '@/lib/snap/identity-restore';
+import { getHarmonizeMode } from '@/lib/snap/harmonize';
+import { getFinishingMode } from '@/lib/snap/finishing';
+
+// ─────────────────────────────────────────────────────────────
+// fal 호출 비용 추정치 (USD/장).
+//
+// 정확한 가격은 fal.ai dashboard 의 청구 내역 기준이며, 여기 값은 대시보드
+// 분석용 근사치. 모델 가격이 바뀌면 이 상수를 갱신하면 즉시 fal_cost_usd 에
+// 반영됨. 가격 모니터링 시 fal_cost_usd vs 실제 청구 차이를 보고 보정.
+//
+// 출처: fal.ai 모델 페이지 (2025 기준 medium quality), 가격 변동 가능성 있음.
+// ─────────────────────────────────────────────────────────────
+const COST_ESTIMATES_USD = {
+  gptImage2: 0.08, // openai/gpt-image-2/edit (가장 큰 비중)
+  faceSwap: 0.01,
+  birefnet: 0.003,
+  fluxImg2Img: 0.025,
+  auraSr: 0.005,
+  topaz: 0.015,
+  faceDetection: 0.001,
+};
+
+/**
+ * face similarity quality gate threshold.
+ *   ≥ 0.5 : 동일 인물 강한 매칭 — 정상
+ *   0.3 ~ 0.5: 동일 인물 가능 — warning 로깅만
+ *   < 0.3 : 다른 사람 — 로깅만 (자동 차단은 환불 처리와 충돌 위험 있어 미적용)
+ */
+const FACE_SIM_GOOD = 0.5;
+const FACE_SIM_BAD = 0.3;
 
 export interface FinalizeInput {
   userId: string;
@@ -54,11 +85,12 @@ async function loadJobContext(falRequestId: string): Promise<{
   catalogPath: 'anchored' | 'selfies' | 'couple' | null;
   groomSelfieUrl: string | null;
   brideSelfieUrl: string | null;
+  couplePhotoUrl: string | null;
 }> {
   const admin = createAdminClient();
   const { data: job } = await admin
     .from('snap_jobs')
-    .select('model, user_id, catalog_id, catalog_path')
+    .select('model, user_id, catalog_id, catalog_path, couple_photo_url')
     .eq('fal_request_id', falRequestId)
     .maybeSingle();
   if (!job) {
@@ -69,6 +101,7 @@ async function loadJobContext(falRequestId: string): Promise<{
       catalogPath: null,
       groomSelfieUrl: null,
       brideSelfieUrl: null,
+      couplePhotoUrl: null,
     };
   }
   let groomSelfieUrl: string | null = null;
@@ -89,6 +122,8 @@ async function loadJobContext(falRequestId: string): Promise<{
     catalogPath: (job.catalog_path as 'anchored' | 'selfies' | 'couple' | null) ?? null,
     groomSelfieUrl,
     brideSelfieUrl,
+    couplePhotoUrl:
+      ((job as { couple_photo_url?: string | null }).couple_photo_url) ?? null,
   };
 }
 
@@ -102,8 +137,14 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
   // 0. snap_jobs 컨텍스트 (model + selfie) 로드.
   const ctx = await loadJobContext(input.falRequestId);
 
-  // 1. fal 결과 URL. 현재는 gpt-image-2 만 사용 (flux-pulid 폐기됨).
+  // 단계별 타이밍 / 실행 stage / 비용 추적. 마지막에 markSnapJobCompleted 로 전달.
+  const timings: Record<string, number> = {};
+  const stages: Record<string, string | boolean | null> = {};
+  let costUsd = COST_ESTIMATES_USD.gptImage2; // generation 은 항상 발생.
+
+  // 1. fal 결과 URL.
   let generatedUrl: string;
+  const t1 = Date.now();
   try {
     generatedUrl = await getImageEditResult(input.falRequestId);
   } catch (e) {
@@ -111,25 +152,49 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
     void markSnapJobFailed(input.falRequestId, msg);
     throw new Error(`fal result fetch failed: ${msg}`);
   }
+  timings.fal_wait_ms = Date.now() - t1;
 
   // 2. Phase B face-swap 복원 (SNAP_IDENTITY_MODE=face-swap 일 때만).
-  //    카탈로그 결과 + selfie 있어야 의미 있음. flux-pulid 모드는 이미 generation 단계에서
-  //    identity 보존됐으므로 skip. 실패 시 generatedUrl 그대로.
+  //    카탈로그 결과 + reference 있어야 의미 있음.
+  //    - 셀카 모드: selfie URL reference 사용
+  //    - 커플 모드: 사용자가 업로드한 커플 사진을 reference 로 사용 (PR 7)
+  //    실패 시 generatedUrl 그대로.
   const identityMode = getIdentityMode();
-  if (
+  // 커플 모드는 couplePhotoUrl 만 있어도 가능, 셀카 모드는 selfie URL 필요.
+  const faceSwapEligible =
     identityMode === 'face-swap' &&
-    input.catalogId &&
-    (ctx.groomSelfieUrl || ctx.brideSelfieUrl)
-  ) {
-    const catalog = findSnapCatalog(input.catalogId);
+    !!input.catalogId &&
+    (!!ctx.groomSelfieUrl ||
+      !!ctx.brideSelfieUrl ||
+      (ctx.catalogPath === 'couple' && !!ctx.couplePhotoUrl));
+  stages.face_swap = false;
+  if (faceSwapEligible) {
+    const catalog = findSnapCatalog(input.catalogId!);
     if (catalog) {
+      const t2 = Date.now();
       try {
-        generatedUrl = await applyFaceSwapRestore({
-          generatedUrl,
-          personality: catalog.personality,
-          groomSelfieUrl: ctx.groomSelfieUrl,
-          brideSelfieUrl: ctx.brideSelfieUrl,
-        });
+        if (ctx.catalogPath === 'couple' && ctx.couplePhotoUrl) {
+          // 커플 모드: 커플 사진의 두 얼굴을 결과에 입혀 identity 보존.
+          generatedUrl = await applyCoupleFaceSwapRestore({
+            generatedUrl,
+            couplePhotoUrl: ctx.couplePhotoUrl,
+          });
+          stages.face_swap = true;
+          // 커플 모드는 항상 2회 face-swap.
+          costUsd += COST_ESTIMATES_USD.faceSwap * 2;
+        } else if (ctx.groomSelfieUrl || ctx.brideSelfieUrl) {
+          // 셀카 / 앵커 모드: 기존 흐름.
+          generatedUrl = await applyFaceSwapRestore({
+            generatedUrl,
+            personality: catalog.personality,
+            groomSelfieUrl: ctx.groomSelfieUrl,
+            brideSelfieUrl: ctx.brideSelfieUrl,
+          });
+          stages.face_swap = true;
+          // personality='together' 면 2명 face-swap, solo 는 1명.
+          const swapCount = catalog.personality === 'together' ? 2 : 1;
+          costUsd += COST_ESTIMATES_USD.faceSwap * swapCount;
+        }
       } catch (e) {
         console.warn(
           '[finalize] face-swap failed, continuing with original generation',
@@ -137,20 +202,31 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
           e,
         );
       }
+      timings.face_swap_ms = Date.now() - t2;
     }
   }
 
   // 3. 후처리 (카탈로그 결과만). 앵커는 reference 라 비용 / 시간 절약을 위해 skip.
   const mode = getUpscaleMode();
   const isCatalog = !!input.catalogId;
+  stages.upscale = mode;
+  stages.harmonize = getHarmonizeMode();
+  stages.finishing = getFinishingMode();
   let imageBuf: Buffer;
+  const t3 = Date.now();
   try {
     imageBuf = isCatalog
       ? await applyUpscalePostprocess(generatedUrl, mode, input.catalogId, ctx.catalogPath)
       : await fetchAsBuffer(generatedUrl);
+    if (isCatalog) {
+      // 후처리 단계가 정상 종료된 경우만 비용 가산. 각 단계는 env 토글에 따라 동작.
+      if (stages.harmonize !== 'off') costUsd += COST_ESTIMATES_USD.birefnet;
+      if (stages.finishing === 'img2img') costUsd += COST_ESTIMATES_USD.fluxImg2Img;
+      if (mode === 'aura-sharpen') costUsd += COST_ESTIMATES_USD.auraSr;
+      else if (mode === 'topaz-sharpen') costUsd += COST_ESTIMATES_USD.topaz;
+    }
   } catch (e) {
     if (isCatalog) {
-      // 후처리 파이프라인 실패 — 원본으로 fallback. 로그만 남기고 흐름 계속.
       console.warn(
         '[finalize] postprocess failed, falling back to original',
         input.falRequestId,
@@ -169,9 +245,11 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
       throw new Error(`fetch original failed: ${msg}`);
     }
   }
+  timings.postprocess_ms = Date.now() - t3;
 
   // 4. public-images 버킷에 영구 호스팅.
   let publicUrl: string;
+  const t4 = Date.now();
   try {
     const slug = input.catalogId ? `${input.catalogId}-` : '';
     const path = `wedding-snap/${input.userId}/${slug}${Date.now()}.jpg`;
@@ -186,8 +264,71 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
     void markSnapJobFailed(input.falRequestId, msg);
     throw new Error(`storage upload failed: ${msg}`);
   }
+  timings.storage_upload_ms = Date.now() - t4;
 
-  // 5. snap_jobs 완료 마크.
-  void markSnapJobCompleted(input.falRequestId, publicUrl);
+  // 5. snap_jobs 완료 마크 + 비용·타이밍·stages 로그 patch (PR 114).
+  void markSnapJobCompleted(input.falRequestId, publicUrl, {
+    falCostUsd: Math.round(costUsd * 10000) / 10000, // 0.0001 단위
+    phaseTimings: timings,
+    pipelineStages: stages,
+  });
+
+  // 6. (옵션) Face similarity 측정 — quality gate / 분석용. 비차단 (PR 7).
+  //    reference 선정:
+  //      커플 모드 → 사용자 커플 사진
+  //      셀카 모드 → groomSelfie (있으면) / brideSelfie
+  //    similarity 점수가 임계 미만이면 warn 로깅 (자동 차단/환불 X — 사용자가
+  //    이미 결과를 받고 있어 환불 처리가 복잡해짐. 분석용 누적 기록만).
+  void (async () => {
+    try {
+      const ref = pickFaceSimRef(ctx);
+      if (!ref) return;
+      const score = await compareFaces(ref.url, publicUrl);
+      const admin = createAdminClient();
+      const update: Record<string, unknown> = { face_similarity_ref: ref.kind };
+      // groom-only / together 케이스 단순화: 일단 groom 칼럼에 저장.
+      // 추후 fal 응답에서 per-face score 가 가능하면 양쪽 모두 채움.
+      update.face_similarity_groom = score;
+      await admin
+        .from('snap_jobs')
+        .update(update as never)
+        .eq('fal_request_id', input.falRequestId);
+      if (score < FACE_SIM_BAD) {
+        console.warn(
+          '[finalize] face similarity LOW',
+          input.falRequestId,
+          score.toFixed(3),
+        );
+      } else if (score < FACE_SIM_GOOD) {
+        console.info(
+          '[finalize] face similarity moderate',
+          input.falRequestId,
+          score.toFixed(3),
+        );
+      }
+    } catch (e) {
+      // 비차단. 측정 실패해도 사용자 결과에는 영향 X.
+      console.warn('[finalize] face similarity skipped', input.falRequestId, e);
+    }
+  })();
+
   return { url: publicUrl };
+}
+
+function pickFaceSimRef(ctx: {
+  catalogPath: 'anchored' | 'selfies' | 'couple' | null;
+  groomSelfieUrl: string | null;
+  brideSelfieUrl: string | null;
+  couplePhotoUrl: string | null;
+}): { url: string; kind: 'selfie' | 'couple_input' | 'anchor' } | null {
+  if (ctx.catalogPath === 'couple' && ctx.couplePhotoUrl) {
+    return { url: ctx.couplePhotoUrl, kind: 'couple_input' };
+  }
+  if (ctx.groomSelfieUrl) {
+    return { url: ctx.groomSelfieUrl, kind: 'selfie' };
+  }
+  if (ctx.brideSelfieUrl) {
+    return { url: ctx.brideSelfieUrl, kind: 'selfie' };
+  }
+  return null;
 }

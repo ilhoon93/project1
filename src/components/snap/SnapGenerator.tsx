@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import type { SnapCatalogItem } from '@/lib/snap/catalog';
 import { CatalogThumbnail } from '@/components/snap/CatalogThumbnail';
 import { scoreCompatibility } from '@/lib/snap/catalog-compatibility';
+import { ConsentModal } from '@/components/snap/ConsentModal';
 import {
   ANCHOR_TEMPLATES,
   type AnchorExpression,
@@ -145,6 +146,9 @@ export function SnapGenerator({ catalog }: Props) {
   //                  / 'prompt-only' (마스터 안 쓰고 텍스트로만 scene 지시, 얼굴 보존 강함).
   // 이번 batch 의 모든 선택 카탈로그에 동일하게 적용.
   const [imageReference, setImageReference] = useState<'strict' | 'prompt-only'>('strict');
+  // 동의 게이트 — null = 로딩 중, true = 미동의(모달 표시), false = 동의 완료.
+  // 진입 시 /api/snap/consent GET 으로 상태 조회 후 결정.
+  const [needsConsent, setNeedsConsent] = useState<boolean | null>(null);
   const [stage, setStage] = useState<Stage>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // 다중 제출 결과 — 성공/실패 카운트 표시용.
@@ -176,10 +180,16 @@ export function SnapGenerator({ catalog }: Props) {
     let canceled = false;
     (async () => {
       try {
-        const [a, e] = await Promise.all([
+        const [a, e, c] = await Promise.all([
           fetch('/api/snap/anchor', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)),
           fetch('/api/me/entitlements', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)),
+          fetch('/api/snap/consent', { cache: 'no-store' }).then((r) =>
+            r.ok ? r.json() : null,
+          ),
         ]);
+        if (!canceled) {
+          setNeedsConsent(c ? !c.hasConsent : true);
+        }
         if (canceled) return;
         if (a?.anchor) {
           setAnchor({
@@ -666,6 +676,11 @@ export function SnapGenerator({ catalog }: Props) {
 
   return (
     <div className="mt-6 flex flex-col gap-6">
+      {/* 동의 모달 — 첫 사용 또는 약관 버전 업데이트 시 표시. */}
+      {needsConsent === true && (
+        <ConsentModal onAccept={() => setNeedsConsent(false)} />
+      )}
+
       {/* 0. 현재 상태 카드 — 크레딧 + 신랑/신부 앵커 썸네일 */}
       <StatusCard
         snapBalance={snapBalance}

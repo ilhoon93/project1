@@ -1,0 +1,60 @@
+-- 020_snap_private_storage.sql
+--
+-- 개인 식별 가능 정보(PII) 인 셀카·커플 사진·앵커 결과·preprocessed·ephemeral
+-- 을 private-uploads 버킷으로 격리.
+--
+-- ⚠️ 중요: Supabase 의 storage.objects 테이블은 supabase_storage_admin 소유라
+--   일반 postgres 역할로는 CREATE POLICY / DROP POLICY 가 실패합니다
+--   (ERROR: must be owner of relation objects).
+--
+--   따라서 이 마이그레이션은 "버킷 생성" 만 수행하고, RLS 정책은 아래 두 가지
+--   방법 중 하나로 별도 적용합니다:
+--
+--   방법 A (권장): Supabase Studio 의 Storage → Policies UI 에서 4개 정책 클릭 생성
+--   방법 B: 이 파일의 맨 아래 "정책 SQL" 블록을 dashboard SQL editor 에서 실행
+--           — 단, project 의 postgres 역할이 storage.objects 에 충분한 권한이
+--           있어야 함 (대부분의 신규 프로젝트는 OK).
+--
+-- 두 방법 모두 docs/storage-policies-pr116.md 참조.
+
+-- ── 1. private-uploads 버킷 생성/보장 ───────────────────────
+-- storage.buckets 는 postgres 역할이 접근 가능. 멱등.
+insert into storage.buckets (id, name, public)
+values ('private-uploads', 'private-uploads', false)
+on conflict (id) do update set public = false;
+
+-- ── 2. RLS 정책 — 별도 적용 (위 안내 참조) ──────────────────
+--
+-- 이 SQL 파일에서는 의도적으로 storage.objects 의 정책 DDL 을 실행하지 않습니다.
+-- 아래는 적용해야 할 정책들의 *문서화 사본* 입니다. Studio UI 에서 클릭으로
+-- 생성하거나, 별도 admin SQL 콘솔에서 supabase_storage_admin 권한으로 실행하세요.
+--
+-- 경로 컨벤션: {user_id}/<rest>  또는  wedding-snap/{user_id}/<rest>
+--
+-- ----------------------------------------------------------------------
+-- 정책 1) SELECT — "private-uploads select own"
+--   Target roles: authenticated
+--   USING:
+--     bucket_id = 'private-uploads' and (
+--       (storage.foldername(name))[1] = auth.uid()::text
+--       or (
+--         (storage.foldername(name))[1] = 'wedding-snap'
+--         and (storage.foldername(name))[2] = auth.uid()::text
+--       )
+--     )
+--
+-- 정책 2) INSERT — "private-uploads insert own"
+--   Target roles: authenticated
+--   WITH CHECK: (정책 1 의 USING 과 동일)
+--
+-- 정책 3) UPDATE — "private-uploads update own"
+--   Target roles: authenticated
+--   USING: (정책 1 의 USING 과 동일)
+--
+-- 정책 4) DELETE — "private-uploads delete own"
+--   Target roles: authenticated
+--   USING: (정책 1 의 USING 과 동일)
+--
+-- ----------------------------------------------------------------------
+-- service role (admin client) 은 RLS 를 항상 bypass 하므로 별도 정책 불필요.
+-- ----------------------------------------------------------------------
