@@ -18,7 +18,7 @@
  * 어느 단계라도 실패하면 직전 결과로 fallback — finalize 자체는 안 깨짐.
  */
 
-import { compareFaces, getImageEditResult } from '@/lib/fal/client';
+import { getImageEditResult } from '@/lib/fal/client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { markSnapJobCompleted, markSnapJobFailed } from '@/lib/snap/jobs';
 import {
@@ -69,55 +69,6 @@ const COST_ESTIMATES_USD = {
   topaz: 0.015,
   faceDetection: 0.001,
 };
-
-/**
- * face similarity quality gate threshold.
- *   ≥ 0.5 : 동일 인물 강한 매칭 — 정상
- *   0.3 ~ 0.5: 동일 인물 가능 — warning 로깅만
- *   < 0.3 : 다른 사람 — 로깅만 (자동 차단은 환불 처리와 충돌 위험 있어 미적용)
- */
-const FACE_SIM_GOOD = 0.5;
-const FACE_SIM_BAD = 0.3;
-
-/**
- * fal SDK 가 throw 한 error 객체를 cause chain / status / body 까지 한 줄로 시리얼라이즈.
- * input-validation.ts 의 동명 함수와 동일 정책 — 별도 추출 안 한 이유는 중복이
- * 두 곳 뿐이고 module 의존성을 단순하게 유지하기 위해.
- */
-function serializeFalError(e: unknown): string {
-  if (!(e instanceof Error)) return String(e).slice(0, 500);
-  const parts: string[] = [`message=${e.message}`];
-  const obj = e as unknown as Record<string, unknown>;
-  const skip = new Set(['cause', 'message', 'stack', 'name']);
-  for (const key of Object.getOwnPropertyNames(e)) {
-    if (skip.has(key)) continue;
-    try {
-      const val = obj[key];
-      if (val === undefined || val === null) continue;
-      const valStr = typeof val === 'string' ? val : JSON.stringify(val);
-      parts.push(`${key}=${valStr.slice(0, 300)}`);
-    } catch {
-      parts.push(`${key}=<unserializable>`);
-    }
-  }
-  let cause: unknown = obj.cause;
-  let depth = 0;
-  while (cause && depth < 3) {
-    if (cause instanceof Error) {
-      const causeObj = cause as unknown as Record<string, unknown>;
-      const causeStatus = causeObj.status !== undefined ? ` status=${String(causeObj.status)}` : '';
-      const causeBody = causeObj.body !== undefined
-        ? ` body=${(typeof causeObj.body === 'string' ? causeObj.body : JSON.stringify(causeObj.body)).slice(0, 200)}`
-        : '';
-      parts.push(`cause[${depth}]=${cause.message}${causeStatus}${causeBody}`);
-    } else {
-      parts.push(`cause[${depth}]=${String(cause).slice(0, 200)}`);
-    }
-    cause = (cause as { cause?: unknown })?.cause;
-    depth += 1;
-  }
-  return parts.join(' | ');
-}
 
 export interface FinalizeInput {
   userId: string;
@@ -341,166 +292,9 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
     pipelineStages: stages,
   });
 
-  // 6. (옵션) Face similarity 측정 — quality gate / 분석용.
-  //    reference 선정은 catalog personality 에 따라 분기:
-  //      커플 모드 → 사용자 커플 사진 1장 (groom 컬럼에 단일 점수, couple_input ref)
-  //      groom-solo → groomSelfie → face_similarity_groom
-  //      bride-solo → brideSelfie → face_similarity_bride
-  //      together   → 양쪽 셀카 모두 있으면 Promise.all 병렬 측정 → 각각 컬럼
-  //    similarity 점수가 임계 미만이면 warn 로깅 (자동 차단/환불 X — 사용자가
-  //    이미 결과를 받고 있어 환불 처리가 복잡해짐. 분석용 누적 기록만).
-  //
-  //    측정 실패는 try/catch 가 삼킴 — 사용자 결과(URL) 에는 영향 X. await 로
-  //    응답 전에 UPDATE 가 끝나도록 보장. Vercel 서버리스 컷오프 방지.
-  //
-  //    진단 로깅 — 컬럼이 NULL 인 케이스 추적을 위해 단계별로 결과를 남김
-  //    (refs 개수 / 각 score / UPDATE 결과). 운영 트래픽이 늘면 info → debug 로 조정.
-  try {
-    const refs = pickFaceSimRefs(ctx, input.catalogId ?? null);
-    console.info('[finalize] face similarity refs', {
-      falRequestId: input.falRequestId,
-      count: refs.length,
-      targets: refs.map((r) => r.target),
-      kind: refs[0]?.kind ?? null,
-      catalogPath: ctx.catalogPath,
-      catalogId: input.catalogId ?? null,
-      hasGroomSelfie: !!ctx.groomSelfieUrl,
-      hasBrideSelfie: !!ctx.brideSelfieUrl,
-      hasCouplePhoto: !!ctx.couplePhotoUrl,
-    });
-    if (refs.length > 0) {
-      // 병렬 측정 — 한쪽 실패해도 다른 쪽은 저장. together 케이스에서 latency 절감.
-      const measurements = await Promise.all(
-        refs.map(async (ref) => {
-          try {
-            const score = await compareFaces(ref.url, publicUrl);
-            return { ref, score };
-          } catch (e) {
-            // cause chain + status/body 까지 한 줄로 시리얼라이즈해 Vercel 로그에
-            // 정확한 fal 실패 원인 노출. compareFaces 가 cause 로 raw error 전달.
-            console.warn('[finalize] face similarity failed', {
-              falRequestId: input.falRequestId,
-              target: ref.target,
-              kind: ref.kind,
-              error: serializeFalError(e),
-            });
-            return null;
-          }
-        }),
-      );
-      const ok = measurements.filter(
-        (m): m is { ref: FaceSimRef; score: number } => m !== null,
-      );
-      console.info('[finalize] face similarity scores', {
-        falRequestId: input.falRequestId,
-        results: ok.map((m) => ({ target: m.ref.target, score: m.score })),
-        failed: measurements.length - ok.length,
-      });
-      if (ok.length > 0) {
-        const admin = createAdminClient();
-        const update: Record<string, unknown> = {
-          face_similarity_ref: ok[0]!.ref.kind,
-        };
-        for (const m of ok) {
-          if (m.ref.target === 'bride') {
-            update.face_similarity_bride = m.score;
-          } else {
-            update.face_similarity_groom = m.score;
-          }
-        }
-        const { error: simUpdateErr, count: simUpdateCount } = await admin
-          .from('snap_jobs')
-          .update(update as never, { count: 'exact' })
-          .eq('fal_request_id', input.falRequestId);
-        if (simUpdateErr) {
-          console.warn(
-            '[finalize] face similarity update failed',
-            input.falRequestId,
-            simUpdateErr,
-          );
-        } else if ((simUpdateCount ?? 0) === 0) {
-          console.warn(
-            '[finalize] face similarity update matched 0 rows — row missing?',
-            input.falRequestId,
-          );
-        }
-        // quality gate 는 최저 점수 기준 (어느 쪽이든 식별 실패가 더 큰 이슈).
-        const minScore = Math.min(...ok.map((m) => m.score));
-        if (minScore < FACE_SIM_BAD) {
-          console.warn(
-            '[finalize] face similarity LOW',
-            input.falRequestId,
-            minScore.toFixed(3),
-          );
-        } else if (minScore < FACE_SIM_GOOD) {
-          console.info(
-            '[finalize] face similarity moderate',
-            input.falRequestId,
-            minScore.toFixed(3),
-          );
-        }
-      }
-    }
-  } catch (e) {
-    // 측정 실패해도 사용자 결과(URL)에는 영향 X.
-    console.warn('[finalize] face similarity skipped', input.falRequestId, e);
-  }
+  // Face similarity 측정은 제거됨 (2026-05) — fal-ai/face-similarity endpoint 가
+  // 카탈로그에서 사라져 의존을 끊었음. snap_jobs.face_similarity_* 컬럼도 마이그
+  // 027 에서 drop. 대체 솔루션 도입 시점에 새 모듈로 추가 가능.
 
   return { url: publicUrl };
-}
-
-interface FaceSimRef {
-  url: string;
-  kind: 'selfie' | 'couple_input' | 'anchor';
-  /** 어느 컬럼에 점수를 저장할지 — face_similarity_groom / face_similarity_bride */
-  target: 'groom' | 'bride';
-}
-
-/**
- * 측정할 reference 목록 산출. catalog personality 가 의미적 기준이고,
- * couple 모드는 path 로 결정.
- *
- * 반환 길이:
- *   - 커플 모드: 1 (커플 사진, groom 컬럼에 기록, couple_input ref)
- *   - solo 모드: 0 또는 1 (해당 selfie 가 있어야 측정)
- *   - together: 0 / 1 / 2 (양쪽 selfie 가 있는지에 따라)
- *
- * personality 미상(catalog 누락 등)인 경우 together 와 동일하게 두 쪽 다 시도.
- */
-function pickFaceSimRefs(
-  ctx: {
-    catalogPath: 'anchored' | 'selfies' | 'couple' | null;
-    groomSelfieUrl: string | null;
-    brideSelfieUrl: string | null;
-    couplePhotoUrl: string | null;
-  },
-  catalogId: string | null,
-): FaceSimRef[] {
-  // 커플 모드: 사용자가 업로드한 커플 사진을 단일 reference 로 사용.
-  // 사진 자체가 두 얼굴이라 fal face-similarity 가 가장 가까운 매칭을 자동 선택해
-  // 단일 점수를 돌려준다. 한쪽 컬럼(groom)에 저장 — couple_input 으로 ref 표시.
-  if (ctx.catalogPath === 'couple' && ctx.couplePhotoUrl) {
-    return [{ url: ctx.couplePhotoUrl, kind: 'couple_input', target: 'groom' }];
-  }
-  const catalog = catalogId ? findSnapCatalog(catalogId) : null;
-  const personality = catalog?.personality;
-  if (personality === 'bride-solo') {
-    return ctx.brideSelfieUrl
-      ? [{ url: ctx.brideSelfieUrl, kind: 'selfie', target: 'bride' }]
-      : [];
-  }
-  if (personality === 'groom-solo') {
-    return ctx.groomSelfieUrl
-      ? [{ url: ctx.groomSelfieUrl, kind: 'selfie', target: 'groom' }]
-      : [];
-  }
-  // together (또는 personality 미상): 가능한 양쪽 모두 측정.
-  const refs: FaceSimRef[] = [];
-  if (ctx.groomSelfieUrl) {
-    refs.push({ url: ctx.groomSelfieUrl, kind: 'selfie', target: 'groom' });
-  }
-  if (ctx.brideSelfieUrl) {
-    refs.push({ url: ctx.brideSelfieUrl, kind: 'selfie', target: 'bride' });
-  }
-  return refs;
 }

@@ -376,17 +376,11 @@ export type Database = {
           error_message: string | null;
           submitted_at: string;
           completed_at: string | null;
-          face_similarity_groom: number | null;
-          face_similarity_bride: number | null;
-          face_similarity_ref: 'selfie' | 'anchor' | 'couple_input' | null;
           couple_photo_url: string | null;
           couple_photo_path: string | null;
           fal_cost_usd: number | null;
           phase_timings: Record<string, number> | null;
           pipeline_stages: Record<string, string | boolean | null> | null;
-          input_face_count: number | null;
-          input_face_min_size: number | null;
-          input_avg_luminance: number | null;
           image_reference: 'strict' | 'prompt-only' | null;
         };
         Insert: {
@@ -406,17 +400,11 @@ export type Database = {
           error_message?: string | null;
           submitted_at?: string;
           completed_at?: string | null;
-          face_similarity_groom?: number | null;
-          face_similarity_bride?: number | null;
-          face_similarity_ref?: 'selfie' | 'anchor' | 'couple_input' | null;
           couple_photo_url?: string | null;
           couple_photo_path?: string | null;
           fal_cost_usd?: number | null;
           phase_timings?: Record<string, number> | null;
           pipeline_stages?: Record<string, string | boolean | null> | null;
-          input_face_count?: number | null;
-          input_face_min_size?: number | null;
-          input_avg_luminance?: number | null;
           image_reference?: 'strict' | 'prompt-only' | null;
         };
         Update: Partial<Database['public']['Tables']['snap_jobs']['Insert']>;

@@ -26,12 +26,9 @@
 | `SNAP_UPSCALE_MODE` | ⬜ | `topaz-sharpen` | 웨딩스냅 업스케일 (최고 품질 default) |
 | `SNAP_IDENTITY_MODE` | ⬜ | `face-swap` | 카탈로그 결과의 얼굴 identity 복원 (face-swap) |
 | `SNAP_IMAGE_QUALITY` | ⬜ | `medium` | 카탈로그 gpt-image-2 quality (`low`/`medium`/`high`/`auto`) |
-| `SNAP_INPUT_VALIDATION_MODE` | ⬜ | `strict` | 커플 모드 입력 검증 정책 (`strict`/`permissive`/`off`) |
 | `SNAP_CATALOG_FACE_BLUR` | ⬜ | `on` | 카탈로그 마스터 얼굴 영역 사전 blur |
 | `FAL_WEBHOOK_SECRET` | ⬜ | — | fal 콜백 인증 토큰 (미설정 시 polling 만 사용) |
 | `FAL_WEBHOOK_BASE_URL` | ⬜ | (요청 origin) | fal webhook 의 호스트 override |
-| `FAL_FACE_SIMILARITY_MODEL` | ⬜ | `fal-ai/face-similarity` | face similarity 측정용 fal 엔드포인트 |
-| `FAL_FACE_DETECTION_MODEL` | ⬜ | `fal-ai/imageutils/face-detection` | 입력 사진 얼굴 수/크기 검증용 fal 엔드포인트 |
 | `NEXT_PUBLIC_PORTONE_STORE_ID` | ✅ | — | PortOne V2 가맹점 |
 | `NEXT_PUBLIC_PORTONE_CHANNEL_KEY` | ✅ | — | Toss 채널 키 |
 | `PORTONE_API_SECRET` | ✅ | — | 서버 전용 |
@@ -115,17 +112,6 @@
 | `off` | 비활성 (Phase A multi-image 결과 그대로) | $0 | 0s |
 | `face-swap` **(기본)** | catalog 결과 + selfie / 커플 사진 → fal-ai/face-swap. 카탈로그 구도/의상 유지하고 얼굴만 사용자 진본으로 교체. solo/together/couple 모두 작동 | ~$0.01~0.04 | ~3~10s |
 
-### `SNAP_INPUT_VALIDATION_MODE` — 커플 모드 입력 검증 정책
-| 값 | 동작 | 추가 비용 |
-|---|---|---|
-| `strict` **(기본)** | sharp 검증 + fal face-detection. 호출 실패 시 errors 차단 — "잠시 후 다시 시도" | ~$0.001/장 |
-| `permissive` | sharp 검증 + fal face-detection. 호출 **성공 + face count mismatch** 는 차단 유지. 호출 **자체 실패** 시 warnings 만 — 사용자 진행 가능, `input_face_*` 컬럼은 NULL | ~$0.001/장 |
-| `off` | fal face-detection 자체 skip. sharp 검증(해상도/밝기/종횡비) 만. `input_face_*` 항상 NULL | $0 |
-
-fal face-detection endpoint 일시 장애 / 변경으로 정상 사진까지 차단되면 `permissive` 로 임시 우회. 안정화되면 다시 `strict` 권장. 비용 가시성을 완전히 끊으려면 `off`.
-
-진단 로그: `[input-validation] face detection failed { sourceHost, expectedFaces, mode, error }` 에 cause chain / status / body 시리얼라이즈된 raw 메시지가 포함됨. Vercel 로그에서 fal 응답 형태 즉시 식별.
-
 ### `SNAP_IMAGE_QUALITY` — 카탈로그 gpt-image-2 quality
 | 값 | 동작 | 추가 비용 | 추가 시간 |
 |---|---|---|---|
@@ -150,11 +136,6 @@ fal.queue.submit 시 webhookUrl 동봉 → fal 작업 완료 시 즉시 finalize
 
 값: 32자 이상 랜덤 문자열. 생성 예: `openssl rand -hex 32`
 관련: `FAL_WEBHOOK_BASE_URL` 로 webhook 호스트 명시 가능 (Vercel preview 처럼 변동 URL 환경 권장).
-
-### `FAL_FACE_SIMILARITY_MODEL` — face similarity 측정 엔드포인트
-finalize 단계 비차단 quality gate. 결과 vs 입력 reference 의 ArcFace cosine
-similarity 0..1 측정 → `snap_jobs.face_similarity_groom` 에 기록.
-default `fal-ai/face-similarity`. 실제 fal 에서 사용 가능한 다른 모델로 교체 시 env override.
 
 ### 운영 권장 조합
 - **품질 최우선** (현재 default): `harmonize=masked`, `finishing=img2img`, `identity=face-swap`, `catalog-face-blur=on`, `upscale=topaz-sharpen` — 1장당 ~$0.13
