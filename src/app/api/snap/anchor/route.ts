@@ -197,9 +197,12 @@ export async function POST(req: Request) {
 
   // 2. snap_anchors 갱신 — single-path upsert.
   //    기존 행이 있으면 source_mode / last_batch_at / 다른 slot URL 은 보존.
+  //    history archive 를 위해 selfie / 신체 메타까지 함께 fetch.
   const { data: existing, error: fetchErr } = await admin
     .from('snap_anchors')
-    .select('source_mode, last_batch_at, groom_anchor_url, bride_anchor_url')
+    .select(
+      'source_mode, last_batch_at, groom_anchor_url, bride_anchor_url, groom_selfie_url, bride_selfie_url, groom_height_cm, groom_weight_kg, bride_height_cm, bride_weight_kg, created_at',
+    )
     .eq('user_id', user.id)
     .maybeSingle();
   if (fetchErr) {
@@ -212,6 +215,34 @@ export async function POST(req: Request) {
       },
       { status: 500 },
     );
+  }
+
+  // 2-a. Auto-archive: 기존 앵커가 양쪽 slot 모두 채워진 "완전 앵커" 였고,
+  //      적어도 한쪽이 새 URL 로 바뀌는 경우 history 에 사본 보존.
+  //      → 라이브러리에서 과거 앵커 선택 가능 (DELETE 폐기 흐름 없이도 자연스럽게
+  //        쌓임). history 보존 실패는 본 흐름 차단 X (로그만).
+  if (
+    existing?.groom_anchor_url &&
+    existing?.bride_anchor_url &&
+    ((groomUrl !== null && groomUrl !== existing.groom_anchor_url) ||
+      (brideUrl !== null && brideUrl !== existing.bride_anchor_url))
+  ) {
+    const { error: histErr } = await admin.from('snap_anchor_history').insert({
+      user_id: user.id,
+      groom_anchor_url: existing.groom_anchor_url,
+      bride_anchor_url: existing.bride_anchor_url,
+      groom_selfie_url: existing.groom_selfie_url,
+      bride_selfie_url: existing.bride_selfie_url,
+      source_mode: existing.source_mode,
+      groom_height_cm: existing.groom_height_cm,
+      groom_weight_kg: existing.groom_weight_kg,
+      bride_height_cm: existing.bride_height_cm,
+      bride_weight_kg: existing.bride_weight_kg,
+      anchor_created_at: existing.created_at,
+    });
+    if (histErr) {
+      console.warn('[snap/anchor save] auto-archive failed (continuing)', histErr);
+    }
   }
 
   const upsertPayload = {
