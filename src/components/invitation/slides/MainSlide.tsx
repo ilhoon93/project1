@@ -909,7 +909,7 @@ function NameLayout({
         style={{
           display: 'inline-block',
           width: '1px',
-          height: '1.5em',
+          height: '3em',
           backgroundColor: 'currentColor',
           opacity: 0.6,
         }}
@@ -930,7 +930,7 @@ function NameLayout({
         style={{
           display: 'inline-block',
           width: '1px',
-          height: '1.5em',
+          height: '3em',
           backgroundColor: 'currentColor',
           opacity: 0.6,
         }}

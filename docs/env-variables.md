@@ -25,6 +25,7 @@
 | `SNAP_FINISHING_MODE` | ⬜ | `img2img` | 웨딩스냅 img2img 마감 패스 |
 | `SNAP_UPSCALE_MODE` | ⬜ | `topaz-sharpen` | 웨딩스냅 업스케일 (최고 품질 default) |
 | `SNAP_IDENTITY_MODE` | ⬜ | `face-swap` | 카탈로그 결과의 얼굴 identity 복원 (face-swap) |
+| `SNAP_IMAGE_QUALITY` | ⬜ | `medium` | 카탈로그 gpt-image-2 quality (`low`/`medium`/`high`/`auto`) |
 | `SNAP_CATALOG_FACE_BLUR` | ⬜ | `on` | 카탈로그 마스터 얼굴 영역 사전 blur |
 | `FAL_WEBHOOK_SECRET` | ⬜ | — | fal 콜백 인증 토큰 (미설정 시 polling 만 사용) |
 | `FAL_WEBHOOK_BASE_URL` | ⬜ | (요청 origin) | fal webhook 의 호스트 override |
@@ -111,6 +112,18 @@
 |---|---|---|---|
 | `off` | 비활성 (Phase A multi-image 결과 그대로) | $0 | 0s |
 | `face-swap` **(기본)** | catalog 결과 + selfie / 커플 사진 → fal-ai/face-swap. 카탈로그 구도/의상 유지하고 얼굴만 사용자 진본으로 교체. solo/together/couple 모두 작동 | ~$0.01~0.04 | ~3~10s |
+
+### `SNAP_IMAGE_QUALITY` — 카탈로그 gpt-image-2 quality
+| 값 | 동작 | 추가 비용 | 추가 시간 |
+|---|---|---|---|
+| `low` | gpt-image-2 quality=low. ~272 토큰, 거친 결과 | ≈ -$0.03/장 (대비 medium) | ↓ 조금 빠름 |
+| `medium` **(기본)** | gpt-image-2 quality=medium. ~1,056 토큰, 인페인팅에서 충분 | 기준 | 기준 |
+| `high` | gpt-image-2 quality=high. ~4,160 토큰, 디테일 최대. A/B 테스트용 | ≈ +$0.09/장 (대비 medium) | ↑ 다소 느림 |
+| `auto` | fal 측 자동 결정 (모델 정책에 위임) | 변동 | 변동 |
+
+`/api/snap/generate` 의 fal 호출에만 적용 (앵커 생성은 항상 `high`, 컨셉 생성은
+별도). 잘못된 값은 `medium` fallback + 첫 호출 시 한 번 경고 로깅.
+실제 사용된 값은 `snap_jobs.quality` 에 그대로 기록되어 비용 분석/실험에 사용.
 
 ### `SNAP_CATALOG_FACE_BLUR` — 카탈로그 마스터 얼굴 영역 사전 blur (Phase C)
 | 값 | 동작 | 추가 비용 | 추가 시간 |
