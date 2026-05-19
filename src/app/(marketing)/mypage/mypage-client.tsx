@@ -104,9 +104,9 @@ interface Props {
   entitlements: MyPageEntitlements;
 }
 
-type Tab = 'saves' | 'credits' | 'orders' | 'snap';
+type Tab = 'saves' | 'orders' | 'snap';
 
-const VALID_TABS: Tab[] = ['saves', 'snap', 'credits', 'orders'];
+const VALID_TABS: Tab[] = ['saves', 'snap', 'orders'];
 
 const SOURCE_LABEL: Record<MyPageOrder['source'], string> = {
   portone: '앱 내 결제 (PortOne)',
@@ -125,18 +125,18 @@ export function MyPageClient({
   entitlements,
 }: Props) {
   const searchParams = useSearchParams();
-  const initialTab: Tab = (() => {
-    const t = searchParams.get('tab');
-    return t && (VALID_TABS as string[]).includes(t) ? (t as Tab) : 'saves';
-  })();
-  const [tab, setTab] = useState<Tab>(initialTab);
+  // ?tab=credits 는 과거 탭 — 통합된 '결혼알림장' 탭으로 폴백.
+  const resolveTab = (raw: string | null): Tab => {
+    if (raw === 'credits') return 'saves';
+    if (raw && (VALID_TABS as string[]).includes(raw)) return raw as Tab;
+    return 'saves';
+  };
+  const [tab, setTab] = useState<Tab>(() => resolveTab(searchParams.get('tab')));
 
   // ?tab=snap 같은 deep-link 가 후속 navigation 으로 들어와도 따라가게.
   useEffect(() => {
-    const t = searchParams.get('tab');
-    if (t && (VALID_TABS as string[]).includes(t) && t !== tab) {
-      setTab(t as Tab);
-    }
+    const next = resolveTab(searchParams.get('tab'));
+    if (next !== tab) setTab(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
@@ -154,13 +154,10 @@ export function MyPageClient({
 
       <nav className="flex gap-1 overflow-x-auto border-b">
         <TabButton selected={tab === 'saves'} onClick={() => setTab('saves')}>
-          저장 내역
+          결혼알림장
         </TabButton>
         <TabButton selected={tab === 'snap'} onClick={() => setTab('snap')}>
           AI 웨딩스냅
-        </TabButton>
-        <TabButton selected={tab === 'credits'} onClick={() => setTab('credits')}>
-          발행권 · 영구소장
         </TabButton>
         <TabButton selected={tab === 'orders'} onClick={() => setTab('orders')}>
           주문
@@ -168,13 +165,15 @@ export function MyPageClient({
       </nav>
 
       {tab === 'saves' && (
-        <SavedTab invitations={invitations} archiveBalance={archiveBalance} />
+        <SavedTab
+          invitations={invitations}
+          creditsBalance={creditsBalance}
+          archiveBalance={archiveBalance}
+          entitlements={entitlements}
+        />
       )}
       {tab === 'snap' && (
         <SnapTab entitlements={entitlements} snapCreditsBalance={snapCreditsBalance} />
-      )}
-      {tab === 'credits' && (
-        <CreditsTab balance={creditsBalance} archiveBalance={archiveBalance} entitlements={entitlements} />
       )}
       {tab === 'orders' && <OrdersTab orders={orders} />}
     </main>
@@ -182,43 +181,6 @@ export function MyPageClient({
 }
 
 // ── AI 웨딩스냅 ──────────────────────────────────────────────
-
-interface SnapPackageTier {
-  code: 'snap_5' | 'snap_20' | 'snap_40';
-  name: string;
-  credits: number;
-  price: number;
-  perImage: number;
-  highlight?: string;
-  bonus?: string;
-}
-
-const SNAP_PACKAGES: SnapPackageTier[] = [
-  {
-    code: 'snap_5',
-    name: '체험팩',
-    credits: 5,
-    price: 3900,
-    perImage: 780,
-    highlight: '부담 없이 한 번 만들어 보고 싶을 때',
-  },
-  {
-    code: 'snap_20',
-    name: '표준 (가장 인기)',
-    credits: 20,
-    price: 13900,
-    perImage: 695,
-    highlight: '청첩장 메인 + 베스트샷 다양하게',
-  },
-  {
-    code: 'snap_40',
-    name: '헤비',
-    credits: 40,
-    price: 24900,
-    perImage: 622,
-    highlight: '카탈로그 풀 활용 · 가성비 최고',
-  },
-];
 
 function SnapTab({
   entitlements,
@@ -326,12 +288,6 @@ function SnapTab({
           </p>
           <p className="text-xs text-[#8B7355]">스냅 크레딧 잔여 · 1장당 1 차감</p>
         </div>
-        <p className="text-xs leading-relaxed text-[#5C4633]">
-          신랑·신부 사진을 한 번만 잘 잡아두는 <strong>앵커 단계 (4장 후보 中 1장 선택)</strong> 가
-          첫 batch <span className="text-emerald-700">무료</span>로 제공되고, 이후 카탈로그
-          50컷 풀에서 원하는 컷을 1장씩 차감해 만듭니다. 키·몸무게를 같이 입력하면 전신
-          비율이 자연스럽게 반영돼요.
-        </p>
         <div className="mt-1 flex flex-wrap gap-2">
           <Link
             href="/wedding-snap/create"
@@ -343,56 +299,9 @@ function SnapTab({
             href="/wedding-snap"
             className="inline-flex h-9 items-center justify-center rounded-md border border-[#D4C5B0] bg-white px-4 text-xs font-medium text-[#5C4633] hover:bg-[#FAF7F2]"
           >
-            카탈로그 둘러보기
+            카탈로그 둘러보기 · 패키지 안내
           </Link>
         </div>
-      </div>
-
-      {/* 패키지 라인업 */}
-      <div className="flex flex-col gap-3 rounded-lg bg-white p-5 ring-1 ring-[#D4C5B0]">
-        <h3 className="text-sm font-medium text-[#3D2E1F]">패키지 라인업</h3>
-        <p className="text-[11px] text-[#8B7355]">
-          실제 웨딩스튜디오 대비 1–3% 가격으로 50가지 컷을 우리 얼굴로 만들 수
-          있어요. 결제는 PortOne · 네이버 스마트스토어 양쪽 지원, 아래 &ldquo;발행권 ·
-          영구소장&rdquo; 탭 또는 스마트스토어 주문번호 등록을 통해 진행됩니다.
-        </p>
-        <ul className="flex flex-col gap-2">
-          {SNAP_PACKAGES.map((p) => (
-            <li
-              key={p.code}
-              className={`flex flex-col gap-1 rounded-md border p-3 text-xs ${
-                p.code === 'snap_20' ? 'border-[#3D2E1F] bg-[#FAF7F2]' : 'border-[#E8DCC9] bg-white'
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-[#3D2E1F]">{p.name}</span>
-                  {p.code === 'snap_20' && (
-                    <span className="rounded-full bg-[#3D2E1F] px-2 py-0.5 text-[10px] font-medium text-white">
-                      추천
-                    </span>
-                  )}
-                </div>
-                <span className="text-sm font-semibold text-[#3D2E1F]">
-                  {p.price.toLocaleString()}원
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2 text-[#5C4633]">
-                <span>스냅 크레딧 {p.credits}개</span>
-                <span className="text-[10px] text-[#8B7355]">컷당 {p.perImage}원</span>
-              </div>
-              {p.highlight && <p className="text-[11px] text-[#8B7355]">{p.highlight}</p>}
-              {p.bonus && (
-                <p className="text-[11px] text-emerald-700">+ {p.bonus}</p>
-              )}
-            </li>
-          ))}
-        </ul>
-        <p className="text-[10px] text-[#8B7355]">
-          ⓘ 결제 후 크레딧은 자동 적립됩니다. 만료 없음. 환불은 결제 채널 정책을
-          따릅니다. 첫 앵커 batch (스튜디오 4종 framing) 는 무료, 재생성은 4
-          크레딧 차감.
-        </p>
       </div>
 
       {/* 생성 갤러리 — 진행 중 + 완료 */}
@@ -435,9 +344,12 @@ function SnapJobsGallery({
     (j) => j.status === 'submitted' || j.status === 'in_progress',
   );
   const completed = jobs.filter((j) => j.status === 'completed');
-  const failed = jobs.filter((j) => j.status === 'failed' || j.status === 'timeout');
+  // 실패/타임아웃 작업은 마이페이지에 누적되지 않게 화면에서 숨김.
+  // 실패 시 크레딧은 snap_jobs_auto_refund_trg (migration 019) 가 자동 환불하므로
+  // 사용자는 별도 조치 없이 재시도하면 됨.
+  const visibleJobs = pending.length + completed.length;
 
-  if (jobs.length === 0) {
+  if (visibleJobs === 0) {
     return (
       <div className="rounded-lg bg-white p-5 ring-1 ring-[#D4C5B0]">
         <h3 className="text-sm font-medium text-[#3D2E1F]">생성 결과</h3>
@@ -488,21 +400,6 @@ function SnapJobsGallery({
       )}
 
       {completed.length > 0 && <CompletedJobsPaged jobs={completed} />}
-
-      {failed.length > 0 && (
-        <details className="rounded-md border border-red-200 bg-red-50 p-3 text-[11px] text-red-900">
-          <summary className="cursor-pointer font-medium">
-            실패한 작업 {failed.length}개 (펼쳐서 보기)
-          </summary>
-          <ul className="mt-2 flex flex-col gap-1">
-            {failed.map((j) => (
-              <li key={j.id}>
-                {catalogLabel(j.catalog_id)} · {j.error_message ?? '알 수 없는 오류'}
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
     </div>
   );
 }
@@ -760,10 +657,14 @@ interface ConfirmModal {
 
 function SavedTab({
   invitations,
+  creditsBalance,
   archiveBalance,
+  entitlements,
 }: {
   invitations: MyPageInvitation[];
+  creditsBalance: number;
   archiveBalance: number;
+  entitlements: MyPageEntitlements;
 }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -825,20 +726,25 @@ function SavedTab({
 
   if (invitations.length === 0) {
     return (
-      <section className="flex flex-col items-center gap-4 rounded-lg bg-white p-10 text-center ring-1 ring-[#D4C5B0]">
-        <p className="text-sm text-muted-foreground">아직 저장된 알림장이 없어요.</p>
-        <Link
-          href="/new"
-          className="inline-flex h-10 items-center justify-center rounded-md bg-[#8B7355] px-5 text-sm font-medium text-white"
-        >
-          새 알림장 만들기
-        </Link>
+      <section className="flex flex-col gap-4">
+        <CreditsSummary balance={creditsBalance} archiveBalance={archiveBalance} entitlements={entitlements} />
+        <div className="flex flex-col items-center gap-4 rounded-lg bg-white p-10 text-center ring-1 ring-[#D4C5B0]">
+          <p className="text-sm text-muted-foreground">아직 저장된 알림장이 없어요.</p>
+          <Link
+            href="/new"
+            className="inline-flex h-10 items-center justify-center rounded-md bg-[#8B7355] px-5 text-sm font-medium text-white"
+          >
+            새 알림장 만들기
+          </Link>
+        </div>
       </section>
     );
   }
 
   return (
     <section className="flex flex-col gap-3">
+      <CreditsSummary balance={creditsBalance} archiveBalance={archiveBalance} entitlements={entitlements} />
+
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-medium">
           저장된 알림장{' '}
@@ -1226,9 +1132,14 @@ function CertificatePdfButton({
   );
 }
 
-// ── 발행권 ─────────────────────────────────────────────────
+// ── 발행권 · 영구소장 (결혼알림장 탭에 통합) ────────────────
 
-function CreditsTab({
+/**
+ * 결혼알림장 탭 상단에 노출되는 잔여 발행권 / 영구소장권 + 보유 패키지 + 주문번호
+ * 등록 카드. 과거 별도의 "발행권 · 영구소장" 탭에 있던 콘텐츠를 알림장 흐름과 한
+ * 화면에서 보이도록 통합한 것.
+ */
+function CreditsSummary({
   balance,
   archiveBalance,
   entitlements,
@@ -1238,7 +1149,7 @@ function CreditsTab({
   entitlements: MyPageEntitlements;
 }) {
   return (
-    <section className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col items-center gap-1 rounded-lg bg-white p-5 text-center ring-1 ring-[#D4C5B0]">
           <p className="text-[10px] tracking-[0.3em] text-[#8B7355]">PUBLISH</p>
@@ -1267,7 +1178,7 @@ function CreditsTab({
 
       <RegisterOrderCard />
       <NaverPullCard />
-    </section>
+    </div>
   );
 }
 
