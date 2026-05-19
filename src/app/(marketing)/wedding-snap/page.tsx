@@ -15,8 +15,116 @@ export default function WeddingSnapLandingPage() {
       <Hero />
       <CatalogPreview />
       <HowItWorks />
+      <AboutSnap />
+      <PackageLineup />
       <PrimaryCta />
     </main>
+  );
+}
+
+interface SnapPackageTier {
+  code: 'snap_5' | 'snap_20' | 'snap_40';
+  name: string;
+  credits: number;
+  price: number;
+  perImage: number;
+  highlight?: string;
+  bonus?: string;
+}
+
+const SNAP_PACKAGES: SnapPackageTier[] = [
+  {
+    code: 'snap_5',
+    name: '체험팩',
+    credits: 5,
+    price: 3900,
+    perImage: 780,
+    highlight: '부담 없이 한 번 만들어 보고 싶을 때',
+  },
+  {
+    code: 'snap_20',
+    name: '표준 (가장 인기)',
+    credits: 20,
+    price: 13900,
+    perImage: 695,
+    highlight: '청첩장 메인 + 베스트샷 다양하게',
+  },
+  {
+    code: 'snap_40',
+    name: '헤비',
+    credits: 40,
+    price: 24900,
+    perImage: 622,
+    highlight: '카탈로그 풀 활용 · 가성비 최고',
+  },
+];
+
+function AboutSnap() {
+  return (
+    <section className="mt-16">
+      <h2 className="mb-4 text-sm font-medium tracking-wider text-[#5C4633]">
+        AI 웨딩스냅이란?
+      </h2>
+      <div className="rounded-lg border border-[#E8DCC9] bg-white p-5 text-sm leading-relaxed text-[#5C4633]">
+        신랑·신부 사진을 한 번만 잘 잡아두는{' '}
+        <strong>앵커 단계 (4장 후보 中 1장 선택)</strong> 가 첫 batch{' '}
+        <span className="text-emerald-700">무료</span>로 제공되고, 이후 카탈로그
+        50컷 풀에서 원하는 컷을 1장씩 차감해 만듭니다. 키·몸무게를 같이 입력하면
+        전신 비율이 자연스럽게 반영돼요.
+      </div>
+    </section>
+  );
+}
+
+function PackageLineup() {
+  return (
+    <section className="mt-12">
+      <h2 className="mb-4 text-sm font-medium tracking-wider text-[#5C4633]">
+        패키지 라인업
+      </h2>
+      <p className="mb-3 text-xs text-[#8B7355]">
+        실제 웨딩스튜디오 대비 1–3% 가격으로 50가지 컷을 우리 얼굴로 만들 수
+        있어요. 결제는 PortOne · 네이버 스마트스토어 양쪽 지원, 마이페이지 &ldquo;결혼알림장&rdquo;
+        탭 또는 스마트스토어 주문번호 등록을 통해 진행됩니다.
+      </p>
+      <ul className="flex flex-col gap-2">
+        {SNAP_PACKAGES.map((p) => (
+          <li
+            key={p.code}
+            className={`flex flex-col gap-1 rounded-md border p-3 text-xs ${
+              p.code === 'snap_20'
+                ? 'border-[#3D2E1F] bg-[#FAF7F2]'
+                : 'border-[#E8DCC9] bg-white'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-[#3D2E1F]">{p.name}</span>
+                {p.code === 'snap_20' && (
+                  <span className="rounded-full bg-[#3D2E1F] px-2 py-0.5 text-[10px] font-medium text-white">
+                    추천
+                  </span>
+                )}
+              </div>
+              <span className="text-sm font-semibold text-[#3D2E1F]">
+                {p.price.toLocaleString()}원
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-2 text-[#5C4633]">
+              <span>스냅 크레딧 {p.credits}개</span>
+              <span className="text-[10px] text-[#8B7355]">컷당 {p.perImage}원</span>
+            </div>
+            {p.highlight && <p className="text-[11px] text-[#8B7355]">{p.highlight}</p>}
+            {p.bonus && <p className="text-[11px] text-emerald-700">+ {p.bonus}</p>}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-[10px] text-[#8B7355]">
+        ⓘ 결제 후 크레딧은 자동 적립됩니다. 만료 없음. 환불은 결제 채널 정책을
+        따릅니다. 첫 앵커 batch (스튜디오 4종 framing) 는 무료, 재생성은 4
+        크레딧 차감.
+      </p>
+    </section>
   );
 }
 
