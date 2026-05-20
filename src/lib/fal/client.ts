@@ -120,6 +120,26 @@ export async function getFalQueueStatus(
 }
 
 /**
+ * 진단용 — fal 큐 status 를 `logs: true` 로 조회해 worker 가 찍은 stdout/stderr
+ * 마지막 몇 줄을 가져온다. ERROR 상태에서 upstream API 거부 사유 (OpenAI 422
+ * 의 detail 등) 를 알아낼 때 사용. logs 미지원 모델이면 빈 배열.
+ */
+export async function getFalQueueLogs(
+  model: string,
+  requestId: string,
+): Promise<string[]> {
+  ensureConfigured();
+  const status = (await fal.queue.status(model, {
+    requestId,
+    logs: true,
+  })) as { logs?: Array<{ message?: string }> };
+  if (!status.logs) return [];
+  return status.logs
+    .map((l) => l.message)
+    .filter((m): m is string => typeof m === 'string' && m.length > 0);
+}
+
+/**
  * fal.queue.result 는 작업이 COMPLETED 일 때만 결과를 돌려준다. 진행 중이면
  * 400 "Request is still in progress" 로 즉시 실패한다. submit 직후 result 를
  * 호출하던 후처리 단계 (face-swap / birefnet / flux-img2img / topaz) 가 항상

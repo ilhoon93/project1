@@ -13,9 +13,15 @@
  *     request_id: string,
  *     gateway_request_id: string,
  *     status: 'OK' | 'ERROR',
- *     payload?: { ... }    // 모델 결과 (OK 시)
- *     error?: string       // ERROR 시
+ *     payload?: { ... }    // 모델 결과 (OK 시) 또는 상세 에러 데이터
+ *     error?: string       // ERROR 시 (보통 worker 가 던진 httpx 류 짧은 메시지)
  *   }
+ *
+ * ERROR 진단:
+ *   body.error 한 줄만 저장하면 "Unexpected status code: 422" 같이 추상적인
+ *   메시지로 끝나 upstream OpenAI 의 실제 거부 사유 (content moderation /
+ *   invalid input 등) 를 못 본다. body 전체 + fal 큐의 로그를 같이 캡처해
+ *   snap_jobs.error_message (500자) 안에 압축 직렬화.
  *
  * 보안: query string token (env FAL_WEBHOOK_SECRET) 으로 검증.
  *       token 불일치 → 401 즉시 반환.
@@ -31,6 +37,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { finalizeSnapJob } from '@/lib/snap/finalize';
 import { markSnapJobFailed } from '@/lib/snap/jobs';
 import { verifyWebhookSecret } from '@/lib/snap/fal-webhook';
+import { getFalQueueLogs } from '@/lib/fal/client';
 
 const NO_STORE_HEADERS = { 'cache-control': 'no-store' } as const;
 
@@ -42,6 +49,56 @@ interface FalWebhookPayload {
   status?: 'OK' | 'ERROR';
   payload?: unknown;
   error?: string;
+}
+
+/**
+ * fal worker 가 webhook 으로 돌려준 ERROR 정보를 단일 문자열로 묶는다.
+ *
+ * 우선순위:
+ *   1. body.error (httpx-style 짧은 메시지, 예: "Unexpected status code: 422")
+ *   2. body.payload (worker 가 dict 형태로 던진 detail — upstream API body 등)
+ *   3. fal queue.status (with logs=true) — worker 의 로그 마지막 몇 줄
+ *
+ * 셋 다 가능하면 다 합쳐서 직렬화 (500자 제한은 markSnapJobFailed 가 처리).
+ */
+async function buildErrorMessage(
+  body: FalWebhookPayload,
+  model: string | null,
+  requestId: string,
+): Promise<string> {
+  const parts: string[] = [];
+  if (typeof body.error === 'string' && body.error) {
+    parts.push(`error=${body.error}`);
+  }
+  if (body.payload !== undefined && body.payload !== null) {
+    try {
+      const serialized = JSON.stringify(body.payload);
+      if (serialized && serialized !== '{}' && serialized !== '""') {
+        parts.push(`payload=${serialized}`);
+      }
+    } catch {
+      // payload 가 직렬화 불가능한 형태면 그냥 skip.
+    }
+  }
+
+  // fal 큐 로그 — worker 가 stdout/stderr 로 찍은 마지막 라인이 보통 upstream API
+  // 거부 사유를 담고 있다. 모델 id 가 있어야 호출 가능.
+  if (model) {
+    try {
+      const logs = await getFalQueueLogs(model, requestId);
+      if (logs.length > 0) {
+        // 마지막 3줄만 (error 라인이 보통 끝쪽).
+        const tail = logs.slice(-3).join(' | ');
+        parts.push(`logs=${tail}`);
+      }
+    } catch (e) {
+      // 큐 status 조회 자체가 실패하면 그냥 무시 — body.error 만으로 진단.
+      console.warn('[fal-webhook] status logs fetch failed', requestId, e);
+    }
+  }
+
+  if (parts.length === 0) return 'fal reported ERROR (no detail)';
+  return parts.join(' || ');
 }
 
 export async function POST(req: Request) {
@@ -70,11 +127,11 @@ export async function POST(req: Request) {
     );
   }
 
-  // snap_jobs 행 조회 — kind / catalog_id / user_id 결정에 필요.
+  // snap_jobs 행 조회 — kind / catalog_id / user_id / model 결정에 필요.
   const admin = createAdminClient();
   const { data: job } = await admin
     .from('snap_jobs')
-    .select('id, kind, user_id, catalog_id, status')
+    .select('id, kind, user_id, catalog_id, status, model')
     .eq('fal_request_id', requestId)
     .maybeSingle();
 
@@ -90,7 +147,12 @@ export async function POST(req: Request) {
   }
 
   if (body.status === 'ERROR') {
-    const msg = body.error ?? 'fal reported ERROR';
+    const msg = await buildErrorMessage(
+      body,
+      (job.model as string | null) ?? null,
+      requestId,
+    );
+    console.error('[fal-webhook] job ERROR', requestId, msg);
     // markSnapJobFailed 가 status='failed' 로 전이 → trigger 자동 환불.
     void markSnapJobFailed(requestId, msg);
     return NextResponse.json({ ok: true, failed: msg }, { headers: NO_STORE_HEADERS });
