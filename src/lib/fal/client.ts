@@ -1,4 +1,5 @@
 import { fal } from '@fal-ai/client';
+import { refreshPrivateSignedUrl } from '@/lib/snap/private-storage';
 
 let configured = false;
 
@@ -127,13 +128,19 @@ export async function submitMultiImageEdit(input: {
   if (input.imageUrls.length === 0) {
     throw new Error('submitMultiImageEdit: imageUrls must not be empty');
   }
-  // 빈 / null / undefined 값이 끼면 fal worker → OpenAI 가 422 ("image_url is
-  // not accessible") 로 떨어지고 진단이 어려움. 사전에 잡아 어떤 인덱스 / URL
-  // 인지 명시.
-  await assertImageUrlsReachable(input.imageUrls);
+  // supabase private signed URL (anchor / selfie / preprocessed) 은 TTL 만료
+  // 가능 — 우리가 1시간/1년 짜리로 발급해 DB 에 저장해 둔 게 시간 지나면 400.
+  // submit 직전에 path 추출 후 새 signed URL (1시간) 로 항상 갱신해 만료를
+  // 원천 차단. 공개 URL (public-images, 외부 도메인) 은 원본 그대로 통과.
+  const refreshedUrls = await Promise.all(
+    input.imageUrls.map((u) => refreshPrivateSignedUrl(u)),
+  );
+  // refresh 후에도 reachable 안 되는 케이스 (외부 호스팅 404, 네트워크 등) 를
+  // 잡아 어느 인덱스 / URL 이 문제인지 명시.
+  await assertImageUrlsReachable(refreshedUrls);
   const { request_id } = await fal.queue.submit(GPT_IMAGE_MODEL, {
     input: {
-      image_urls: input.imageUrls,
+      image_urls: refreshedUrls,
       prompt: input.prompt,
       num_images: 1,
       ...(input.quality ? { quality: input.quality } : {}),
