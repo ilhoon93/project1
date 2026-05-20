@@ -154,16 +154,31 @@ async function harmonizeMasked(
     return strongBuf; // 메타데이터 없으면 강한 매칭만 적용.
   }
 
-  const alphaMask = await sharp(maskBuf)
+  // birefnet 응답 처리: 두 가지 형태가 올 수 있다.
+  //   (a) output_mask=true 로 받은 mask_image — 이미 grayscale/binary 1-channel
+  //   (b) default image — foreground 가 잘린 RGBA PNG (배경 alpha=0)
+  // (b) 의 경우 RGB 채널은 원본 컬러라 grayscale 변환하면 foreground 도 luminance
+  // 에 따라 부분 투명해져 합성이 망가진다. hasAlpha 면 alpha 채널만 뽑아 흑백
+  // 마스크로 사용해야 함.
+  const maskMeta = await sharp(maskBuf).metadata();
+  const grayMask = maskMeta.hasAlpha
+    ? sharp(maskBuf).extractChannel(3) // alpha channel = 0 (bg) / 255 (fg)
+    : sharp(maskBuf).grayscale();
+
+  const alphaMask = await grayMask
     .resize(meta.width, meta.height)
-    .grayscale()
     .toColourspace('b-w')
     .toBuffer();
 
-  // weak 에 mask 를 alpha 로 붙임.
+  // weak 에 mask 를 alpha 로 붙임. ensureAlpha 를 먼저 호출하면 RGBA(alpha=255)
+  // 가 되고, 그 위에 joinChannel(alphaMask) 가 5번째 채널로 *추가* 되어 sharp
+  // 의 composite 가 의도와 다르게 동작한다 (alpha 채널이 mask 로 교체되지 않음).
+  // weakBuf 는 harmonizeGlobal 이 JPEG 로 인코딩한 RGB 라 alpha 가 없으므로
+  // removeAlpha 를 명시한 뒤 joinChannel 만 호출해 정확히 4채널(RGBA) 로 만든다.
   const weakWithAlpha = await sharp(weakBuf)
-    .ensureAlpha()
+    .removeAlpha()
     .joinChannel(alphaMask)
+    .png()
     .toBuffer();
 
   return await sharp(strongBuf)
