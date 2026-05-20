@@ -344,10 +344,16 @@ function SnapJobsGallery({
     (j) => j.status === 'submitted' || j.status === 'in_progress',
   );
   const completed = jobs.filter((j) => j.status === 'completed');
-  // 실패/타임아웃 작업은 마이페이지에 누적되지 않게 화면에서 숨김.
-  // 실패 시 크레딧은 snap_jobs_auto_refund_trg (migration 019) 가 자동 환불하므로
-  // 사용자는 별도 조치 없이 재시도하면 됨.
-  const visibleJobs = pending.length + completed.length;
+  // 실패/타임아웃 작업은 카탈로그 영구 누적을 막기 위해 최근 7일 이내 것만 표시.
+  // 환불은 snap_jobs_auto_refund_trg (migration 019) 가 자동 처리하므로 안내만.
+  // 디버깅을 위해 error_message 풀텍스트를 진단 영역에 노출.
+  const FAIL_WINDOW_MS = 7 * 86_400_000;
+  const failedRecent = jobs.filter(
+    (j) =>
+      (j.status === 'failed' || j.status === 'timeout') &&
+      Date.now() - new Date(j.submitted_at).getTime() < FAIL_WINDOW_MS,
+  );
+  const visibleJobs = pending.length + completed.length + failedRecent.length;
 
   if (visibleJobs === 0) {
     return (
@@ -400,7 +406,61 @@ function SnapJobsGallery({
       )}
 
       {completed.length > 0 && <CompletedJobsPaged jobs={completed} />}
+
+      {failedRecent.length > 0 && <FailedJobsDiagnostics jobs={failedRecent} />}
     </div>
+  );
+}
+
+/**
+ * 최근 7일 이내 실패한 작업 진단 영역.
+ *
+ * 디자인 의도:
+ *   - 기본 접힘: 카탈로그가 갤러리처럼 늘어나면 실패 행이 시각 노이즈가 됨.
+ *   - 펼치면 각 실패별로 카탈로그 라벨 + 제출/실패 시각 + error_message 풀텍스트.
+ *     운영자/사용자가 supabase storage RLS, fal 모델 에러 같은 1차 원인을 즉시 볼 수 있게
+ *     `<pre>` 모노스페이스로 노출 (truncate 안 함, scroll 가능).
+ *   - 환불 안내: snap_jobs_auto_refund_trg (migration 019) 가 자동 환불해 사용자가
+ *     별도 조치할 필요 없다는 점을 명시.
+ */
+function FailedJobsDiagnostics({ jobs }: { jobs: SnapJob[] }) {
+  return (
+    <details className="rounded-md border border-red-200 bg-red-50 p-3 text-[11px] text-red-900">
+      <summary className="flex cursor-pointer items-center justify-between gap-2 font-medium">
+        <span>최근 7일 실패한 작업 {jobs.length}개 — 펼쳐서 원인 보기</span>
+        <span className="text-[10px] font-normal text-red-700">크레딧 자동 환불됨</span>
+      </summary>
+      <p className="mt-2 text-[10px] leading-relaxed text-red-800">
+        실패한 작업의 크레딧은 자동으로 환불되었으니 다시 시도하실 수 있어요. 7일이
+        지난 항목은 갤러리에서 자동으로 사라집니다. 같은 오류가 반복되면 아래
+        메시지를 캡처해 문의 주세요.
+      </p>
+      <ul className="mt-3 flex flex-col gap-2">
+        {jobs.map((j) => (
+          <li
+            key={j.id}
+            className="flex flex-col gap-1 rounded border border-red-200 bg-white p-2.5"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-medium text-red-900">
+                {catalogLabel(j.catalog_id)}
+              </span>
+              <span className="text-[10px] text-red-700">
+                {j.status === 'timeout' ? '타임아웃' : '실패'} ·{' '}
+                {formatRelative(j.completed_at ?? j.submitted_at)}
+              </span>
+            </div>
+            <div className="text-[10px] text-red-700">
+              제출 {formatRelative(j.submitted_at)}
+              {j.completed_at && ` → 종료 ${formatRelative(j.completed_at)}`}
+            </div>
+            <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded bg-red-100/50 p-2 font-mono text-[10px] leading-relaxed text-red-900">
+              {j.error_message ?? '오류 메시지 없음 (서버 로그 확인 필요)'}
+            </pre>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
