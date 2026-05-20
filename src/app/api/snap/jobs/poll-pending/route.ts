@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
-import { GPT_IMAGE_MODEL, getFalQueueStatus } from '@/lib/fal/client';
+import { GPT_IMAGE_MODEL, getFalQueueLogs, getFalQueueStatus } from '@/lib/fal/client';
 import { finalizeSnapJob } from '@/lib/snap/finalize';
 import { markSnapJobFailed } from '@/lib/snap/jobs';
 
@@ -82,14 +82,23 @@ export async function POST() {
       }
 
       if (status === 'FAILED') {
-        // 3. fal 자체 실패 — mark 만. snap_jobs.status 가 'failed' 로 전이되면
-        //    migration 019 의 snap_jobs_auto_refund_trg 트리거가 자동으로
-        //    snap_credits_ledger 에 환불 행을 추가. application 측 별도 호출 불필요.
-        void markSnapJobFailed(job.fal_request_id, 'fal returned FAILED');
+        // 3. fal 자체 실패 — mark + worker 로그 캡처. webhook 누락 케이스 폴백
+        //    경로라 여기서도 진단 정보를 풍부하게 모아둔다. status='failed' 로
+        //    전이되면 migration 019 의 snap_jobs_auto_refund_trg 가 자동 환불.
+        let detail = 'fal returned FAILED';
+        try {
+          const logs = await getFalQueueLogs(GPT_IMAGE_MODEL, job.fal_request_id);
+          if (logs.length > 0) {
+            detail = `${detail} | logs=${logs.slice(-3).join(' | ')}`;
+          }
+        } catch (e) {
+          console.warn('[snap/jobs/poll-pending] logs fetch failed', job.fal_request_id, e);
+        }
+        void markSnapJobFailed(job.fal_request_id, detail);
         return {
           falRequestId: job.fal_request_id,
           status: 'failed',
-          errorMessage: 'fal returned FAILED',
+          errorMessage: detail,
         };
       }
 
