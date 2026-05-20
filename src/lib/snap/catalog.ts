@@ -249,6 +249,45 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
       [0.62, 0.20, 0.16, 0.18],
     ],
   },
+  {
+    id: 'meadow-casual-shades',
+    label: '잔디밭 캐주얼 선글라스',
+    hint: '데님 셔츠 + 튤 드레스 + 부케 + 선글라스',
+    category: 'outdoor',
+    personality: 'together',
+    intensity: 'medium',
+    image: '/wedding-snap/catalog/meadow-casual-shades.jpg',
+    promptHint:
+      'Outdoor scene seated on a lush green lawn (uniform short grass filling the entire background, no trees or sky visible — just grass), warm late-afternoon natural sunlight from camera-left creating soft rim on hair and shoulders. Shot on 50–85mm portrait lens, three-quarter / waist-up framing, slight low-angle from ground level, shallow depth of field on the couple. Bride: spaghetti-strap white tulle wedding dress with layered ruffle skirt cascading over crossed legs, sheer cathedral veil softly draped behind her hair, hair in a clean middle-parted low style, sleek black cat-eye sunglasses, tan suede ankle boots, one hand propping up her chin with elbow on knee — relaxed cool posture. Groom: dark indigo denim button-up shirt (slightly faded), dark navy trousers, white tube socks, navy canvas sneakers, short neat dark hair, large black square sunglasses, seated with knees up and back relaxed, both hands cradling a wild bouquet of pink hyacinth, yellow craspedia, purple statice and trailing red amaranthus between his knees. Pose: bride seated on the grass to the left, groom seated to her right slightly higher, both facing camera straight on with calm cool neutral expressions, no smiles, gen-Z 90s editorial vibe. Color grade: muted natural greens with warm cream skin midtones, slight film softness, contrasted vintage prewedding mood — must read as warm bright daytime, NOT studio, NOT golden hour.',
+    manualKelvin: 5000,
+    manualMoodHint:
+      'warm late-afternoon natural sunlight on uniform green lawn, retro 90s gen-Z editorial mood, both wearing sunglasses, film softness',
+    // 신부(왼쪽, 더 아래·바닥쪽), 신랑(오른쪽, 약간 위) — 풀신 앉은 자세 기준 추정치.
+    faceMaskRegions: [
+      [0.22, 0.22, 0.18, 0.18],
+      [0.56, 0.16, 0.18, 0.20],
+    ],
+  },
+  {
+    id: 'bridge-night-noir',
+    label: '브릿지 야경 누아르',
+    hint: '검정 슈트·드레스 + 가로등 + 야경 보케',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'high',
+    image: '/wedding-snap/catalog/bridge-night-noir.jpg',
+    promptHint:
+      'Outdoor scene on a city bridge / pedestrian overpass at night, distant skyline visible as blurred bokeh of warm tungsten window lights and cool blue LED accents, painted steel guardrail visible behind the couple, asphalt road slightly visible beyond. Single warm tungsten street lamp out of frame upper-left providing strong directional key light, deep moody shadows on the right side of faces, cinematic noir mood. Shot on 50–85mm portrait lens, three-quarter framing, eye-level camera, shallow depth of field with creamy city bokeh behind. Bride: elegant sleeveless black halter-neck cocktail dress with high mock-neck collar, long dramatic crystal-drop earrings catching the lamp light, sleek low-ponytail hair with side parting, soft natural makeup with neutral lip, holding a small bouquet of saturated red carnations and dahlias close at her waist. Groom: black three-piece formal suit (jacket + waistcoat + trousers) with crisp white shirt and slim black silk bow / scarf-tie, short neat dark hair, soft natural composed expression. Pose: standing close together with groom slightly behind bride, his right hand gently resting on bride\'s left shoulder, both turned 3/4 toward camera-right looking softly off into the distance (NOT at camera), calm cinematic introspective mood. Color grade: cinematic warm tungsten highlights with deep cool teal-blue shadows, rich blacks, gentle film grain — must clearly read as warm-lit urban night, NOT golden hour, NOT studio.',
+    // 강한 tungsten 가로등 + 야경 cool 보케 혼재 → 평균 RGB 휴리스틱 부정확.
+    manualKelvin: 3200,
+    manualMoodHint:
+      'urban bridge at night under warm tungsten street lamp, cinematic noir mood with teal-blue shadows and rich blacks, distant city bokeh, gentle film grain',
+    // 신부(왼쪽, 앞쪽), 신랑(오른쪽, 뒤쪽) — 반신 그루밍 자세.
+    faceMaskRegions: [
+      [0.18, 0.32, 0.18, 0.20],
+      [0.46, 0.28, 0.18, 0.20],
+    ],
+  },
   // ── Solo (단독) 컷 ────────────────────────────────────────
   // 이미지 파일은 사용자가 별도로 마스터를 만들어 같은 id 로 저장해야 함.
   // (예: public/wedding-snap/catalog/groom-portrait-studio.jpg)
@@ -321,6 +360,51 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     // 신부 얼굴이 프레임 우상단에 위치 (가로형 컷). 정확한 좌표는 마스터 컷을
     // 보면서 미세조정 권장 — SNAP_CATALOG_FACE_BLUR=on 일 때만 영향.
     faceMaskRegions: [[0.60, 0.10, 0.20, 0.30]],
+  },
+  {
+    id: 'bride-garden-twirl',
+    label: '신부 가든 베일 트월',
+    hint: '머메이드 + 베일 + 꽃잎 흩날림 + 모션',
+    category: 'outdoor',
+    personality: 'bride-solo',
+    intensity: 'medium',
+    image: '/wedding-snap/catalog/bride-garden-twirl.jpg',
+    promptHint:
+      'Solo bride shot — only the bride in frame, no groom, no other people. Outdoor green park scene with lush dense foliage trees filling the background (no buildings, sky barely visible at top), soft hazy afternoon daylight providing even diffuse illumination. White rose petals floating and falling in mid-air around the bride for dynamic motion. Shot on 50–85mm portrait lens, three-quarter framing (upper-thigh up), eye-level camera, shallow depth of field on subject with creamy green foliage bokeh. Bride: structured strapless ivory mermaid wedding dress with delicate lace bodice and dramatic layered ruffle mermaid skirt cascading to the ground, long cathedral-length tulle veil floating in the breeze diagonally across the frame, hair in a clean center-parted low chignon with side wisps, small pearl drop earrings, soft natural makeup with rosy lip. Pose: standing facing slightly away then turning her upper body BACK toward camera over her left shoulder (~30–40° three-quarter angle, face still clearly visible), right arm raised high holding a small bouquet of white garden roses with greenery up above her head, left hand pulling the floating veil out and across her front waist creating a dramatic sweeping motion, bright big genuine smile with eyes on camera. Color grade: bright airy daylight greens with clean ivory whites and warm cream skin midtones, dreamy joyful motion atmosphere — must read as bright outdoor afternoon, NOT golden hour, NOT studio.',
+    manualKelvin: 5500,
+    manualMoodHint:
+      'bright outdoor afternoon under hazy diffused daylight in a green park, joyful dynamic motion with floating veil and falling petals, bright genuine smile',
+    // 신부 얼굴이 프레임 중앙에서 약간 우측, 베일·팔 사이로 노출 — 3/4 over-shoulder 자세.
+    faceMaskRegions: [[0.40, 0.20, 0.22, 0.20]],
+  },
+  {
+    id: 'bride-veil-closeup',
+    label: '신부 베일 클로즈업',
+    hint: '화이트 미니멀 + 베일 너머 시선',
+    category: 'studio',
+    personality: 'bride-solo',
+    intensity: 'low',
+    image: '/wedding-snap/catalog/bride-veil-closeup.jpg',
+    promptHint:
+      'Solo bride shot — only the bride in frame, no groom, no other people. Indoor studio with pure seamless bright white backdrop, soft large diffused front beauty light from slightly above creating clean luminous skin tones, no harsh shadows. Shot on 85mm portrait lens, chest-up close-up framing, slight three-quarter angle (~20° to camera-right) with face turned back softly toward camera. Bride: strapless ivory wedding dress with sheer ruffled tulle / chiffon bodice detail, single small freshwater pearl drop earring on the visible side, very natural soft "no-makeup" makeup with rosy cheeks and a soft nude-pink lip, long straight black hair tucked behind one shoulder. Long fine-mesh white tulle veil draped over her head and softly trailing past her shoulders, the mesh delicately texturing the skin where it overlaps. Pose: head tilted slightly to one side, eyes gazing softly toward camera with calm gentle expression, one hand gently lifting a soft ruffled lace piece of the dress fabric up near her chin / cheek so the lace partially frames the lower face without covering eyes or nose. Color grade: airy bright whites with warm cream skin midtones, very low contrast, dreamy minimalist beauty editorial — must clearly read as soft studio beauty, NOT outdoor.',
+    // 클로즈업 컷 — 얼굴이 프레임의 큰 비중을 차지. blur region 도 충분히 넓게.
+    faceMaskRegions: [[0.30, 0.14, 0.36, 0.40]],
+  },
+  {
+    id: 'hanok-greenhanbok-peek',
+    label: '한옥 한복 문 너머 엿보기',
+    hint: '연두 치마 + 문 너머 살짝 + 장난스러운 포즈',
+    category: 'tradition',
+    personality: 'bride-solo',
+    intensity: 'medium',
+    image: '/wedding-snap/catalog/hanok-greenhanbok-peek.jpg',
+    promptHint:
+      'Solo bride shot — only the bride in frame, no groom, no other people. Traditional Korean hanok interior view: a warm cream / off-white painted heavy wooden door partially open in the foreground (subject leaning around its right edge), beyond the door a soft teal-painted hanji wall and dark red-orange lacquered wooden beams across the top of the frame, glimpse of another wooden door panel deeper inside. Soft natural indoor daylight from an unseen window providing gentle warm illumination on her face, no harsh shadows. Shot on 50–85mm portrait lens, three-quarter (knee-up) framing, eye-level camera, moderate depth of field so the door edge and her face are both crisp. Bride: traditional Korean hanbok consisting of a warm dove-gray short jeogori (top) with white collar trim and clean white goreum tie, and a long soft mint-green chima (skirt) flowing down. Long straight black hair styled in a single thick side-braided ponytail draped over her right shoulder, no veil, no other accessories. Pose: standing playfully behind the heavy wooden door, leaning around its right edge to peek out toward camera, both hands lightly gripping the door\'s top edge near her face, head tilted slightly to one side, lips slightly parted in a soft surprised / playful expression, eyes wide and curious looking straight at camera, gentle smile. Color grade: warm muted earth tones with soft mint accent from the chima and warm dark red from the wooden beams, refined natural traditional editorial mood — must clearly read as traditional indoor daylight, NOT golden hour, NOT studio.',
+    manualKelvin: 4500,
+    manualMoodHint:
+      'traditional Korean hanok interior in soft warm natural daylight, mint chima and dove-gray jeogori with warm wood and teal wall accents, playful curious peek-around-door pose',
+    // 신부 얼굴이 프레임 좌측 1/3 위치, 문 우측 edge 너머 — 살짝 좌측 치우침.
+    faceMaskRegions: [[0.30, 0.12, 0.30, 0.30]],
   },
 ];
 
