@@ -119,6 +119,31 @@ export async function getFalQueueStatus(
   };
 }
 
+/**
+ * fal.queue.result 는 작업이 COMPLETED 일 때만 결과를 돌려준다. 진행 중이면
+ * 400 "Request is still in progress" 로 즉시 실패한다. submit 직후 result 를
+ * 호출하던 후처리 단계 (face-swap / birefnet / flux-img2img / topaz) 가 항상
+ * 이 에러로 떨어지고 있던 문제를 해결하기 위해 subscribeToStatus 로 폴링한 뒤
+ * result 를 가져오는 헬퍼.
+ *
+ * fal SDK 의 subscribeToStatus 는 내부적으로 1.5s 폴링으로 COMPLETED 까지 대기
+ * 한다. timeoutMs 초과 시 SDK 가 cancel 후 reject.
+ */
+export async function waitForFalQueueResult<T>(
+  model: string,
+  requestId: string,
+  opts?: { timeoutMs?: number; pollIntervalMs?: number },
+): Promise<T> {
+  ensureConfigured();
+  await fal.queue.subscribeToStatus(model, {
+    requestId,
+    timeout: opts?.timeoutMs ?? 60_000,
+    pollInterval: opts?.pollIntervalMs ?? 1_500,
+  });
+  const res = await fal.queue.result(model, { requestId });
+  return res.data as T;
+}
+
 /** gpt-image-2 큐 작업 상태 조회 (0.5–1초). 기존 호출자 호환용 wrapper. */
 export async function getImageEditStatus(requestId: string): Promise<{
   status: FalQueueStatus;
@@ -175,9 +200,7 @@ export async function submitAuraSrUpscale(input: {
 }
 
 export async function getAuraSrResult(requestId: string): Promise<string> {
-  ensureConfigured();
-  const result = await fal.queue.result(AURA_SR_MODEL, { requestId });
-  const data = result.data as UpscaleResult;
+  const data = await waitForFalQueueResult<UpscaleResult>(AURA_SR_MODEL, requestId);
   const url = data.image?.url ?? data.images?.[0]?.url;
   if (!url) throw new Error('aura-sr.result returned no image url');
   return url;
@@ -219,9 +242,7 @@ export async function submitTopazUpscale(input: {
 }
 
 export async function getTopazResult(requestId: string): Promise<string> {
-  ensureConfigured();
-  const result = await fal.queue.result(TOPAZ_UPSCALE_MODEL, { requestId });
-  const data = result.data as UpscaleResult;
+  const data = await waitForFalQueueResult<UpscaleResult>(TOPAZ_UPSCALE_MODEL, requestId);
   const url = data.image?.url ?? data.images?.[0]?.url;
   if (!url) throw new Error('topaz-upscale.result returned no image url');
   return url;
@@ -256,9 +277,7 @@ export async function submitBirefnetMask(input: {
 }
 
 export async function getBirefnetResult(requestId: string): Promise<string> {
-  ensureConfigured();
-  const result = await fal.queue.result(BIREFNET_MODEL, { requestId });
-  const data = result.data as BirefnetResult;
+  const data = await waitForFalQueueResult<BirefnetResult>(BIREFNET_MODEL, requestId);
   // birefnet 은 foreground 가 alpha 로 합성된 png 와 별도 mask png 둘 다 반환할 수 있음.
   // mask_image 가 있으면 우선 사용 (raw 흑백 마스크).
   const url = data.mask_image?.url ?? data.image?.url;
@@ -312,9 +331,10 @@ export async function submitFluxImg2Img(input: {
 }
 
 export async function getFluxImg2ImgResult(requestId: string): Promise<string> {
-  ensureConfigured();
-  const result = await fal.queue.result(FLUX_IMG2IMG_MODEL, { requestId });
-  const data = result.data as FluxImg2ImgResult;
+  const data = await waitForFalQueueResult<FluxImg2ImgResult>(
+    FLUX_IMG2IMG_MODEL,
+    requestId,
+  );
   const url = data.images?.[0]?.url;
   if (!url) throw new Error('flux-img2img.result returned no image url');
   return url;
@@ -364,9 +384,7 @@ export async function submitFaceSwap(input: {
 }
 
 export async function getFaceSwapResult(requestId: string): Promise<string> {
-  ensureConfigured();
-  const result = await fal.queue.result(FACE_SWAP_MODEL, { requestId });
-  const data = result.data as FaceSwapResult;
+  const data = await waitForFalQueueResult<FaceSwapResult>(FACE_SWAP_MODEL, requestId);
   const url = data.image?.url ?? data.images?.[0]?.url;
   if (!url) throw new Error('face-swap.result returned no image url');
   return url;
