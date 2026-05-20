@@ -336,11 +336,21 @@ export async function POST(req: Request) {
         });
       }
     }
-    const message =
-      e instanceof Error && e.message.includes('FAL_KEY')
-        ? 'AI 키 설정이 누락되었습니다. 관리자에게 문의해주세요.'
-        : '앵커 작업 제출에 실패했습니다. 잠시 후 다시 시도해주세요.';
-    return NextResponse.json({ error: message }, { status: 502 });
+    let message = '앵커 작업 제출에 실패했습니다. 잠시 후 다시 시도해주세요.';
+    let diagnostic: string | undefined;
+    if (e instanceof Error) {
+      if (e.message.includes('FAL_KEY')) {
+        message = 'AI 키 설정이 누락되었습니다. 관리자에게 문의해주세요.';
+      } else if (e.message.startsWith('input image URL unreachable')) {
+        message =
+          '셀카/참고 이미지 접근에 실패했어요. 페이지를 새로고침하고 다시 업로드해 주세요.';
+        diagnostic = e.message;
+      }
+    }
+    return NextResponse.json(
+      { error: message, ...(diagnostic ? { diagnostic } : {}), code: 'submit_failed' },
+      { status: 502 },
+    );
   }
 
   // 5. snap_anchors 행 upsert — 부분 재생성이면 기존 다른 slot URL 보존.
