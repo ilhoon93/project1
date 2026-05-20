@@ -269,19 +269,20 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
   // 4. public-images 버킷에 영구 호스팅.
   let publicUrl: string;
   const t4 = Date.now();
+  const storagePath = `wedding-snap/${input.userId}/${input.catalogId ? `${input.catalogId}-` : ''}${Date.now()}.jpg`;
   try {
-    const slug = input.catalogId ? `${input.catalogId}-` : '';
-    const path = `wedding-snap/${input.userId}/${slug}${Date.now()}.jpg`;
     const admin = createAdminClient();
     const { error: upErr } = await admin.storage
       .from('public-images')
-      .upload(path, imageBuf, { contentType: 'image/jpeg', upsert: false });
+      .upload(storagePath, imageBuf, { contentType: 'image/jpeg', upsert: false });
     if (upErr) throw upErr;
-    publicUrl = admin.storage.from('public-images').getPublicUrl(path).data.publicUrl;
+    publicUrl = admin.storage.from('public-images').getPublicUrl(storagePath).data.publicUrl;
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'storage upload failed';
-    void markSnapJobFailed(input.falRequestId, msg);
-    throw new Error(`storage upload failed: ${msg}`);
+    // supabase StorageError 는 message 만으로는 "Bad Request" 같이 추상적이라
+    // statusCode + name + path 도 같이 저장해 디버깅 가능하게 한다.
+    const detail = describeStorageError(e, storagePath, imageBuf.byteLength);
+    void markSnapJobFailed(input.falRequestId, `storage upload failed: ${detail}`);
+    throw new Error(`storage upload failed: ${detail}`);
   }
   timings.storage_upload_ms = Date.now() - t4;
 
@@ -297,4 +298,37 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
   // 027 에서 drop. 대체 솔루션 도입 시점에 새 모듈로 추가 가능.
 
   return { url: publicUrl };
+}
+
+/**
+ * supabase storage upload 실패 사유를 사람이 읽을 수 있게 정리.
+ *
+ * StorageError 는 `name`, `message`, `error`, `statusCode` 속성을 가지는데
+ * `e.message` 만 쓰면 "Bad Request" 처럼 추상적이라 RLS 거부 / bucket 누락 /
+ * content-type 거부 등 실제 원인 구분이 안 됨. 디버깅에 필요한 메타데이터를
+ * 한 줄로 합쳐서 snap_jobs.error_message (500자 제한) 안에 들어가게 한다.
+ */
+function describeStorageError(
+  e: unknown,
+  path: string,
+  byteLength: number,
+): string {
+  if (!e || typeof e !== 'object') return 'unknown error';
+  const err = e as Record<string, unknown>;
+  const parts: string[] = [];
+  if (typeof err.statusCode === 'number' || typeof err.statusCode === 'string') {
+    parts.push(`status=${err.statusCode}`);
+  }
+  if (typeof err.name === 'string' && err.name && err.name !== 'StorageApiError') {
+    parts.push(`name=${err.name}`);
+  }
+  if (typeof err.error === 'string' && err.error) {
+    parts.push(`error=${err.error}`);
+  }
+  const message =
+    typeof err.message === 'string' ? err.message : 'unknown';
+  parts.push(`message=${message}`);
+  parts.push(`path=${path}`);
+  parts.push(`bytes=${byteLength}`);
+  return parts.join(' | ');
 }
