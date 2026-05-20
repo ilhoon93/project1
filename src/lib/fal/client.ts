@@ -264,13 +264,17 @@ interface BirefnetResult {
 /**
  * 생성 이미지에서 foreground (=신랑/신부) 마스크 추출.
  * harmonize 단계에서 배경엔 강하게, 사람엔 약하게 색매칭하도록 가중치 마스크로 활용.
+ *
+ * birefnet 기본 응답은 `image` 에 foreground 가 잘려 나간 RGBA PNG (배경 투명)
+ * 를 돌려준다. `output_mask: true` 를 주면 별도로 `mask_image` 에 흑백 마스크
+ * 가 추가로 들어와 harmonize 가 alpha 채널 추출 없이 바로 쓸 수 있다.
  */
 export async function submitBirefnetMask(input: {
   imageUrl: string;
 }): Promise<string> {
   ensureConfigured();
   const { request_id } = await fal.queue.submit(BIREFNET_MODEL, {
-    input: { image_url: input.imageUrl },
+    input: { image_url: input.imageUrl, output_mask: true },
   });
   if (!request_id) throw new Error('birefnet.submit returned no request_id');
   return request_id;
