@@ -468,11 +468,23 @@ export async function POST(req: Request) {
       p_note: 'submit failed',
       p_ref_id: null,
     });
-    const message =
-      e instanceof Error && e.message.includes('FAL_KEY')
-        ? 'AI 키 설정이 누락되었습니다. 관리자에게 문의해주세요.'
-        : '작업 제출에 실패했습니다. 잠시 후 다시 시도해주세요.';
-    return NextResponse.json({ error: message }, { status: 502 });
+    let message = '작업 제출에 실패했습니다. 잠시 후 다시 시도해주세요.';
+    let diagnostic: string | undefined;
+    if (e instanceof Error) {
+      if (e.message.includes('FAL_KEY')) {
+        message = 'AI 키 설정이 누락되었습니다. 관리자에게 문의해주세요.';
+      } else if (e.message.startsWith('input image URL unreachable')) {
+        // 앵커 signed URL 만료 또는 카탈로그 마스터 호스팅 문제로 사전 체크 실패.
+        // 사용자에게 다음 액션 (앵커 재생성 / 새로고침) 안내.
+        message =
+          '입력 이미지 중 일부에 접근할 수 없어요. 앵커 라이브러리에서 다시 선택하거나, 페이지를 새로고침한 뒤 시도해 주세요.';
+        diagnostic = e.message;
+      }
+    }
+    return NextResponse.json(
+      { error: message, ...(diagnostic ? { diagnostic } : {}), code: 'submit_failed' },
+      { status: 502 },
+    );
   }
 
   // snap_jobs 로깅 — await 로 row 가 실제로 만들어진 뒤 응답.

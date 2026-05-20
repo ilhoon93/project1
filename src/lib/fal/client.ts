@@ -24,6 +24,49 @@ function ensureConfigured() {
 
 export const GPT_IMAGE_MODEL = 'openai/gpt-image-2/edit';
 
+/**
+ * submit 전에 imageUrls 각각을 HEAD 로 reachable 확인.
+ *
+ * fal worker → OpenAI 흐름에서 URL fetch 실패 시 upstream 이 "image_url is not
+ * accessible or has expired" 422 를 던지며 `input: null` 로만 알려준다 (어느
+ * URL 이 문제인지 가려짐). 우리가 먼저 확인해 어떤 인덱스 / URL 이 문제인지
+ * 명확하게 throw → 호출부의 try/catch 가 크레딧 환불 + 진단 메시지 표시.
+ *
+ * 검사 방식:
+ *   - null / undefined / 빈 문자열 → 즉시 실패
+ *   - 그 외 HEAD 요청 (4초 timeout) — 2xx 또는 3xx 면 통과
+ *   - HEAD 미지원 서버 (405 등) 도 통과 (response 가 오긴 함)
+ *   - 네트워크 에러 / 4xx (404 등) 면 실패
+ */
+async function assertImageUrlsReachable(urls: ReadonlyArray<string>): Promise<void> {
+  const checks = await Promise.all(
+    urls.map(async (url, idx) => {
+      if (typeof url !== 'string' || url.length === 0) {
+        return { idx, url: String(url), reason: 'empty/null' };
+      }
+      try {
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), 4000);
+        const r = await fetch(url, { method: 'HEAD', signal: controller.signal });
+        clearTimeout(t);
+        // 405 (Method Not Allowed) 는 HEAD 만 막힌 케이스 — 통과.
+        if (r.ok || r.status === 405) return null;
+        return { idx, url, reason: `HTTP ${r.status}` };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'fetch failed';
+        return { idx, url, reason: msg };
+      }
+    }),
+  );
+  const failed = checks.filter((c): c is { idx: number; url: string; reason: string } => c !== null);
+  if (failed.length > 0) {
+    const detail = failed
+      .map((f) => `idx=${f.idx} reason=${f.reason} url=${f.url.slice(0, 100)}`)
+      .join(' | ');
+    throw new Error(`input image URL unreachable: ${detail}`);
+  }
+}
+
 // quality: 'low' | 'medium' | 'high' | 'auto' — fal default 는 'high'.
 //   high: 출력 ~4,160 토큰(1024²) → ~$0.13/회. 디테일 가장 많음.
 //   medium: 출력 ~1,056 토큰(1024²) → ~$0.04/회. 인페인팅에선 종종 충분.
@@ -84,6 +127,10 @@ export async function submitMultiImageEdit(input: {
   if (input.imageUrls.length === 0) {
     throw new Error('submitMultiImageEdit: imageUrls must not be empty');
   }
+  // 빈 / null / undefined 값이 끼면 fal worker → OpenAI 가 422 ("image_url is
+  // not accessible") 로 떨어지고 진단이 어려움. 사전에 잡아 어떤 인덱스 / URL
+  // 인지 명시.
+  await assertImageUrlsReachable(input.imageUrls);
   const { request_id } = await fal.queue.submit(GPT_IMAGE_MODEL, {
     input: {
       image_urls: input.imageUrls,
