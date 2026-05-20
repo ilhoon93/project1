@@ -89,3 +89,31 @@ export async function createPrivateSignedUrlsBulk(
   }
   return data.map((d) => d.signedUrl ?? null);
 }
+
+/**
+ * supabase private-uploads signed URL 패턴을 인식해 path 를 추출 → 새 signed
+ * URL 발급. fal 호출 직전에 항상 호출해 만료된 long-TTL URL (anchor/selfie 등)
+ * 을 즉시 갱신.
+ *
+ * 입력이 supabase signed URL 패턴이 아니면 (예: public-images 의 publicUrl 또는
+ * fal 외부 URL) 원본 그대로 반환. 추출/재발급 실패도 silent fallback — 후속
+ * HEAD precheck 가 잡아 명확한 메시지로 surface.
+ */
+const PRIVATE_SIGNED_PATH_PREFIX = `/storage/v1/object/sign/${PRIVATE_BUCKET}/`;
+
+export async function refreshPrivateSignedUrl(
+  url: string,
+  ttlSeconds: number = SIGNED_URL_TTL_SHORT,
+): Promise<string> {
+  try {
+    const parsed = new URL(url);
+    const idx = parsed.pathname.indexOf(PRIVATE_SIGNED_PATH_PREFIX);
+    if (idx < 0) return url;
+    const path = parsed.pathname.slice(idx + PRIVATE_SIGNED_PATH_PREFIX.length);
+    if (!path) return url;
+    return await createPrivateSignedUrl(decodeURIComponent(path), ttlSeconds);
+  } catch (e) {
+    console.warn('[private-storage] refresh failed, using original', url, e);
+    return url;
+  }
+}
