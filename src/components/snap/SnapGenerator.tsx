@@ -155,10 +155,13 @@ export function SnapGenerator({ catalog }: Props) {
 
   // 카탈로그 다중 선택 — 한 번에 N개 제출 가능. 비동기 finalize 라 페이지 이탈 OK.
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  // 카탈로그 합성 방식 — 'strict' (마스터 컷 참조, 포즈 재현 강함)
-  //                  / 'prompt-only' (마스터 안 쓰고 텍스트로만 scene 지시, 얼굴 보존 강함).
+  // 카탈로그 합성 방식 — 'prompt-only' (default, 마스터 안 쓰고 텍스트로만 scene
+  //   지시, 얼굴 보존 강함) / 'strict' (마스터 컷 참조, 포즈 재현 강함).
+  // 카탈로그 마스터가 AI 사진인 경우 strict 모드의 plastic leak 으로 얼굴 fidelity
+  // 가 떨어져 default 는 prompt-only 로 운영. 사용자가 포즈 재현이 더 중요하면
+  // strict 토글 가능.
   // 이번 batch 의 모든 선택 카탈로그에 동일하게 적용.
-  const [imageReference, setImageReference] = useState<'strict' | 'prompt-only'>('strict');
+  const [imageReference, setImageReference] = useState<'strict' | 'prompt-only'>('prompt-only');
   // 동의 게이트 — null = 로딩 중, true = 미동의(모달 표시), false = 동의 완료.
   // 진입 시 /api/snap/consent GET 으로 상태 조회 후 결정.
   const [needsConsent, setNeedsConsent] = useState<boolean | null>(null);

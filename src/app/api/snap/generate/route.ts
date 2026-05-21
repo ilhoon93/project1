@@ -53,9 +53,13 @@ const BodyMetricsSchema = z.object({
 });
 
 // 커플 모드도 anchor 모드와 동일한 imageReference 토글 지원:
-//   - 'strict'      : 카탈로그 마스터 이미지를 함께 전달 (의상/배경 충실도 우선)
-//   - 'prompt-only' : 마스터 이미지 빼고 sanitized 텍스트로만 scene 지시
-//                     (얼굴 보존 강함 — 마스터의 다른 모델 얼굴/포즈 leak 차단)
+//   - 'prompt-only' (default) : 마스터 이미지 빼고 sanitized 텍스트로만 scene 지시
+//                                (얼굴 보존 강함 — 마스터의 다른 모델 얼굴/포즈 leak 차단)
+//   - 'strict'                : 카탈로그 마스터 이미지를 함께 전달 (의상/배경 충실도 우선)
+//
+// default 가 prompt-only 인 이유: 카탈로그 마스터가 AI 사진이라 strict 모드에서
+// "AI 적 photo 결" (plastic skin, 동공 반사 부자연 등) 이 결과 얼굴로 leak 됨.
+// 실사진 카탈로그가 확보되면 카탈로그별 분기 도입 가능.
 const CoupleBodySchema = z.object({
   mode: z.literal('couple'),
   couplePhotoUrl: z.string().url(),
@@ -69,10 +73,11 @@ const CoupleBodySchema = z.object({
 // anchorId 미지정 또는 'current' → 현재 snap_anchors 행을 사용.
 // UUID 지정 → snap_anchor_history 에서 해당 row 를 라이브러리 앵커로 사용.
 //
-// imageReference (default 'strict'):
-//   - 'strict'      : 카탈로그 마스터를 모델 입력에 함께 전달 (포즈/구도 재현 강함)
-//   - 'prompt-only' : 카탈로그 마스터를 빼고 promptHint 텍스트만으로 scene 지시
-//                     (얼굴 보존 우선, 포즈 재현은 텍스트 해석에 의존)
+// imageReference (default 'prompt-only'):
+//   - 'prompt-only' (default) : 카탈로그 마스터를 빼고 promptHint 텍스트만으로
+//                                scene 지시 (얼굴 보존 우선)
+//   - 'strict'                : 카탈로그 마스터를 모델 입력에 함께 전달
+//                                (포즈/구도 재현 강함, 단 AI 카탈로그는 plastic leak)
 const AnchoredOnlySchema = z.object({
   mode: z.literal('anchor'),
   catalogId: z.string().min(1),
@@ -330,7 +335,7 @@ export async function POST(req: Request) {
     // imageReference 분기:
     //   strict      → 마스터 이미지 동봉 (의상/배경 시각 reference)
     //   prompt-only → 마스터 빼고 텍스트만 (얼굴 보존 우선)
-    const coupleImageReference = input.imageReference ?? 'strict';
+    const coupleImageReference = input.imageReference ?? 'prompt-only';
     if (coupleImageReference === 'prompt-only') {
       imageUrls = [couplePhotoUrl];
     } else {
@@ -348,7 +353,7 @@ export async function POST(req: Request) {
     pathLabel = 'anchored';
     // imageReference 분기 — strict 는 카탈로그 마스터를 모델 입력에 포함,
     // prompt-only 는 마스터 빼고 promptHint 텍스트로만 scene 지시.
-    const imageReference = input.imageReference ?? 'strict';
+    const imageReference = input.imageReference ?? 'prompt-only';
     const isPromptOnly = imageReference === 'prompt-only';
 
     // Phase A — anchor 옆에 selfie 진본을 함께 fal 에 전달. selfie 가 없으면
@@ -491,7 +496,7 @@ export async function POST(req: Request) {
   // 과거 void 호출은 Vercel 서버리스에서 응답 직후 freeze 되어 INSERT 자체가
   // 컷오프 → quality / image_reference 가 NULL 로 남는 원인. 응답 latency 가
   // ~50–200ms 늘어나지만 데이터 일관성 우선.
-  const resolvedImageReference = input.imageReference ?? 'strict';
+  const resolvedImageReference = input.imageReference ?? 'prompt-only';
   await logSnapJobSubmit({
     userId: user.id,
     kind: 'catalog',
