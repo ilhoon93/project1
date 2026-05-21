@@ -235,7 +235,7 @@ export async function finalizeSnapJob(input: FinalizeInput): Promise<FinalizeOut
   const t3 = Date.now();
   try {
     imageBuf = isCatalog
-      ? await applyUpscalePostprocess(generatedUrl, mode, input.catalogId, ctx.catalogPath)
+      ? await applyUpscalePostprocess(generatedUrl, mode, input.catalogId)
       : await fetchAsBuffer(generatedUrl);
     if (isCatalog) {
       // 후처리 단계가 정상 종료된 경우만 비용 가산. 각 단계는 env 토글에 따라 동작.

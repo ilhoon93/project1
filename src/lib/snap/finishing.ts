@@ -84,16 +84,19 @@ export async function applyFinishing(
   catalogId: string | null | undefined,
   catalogMeta: CatalogColorMeta | null,
   mode: FinishingMode,
-  catalogPath?: 'anchored' | 'selfies' | 'couple' | null,
 ): Promise<string | null> {
   if (mode === 'off') return null;
 
   const prompt = buildFinishingPrompt(catalogId, catalogMeta);
 
-  // 커플 사진 모드는 사용자가 직접 업로드한 얼굴을 그대로 보존하는 게 최우선이므로
-  // finishing strength 를 강하게 낮춤 (0.2 → 0.1). 얼굴 drift 위험 vs 톤 통합 트레이드오프
-  // 에서 identity 보존 쪽에 무게.
-  const strength = catalogPath === 'couple' ? 0.1 : 0.2;
+  // strength 0.1 — anchor / couple / selfies 모든 경로 공통.
+  //
+  // 과거엔 anchor 0.2 / couple 0.1 로 분기했으나, 운영 결과 anchor 경로에서
+  // face-swap 으로 lock 된 identity 를 0.2 strength 가 다시 갈아엎으면서
+  // 이목구비 / 피부톤이 flux 평균 prior 쪽으로 회귀하는 drift 가 관찰됨.
+  // 톤 통합 효과는 0.1 에서도 충분히 얻을 수 있고 (LAB harmonize 가 이미
+  // 대부분의 컬러 매칭을 처리), identity 보존을 일관적으로 우선.
+  const strength = 0.1;
 
   const requestId = await submitFluxImg2Img({
     imageUrl: sourceUrl,
