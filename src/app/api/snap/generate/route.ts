@@ -20,6 +20,7 @@ import { buildFalWebhookUrl } from '@/lib/snap/fal-webhook';
 import { hasRequiredConsent } from '@/lib/snap/consent';
 import {
   getCatalogFaceBlurMode,
+  isCatalogFaceMaskEnabled,
   getBlurredCatalogUrl,
 } from '@/lib/snap/catalog-face-blur';
 
@@ -271,10 +272,9 @@ export async function POST(req: Request) {
   const origin = req.headers.get('origin') ?? new URL(req.url).origin;
   const originalCatalogUrl = `${origin}${catalog.image}`;
   const faceBlurMode = getCatalogFaceBlurMode();
-  const catalogUrl =
-    faceBlurMode === 'on'
-      ? await getBlurredCatalogUrl(input.catalogId, originalCatalogUrl)
-      : originalCatalogUrl;
+  const catalogUrl = isCatalogFaceMaskEnabled(faceBlurMode)
+    ? await getBlurredCatalogUrl(input.catalogId, originalCatalogUrl, faceBlurMode)
+    : originalCatalogUrl;
 
   const groomBody =
     anchor?.groom_height_cm && anchor.groom_weight_kg
