@@ -115,7 +115,6 @@ export async function applyUpscalePostprocess(
   sourceUrl: string,
   mode: UpscaleMode,
   catalogId?: string | null,
-  catalogPath?: 'anchored' | 'selfies' | 'couple' | null,
 ): Promise<Buffer> {
   const catalogMeta = catalogId ? await getCatalogColorMeta(catalogId) : null;
 
@@ -146,7 +145,8 @@ export async function applyUpscalePostprocess(
   }
 
   // ── 2. Finishing (Phase 2) ───────────────────────────────────
-  // flux img2img — strength 0.2 로 톤/조명 통합. URL 필요해 buf 있으면 ephemeral 업로드.
+  // flux img2img — strength 0.1 로 톤/조명 통합. URL 필요해 buf 있으면 ephemeral 업로드.
+  // strength 는 finishing 내부에서 고정 (모든 경로 0.1, identity 보존 우선).
   const finishingMode = getFinishingMode();
   if (finishingMode === 'img2img') {
     try {
@@ -156,7 +156,6 @@ export async function applyUpscalePostprocess(
         catalogId,
         catalogMeta,
         finishingMode,
-        catalogPath,
       );
       if (finishedUrl) {
         state.currentUrl = finishedUrl;
