@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { SNAP_CATALOG } from '@/lib/snap/catalog';
+import { getAvailableCatalog } from '@/lib/snap/catalog-availability';
+import type { SnapCatalogItem } from '@/lib/snap/catalog';
 import { CatalogThumbnail } from '@/components/snap/CatalogThumbnail';
 
 export const metadata: Metadata = {
@@ -10,10 +11,12 @@ export const metadata: Metadata = {
 };
 
 export default function WeddingSnapLandingPage() {
+  // hidden / 마스터 파일 없는 항목 제외 — picker 와 동일 기준으로 노출.
+  const visibleCatalog = getAvailableCatalog();
   return (
     <main className="mx-auto max-w-4xl px-4 pb-20 pt-10 sm:px-6">
       <Hero />
-      <CatalogPreview />
+      <CatalogPreview items={visibleCatalog} />
       <HowItWorks />
       <AboutSnap />
       <PackageLineup />
@@ -149,14 +152,14 @@ function Hero() {
   );
 }
 
-function CatalogPreview() {
+function CatalogPreview({ items }: { items: SnapCatalogItem[] }) {
   return (
     <section className="mt-12">
       <h2 className="mb-4 text-sm font-medium tracking-wider text-[#5C4633]">
         카탈로그 미리보기
       </h2>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-        {SNAP_CATALOG.map((item) => (
+        {items.map((item) => (
           <div
             key={item.id}
             className="overflow-hidden rounded-md border border-[#E8DCC9] bg-white"
