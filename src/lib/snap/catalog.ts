@@ -507,6 +507,51 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     // 신부 얼굴은 프레임 중앙 약간 상단 — over-shoulder 자세로 작게 노출.
     faceMaskRegions: [[0.40, 0.22, 0.18, 0.18]],
   },
+  {
+    id: 'bride-paris-eiffel',
+    label: '신부 파리 에펠탑',
+    hint: '에펠탑 + 센강 돌난간 + 골든아워',
+    category: 'outdoor',
+    personality: 'bride-solo',
+    intensity: 'high',
+    image: '/wedding-snap/catalog/bride-paris-eiffel.jpg',
+    promptHint:
+      'Solo bride shot — only the bride in frame, no groom, no other people. Outdoor Paris scene seated on a weathered cream-stone Seine river embankment wall, iconic Eiffel Tower clearly visible in the soft-focus background slightly off-camera-left rising into a hazy warm peach golden-hour sky, the calm Seine river surface reflecting the warm light behind her with a couple of tour boats softly blurred at the far shore, Haussmannian Parisian rooftops faintly visible across the river. Strong warm low golden-hour sun from camera-right creating bright honey rim light on hair and a soft glowing halo behind the figure. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, eye-level camera with bride positioned to camera-right and Eiffel Tower in the negative space to camera-left, shallow depth of field with creamy warm bokeh on the cityscape. Bride: soft champagne / pale ivory tulle wedding gown with a deep V-neckline plunging bodice and very voluminous flowing multi-layer tulle skirt cascading and draping luxuriously over the stone wall and down to the ground, long dark-brown softly waved hair flowing freely past her shoulders with subtle golden highlights catching the sun, dainty necklace, soft natural rosy makeup, holding a beautiful round bridal bouquet of cream-white garden roses, white lisianthus, and trailing eucalyptus greenery resting gently in her lap with both hands. Pose: seated sideways on the stone wall facing camera-right (toward the river / Eiffel Tower side) with body in profile, but face softly turned back over her right shoulder toward camera with a calm gentle warm smile and direct soft eye contact, posture relaxed and elegant. Color grade: cinematic warm honey-amber golden hour with soft peach sky, warm cream skin midtones, gentle film haze and grain — must clearly read as warm Paris golden hour, NOT noon, NOT blue hour, NOT studio.',
+    manualKelvin: 3100,
+    manualMoodHint:
+      'Paris Eiffel Tower at warm honey-amber golden hour, soft peach sky with hazy rim-lit hair, romantic European luxury bridal editorial, gentle film grain',
+    // 신부가 프레임 우측에 배치, 얼굴은 우측 상단 1/3 위치 — 에펠탑은 좌측 배경.
+    faceMaskRegions: [[0.50, 0.22, 0.22, 0.20]],
+  },
+  {
+    id: 'groom-meadow-bowtie',
+    label: '신랑 잔디밭 보타이',
+    hint: '푸른 잔디 + 보타이 슈트 + 부케 + 함박웃음',
+    category: 'outdoor',
+    personality: 'groom-solo',
+    intensity: 'medium',
+    image: '/wedding-snap/catalog/groom-meadow-bowtie.jpg',
+    promptHint:
+      'Solo groom portrait — only the groom is in the frame, no bride, no other people. Outdoor wide green grass meadow with low rolling forested hills in the distance, bright fluffy white cumulus clouds in a clean saturated blue sky filling the upper half of the frame, warm late-afternoon natural sunlight from camera-right creating gentle rim on hair and shoulders. Shot on 50–85mm portrait lens, three-quarter / knee-up framing, slight low-angle camera capturing both the groom and the sky, shallow depth of field on subject with soft green meadow bokeh behind. Groom: clean classic black two-piece notch-lapel formal suit with crisp white dress shirt and neat solid-black silk bow tie tied at the collar, top button fastened, short neat dark-brown side-swept hair with soft natural texture, bright big genuine open-mouth smile with teeth showing and warm crinkled eyes looking directly at camera. Pose: standing relaxed and centered on the lawn, body facing camera straight on with shoulders slightly squared back, left hand casually tucked into the trouser pocket, right hand naturally lowered at his side gently holding a small bouquet of fresh white garden roses, white spray roses, and trailing greenery — bouquet visible just at the lower-right of the frame near the hip. Color grade: bright airy outdoor daylight with saturated clean blue sky, fresh vivid greens and warm cream skin midtones, joyful fresh K-prewedding magazine atmosphere — must clearly read as bright warm late-afternoon daylight, NOT golden hour, NOT studio, NOT noon glare.',
+    manualKelvin: 5500,
+    manualMoodHint:
+      'bright warm late-afternoon outdoor daylight in a green meadow under blue sky with white clouds, joyful big genuine smile, fresh saturated K-prewedding mood',
+    // solo 풀신 — 얼굴은 프레임 중앙 상단, 비교적 작게.
+    faceMaskRegions: [[0.40, 0.18, 0.22, 0.20]],
+  },
+  {
+    id: 'groom-bouquet-sniff',
+    label: '신랑 부케 향',
+    hint: '스튜디오 + 흰 부케 + 향 맡는 자세',
+    category: 'studio',
+    personality: 'groom-solo',
+    intensity: 'low',
+    image: '/wedding-snap/catalog/groom-bouquet-sniff.jpg',
+    promptHint:
+      'Solo groom portrait — only the groom is in the frame, no bride, no other people. Indoor studio with seamless soft cool light-gray painted backdrop, single soft large diffused key light from camera-left at 45° creating gentle clean highlights on the face and suit lapel with very soft fall-off shadow on the right side, no harsh shadows. Shot on 85mm portrait lens, three-quarter (knee-up) framing, eye-level camera, shallow depth of field. Groom: sharp tailored black two-piece notch-lapel formal suit with crisp white dress shirt (collar unbuttoned at the very top, no tie) and a small fresh white floral boutonniere pinned to the left lapel, short neat dark-brown side-swept hair with soft natural texture, calm soft serene closed-eyes expression with a gentle peaceful half-smile. Pose: standing centered facing camera, right hand tucked casually into the trouser pocket, left hand raised holding a beautiful lush bridal bouquet of white lilies, white carnations, white spray roses and trailing eucalyptus greenery (wrapped at the stems with a soft ivory satin ribbon trailing down) lifted gently up to his face so he can softly close his eyes and breathe in the floral scent — refined romantic editorial moment of a groom enjoying the bouquet. Color grade: cool airy light-gray backdrop with clean warm cream skin midtones and rich black suit tones, calm refined minimalist K-prewedding studio editorial atmosphere — must clearly read as soft indoor studio diffused light, NOT outdoor, NOT golden hour.',
+    // solo 반신 — 얼굴은 프레임 상단, 부케에 살짝 가려져 있어 region 은 살짝 우측 + 좁게.
+    faceMaskRegions: [[0.38, 0.14, 0.30, 0.30]],
+  },
 ];
 
 export const isSnapCatalogId = (v: string): boolean =>

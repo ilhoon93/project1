@@ -42,6 +42,9 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `bride-vintage-car` | 신부 빈티지 카 | `bride-vintage-car.jpg` |
 | `groom-monochrome-suit` | 신랑 흑백 슈트 | `groom-monochrome-suit.png` |
 | `bride-villa-staircase` | 신부 빌라 돌계단 | `bride-villa-staircase.jpg` |
+| `bride-paris-eiffel` | 신부 파리 에펠탑 | `bride-paris-eiffel.jpg` |
+| `groom-meadow-bowtie` | 신랑 잔디밭 보타이 | `groom-meadow-bowtie.jpg` |
+| `groom-bouquet-sniff` | 신랑 부케 향 | `groom-bouquet-sniff.jpg` |
 
 새 카탈로그 추가 시: `SNAP_CATALOG` 에 항목을 추가하고 같은 `id` 의 jpg 를
 이 폴더에 올리면 즉시 노출/사용됩니다.
