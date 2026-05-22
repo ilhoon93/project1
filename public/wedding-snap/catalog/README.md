@@ -26,6 +26,10 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `seoul-nightview` | 서울 야경 루프탑 | `seoul-nightview.jpg` |
 | `studio-floral-pastel` | 플라워 파스텔 스튜디오 | `studio-floral-pastel.jpg` |
 | `desert-warm-walk` | 사막 웨딩 워킹 | `desert-warm-walk.jpg` |
+| `canola-field-walk` | 유채꽃밭 산책 | `canola-field-walk.jpg` |
+| `studio-couple-puppy` | 스튜디오 강아지 동반 | `studio-couple-puppy.png` |
+| `studio-couple-overhead` | 스튜디오 머리 위 손 장난 | `studio-couple-overhead.png` |
+| `countryside-bicycle-sunset` | 시골길 자전거 골든아워 | `countryside-bicycle-sunset.png` |
 
 **Solo (단독)**
 | id | 라벨 | 파일 경로 |
@@ -36,6 +40,8 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `bride-veil-flow` | 신부 베일 자연광 | `bride-veil-flow.jpg` |
 | `bride-window` | 신부 창가 자연광 | `bride-window.jpg` |
 | `bride-vintage-car` | 신부 빈티지 카 | `bride-vintage-car.jpg` |
+| `groom-monochrome-suit` | 신랑 흑백 슈트 | `groom-monochrome-suit.png` |
+| `bride-villa-staircase` | 신부 빌라 돌계단 | `bride-villa-staircase.jpg` |
 
 새 카탈로그 추가 시: `SNAP_CATALOG` 에 항목을 추가하고 같은 `id` 의 jpg 를
 이 폴더에 올리면 즉시 노출/사용됩니다.
