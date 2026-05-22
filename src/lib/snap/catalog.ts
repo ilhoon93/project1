@@ -288,6 +288,76 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
       [0.46, 0.28, 0.18, 0.20],
     ],
   },
+  {
+    id: 'canola-field-walk',
+    label: '유채꽃밭 산책',
+    hint: '노란 유채꽃 + 흰 셔츠 + 미니 드레스 캐주얼',
+    category: 'outdoor',
+    personality: 'together',
+    intensity: 'low',
+    image: '/wedding-snap/catalog/canola-field-walk.jpg',
+    promptHint:
+      'Outdoor scene in a vast yellow canola / rapeseed flower field in full bloom, soft rolling green hills and pale blue sky with thin wispy clouds in the distance, late-morning warm natural sunlight from camera-right creating soft rim on hair and shoulders. Shot on 50–85mm portrait lens, full-body framing, eye-level camera, shallow depth of field with creamy yellow floral bokeh. Groom: crisp white long-sleeve dress shirt (slightly relaxed fit), narrow black slim necktie, dark brown straight trousers, short neat black hair with a soft natural smile. Bride: strapless white short bubble-hem mini wedding dress with structured bodice, hair pulled back into a clean low ponytail, tan / brown suede ankle boots, holding a small bouquet of white florals in her free hand. Pose: couple walking gently side by side through a narrow path between the yellow blooms, holding hands at waist height, turned slightly toward each other with big natural smiles and warm eye contact mid-step — candid joyful prewedding movement. Color grade: saturated cheerful yellows with warm cream skin midtones and clean pale blue sky, fresh airy K-prewedding magazine atmosphere — must read as bright warm spring daylight, NOT golden hour, NOT studio.',
+    manualKelvin: 5400,
+    manualMoodHint:
+      'bright warm spring daylight in a yellow canola flower field, fresh saturated yellows with clean pale-blue sky, joyful candid walking motion',
+    // 신랑(왼쪽), 신부(오른쪽, 약간 아래 — 키 차이) — 풀신 워킹 투샷 기준 추정치.
+    faceMaskRegions: [
+      [0.30, 0.20, 0.16, 0.18],
+      [0.52, 0.26, 0.16, 0.18],
+    ],
+  },
+  {
+    id: 'studio-couple-puppy',
+    label: '스튜디오 강아지 동반',
+    hint: '블러시 튤 가운 + 검정 니트 + 푸들',
+    category: 'studio',
+    personality: 'together',
+    intensity: 'low',
+    image: '/wedding-snap/catalog/studio-couple-puppy.png',
+    promptHint:
+      'Indoor studio with seamless soft cream / off-white painted wall backdrop, couple seated together on a dark charcoal-gray modern sofa, soft diffused daylight from a large window out of frame camera-left creating clean gentle highlights and no harsh shadows. Shot on 50–85mm portrait lens, three-quarter (waist-up) framing, eye-level camera, shallow depth of field. Bride: strapless soft blush-pink layered tulle wedding gown with subtle beaded bodice and voluminous skirt cascading across the sofa, long straight dark hair with soft side-swept fringe, dainty small earrings, soft natural makeup with rosy lip, seated slightly turned toward the groom with one hand gently resting on top of his head or shoulder, calm warm smile looking at camera. Groom: clean black fine-knit round-neck sweater with simple white inner shirt collar peeking at the neckline, short neat dark hair, soft natural composed smile looking at camera. Between them in the groom\'s lap: a small fluffy apricot-brown toy poodle puppy with a tiny white ribbon collar, sitting calmly facing camera. Color grade: airy bright cream highlights with soft blush accent on the gown and clean warm skin midtones, gentle film softness — romantic intimate K-prewedding magazine atmosphere with a heart-warming pet companion, never oversaturated. Must clearly read as soft indoor natural-window-light studio, NOT outdoor, NOT golden hour.',
+    // 신부(왼쪽 약간 위), 신랑(오른쪽 중앙) — 앉은 투샷 + 강아지 푸들이 신랑 무릎.
+    faceMaskRegions: [
+      [0.18, 0.18, 0.20, 0.22],
+      [0.48, 0.26, 0.22, 0.24],
+    ],
+  },
+  {
+    id: 'studio-couple-overhead',
+    label: '스튜디오 머리 위 손 장난',
+    hint: '화이트 스튜디오 + 신부 신랑 머리 위 장난 포즈',
+    category: 'studio',
+    personality: 'together',
+    intensity: 'low',
+    image: '/wedding-snap/catalog/studio-couple-overhead.png',
+    promptHint:
+      'Indoor studio with seamless pure bright white painted wall backdrop, soft large diffused front beauty light from slightly above and camera-left creating clean luminous skin tones and very gentle shadows. Shot on 85mm portrait lens, chest-up close framing, eye-level camera with both faces clearly centered, shallow depth of field. Groom: clean black peak-lapel formal suit jacket with crisp white shirt and slim black necktie, short neat dark hair, calm composed soft smile, seated lower in the frame facing camera straight on. Bride: strapless ivory wedding dress with delicate beaded bodice, long straight dark hair softly draped behind shoulders, dainty drop earrings, soft natural rosy makeup, standing close behind the seated groom and leaning gently forward over his head, both of her hands resting playfully and lightly on top of the groom\'s head with relaxed fingers (not gripping, just gently placed), her face peeking over his head from above with a warm bright genuine smile looking directly at camera. Pose: cheerful playful intimate K-prewedding moment, bride above and slightly behind, groom centered and slightly lower — both clearly visible and facing camera with soft natural eye contact. Color grade: bright airy whites with clean warm cream skin midtones, very low contrast, dreamy minimalist K-prewedding beauty editorial — must clearly read as soft studio beauty light, NOT outdoor, NOT golden hour.',
+    // 신부(상단, 살짝 작음 — 뒤쪽), 신랑(중앙·하단, 더 큼 — 앞쪽).
+    faceMaskRegions: [
+      [0.34, 0.10, 0.30, 0.30],
+      [0.30, 0.42, 0.38, 0.36],
+    ],
+  },
+  {
+    id: 'countryside-bicycle-sunset',
+    label: '시골길 자전거 골든아워',
+    hint: '빈티지 자전거 + 해바라기 바구니 + 노을',
+    category: 'outdoor',
+    personality: 'together',
+    intensity: 'high',
+    image: '/wedding-snap/catalog/countryside-bicycle-sunset.png',
+    promptHint:
+      'Outdoor scene on a quiet narrow rural dirt road cutting through Korean countryside at golden hour (warm low sun in the sky filling the horizon with soft peach and lavender clouds — must clearly be golden hour, NOT noon, NOT blue hour). Distant low forested hills and a scattered handful of small rural houses with blue and red metal roofs in the mid-ground, a few wooden utility poles with thin power lines extending along the road. Shot on 35–50mm lens for environmental feel, full-body framing, eye-level camera, shallow depth of field on the couple with warm hazy sunset bokeh behind. Groom: warm beige / camel-tan two-piece formal suit with white shirt and dark slim tie, short neat dark hair, calm soft smile, seated on a vintage cream-colored single-speed bicycle with a woven brown wicker front basket overflowing with fresh sunflowers and small white wildflowers, gently pedaling forward along the dirt road. Bride: soft champagne-beige / pale blush long satin wedding dress with delicate spaghetti straps and subtle ruffle hem, long dark hair softly tied back, holding lightly onto the groom\'s shoulders or seated side-saddle on the rear rack of the bicycle, leaning playfully toward him with a big genuine open-mouth laugh of pure joy. Pose: candid joyful prewedding moment mid-ride, bicycle moving slowly toward camera at slight angle, both leaning into each other with bright natural laughter. Color grade: cinematic warm honey-amber highlights with soft peach sky and gentle teal-shadow countryside greens, light film grain and warm sunset haze — must clearly read as warm late-afternoon golden hour rural Korea, NOT studio, NOT noon.',
+    manualKelvin: 3000,
+    manualMoodHint:
+      'Korean countryside golden hour, warm peach-amber sky with honey rim light on hair, sunflower basket bicycle ride, joyful candid laughter, cinematic film grain',
+    // 신랑(왼쪽·중앙, 자전거에 앉음), 신부(오른쪽·뒤, 살짝 위) — 자전거 투샷 기준 추정치.
+    faceMaskRegions: [
+      [0.36, 0.46, 0.16, 0.16],
+      [0.52, 0.40, 0.16, 0.16],
+    ],
+  },
   // ── Solo (단독) 컷 ────────────────────────────────────────
   // 이미지 파일은 사용자가 별도로 마스터를 만들어 같은 id 로 저장해야 함.
   // (예: public/wedding-snap/catalog/groom-portrait-studio.jpg)
@@ -405,6 +475,37 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
       'traditional Korean hanok interior in soft warm natural daylight, mint chima and dove-gray jeogori with warm wood and teal wall accents, playful curious peek-around-door pose',
     // 신부 얼굴이 프레임 좌측 1/3 위치, 문 우측 edge 너머 — 살짝 좌측 치우침.
     faceMaskRegions: [[0.30, 0.12, 0.30, 0.30]],
+  },
+  {
+    id: 'groom-monochrome-suit',
+    label: '신랑 흑백 슈트',
+    hint: '모노크롬 + 클래식 슈트 + 커프스 자세',
+    category: 'studio',
+    personality: 'groom-solo',
+    intensity: 'low',
+    image: '/wedding-snap/catalog/groom-monochrome-suit.png',
+    promptHint:
+      'Solo groom portrait — only the groom is in the frame, no bride, no other people. Monochrome black-and-white editorial portrait. Indoor studio with seamless soft gradient dark-gray to medium-gray backdrop, single soft directional key light from camera-left at 45° down, gentle fill from camera-right preserving shadow detail on the right side of the face and suit. Shot on 85mm portrait lens, waist-up framing, slight three-quarter (~10–15°) body angle to camera-right with face turned back toward camera, shallow depth of field. Groom: sharp black two-piece notch-lapel formal suit with a crisp white dress shirt and slim solid-black silk necktie tied neatly, jacket buttoned at the top button only, short neat dark hair brushed back, calm composed neutral expression with mouth softly closed, slight head tilt down catching shadow under the brow. Pose: both hands brought together near waist level, right hand gently adjusting the left jacket cuff / cuff link in a refined editorial gesture, eyes looking directly at camera with quiet confidence. Color grade: pure monochrome black-and-white film tones with rich deep blacks, smooth midtone grays and clean specular highlights on the shirt — must clearly read as classic B&W editorial menswear portrait, NOT color, NOT outdoor.',
+    manualMoodHint:
+      'monochrome black-and-white editorial menswear portrait with rich deep blacks, smooth gray midtones and clean white shirt highlights',
+    // solo 반신 — 얼굴은 프레임 상단 중앙, 비교적 크게.
+    faceMaskRegions: [[0.32, 0.08, 0.36, 0.32]],
+  },
+  {
+    id: 'bride-villa-staircase',
+    label: '신부 빌라 돌계단',
+    hint: '돌계단 + 머메이드 + 긴 베일 + 산 배경',
+    category: 'outdoor',
+    personality: 'bride-solo',
+    intensity: 'medium',
+    image: '/wedding-snap/catalog/bride-villa-staircase.jpg',
+    promptHint:
+      'Solo bride shot — only the bride in frame, no groom, no other people. Outdoor European Mediterranean villa scene on a wide ornate carved-stone staircase ascending diagonally upward from lower-left to upper-right of the frame, antique baroque stone balustrade and large carved stone urns overflowing with vivid orange geraniums lining the steps, hazy distant green mountain ridges and soft pale-blue cloudy sky filling the upper background. Soft warm late-morning natural daylight from camera-right creating gentle rim on hair and the back of the gown. Shot on 50–85mm portrait lens, full-body framing, slight low-angle from a few steps below, shallow depth of field on the bride with creamy stone bokeh behind. Bride: ivory open-back mermaid wedding dress with delicate beaded lace bodice and dramatic voluminous layered tulle skirt cascading down the stone steps behind her, very long fine cathedral-length tulle veil floating diagonally across the frame to camera-right in a soft breeze, dark hair pulled back into a sleek smooth low chignon, dainty earrings, soft natural makeup, holding a small rounded bouquet of pale blue hydrangea and white florals in her left hand near her waist. Pose: standing on the staircase with body turned to climb upward (back toward camera) but face softly turned back over her right shoulder toward camera with a calm gentle natural smile, the open back and silhouette of the gown clearly visible. Color grade: warm cream highlights with soft pastel-blue sky and gentle terracotta accents from the geraniums, refined European luxury bridal editorial atmosphere — must clearly read as warm hazy daylight at a Mediterranean villa, NOT golden hour, NOT studio.',
+    manualKelvin: 5200,
+    manualMoodHint:
+      'warm hazy late-morning daylight at a Mediterranean villa stone staircase, refined luxury bridal editorial, pastel-blue sky with cream stone and terracotta floral accents, flowing tulle veil',
+    // 신부 얼굴은 프레임 중앙 약간 상단 — over-shoulder 자세로 작게 노출.
+    faceMaskRegions: [[0.40, 0.22, 0.18, 0.18]],
   },
 ];
 
