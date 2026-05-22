@@ -37,7 +37,11 @@
       "Bash(node -e \"const w = require\\('wawoff2'\\); console.log\\(Object.keys\\(w\\)\\)\")",
       "Bash(node -e \"const fk = require\\('fontkit'\\); console.log\\(Object.keys\\(fk\\)\\)\")",
       "Bash(grep -v \"^$\")",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(git pull *)",
+      "Bash(git -C C:/project1 add public/wedding-snap/catalog/bride-paris-eiffel.jpg public/wedding-snap/catalog/groom-meadow-bowtie.jpg public/wedding-snap/catalog/groom-bouquet-sniff.jpg public/wedding-snap/catalog/README.md src/lib/snap/catalog.ts)",
+      "Bash(git -C C:/project1 rm \"public/wedding-snap/catalog/Gemini_Generated_Image_3ep1no3ep1no3ep1.jpg\" \"public/wedding-snap/catalog/ChatGPT Image 2026년 5월 22일 오후 08_49_35.jpg\" \"public/wedding-snap/catalog/ChatGPT Image 2026년 5월 22일 오후 08_51_41.jpg\")",
+      "Bash(gh pr create --title '스냅 카탈로그 마스터 3장 추가 \\(파리 신부 + 잔디 신랑 + 부케 신랑\\)' --body ' *)"
     ]
   }
 }
