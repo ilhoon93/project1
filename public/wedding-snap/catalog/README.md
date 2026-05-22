@@ -13,41 +13,71 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 
 현재 정의된 항목:
 
-**Together (커플)**
+**Together (커플) — 활성**
 | id | 라벨 | 파일 경로 |
 | --- | --- | --- |
-| `studio-classic` | 클래식 스튜디오 | `studio-classic.jpg` |
-| `meadow-spring` | 봄날 초원 | `meadow-spring.jpg` |
-| `hanok-courtyard` | 한옥 정원 | `hanok-courtyard.jpg` |
-| `city-goldenhour` | 도심 골든아워 | `city-goldenhour.jpg` |
-| `beach-sunset` | 바닷가 석양 | `beach-sunset.jpg` |
+| `meadow-spring` | 야외 가든 | `meadow-spring.jpg` |
 | `bridge-goldenhour` | 브릿지 골든아워 | `bridge-goldenhour.jpg` |
 | `beach-classic-white` | 비치 클래식 화이트 | `beach-classic-white.jpg` |
 | `seoul-nightview` | 서울 야경 루프탑 | `seoul-nightview.jpg` |
 | `studio-floral-pastel` | 플라워 파스텔 스튜디오 | `studio-floral-pastel.jpg` |
 | `desert-warm-walk` | 사막 웨딩 워킹 | `desert-warm-walk.jpg` |
+| `meadow-casual-shades` | 잔디밭 캐주얼 선글라스 | `meadow-casual-shades.jpg` |
+| `bridge-night-noir` | 브릿지 야경 누아르 | `bridge-night-noir.jpg` |
 | `canola-field-walk` | 유채꽃밭 산책 | `canola-field-walk.jpg` |
-| `studio-couple-puppy` | 스튜디오 강아지 동반 | `studio-couple-puppy.png` |
-| `studio-couple-overhead` | 스튜디오 머리 위 손 장난 | `studio-couple-overhead.png` |
-| `countryside-bicycle-sunset` | 시골길 자전거 골든아워 | `countryside-bicycle-sunset.png` |
+| `studio-couple-puppy` | 스튜디오 강아지 동반 | `studio-couple-puppy.jpg` |
+| `studio-couple-overhead` | 스튜디오 머리 위 손 장난 | `studio-couple-overhead.jpg` |
+| `countryside-bicycle-sunset` | 시골길 자전거 골든아워 | `countryside-bicycle-sunset.jpg` |
+| `garden-champagne-toast` | 가든 샴페인 토스트 | `garden-champagne-toast.jpg` |
+| `studio-couple-blackwhite` | 흑백 스튜디오 풀신 | `studio-couple-blackwhite.jpg` |
+| `studio-shoulder-lean` | 스튜디오 어깨 기댐 클로즈업 | `studio-shoulder-lean.jpg` |
+| `yacht-sunset-hug` | 요트 일몰 백허그 | `yacht-sunset-hug.jpg` |
+| `conservatory-sofa-couple` | 온실 화이트 소파 | `conservatory-sofa-couple.jpg` |
+| `tokyo-alley-couple` | 도쿄 골목 자판기 | `tokyo-alley-couple.jpg` |
+| `wall-casual-noir` | 캐주얼 흑백 벽 + 선글라스 | `wall-casual-noir.jpg` |
+| `jeju-stonewall-cheer` | 제주 돌담 부케 환호 | `jeju-stonewall-cheer.jpg` |
+| `paris-bridge-night` | 파리 다리 야경 | `paris-bridge-night.jpg` |
+| `jeju-rocky-coast` | 제주 해안 정자세 | `jeju-rocky-coast.jpg` |
+| `city-goldenhour-balcony` | 도심 골든아워 발코니 | `city-goldenhour-balcony.jpg` |
 
-**Solo (단독)**
+**Solo (단독) — 활성**
 | id | 라벨 | 파일 경로 |
 | --- | --- | --- |
 | `groom-portrait-studio` | 신랑 스튜디오 단독 | `groom-portrait-studio.jpg` |
 | `bride-bouquet` | 신부 부케 | `bride-bouquet.jpg` |
-| `groom-walk-away` | 신랑 뒤돌아 걷는 컷 | `groom-walk-away.jpg` |
-| `bride-veil-flow` | 신부 베일 자연광 | `bride-veil-flow.jpg` |
-| `bride-window` | 신부 창가 자연광 | `bride-window.jpg` |
 | `bride-vintage-car` | 신부 빈티지 카 | `bride-vintage-car.jpg` |
-| `groom-monochrome-suit` | 신랑 흑백 슈트 | `groom-monochrome-suit.png` |
+| `bride-garden-twirl` | 신부 가든 베일 트월 | `bride-garden-twirl.jpg` |
+| `bride-veil-closeup` | 신부 베일 클로즈업 | `bride-veil-closeup.jpg` |
+| `hanok-greenhanbok-peek` | 한옥 한복 문 너머 엿보기 | `hanok-greenhanbok-peek.jpg` |
+| `groom-monochrome-suit` | 신랑 흑백 슈트 | `groom-monochrome-suit.jpg` |
 | `bride-villa-staircase` | 신부 빌라 돌계단 | `bride-villa-staircase.jpg` |
 | `bride-paris-eiffel` | 신부 파리 에펠탑 | `bride-paris-eiffel.jpg` |
 | `groom-meadow-bowtie` | 신랑 잔디밭 보타이 | `groom-meadow-bowtie.jpg` |
 | `groom-bouquet-sniff` | 신랑 부케 향 | `groom-bouquet-sniff.jpg` |
+| `bride-vintage-car-stand` | 신부 빈티지카 + 숲 | `bride-vintage-car-stand.jpg` |
+| `groom-vintage-window` | 신랑 빈티지 인테리어 창가 | `groom-vintage-window.jpg` |
+| `bride-sofa-ballgown` | 신부 화이트 카우치 볼가운 | `bride-sofa-ballgown.jpg` |
+
+**Hidden (정의만 유지 · picker 노출 X)**
+
+`hidden:true` 로 마킹된 항목은 [`SNAP_CATALOG`](../../../src/lib/snap/catalog.ts) 에는
+정의가 남아 있어 `findSnapCatalog` 가 과거 결과물의 라벨 lookup 에는 응답하지만,
+랜딩 미리보기 / 스냅 생성 picker 양쪽에서 모두 숨겨진다. 마스터 jpg 를 올린 뒤
+`hidden:true` 만 제거하면 즉시 활성화.
+
+| id | 라벨 | 사유 |
+| --- | --- | --- |
+| `studio-classic` | 클래식 스튜디오 | 마스터 미업로드 |
+| `hanok-courtyard` | 한옥 정원 | 마스터 미업로드 |
+| `city-goldenhour` | 도심 골든아워 | 마스터 미업로드 (대체 컷 `city-goldenhour-balcony`) |
+| `beach-sunset` | 바닷가 석양 | 마스터 미업로드 |
+| `groom-walk-away` | 신랑 뒤돌아 걷는 컷 | 마스터 미업로드 |
+| `bride-veil-flow` | 신부 베일 자연광 | 마스터 미업로드 (유사 컷 `bride-garden-twirl`) |
+| `bride-window` | 신부 창가 자연광 | 마스터 미업로드 |
 
 새 카탈로그 추가 시: `SNAP_CATALOG` 에 항목을 추가하고 같은 `id` 의 jpg 를
-이 폴더에 올리면 즉시 노출/사용됩니다.
+이 폴더에 올리면 즉시 노출/사용됩니다 (`getAvailableCatalog()` 가 파일 유무를
+서버사이드에서 자동 체크하므로 별도 토글 불필요).
 
 ## 권장 규격
 
@@ -66,9 +96,10 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 
 ## 파일이 없을 때
 
-해당 카탈로그 항목의 썸네일 자리에 안내 박스가 보이고, 파일 경로를 표시합니다.
-사용자는 그 항목을 선택해 생성을 시도해도 fal.ai 가 이미지를 fetch 하지 못해
-실패합니다. 카탈로그를 추가했다면 반드시 같은 `id` 의 이미지도 함께 업로드.
+`getAvailableCatalog()` (서버사이드 fs 체크) 가 자동으로 해당 항목을 picker /
+랜딩 미리보기 양쪽에서 숨깁니다. 사용자가 그 항목을 우연히 고를 일이 없으니
+"선택했는데 생성 실패" 케이스는 발생하지 않습니다. 카탈로그 정의는 코드에
+남아 있어 마스터 jpg 만 올리면 다음 배포부터 자동 노출.
 
 ## 로컬 개발 시 주의
 
