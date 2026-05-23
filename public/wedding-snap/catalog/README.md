@@ -52,6 +52,21 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `garden-finger-heart` | 가든 손가락 하트 | `garden-finger-heart.jpg` |
 | `beige-wall-cheek-lean` | 베이지 벽 머리 기댐 | `beige-wall-cheek-lean.jpg` |
 | `meadow-blue-sky-couple` | 들판 푸른 하늘 풀신 | `meadow-blue-sky-couple.jpg` |
+| `brick-cherry-blossom` | 적벽돌 + 벚꽃 | `brick-cherry-blossom.jpg` |
+| `ceremony-flower-wall` | 예식장 꽃벽 + 촛불 | `ceremony-flower-wall.jpg` |
+| `budapest-bastion-sunset` | 부다페스트 어부의 요새 골든아워 | `budapest-bastion-sunset.jpg` |
+| `beach-backhug-redbouquet` | 해변 백허그 + 빨간 부케 | `beach-backhug-redbouquet.jpg` |
+| `hanok-sunset-leather-jacket` | 한옥 노을 + 가죽 재킷 캐주얼 | `hanok-sunset-leather-jacket.jpg` |
+| `nyc-times-square-couple` | 뉴욕 타임스퀘어 | `nyc-times-square-couple.jpg` |
+| `vintage-car-shades-bouquet` | 빈티지 컨버터블 + 선글라스 | `vintage-car-shades-bouquet.jpg` |
+| `meadow-shades-bouquet-seated` | 잔디밭 앉음 선글라스 들꽃 | `meadow-shades-bouquet-seated.jpg` |
+| `london-bigben-couple` | 런던 빅벤 | `london-bigben-couple.jpg` |
+| `porto-pink-sunset` | 포르토 핑크 노을 강변 | `porto-pink-sunset.jpg` |
+| `mountain-pink-sunset-hug` | 산 핑크 노을 + 들어올림 포옹 | `mountain-pink-sunset-hug.jpg` |
+| `studio-greenwall-glasses` | 다크 그린 스튜디오 + 안경 | `studio-greenwall-glasses.jpg` |
+| `porto-balcony-sunset` | 포르토 발코니 골든아워 | `porto-balcony-sunset.jpg` |
+| `prague-sunflower-cheer` | 프라하 + 해바라기 환호 | `prague-sunflower-cheer.jpg` |
+| `yacht-cabin-lean` | 요트 캐빈 어깨 기댐 | `yacht-cabin-lean.jpg` |
 
 **Solo (단독) — 활성**
 | id | 라벨 | 파일 경로 |
@@ -75,6 +90,8 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `bride-floral-bed-seated` | 신부 꽃밭 앉음 | `bride-floral-bed-seated.jpg` |
 | `bride-offshoulder-bouquet` | 신부 오프숄더 풀신 | `bride-offshoulder-bouquet.jpg` |
 | `groom-beach-greensuit` | 신랑 해변 그린 슈트 | `groom-beach-greensuit.jpg` |
+| `groom-hotel-stairs` | 신랑 호텔 계단 단독 | `groom-hotel-stairs.jpg` |
+| `bride-nyc-chrysler` | 신부 NYC 크라이슬러 빌딩 | `bride-nyc-chrysler.jpg` |
 
 **Hidden (정의만 유지 · picker 노출 X)**
 

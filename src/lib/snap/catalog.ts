@@ -909,6 +909,289 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
       [0.54, 0.22, 0.16, 0.16],
     ],
   },
+  {
+    id: 'brick-cherry-blossom',
+    label: '적벽돌 + 벚꽃',
+    hint: '한국 전통건축물 + 벚꽃 + 원숄더 베이지 새틴',
+    category: 'tradition',
+    personality: 'together',
+    intensity: 'low',
+    framing: 'full',
+    image: '/wedding-snap/catalog/brick-cherry-blossom.jpg',
+    promptHint:
+      'Outdoor refined scene against a tall warm red-brick wall of a Korean traditional-modern brick building (small wooden-frame window centered behind the couple at upper-third height), abundant pale-pink cherry blossom branches in full bloom arching across the top of the frame and softly framing both sides, warm dappled spring daylight filtering through the cherry blossoms creating soft warm rim on hair and shoulders, no harsh shadows, warm brick step at the bottom of the frame. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, slight low-angle camera, shallow depth of field on the couple with crisp brick texture behind and creamy cherry-blossom bokeh. Groom: sharp dark navy peak-lapel two-piece formal suit with crisp white dress shirt, neat solid-black silk necktie, and a small fresh white floral boutonniere on the left lapel, polished black derby shoes, short neat dark side-swept hair, calm warm composed soft closed-mouth smile, standing tall to camera-left with one hand casually tucked into trouser pocket and one shoulder leaning lightly against the brick wall. Bride: clean ivory champagne satin one-shoulder asymmetric-neckline floor-length flowing slip-style wedding dress with subtle ruched bodice and soft natural A-line skirt cascading lushly to the brick step with subtle sweep train, long dark hair pulled back into a clean smooth low chignon with side wisps, dainty drop earrings, soft natural rosy makeup with warm gentle closed-mouth smile, holding a small loose bouquet of white anemones and trailing greenery in her right hand at her hip, standing close to camera-right facing camera straight on. Pose: bride and groom standing close together facing camera with calm composed gentle smiles, refined romantic Korean K-prewedding magazine spring blossom moment. Color grade: warm dappled spring daylight with rich saturated red-brick tones and soft pastel pink cherry-blossom accents and clean warm cream skin midtones, refined romantic Korean K-prewedding magazine spring atmosphere — must clearly read as warm dappled spring daylight, NOT golden hour, NOT studio.',
+    manualKelvin: 5400,
+    manualMoodHint:
+      'warm dappled spring daylight against red-brick wall with pastel-pink cherry blossom canopy, refined romantic Korean K-prewedding spring blossom mood',
+    faceMaskRegions: [
+      [0.32, 0.32, 0.14, 0.14],
+      [0.54, 0.32, 0.14, 0.14],
+    ],
+  },
+  {
+    id: 'ceremony-flower-wall',
+    label: '예식장 꽃벽 + 촛불',
+    hint: '예식장 꽃 월 + 촛불 통로 + 풀턱 베일',
+    category: 'studio',
+    personality: 'together',
+    intensity: 'low',
+    framing: 'full',
+    image: '/wedding-snap/catalog/ceremony-flower-wall.jpg',
+    promptHint:
+      'Indoor warm cinematic Korean wedding ceremony hall scene with a dramatic full white-and-cream floral wall backdrop (lush abundant white garden roses, ivory ranunculus, white hydrangea, and cream peonies filling the entire wall from floor to ceiling), a luxurious crystal chandelier glowing softly above, two rows of warm-glowing tall pillar candles in tall slim glass hurricanes lining both sides of the aisle in the foreground, white rose petals scattered across the polished dark wood aisle floor. Soft warm cinematic ceremony glow with clean luminous front light and no harsh shadows. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, slight low-angle camera, shallow depth of field with creamy floral and candle bokeh behind. Groom: sharp black peak-lapel two-piece formal velvet tuxedo with crisp white dress shirt, neat solid-black silk bow tie tied at the collar, and a small fresh white-and-green floral boutonniere on the left lapel, polished black oxford shoes, short neat dark side-swept hair, calm warm genuine bright open-mouth smile, standing tall to camera-left with bride\'s arm warmly linked around his. Bride: clean ivory strapless sweetheart-neckline classic wedding ball-gown with delicate intricate floral lace appliqué embroidery throughout the bodice and skirt and dramatic voluminous full tulle layered skirt cascading lushly down to the aisle floor with dramatic sweep train, long fine-mesh white tulle cathedral veil softly draped behind her head and trailing past her shoulders, hair pulled back into a clean smooth low updo, dainty pearl drop earrings, soft natural rosy makeup with warm bright genuine open-mouth laughing smile, holding a beautiful lush round bouquet of fresh white lily-of-the-valley sprays, white peonies and trailing greenery in both hands at chest level. Pose: bride to camera-right and groom to camera-left standing close together arm-in-arm facing camera straight on with bright warm direct eye contact and genuine joyful smiles, refined romantic Korean K-prewedding wedding-day ceremony portrait moment. Color grade: warm cream ceremony highlights with abundant white-floral accents, warm tungsten chandelier and candle glow, and clean warm cream skin midtones, refined timeless Korean wedding-ceremony editorial atmosphere — must clearly read as warm cinematic indoor ceremony with warm-tungsten + white-floral palette, NOT outdoor, NOT golden hour.',
+    manualKelvin: 4200,
+    manualMoodHint:
+      'warm cinematic Korean wedding-ceremony with full white floral wall and warm-tungsten chandelier and candle glow, refined timeless wedding-day editorial mood',
+    faceMaskRegions: [
+      [0.30, 0.22, 0.14, 0.14],
+      [0.56, 0.22, 0.14, 0.14],
+    ],
+  },
+  {
+    id: 'budapest-bastion-sunset',
+    label: '부다페스트 어부의 요새 골든아워',
+    hint: '돌 아치 + 도시 강 + 골든아워 강한 백라이트',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'high',
+    framing: 'full',
+    image: '/wedding-snap/catalog/budapest-bastion-sunset.jpg',
+    promptHint:
+      'Outdoor scene at the Fisherman\'s Bastion overlooking Budapest at warm late-afternoon golden hour (strong warm low sun in the sky filling the horizon with rich saturated orange and pink clouds, distant Danube river and the Hungarian Parliament building softly visible across the river — must clearly be golden hour, NOT noon, NOT blue hour). Two tall ornate white carved-stone neo-Romanesque arches framing the couple on both sides with low carved stone balustrade in the foreground, soft warm honey rim light catching the bride\'s hair and veil from camera-right. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, eye-level camera with the arches framing the couple, shallow depth of field with creamy warm sunset cityscape bokeh. Groom: sharp black peak-lapel two-piece formal suit with crisp white dress shirt and slim solid-black silk necktie, polished black oxford shoes, short neat dark side-swept hair, calm warm composed soft closed-mouth smile, standing tall to camera-left with one shoulder leaning lightly against the stone arch column and one hand casually tucked into trouser pocket. Bride: clean ivory off-shoulder sleeveless fitted floor-length lace-mermaid wedding dress with delicate floral lace embroidery throughout the bodice and skirt and dramatic long sweep train, long fine-mesh white tulle cathedral veil softly draped behind her head and trailing dramatically across the stone floor to camera-right, hair pulled back into a clean smooth low chignon, dainty drop earrings, soft natural rosy makeup with warm bright genuine open-mouth laughing smile, holding a small round bouquet of fresh white spray roses and trailing greenery in both hands at her waist. Pose: bride seated softly on the stone balustrade to camera-right turned slightly toward the groom with bright joyful laughing smile, groom standing tall to camera-left with body turned warmly toward the bride looking softly at her with calm content smile, refined romantic European travel K-prewedding magazine sunset moment. Color grade: cinematic warm honey-amber golden-hour highlights with rich saturated pink-orange sky and warm city silhouette, gentle film haze and grain — must clearly read as warm romantic European golden hour, NOT noon, NOT blue hour, NOT studio.',
+    manualKelvin: 3000,
+    manualMoodHint:
+      'cinematic warm honey-amber golden hour at the Budapest Fisherman\'s Bastion with carved-stone arches and rich pink-orange Danube sky, romantic European travel K-prewedding mood',
+    faceMaskRegions: [
+      [0.24, 0.30, 0.16, 0.18],
+      [0.52, 0.36, 0.16, 0.18],
+    ],
+  },
+  {
+    id: 'beach-backhug-redbouquet',
+    label: '해변 백허그 + 빨간 부케',
+    hint: '해변 + 검정 슬립 + 빨간 카네이션 + 백허그 클로즈업',
+    category: 'beach',
+    personality: 'together',
+    intensity: 'high',
+    framing: 'closeup',
+    image: '/wedding-snap/catalog/beach-backhug-redbouquet.jpg',
+    promptHint:
+      'Outdoor scene on a quiet beach at warm late-afternoon golden hour with calm turquoise ocean and softly breaking waves stretching to a flat horizon directly behind the couple, soft warm pastel-peach and pale-pink sunset sky filling the upper background, warm beige wet sand underfoot, soft warm rim light from camera-back-right creating gentle honey glow on hair. Shot on 85mm portrait lens, chest-up close framing with bride centered in front and groom slightly behind hugging her from behind, eye-level camera, shallow depth of field with creamy ocean-and-sky bokeh. Bride: elegant sleeveless black satin spaghetti-strap fitted slip-style wedding dress with subtle cowl neckline softly visible at the lower edge, long dark hair pulled back into a clean smooth low ponytail, dainty earrings, soft natural rosy makeup with bright big genuine open-mouth laughing smile, both hands cradling a beautiful lush large round bouquet of saturated deep-red carnations and red roses (wrapped at the stems with a flowing dark-red satin ribbon) lifted gently up at chest level. Groom: clean black peak-lapel two-piece formal suit with crisp white dress shirt and slim solid-black silk necktie, short neat dark side-swept hair, calm warm genuine soft closed-mouth smile with eyes softly closed, standing close behind the bride with both arms wrapped warmly around her waist from behind in a gentle back-hug, leaning his face tenderly into her right shoulder. Pose: groom hugging bride from behind close cheek-to-shoulder, both warmly facing camera with bride laughing joyfully and groom smiling softly with eyes closed in tender intimate moment, refined romantic candid joyful K-prewedding beach moment. Color grade: cinematic warm pastel-peach golden-hour sky with cool turquoise ocean accent and saturated deep-red bouquet accent, warm cream skin midtones, gentle film softness — must clearly read as warm romantic late-afternoon beach golden hour, NOT noon, NOT studio.',
+    manualKelvin: 3200,
+    manualMoodHint:
+      'warm pastel-peach golden-hour beach with turquoise ocean and saturated deep-red carnation bouquet accent, romantic candid back-hug joyful K-prewedding mood',
+    faceMaskRegions: [
+      [0.16, 0.30, 0.30, 0.40],
+      [0.50, 0.16, 0.30, 0.36],
+    ],
+  },
+  {
+    id: 'hanok-sunset-leather-jacket',
+    label: '한옥 노을 + 가죽 재킷 캐주얼',
+    hint: '한옥 + 노을 + 가죽재킷 + 미니 레이스 베일',
+    category: 'tradition',
+    personality: 'together',
+    intensity: 'high',
+    framing: 'full',
+    image: '/wedding-snap/catalog/hanok-sunset-leather-jacket.jpg',
+    promptHint:
+      'Outdoor refined Korean countryside scene with a traditional Korean hanok house with curved gray-tile rooftop softly silhouetted in the warm hazy mid-background, distant rural countryside and a small Western-style house with red roof barely visible deeper in the background, warm cement / stone low wall in the foreground, soft warm late-afternoon golden-hour sunlight from camera-back creating warm honey rim on hair and shoulders, hazy warm atmosphere. Shot on 50–85mm portrait lens, three-quarter (knee-up) close framing with the couple seated together on the low stone wall, eye-level camera, shallow depth of field with creamy warm hanok and countryside bokeh behind. Groom: clean dark-brown / black classic leather biker jacket with collar over a soft sky-blue dress shirt and slim solid-black silk necktie, clean off-white straight trousers, polished brown leather western-style ankle boots, short neat dark side-swept hair, calm warm genuine soft closed-mouth smile, seated to camera-left on the stone wall with one leg casually crossed and one arm warmly wrapped around the bride\'s shoulders from behind. Bride: clean ivory short-sleeve sweetheart-neckline knee-length fitted-bodice intricate-lace mini wedding dress with subtle full skirt, long fine-mesh white tulle cathedral veil softly draped behind her head and floating dramatically in the breeze, hair pulled back into a clean smooth low chignon with side wisps, dainty drop earrings, soft natural rosy makeup with warm bright genuine open-mouth laughing smile, holding a small loose bouquet of fresh bright-yellow sunflowers, white daisies and chamomile florals in her right hand at chest level, seated close beside groom to camera-right with body slightly turned toward camera with one hand softly placed on his lap. Pose: couple seated close together on the stone wall with bride to camera-right slightly leaning toward groom, both warmly facing camera with bright genuine smiles, refined modern casual Korean K-prewedding traditional-meets-casual moment. Color grade: cinematic warm honey-amber golden-hour highlights with rich saturated traditional hanok red-tile-rooftop accent and warm cream skin midtones, gentle film haze — must clearly read as warm late-afternoon Korean countryside golden hour, NOT noon, NOT studio.',
+    manualKelvin: 3100,
+    manualMoodHint:
+      'warm honey-amber golden hour at Korean hanok countryside, modern casual leather-jacket and lace mini-dress styling with sunflower bouquet, refined romantic K-prewedding golden-hour mood',
+    faceMaskRegions: [
+      [0.26, 0.30, 0.18, 0.20],
+      [0.52, 0.30, 0.18, 0.20],
+    ],
+  },
+  {
+    id: 'nyc-times-square-couple',
+    label: '뉴욕 타임스퀘어',
+    hint: '도심 LED 광고판 + 풀턱 + 네이비 슈트',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'medium',
+    framing: 'closeup',
+    image: '/wedding-snap/catalog/nyc-times-square-couple.jpg',
+    promptHint:
+      'Outdoor downtown Manhattan New York Times Square street scene with abundant glowing large LED video billboards (vivid colorful advertising signs softly visible — Chicago Broadway musical signs, vintage cinema marquees, taxi cabs softly visible in the deep midground), bright warm late-afternoon natural daylight, hazy busy city pedestrian crowd softly blurred deeper in the street. Shot on 50–85mm portrait lens, three-quarter (waist-up) close framing, slight three-quarter (~30°) angle with the couple turned slightly toward camera-back-right and faces looking softly back toward camera, eye-level camera, shallow depth of field with creamy vivid Times Square LED bokeh behind. Groom: sharp dark navy notch-lapel two-piece formal suit with crisp soft-blue striped dress shirt (no tie, top button casually undone), short neat dark side-swept hair, calm warm composed soft closed-mouth smile, standing close to camera-left with one arm warmly wrapped behind the bride\'s back. Bride: clean ivory champagne strapless sweetheart-neckline classic full wedding ball-gown with delicate ruched bodice and subtle beaded detail softly visible at the lower edge of the frame, long dark-brown softly waved hair flowing freely past her shoulders, dainty drop earring catching the city light on the visible ear, soft natural rosy makeup with warm bright genuine closed-mouth smile, standing close to camera-right with body warmly turned toward groom. Pose: couple standing close together with body turned in three-quarter angle (back to camera-right) and faces softly turned back over their shoulders toward camera with warm direct eye contact and gentle natural smiles, refined romantic Korean travel K-prewedding magazine NYC moment. Color grade: warm bright urban daylight with rich saturated colorful LED-billboard accents, warm cream skin midtones, refined K-prewedding international travel editorial atmosphere — must clearly read as warm bright late-afternoon Times Square daylight with colorful LED bokeh, NOT golden hour, NOT studio.',
+    manualKelvin: 5400,
+    manualMoodHint:
+      'warm bright late-afternoon NYC Times Square daylight with colorful LED-billboard bokeh, refined romantic K-prewedding international travel editorial mood',
+    faceMaskRegions: [
+      [0.16, 0.10, 0.30, 0.36],
+      [0.50, 0.14, 0.30, 0.36],
+    ],
+  },
+  {
+    id: 'vintage-car-shades-bouquet',
+    label: '빈티지 컨버터블 + 선글라스',
+    hint: '클래식 컨버터블 + 신랑 검정 슈트 + 신부 선글라스 + 미니 튤',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'medium',
+    framing: 'closeup',
+    image: '/wedding-snap/catalog/vintage-car-shades-bouquet.jpg',
+    promptHint:
+      'Outdoor refined European old-town cobblestone street scene softly visible in the background (warm cream-colored old buildings, soft pedestrian crowd at the far edge of the frame), warm late-morning natural daylight, the couple seated inside a vintage cream / off-white classic convertible automobile (top down) with rich burgundy / wine-red leather interior, polished wood-grain dashboard and chrome trim, parked at the curb. Shot on 50–85mm portrait lens, chest-up close framing from camera-back-right of the car (slight 3/4 angle), eye-level camera, shallow depth of field on the couple with creamy warm old-town European bokeh behind. Groom: sharp black peak-lapel two-piece formal tuxedo with crisp white dress shirt and neat solid-black silk bow tie tied at the collar, large black square wayfarer sunglasses, short neat dark side-swept hair, calm cool serene composed neutral expression with mouth softly closed, seated calmly to camera-left in the driver\'s seat with one arm relaxed on the door-edge and one arm warmly wrapped around the bride\'s back. Bride: clean ivory champagne strapless sweetheart-neckline knee-length tulle layered mini wedding dress with subtle full skirt, long dark hair pulled back into a clean smooth low chignon, large white cat-eye sunglasses, dainty single-strand pearl necklace and dainty drop earrings, soft natural rosy makeup with deep rich burgundy lip, holding a beautiful small loose rustic bouquet of dried blush-pink garden roses, ivory ranunculus, dried beige pampas and dried-greenery in both hands lifted gently up at chest level, seated calmly to camera-right in the passenger seat with body slightly turned toward camera. Pose: couple seated close together inside the vintage car with both warmly facing camera with calm cool serene neutral expressions (no smiles), refined modern editorial European travel K-prewedding moment. Color grade: warm cream old-town European daylight with rich saturated burgundy car-interior accent and warm cream skin midtones, refined modern editorial Korean K-prewedding international travel atmosphere — must clearly read as warm late-morning European old-town daylight, NOT golden hour, NOT studio.',
+    manualKelvin: 5200,
+    manualMoodHint:
+      'warm late-morning European old-town daylight inside a vintage cream convertible with burgundy interior, refined modern editorial Korean K-prewedding travel mood with cool neutral expressions and sunglasses styling',
+    faceMaskRegions: [
+      [0.16, 0.18, 0.30, 0.40],
+      [0.48, 0.20, 0.30, 0.40],
+    ],
+  },
+  {
+    id: 'meadow-shades-bouquet-seated',
+    label: '잔디밭 앉음 선글라스 들꽃',
+    hint: '잔디밭 앉은 자세 + 선글라스 + 풍성 들꽃 부케',
+    category: 'outdoor',
+    personality: 'together',
+    intensity: 'low',
+    framing: 'full',
+    image: '/wedding-snap/catalog/meadow-shades-bouquet-seated.jpg',
+    promptHint:
+      'Outdoor scene seated on a lush short green lawn filling the entire frame (uniform short grass, no trees or sky visible — just grass), warm late-afternoon natural sunlight from camera-front creating soft warm rim on hair and shoulders. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, eye-level camera at ground level, shallow depth of field on the couple with creamy soft grass bokeh. Bride: clean ivory champagne spaghetti-strap knee-length layered tulle mini wedding dress with full ruffle skirt cascading lushly across her crossed legs on the grass, long fine-mesh white tulle veil softly draped behind her hair, hair pulled back into a clean smooth low chignon with side wisps, sleek black cat-eye sunglasses, dainty drop earrings, soft natural rosy makeup with deep rich saturated red lip, warm brown suede western-style ankle boots, seated to camera-left on the grass with one elbow resting on bent knee and right hand softly raised under her chin in a relaxed editorial pose, calm cool serene composed neutral expression with mouth softly closed. Groom: clean warm beige / oatmeal-tan two-piece notch-lapel relaxed-fit formal linen suit with crisp white dress shirt (no tie, top button casually undone) and rolled-up cuffs, dark blue canvas low-top sneakers with white socks, large black square wayfarer sunglasses, short neat dark side-swept hair, calm cool serene composed neutral expression with mouth softly closed, seated close beside bride to camera-right with knees softly up, both hands cradling a beautiful lush large round wildflower bouquet of vibrant pink peonies, orange daisies, yellow craspedia, purple statice and trailing red amaranthus florals lifted casually between his knees. Pose: bride and groom seated close together on the lawn facing camera straight on with calm cool serene neutral expressions (no smiles), refined retro 90s gen-Z editorial K-prewedding lawn casual moment. Color grade: warm late-afternoon natural sunlight with uniform fresh saturated greens and rich saturated wildflower bouquet accent, warm cream skin midtones, refined retro 90s editorial K-prewedding lawn-casual mood — must clearly read as warm late-afternoon outdoor daylight, NOT golden hour, NOT studio.',
+    manualKelvin: 5200,
+    manualMoodHint:
+      'warm late-afternoon outdoor daylight on uniform green lawn with rich saturated wildflower bouquet and vintage retro casual styling with sunglasses, refined retro 90s gen-Z editorial K-prewedding mood',
+    faceMaskRegions: [
+      [0.18, 0.10, 0.22, 0.20],
+      [0.56, 0.06, 0.22, 0.22],
+    ],
+  },
+  {
+    id: 'london-bigben-couple',
+    label: '런던 빅벤',
+    hint: '빅벤 + 다리 + 네이비 슈트 + 풀턱',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'medium',
+    framing: 'full',
+    image: '/wedding-snap/catalog/london-bigben-couple.jpg',
+    promptHint:
+      'Outdoor London Westminster Bridge scene with the iconic Big Ben clock tower clearly visible rising tall and centered in the soft-focus background against a clean saturated bright-blue clear sky, the historic gothic Westminster Palace softly visible to camera-left and a vintage ornate London green street lamp to camera-right, calm gray Thames river softly visible to camera-right, pale stone bridge balustrade in the foreground, warm bright late-morning natural daylight from camera-front. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, slight low-angle camera, shallow depth of field with creamy London cityscape bokeh behind. Groom: sharp dark navy peak-lapel two-piece formal suit with crisp white dress shirt, neat solid-black silk bow tie tied at the collar, and a small fresh white floral boutonniere on the left lapel, polished black derby shoes, short neat dark side-swept hair, calm warm composed soft closed-mouth smile, standing tall to camera-left with one hand casually tucked into trouser pocket. Bride: clean ivory champagne short-puff-sleeve sweetheart-neckline classic full wedding ball-gown with delicate ruched bodice and dramatic voluminous full tulle skirt cascading lushly down to the bridge stone, hair pulled back into a clean smooth low chignon with a small fresh white floral hair accessory tucked above her ear, dainty drop earrings, soft natural rosy makeup with warm gentle closed-mouth smile, holding a beautiful round bouquet of fresh white spray roses, white anemones and trailing fresh green eucalyptus in her right hand at her hip, standing close beside groom to camera-right facing camera straight on. Pose: bride and groom standing close together facing camera with calm composed gentle warm smiles, refined romantic European travel K-prewedding magazine London moment. Color grade: warm bright midday daylight with clean saturated London bright-blue sky and warm cream stone-bridge tones and warm cream skin midtones, refined romantic K-prewedding international travel editorial atmosphere — must clearly read as warm bright London midday daylight, NOT golden hour, NOT studio.',
+    manualKelvin: 5500,
+    manualMoodHint:
+      'warm bright midday London daylight at Westminster Bridge with iconic Big Ben clock tower backdrop, refined romantic European travel K-prewedding mood',
+    faceMaskRegions: [
+      [0.26, 0.30, 0.14, 0.16],
+      [0.54, 0.34, 0.14, 0.16],
+    ],
+  },
+  {
+    id: 'porto-pink-sunset',
+    label: '포르토 핑크 노을 강변',
+    hint: '포르토 강변 + 핑크 노을 + 돌난간 앉음',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'high',
+    framing: 'full',
+    image: '/wedding-snap/catalog/porto-pink-sunset.jpg',
+    promptHint:
+      'Outdoor refined scene on a stone-balustrade riverside viewpoint overlooking the Porto Douro river and the historic Ribeira waterfront at warm late-afternoon golden hour (rich saturated pastel-pink and warm peach sunset clouds filling the upper-half of the frame, distant historic Ribeira terracotta-roof buildings cascading down the hillside softly visible across the river with warm tungsten window lights starting to glow, calm Douro river softly visible reflecting the warm pink sky and warm city lights). Soft warm honey rim light from camera-back catching hair and shoulders. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, slight low-angle camera, shallow depth of field with creamy warm Porto cityscape bokeh behind. Groom: sharp black peak-lapel two-piece formal tuxedo with crisp white dress shirt, neat solid-black silk necktie, and a small fresh white floral boutonniere on the left lapel, polished black oxford shoes, short neat dark side-swept hair, calm warm composed soft closed-mouth smile, standing tall to camera-left on the stone-balustrade viewpoint with body slightly turned toward bride and right hand softly placed on her shoulder. Bride: clean ivory champagne strapless sweetheart-neckline floor-length flowing satin slip-style wedding dress with subtle ruched bodice and soft natural drape, long dark-brown softly waved hair flowing freely past her shoulders, dainty single-strand pearl necklace and dainty drop earrings, soft natural rosy makeup with warm bright genuine closed-mouth smile, holding a small loose bouquet of fresh white-and-blush garden roses and trailing greenery in both hands at her waist, seated softly on the wide stone balustrade to camera-right with body warmly turned toward groom looking up softly at him. Pose: bride seated softly on the stone balustrade looking up warmly at the groom standing close beside her, groom looking softly down at the bride with calm content smile, both in refined romantic intimate European travel K-prewedding sunset moment. Color grade: cinematic warm pastel-pink and peach golden-hour highlights with warm tungsten Porto-waterfront accent and clean warm cream skin midtones, refined romantic European travel K-prewedding sunset atmosphere — must clearly read as warm romantic Porto golden hour with pastel-pink sky, NOT noon, NOT blue hour, NOT studio.',
+    manualKelvin: 3000,
+    manualMoodHint:
+      'cinematic warm pastel-pink + peach Porto golden hour with warm tungsten waterfront accent, refined romantic European travel K-prewedding intimate sunset mood',
+    faceMaskRegions: [
+      [0.28, 0.30, 0.14, 0.14],
+      [0.56, 0.34, 0.14, 0.14],
+    ],
+  },
+  {
+    id: 'mountain-pink-sunset-hug',
+    label: '산 핑크 노을 + 들어올림 포옹',
+    hint: '산 + 핑크 노을 + 빈티지 비틀 + 들어올림 포옹',
+    category: 'outdoor',
+    personality: 'together',
+    intensity: 'high',
+    framing: 'full',
+    image: '/wedding-snap/catalog/mountain-pink-sunset-hug.jpg',
+    promptHint:
+      'Outdoor scene at a high-altitude mountain plateau viewpoint overlooking distant snow-capped rocky mountains softly silhouetted against a dramatic warm pastel-pink and peach golden-hour sunset sky with soft warm cloud streaks filling the upper-half of the frame, gravel underfoot. A vintage cream / off-white classic Volkswagen Beetle convertible automobile (top down with two black duffle bags strapped on the back rack) parked diagonally to camera-back-right behind the couple. Soft warm honey rim light from camera-back-left catching hair and the bride\'s veil. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, slight low-angle camera, shallow depth of field on the couple with creamy warm pink mountain sunset bokeh behind. Groom: clean warm cream / off-white two-piece notch-lapel relaxed-fit formal linen suit with crisp white dress shirt (no tie, top button casually undone), polished cream loafers, short neat dark side-swept hair, calm warm genuine soft closed-mouth smile, standing tall to camera-front facing away from camera with back turned to camera-front (the groom has back to viewer), both arms warmly wrapped around the bride lifting her gently up off the ground in a tender intimate joyful hug. Bride: clean ivory champagne short-sleeve sweetheart-neckline knee-length flowing tulle layered mini wedding dress with subtle full skirt, soft fine-mesh white tulle short veil softly draped behind her hair, hair pulled back into a clean smooth low chignon with side wisps, dainty drop earrings, soft natural rosy makeup with bright big genuine open-mouth laughing smile, both hands cradling a beautiful lush large round bouquet of saturated bright-pink garden roses, hot-pink ranunculus and trailing greenery between her and groom at chest level, lifted up off the ground in groom\'s arms with body warmly facing toward groom and one foot kicked playfully back. Pose: groom lifting bride up in a tender intimate joyful hug with groom\'s back to camera and bride facing softly back over groom\'s shoulder toward camera with bright joyful open-mouth laughing smile, refined romantic candid joyful K-prewedding mountain sunset travel moment. Color grade: cinematic warm pastel-pink and peach golden-hour highlights with warm cream skin midtones and saturated hot-pink bouquet accent, gentle film softness — must clearly read as warm dramatic mountain golden hour with pastel-pink sky, NOT noon, NOT blue hour, NOT studio.',
+    manualKelvin: 3000,
+    manualMoodHint:
+      'cinematic warm pastel-pink + peach mountain golden hour with vintage Beetle convertible and saturated hot-pink bouquet, romantic candid joyful intimate-hug K-prewedding travel mood',
+    // 신부 얼굴은 신랑 어깨 너머 우상단, 신랑 얼굴은 보이지 않음 (등 돌림).
+    faceMaskRegions: [[0.46, 0.32, 0.20, 0.20]],
+  },
+  {
+    id: 'studio-greenwall-glasses',
+    label: '다크 그린 스튜디오 + 안경',
+    hint: '다크 그린 벽 + 안경 신랑 + 베일 풀턱',
+    category: 'studio',
+    personality: 'together',
+    intensity: 'low',
+    framing: 'full',
+    image: '/wedding-snap/catalog/studio-greenwall-glasses.jpg',
+    promptHint:
+      'Indoor studio with seamless soft dark-emerald-green textured painted wall backdrop, soft warm diffused front beauty light creating clean luminous warm highlights with subtle painterly fall-off shadow, no harsh shadows. Shot on 50–85mm portrait lens, full-body / three-quarter framing in tall vertical aspect capturing the couple seated together on a vintage rustic wooden stool, eye-level camera, shallow depth of field. Groom: sharp black peak-lapel two-piece formal tuxedo with crisp white dress shirt, neat solid-black silk bow tie tied at the collar, and a crisp white pocket-square neatly folded in the breast pocket, polished black derby shoes, short neat dark side-swept hair, classic round black-rim eyeglasses, calm warm genuine bright open-mouth smile, seated tall to camera-left on the wooden stool with both hands relaxed on his knees. Bride: clean ivory long-sleeve sheer-illusion fine-lace V-neck wedding dress with delicate intricate floral lace embroidery throughout the bodice and sleeves and soft natural A-line skirt with subtle sweep train, long fine-mesh white tulle cathedral veil softly draped behind her head and softly trailing past her shoulders, hair pulled back into a clean smooth low chignon with a small dainty pearl hair accessory tucked above her ear, dainty pearl drop earrings, soft natural rosy makeup with warm bright genuine open-mouth smile, holding a beautiful lush large cascade bouquet of fresh white spray roses, white anemones, ivory ranunculus and abundant trailing fresh green eucalyptus and fern greenery dropping dramatically down past her waist, standing close beside groom to camera-right with right hand gently resting on groom\'s right shoulder. Pose: bride standing close warmly beside seated groom with right hand softly resting on his shoulder, both warmly facing camera straight on with bright genuine smiles, refined classic Korean K-prewedding magazine intimate moment. Color grade: rich saturated dark-emerald-green wall tones with rich warm cream-and-ivory dress accent, clean warm cream skin midtones, refined classic Korean K-prewedding magazine moody-green studio atmosphere — must clearly read as soft warm indoor studio light with rich dark-green wall, NOT outdoor, NOT golden hour.',
+    manualKelvin: 4800,
+    manualMoodHint:
+      'soft warm indoor studio light with rich saturated dark-emerald-green wall backdrop, refined classic moody Korean K-prewedding studio mood',
+    faceMaskRegions: [
+      [0.28, 0.20, 0.18, 0.18],
+      [0.50, 0.16, 0.18, 0.18],
+    ],
+  },
+  {
+    id: 'porto-balcony-sunset',
+    label: '포르토 발코니 골든아워',
+    hint: '포르토 발코니 + 골든아워 + 브라운 슈트 + 새틴 미디',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'high',
+    framing: 'full',
+    image: '/wedding-snap/catalog/porto-balcony-sunset.jpg',
+    promptHint:
+      'Outdoor refined scene on a carved-stone balcony with low ornate stone balustrade overlooking the historic Porto Douro river and the Ribeira waterfront at warm late-afternoon golden hour (warm honey-amber sky filling the upper-half of the frame, distant historic Ribeira terracotta-roof buildings cascading along the hillside softly visible across the river with the iconic Dom Luís I bridge softly silhouetted in the distance, calm Douro river softly reflecting the warm sky and a few small fishing boats), warm honey rim light from camera-back catching hair and the bride\'s veil dramatically. Shot on 50–85mm portrait lens, three-quarter / knee-up framing in wide horizontal aspect, slight low-angle camera, shallow depth of field with creamy warm Porto cityscape bokeh behind. Groom: clean warm caramel-brown notch-lapel two-piece formal suit with crisp soft-pink dress shirt and slim soft-pink silk necktie, polished brown leather oxford shoes, short neat dark side-swept hair, calm warm composed soft closed-mouth smile looking softly down at the bride, standing tall to camera-left with right hand softly holding the bride\'s right hand. Bride: clean ivory champagne off-shoulder cap-sleeve sweetheart-neckline knee-length flowing satin slip-style wedding dress with subtle ruched bodice and soft natural drape, long fine-mesh white tulle cathedral veil softly draped behind her head and floating dramatically out into the breeze to camera-right, long dark-brown softly waved hair flowing freely past her shoulders with side parting and a small dainty white floral hair accessory, dainty drop earrings, soft natural rosy makeup with warm bright genuine open-mouth laughing smile, holding a small loose bouquet of fresh blush-pink garden roses and trailing greenery in her left hand, seated softly on the wide stone balustrade to camera-right with body warmly turned toward the groom looking up softly at him with joyful laughing smile. Pose: bride seated softly on the stone balustrade looking up warmly at the groom standing close beside her with bright joyful laughing smile, groom standing tall looking softly down at the bride with calm content smile, refined romantic intimate European travel K-prewedding sunset balcony moment. Color grade: cinematic warm honey-amber golden-hour highlights with warm Porto-waterfront cityscape accent and clean warm cream skin midtones, refined romantic European travel K-prewedding sunset atmosphere — must clearly read as warm romantic Porto golden hour, NOT noon, NOT blue hour, NOT studio.',
+    manualKelvin: 3100,
+    manualMoodHint:
+      'cinematic warm honey-amber Porto golden hour at carved-stone balcony overlooking Douro river, refined romantic European travel K-prewedding intimate sunset mood',
+    faceMaskRegions: [
+      [0.30, 0.22, 0.14, 0.16],
+      [0.52, 0.20, 0.14, 0.16],
+    ],
+  },
+  {
+    id: 'prague-sunflower-cheer',
+    label: '프라하 + 해바라기 환호',
+    hint: '프라하 + 해바라기 부케 + 풀턱 + 베이지 슈트',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'medium',
+    framing: 'full',
+    image: '/wedding-snap/catalog/prague-sunflower-cheer.jpg',
+    promptHint:
+      'Outdoor refined scene on a cobblestone hilltop viewpoint overlooking historic Prague Old Town with the iconic Prague Castle and St. Vitus Cathedral gothic spires clearly visible rising tall in the soft-focus mid-background, abundant historic red terracotta-roof Czech buildings cascading down the hillside softly visible in the foreground, clean bright pale-blue sky with soft white cumulus clouds filling the upper half of the frame, warm bright late-morning natural daylight from camera-front. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, slight low-angle camera, shallow depth of field with creamy warm Prague cityscape bokeh behind. Groom: clean warm beige / oatmeal-tan notch-lapel two-piece formal suit with crisp soft-blue dress shirt and slim solid-yellow silk necktie, polished brown leather derby shoes, short neat dark side-swept hair, calm warm genuine bright soft closed-mouth smile, standing tall to camera-left holding the bride\'s right hand at his side. Bride: clean ivory champagne strapless sweetheart-neckline classic full wedding ball-gown with subtle ruched bodice and dramatic voluminous full satin / tulle skirt cascading lushly down to the cobblestone, soft fine-mesh white tulle short veil softly draped behind her hair, hair pulled back into a clean smooth low chignon with a small dainty white floral hair accessory tucked above her ear, dainty drop earrings, soft natural rosy makeup with bright big genuine open-mouth laughing smile, right hand raised enthusiastically high above her head holding a small loose bouquet of fresh bright-yellow sunflowers in a joyful celebratory cheer gesture. Pose: bride to camera-right standing tall close beside groom holding his hand with right arm raised high in joyful sunflower-cheer celebration, groom to camera-left standing tall close beside her facing camera with bright warm closed-mouth smile, refined romantic candid joyful European travel K-prewedding Prague moment. Color grade: warm bright midday daylight with clean saturated pale-blue sky and rich saturated terracotta red-roof Prague cityscape and rich saturated yellow sunflower accent, refined romantic K-prewedding international travel editorial atmosphere — must clearly read as warm bright Prague midday daylight, NOT golden hour, NOT studio.',
+    manualKelvin: 5400,
+    manualMoodHint:
+      'warm bright midday Prague daylight at hilltop viewpoint over Prague Castle and red-roof Old Town, refined romantic candid joyful sunflower-cheer K-prewedding international travel mood',
+    faceMaskRegions: [
+      [0.28, 0.22, 0.16, 0.16],
+      [0.54, 0.28, 0.16, 0.16],
+    ],
+  },
+  {
+    id: 'yacht-cabin-lean',
+    label: '요트 캐빈 어깨 기댐',
+    hint: '요트 캐빈 + 베이지 슈트 + 흰 슬립 + 어깨 기댐',
+    category: 'beach',
+    personality: 'together',
+    intensity: 'high',
+    framing: 'closeup',
+    image: '/wedding-snap/catalog/yacht-cabin-lean.jpg',
+    promptHint:
+      'Outdoor refined scene on the cream-cushioned bench seat inside the canopy cabin of a private sailing yacht moored on calm pastel-blue Mediterranean ocean (white canvas bimini canopy softly visible at top with soft cream cushion bench seat below, stainless steel railing softly visible at the cabin edges, distant warm hilltop coastal town with terracotta-roof buildings softly visible across the bay), warm late-afternoon golden-hour sun from camera-back creating warm honey rim light on hair and shoulders. Shot on 50–85mm portrait lens, chest-up close framing, eye-level camera, shallow depth of field on the couple with creamy warm Mediterranean coastal-town bokeh behind. Bride: clean ivory champagne spaghetti-strap fitted floor-length flowing satin slip-style wedding dress with subtle cowl V-neckline softly visible at the lower edge, long dark-brown softly waved hair flowing freely past her shoulders, dainty single-strand pearl necklace and dainty drop earrings, soft natural rosy makeup with calm warm content soft closed-mouth smile, seated calmly close to camera-left leaning her head and temple softly onto groom\'s right shoulder with eyes softly closed in a serene tender moment. Groom: clean warm beige / oatmeal-tan unstructured notch-lapel two-piece relaxed-fit formal linen suit with crisp white dress shirt (no tie, top button casually undone), short tousled dark brown hair with soft natural texture, calm cool serene composed neutral expression with mouth softly closed looking softly off into the distance toward camera-right, seated calmly close beside bride to camera-right with one arm warmly wrapped around her shoulders from behind. Pose: bride leaning her head softly onto groom\'s shoulder with eyes closed in serene tender moment, groom looking softly off into the distance, both in refined romantic intimate sailing-yacht European travel K-prewedding moment. Color grade: cinematic warm honey-amber Mediterranean golden-hour highlights with cool pastel-blue ocean accent and warm cream skin midtones, refined romantic European yachting K-prewedding sunset atmosphere — must clearly read as warm romantic Mediterranean late-afternoon golden hour on yacht, NOT noon, NOT studio.',
+    manualKelvin: 3200,
+    manualMoodHint:
+      'cinematic warm honey-amber Mediterranean golden hour on private yacht cabin with cool pastel-blue ocean and warm coastal-town backdrop, refined romantic intimate European yachting K-prewedding sunset mood',
+    faceMaskRegions: [
+      [0.18, 0.20, 0.30, 0.42],
+      [0.50, 0.10, 0.30, 0.42],
+    ],
+  },
   // ── Solo (단독) 컷 ────────────────────────────────────────
   // 이미지 파일은 사용자가 별도로 마스터를 만들어 같은 id 로 저장해야 함.
   // (예: public/wedding-snap/catalog/groom-portrait-studio.jpg)
@@ -1259,6 +1542,38 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     manualMoodHint:
       'soft cool overcast daylight at a quiet beach with saturated deep forest-green suit accent and dried-floral menswear bouquet, refined moody cinematic Korean K-prewedding coastal mood',
     faceMaskRegions: [[0.36, 0.16, 0.22, 0.20]],
+  },
+  {
+    id: 'groom-hotel-stairs',
+    label: '신랑 호텔 계단 단독',
+    hint: '호텔 인테리어 계단 + 검정 턱시도 + 옆모습 풀신',
+    category: 'studio',
+    personality: 'groom-solo',
+    intensity: 'medium',
+    framing: 'full',
+    image: '/wedding-snap/catalog/groom-hotel-stairs.jpg',
+    promptHint:
+      'Solo groom portrait — only the groom is in the frame, no bride, no other people. Indoor refined luxury hotel interior scene with warm cream / beige marble walls and polished cream marble staircase steps descending diagonally to camera-front-right, soft warm tungsten pendant lamp glowing softly to camera-right at upper-third height casting warm key light, dramatic soft sharp shadow of the groom\'s silhouette projected onto the cream marble wall to camera-left, polished bronze stainless-steel staircase handrail to camera-right, warm cinematic mood. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect capturing the groom head-to-toe descending the staircase, slight three-quarter (~30°) angle with body turned to camera-right and face softly turned back over right shoulder, slight low-angle camera, shallow depth of field. Groom: sharp black peak-lapel two-piece formal tuxedo with crisp white wing-collar dress shirt, neat solid-black silk bow tie tied at the collar, and a crisp white pocket-square neatly folded in the breast pocket, polished black derby shoes, short neat dark side-swept hair with soft natural texture, calm warm composed genuine soft closed-mouth smile with eyes softly looking off into the distance to camera-right. Pose: standing tall descending one of the marble staircase steps with body turned in three-quarter angle and right hand softly resting on the bronze staircase handrail, left arm relaxed at side, refined cinematic editorial menswear hotel-arrival moment. Color grade: cinematic warm cream marble highlights with warm tungsten pendant lamp glow and rich deep blacks of the tuxedo, refined cinematic Korean K-prewedding luxury-hotel menswear editorial atmosphere — must clearly read as warm cinematic indoor luxury-hotel tungsten light, NOT outdoor, NOT golden hour, NOT studio gray backdrop.',
+    manualKelvin: 3600,
+    manualMoodHint:
+      'warm cinematic luxury-hotel marble staircase interior with warm tungsten pendant glow and dramatic silhouette shadow, refined cinematic Korean K-prewedding menswear hotel-arrival editorial mood',
+    faceMaskRegions: [[0.32, 0.16, 0.20, 0.20]],
+  },
+  {
+    id: 'bride-nyc-chrysler',
+    label: '신부 NYC 크라이슬러 빌딩',
+    hint: '뉴욕 6번가 + 크라이슬러 빌딩 + 오프숄더 풀신',
+    category: 'urban',
+    personality: 'bride-solo',
+    intensity: 'medium',
+    framing: 'full',
+    image: '/wedding-snap/catalog/bride-nyc-chrysler.jpg',
+    promptHint:
+      'Solo bride shot — only the bride in frame, no groom, no other people. Outdoor downtown Manhattan New York scene on a stone-balustrade pedestrian overpass overlooking 6th Avenue / Park Avenue with the iconic Art Deco Chrysler Building clearly visible rising tall and centered in the soft-focus background, abundant yellow NYC taxi cabs softly visible driving along the avenue below, tall historic Manhattan glass-and-stone skyscrapers framing both sides, clean bright pale-blue sky with soft warm white cumulus clouds filling the upper background, warm late-afternoon natural daylight from camera-back creating warm rim on hair and the bride\'s veil. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, slight low-angle camera, shallow depth of field with creamy NYC cityscape bokeh behind. Bride: clean ivory champagne off-shoulder portrait-collar / shawl-collar sweetheart-neckline floor-length fitted satin mermaid wedding dress with subtle ruched bodice and dramatic long sweep train cascading lushly behind her, hair pulled back into a clean smooth low chignon with side wisps, dainty single-strand pearl necklace and large dainty pearl drop earrings, soft natural rosy makeup with deep rich burgundy lip, holding a small loose cascade bouquet of fresh white anemones and trailing greenery in her right hand at her hip. Pose: standing tall facing camera straight on with body slightly turned to camera-right and left hand softly resting on the stone-balustrade railing, looking softly toward camera with calm cool serene composed neutral expression with mouth softly closed, refined modern editorial Korean K-prewedding international travel NYC moment. Color grade: warm bright late-afternoon urban daylight with rich saturated NYC yellow-cab and stone-skyscraper accents and clean warm cream skin midtones, refined modern editorial Korean K-prewedding international travel atmosphere — must clearly read as warm bright late-afternoon NYC daylight, NOT golden hour, NOT studio.',
+    manualKelvin: 5200,
+    manualMoodHint:
+      'warm bright late-afternoon NYC urban daylight overlooking 6th Avenue with iconic Chrysler Building backdrop and yellow-cab accents, refined modern editorial Korean K-prewedding international travel mood',
+    faceMaskRegions: [[0.42, 0.20, 0.18, 0.18]],
   },
 ];
 
