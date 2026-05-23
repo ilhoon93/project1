@@ -39,6 +39,17 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `paris-bridge-night` | 파리 다리 야경 | `paris-bridge-night.jpg` |
 | `jeju-rocky-coast` | 제주 해안 정자세 | `jeju-rocky-coast.jpg` |
 | `city-goldenhour-balcony` | 도심 골든아워 발코니 | `city-goldenhour-balcony.jpg` |
+| `agave-rustwall-couple` | 아가베 + 적갈색 벽 어반네추럴 | `agave-rustwall-couple.jpg` |
+| `studio-classic-greenbouquet` | 클래식 스튜디오 그린 부케 | `studio-classic-greenbouquet.jpg` |
+| `city-walk-vsign-noir` | 흑백 도심 워킹 V사인 | `city-walk-vsign-noir.jpg` |
+| `studio-noir-floor-purple` | 화이트 바닥 검정 드레스 라일락 | `studio-noir-floor-purple.jpg` |
+| `studio-ivory-satin-couple` | 크림 스튜디오 새틴 머메이드 | `studio-ivory-satin-couple.jpg` |
+| `studio-ceremony-closeup` | 결혼식 클로즈업 + 티아라 | `studio-ceremony-closeup.jpg` |
+| `paris-eiffel-walk` | 파리 에펠탑 보도 워킹 | `paris-eiffel-walk.jpg` |
+| `vintage-90s-street-vsign` | 90s 빈티지 거리 V사인 | `vintage-90s-street-vsign.jpg` |
+| `vintage-90s-street-fullbody` | 90s 빈티지 거리 풀신 | `vintage-90s-street-fullbody.jpg` |
+| `cinema-popcorn-couple` | 영화관 팝콘 데이트 | `cinema-popcorn-couple.jpg` |
+| `hanbok-couple-studio` | 한복 스튜디오 핑크·라일락 | `hanbok-couple-studio.jpg` |
 
 **Solo (단독) — 활성**
 | id | 라벨 | 파일 경로 |
@@ -57,6 +68,7 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `bride-vintage-car-stand` | 신부 빈티지카 + 숲 | `bride-vintage-car-stand.jpg` |
 | `groom-vintage-window` | 신랑 빈티지 인테리어 창가 | `groom-vintage-window.jpg` |
 | `bride-sofa-ballgown` | 신부 화이트 카우치 볼가운 | `bride-sofa-ballgown.jpg` |
+| `bride-garden-ballgown` | 신부 정원 풀턱 + 사이드 브레이드 | `bride-garden-ballgown.jpg` |
 
 **Hidden (정의만 유지 · picker 노출 X)**
 
