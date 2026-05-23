@@ -61,7 +61,17 @@
       "Bash(git -C C:/project1 show --stat HEAD --format=\"\")",
       "Bash(git -C C:/project1 log --all --oneline -- public/wedding-snap/catalog/countryside-bicycle-sunset.jpg)",
       "Bash(git -C C:/project1 log --all --oneline)",
-      "Bash(git -C C:/project1 branch --contains 839a99c)"
+      "Bash(git -C C:/project1 branch --contains 839a99c)",
+      "Bash(git -C C:/project1 pull --ff-only)",
+      "Bash(git -C C:/project1 checkout -b claude/snap-catalog-add-12-vintage-cinema-hanbok)",
+      "Bash(git -C C:/project1 log --oneline main -5)",
+      "Bash(git -C C:/project1 ls-tree -r main public/wedding-snap/catalog/)",
+      "Bash(git -C C:/project1 add public/wedding-snap/catalog/ src/lib/snap/catalog.ts)",
+      "Bash(gh pr create --title '스냅 카탈로그 12장 신규 추가 \\(90s 빈티지·시네마·한복·세레모니 등\\)' --body ' *)",
+      "Bash(git -C C:/project1 checkout -b claude/snap-catalog-filter-and-ux-steps)",
+      "Bash(git -C C:/project1 add src/lib/snap/catalog.ts src/app/'\\(marketing\\)'/wedding-snap/page.tsx src/app/'\\(marketing\\)'/wedding-snap/create/page.tsx src/app/'\\(marketing\\)'/mypage/mypage-client.tsx src/components/snap/SnapGenerator.tsx src/components/snap/CatalogCard.tsx src/components/snap/CatalogFilterBar.tsx src/components/snap/CatalogPreviewClient.tsx src/components/snap/StepIndicator.tsx)",
+      "Bash(git -C C:/project1 push -u origin claude/snap-catalog-filter-and-ux-steps)",
+      "Bash(gh pr create --title '스냅 카탈로그 검색 필터 + 카드 통일 + 단계 UX + 시간 안내' --body ' *)"
     ]
   }
 }
