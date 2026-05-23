@@ -71,7 +71,15 @@
       "Bash(git -C C:/project1 checkout -b claude/snap-catalog-filter-and-ux-steps)",
       "Bash(git -C C:/project1 add src/lib/snap/catalog.ts src/app/'\\(marketing\\)'/wedding-snap/page.tsx src/app/'\\(marketing\\)'/wedding-snap/create/page.tsx src/app/'\\(marketing\\)'/mypage/mypage-client.tsx src/components/snap/SnapGenerator.tsx src/components/snap/CatalogCard.tsx src/components/snap/CatalogFilterBar.tsx src/components/snap/CatalogPreviewClient.tsx src/components/snap/StepIndicator.tsx)",
       "Bash(git -C C:/project1 push -u origin claude/snap-catalog-filter-and-ux-steps)",
-      "Bash(gh pr create --title '스냅 카탈로그 검색 필터 + 카드 통일 + 단계 UX + 시간 안내' --body ' *)"
+      "Bash(gh pr create --title '스냅 카탈로그 검색 필터 + 카드 통일 + 단계 UX + 시간 안내' --body ' *)",
+      "Bash(git -C C:/project1 checkout -b claude/snap-catalog-9add-mode-step-card-fix)",
+      "Bash(git -C C:/project1 add public/wedding-snap/catalog/ src/lib/snap/catalog.ts src/components/snap/CatalogCard.tsx src/components/snap/CatalogFilterBar.tsx src/components/snap/CatalogThumbnail.tsx src/components/snap/CatalogPreviewClient.tsx src/components/snap/SnapGenerator.tsx)",
+      "Bash(git -C C:/project1 push -u origin claude/snap-catalog-9add-mode-step-card-fix)",
+      "Bash(gh pr create --title '스냅 카탈로그 9장 신규 + framing 2분류 + 카드 통일 + 합성 방식 step' --body ' *)",
+      "Bash(git -C C:/project1 checkout -b claude/snap-mode-card-example-thumbs)",
+      "Bash(git -C C:/project1 add src/components/snap/SnapGenerator.tsx public/wedding-snap/catalog/README.md public/wedding-snap/mode-examples/)",
+      "Bash(git -C C:/project1 push -u origin claude/snap-mode-card-example-thumbs)",
+      "Bash(gh pr create --title '스냅 만들기 모드 카드에 입력→결과 대표 예시 슬롯' --body ' *)"
     ]
   }
 }
