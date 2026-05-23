@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getAvailableCatalog } from '@/lib/snap/catalog-availability';
 import type { SnapCatalogItem } from '@/lib/snap/catalog';
-import { CatalogThumbnail } from '@/components/snap/CatalogThumbnail';
+import { CatalogPreviewClient } from '@/components/snap/CatalogPreviewClient';
 
 export const metadata: Metadata = {
   title: 'AI 웨딩스냅 — 우리다운',
@@ -158,20 +158,7 @@ function CatalogPreview({ items }: { items: SnapCatalogItem[] }) {
       <h2 className="mb-4 text-sm font-medium tracking-wider text-[#5C4633]">
         카탈로그 미리보기
       </h2>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="overflow-hidden rounded-md border border-[#E8DCC9] bg-white"
-          >
-            <CatalogThumbnail src={item.image} alt={item.label} />
-            <div className="p-2.5">
-              <p className="text-xs font-medium text-[#3D2E1F]">{item.label}</p>
-              <p className="mt-0.5 text-[10px] text-[#8B7355]">{item.hint}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+      <CatalogPreviewClient items={items} />
     </section>
   );
 }
@@ -180,7 +167,7 @@ function HowItWorks() {
   const steps = [
     { n: 1, title: '신랑·신부 셀카 업로드', body: '정면 클로즈업 1장씩. 30초면 끝.' },
     { n: 2, title: '카탈로그 컷 선택', body: '50가지 베스트샷 중 마음에 드는 20장.' },
-    { n: 3, title: 'AI 가 합성', body: '컷당 30초~1분, 자연스러운 결과물 생성.' },
+    { n: 3, title: 'AI 가 합성', body: '컷당 평균 60~120초, 자연스러운 결과물 생성.' },
     { n: 4, title: '다운로드 + 청첩장 메인', body: '갤러리에서 모두 다운로드. 청첩장 메인 사진으로도 사용.' },
   ];
   return (
@@ -215,10 +202,10 @@ function PrimaryCta() {
         href="/wedding-snap/create"
         className="inline-block rounded-md bg-[#3D2E1F] px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-[#5C4633]"
       >
-        샘플 테스트 시작하기
+        지금 만들기
       </Link>
       <p className="mt-3 text-[11px] text-[#8B7355]">
-        MVP 테스트 모드 — 결제 없이 1컷씩 시험 생성됩니다.
+        평균 생성 시간 60~120초 · 결과는 마이페이지에서 확인할 수 있어요.
       </p>
     </section>
   );

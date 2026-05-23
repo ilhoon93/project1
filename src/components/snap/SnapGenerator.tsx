@@ -10,7 +10,14 @@ import {
 } from '@/lib/uploads';
 import { Button } from '@/components/ui/button';
 import type { SnapCatalogItem } from '@/lib/snap/catalog';
-import { CatalogThumbnail } from '@/components/snap/CatalogThumbnail';
+import { CatalogCard } from '@/components/snap/CatalogCard';
+import { StepIndicator, type SnapStep } from '@/components/snap/StepIndicator';
+import {
+  CatalogFilterBar,
+  EMPTY_CATALOG_FILTER,
+  applyCatalogFilter,
+  type CatalogFilterState,
+} from '@/components/snap/CatalogFilterBar';
 import { scoreCompatibility } from '@/lib/snap/catalog-compatibility';
 import { ConsentModal } from '@/components/snap/ConsentModal';
 import {
@@ -155,6 +162,10 @@ export function SnapGenerator({ catalog }: Props) {
 
   // 카탈로그 다중 선택 — 한 번에 N개 제출 가능. 비동기 finalize 라 페이지 이탈 OK.
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // 카탈로그 검색 필터 — personality / backdrop(스튜디오·야외) / framing(클로즈업·반신·전신).
+  // 비어 있으면 전체 노출. 랜딩 미리보기와 동일한 컴포넌트(CatalogFilterBar) 사용.
+  const [catalogFilter, setCatalogFilter] =
+    useState<CatalogFilterState>(EMPTY_CATALOG_FILTER);
   // 카탈로그 합성 방식 — 'strict' (마스터 컷 참조, 포즈 재현 강함)
   //                  / 'prompt-only' (마스터 안 쓰고 텍스트로만 scene 지시, 얼굴 보존 강함).
   // 이번 batch 의 모든 선택 카탈로그에 동일하게 적용.
@@ -573,11 +584,14 @@ export function SnapGenerator({ catalog }: Props) {
   };
 
   // ── 카탈로그 생성 ────────────────────────────────────────
-  // 카탈로그 필터링: couple 모드에서는 solo 카탈로그 숨김.
-  const visibleCatalog = catalog.filter((c) => {
+  // 카탈로그 필터링 2단계:
+  //   1. mode-based — couple 모드에서는 solo 카탈로그는 의미 없어 숨김.
+  //   2. user-driven — picker 위에 chip 필터(personality/backdrop/framing) 적용.
+  const modeFilteredCatalog = catalog.filter((c) => {
     if (mode === 'couple') return c.personality === 'together';
     return true;
   });
+  const visibleCatalog = applyCatalogFilter(modeFilteredCatalog, catalogFilter);
 
   // 한 카탈로그가 현재 입력 (mode + anchor) 으로 생성 가능한지 판정.
   // 다중 선택 UI 가 개별 카탈로그 자체의 enable/disable 판단에 사용.
@@ -742,54 +756,76 @@ export function SnapGenerator({ catalog }: Props) {
         freeActivationAvailable={anchorFreeAvail}
       />
 
-      {/* 1. 입력 모드 + 업로드 */}
+      {/* 상단 진행 단계 인디케이터 — 1 사진 → 2 앵커 → 3 카탈로그 → 4 생성.
+          세로 섹션 레이아웃은 그대로 두고 사용자가 현재 어디까지 했는지 한눈에
+          보여주는 보조 표시. couple 모드에서는 앵커 단계가 'skipped'. */}
+      <StepIndicator steps={buildSteps({
+        mode,
+        inputsReady,
+        hasFullAnchor,
+        selectedCount: selectedIds.size,
+        submitted: stage === 'submitted',
+      })} />
+
+      {/* 1. 사진 업로드 — 모드 카드 2개 → 셀카 sub-toggle */}
       <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
         <h2 className="text-sm font-medium text-[#3D2E1F]">1. 사진 업로드</h2>
-        <div
-          role="tablist"
-          aria-label="입력 방식"
-          className="mt-3 inline-flex flex-wrap rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-0.5 text-xs"
-        >
-          <ModeToggleButton
-            selected={mode === 'selfies1'}
+        <p className="mt-1 text-xs text-[#8B7355]">
+          만들 방식을 골라주세요. 평균 생성 시간 60~120초.
+        </p>
+
+        {/* 모드 카드 2개 — 셀카로 만들기 / 커플 사진으로 만들기.
+            각 카드에 설명을 풀어써서 사용자가 자기 케이스에 맞는 모드를 한 번에 선택. */}
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <ModeCard
+            title="셀카로 만들기"
+            description={
+              <>
+                신랑·신부 각자 <strong>셀카·증명사진</strong>으로 앵커를 만들고, 그
+                앵커를 카탈로그에 합성합니다. <strong>함께 / 신랑 단독 / 신부 단독
+                컷 모두</strong> 가능. 키·몸무게로 전신 비율 보정 지원.
+              </>
+            }
+            selected={mode === 'selfies1' || mode === 'selfies3'}
             disabled={isProgressing || isAnchorBusy}
             onClick={() => setMode('selfies1')}
-          >
-            셀카 1장씩
-          </ModeToggleButton>
-          <ModeToggleButton
-            selected={mode === 'selfies3'}
-            disabled={isProgressing || isAnchorBusy}
-            onClick={() => setMode('selfies3')}
-          >
-            셀카 3장씩 (정면+좌+우, 권장)
-          </ModeToggleButton>
-          <ModeToggleButton
+          />
+          <ModeCard
+            title="커플 사진으로 만들기"
+            description={
+              <>
+                두 사람이 함께 찍힌 <strong>커플 사진 1장</strong>으로 만듭니다.
+                포즈·체형·상호작용을 그대로 유지하며 의상/배경만 바꿔요. <strong>함께
+                컷만</strong> 가능 (단독 카탈로그는 숨겨짐).
+              </>
+            }
             selected={mode === 'couple'}
             disabled={isProgressing || isAnchorBusy}
             onClick={() => setMode('couple')}
-          >
-            커플 사진 1장
-          </ModeToggleButton>
+          />
         </div>
 
-        {mode === 'selfies1' && (
-          <p className="mt-3 text-xs text-[#8B7355]">
-            정면 클로즈업 사진을 한 장씩 올려주세요. 빠르고 간편한 기본 옵션.
-          </p>
-        )}
-        {mode === 'selfies3' && (
-          <p className="mt-3 text-xs text-[#8B7355]">
-            정면 + 좌 45° + 우 45° 사진을 각 3장씩 올려주세요. 모델이 3D 얼굴을 더
-            정확히 잡아 측면 컷에서도 정체성이 안정적입니다. <strong>권장</strong>.
-          </p>
-        )}
-        {mode === 'couple' && (
-          <p className="mt-3 text-xs text-[#8B7355]">
-            두 사람이 함께 찍힌 정면 사진을 1장 올려주세요. <strong>커플 사진
-            모드는 앵커 영향을 받지 않습니다</strong> — 사용자 포즈/체형/상호작용을
-            그대로 유지. 단독 카탈로그는 숨겨집니다.
-          </p>
+        {/* 셀카 모드 선택 시 — 1장 vs 3장 sub-toggle. */}
+        {mode !== 'couple' && (
+          <div className="mt-3 flex flex-col gap-2 rounded-md border border-dashed border-[#E8DCC9] bg-[#FAF7F2]/60 p-2.5">
+            <span className="text-[11px] font-medium text-[#3D2E1F]">셀카 장수</span>
+            <div className="grid grid-cols-2 gap-2">
+              <SubToggleButton
+                selected={mode === 'selfies1'}
+                disabled={isProgressing || isAnchorBusy}
+                onClick={() => setMode('selfies1')}
+                title="1장씩"
+                desc="빠르고 간편. 정면 1장씩만 업로드."
+              />
+              <SubToggleButton
+                selected={mode === 'selfies3'}
+                disabled={isProgressing || isAnchorBusy}
+                onClick={() => setMode('selfies3')}
+                title="3장씩 (권장)"
+                desc="정면 + 좌 45° + 우 45°. 측면 컷에서도 정체성 안정."
+              />
+            </div>
+          </div>
         )}
 
         {/* 셀카 거리 가이드 — 광각 왜곡(볼록렌즈 효과) 회피 안내.
@@ -950,8 +986,10 @@ export function SnapGenerator({ catalog }: Props) {
         )}
       </section>
 
-      {/* 1-b. 키 / 몸무게 */}
-      {(showSelfieInputs || showCoupleInputs) && (
+      {/* 1-b. 키 / 몸무게 — 셀카 모드에서만 의미.
+            커플 사진 모드는 사용자 사진에서 실제 체형 정보가 그대로 들어오므로
+            별도 키/몸무게 입력이 합성에 영향을 주지 않음 → 셀카 모드에서만 노출. */}
+      {showSelfieInputs && (
         <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
           <h2 className="text-sm font-medium text-[#3D2E1F]">
             1-1. 키 · 몸무게 <span className="text-[10px] text-[#8B7355]">(선택)</span>
@@ -1265,70 +1303,75 @@ export function SnapGenerator({ catalog }: Props) {
           </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-          {visibleCatalog.map((item) => {
-            const selected = selectedIds.has(item.id);
-            const enabled = isCatalogGeneratable(item);
-            const dim = isProgressing || !enabled;
-            // 카탈로그 호환성 — intensity 기반 정성적 경고.
-            // input meta 를 알 수 있는 경우 더 정확하지만, 현재 단계에선 catalog
-            // 자체의 intensity 만으로 판단 (커플 모드에서 추후 입력 face size 결합 가능).
-            const compat = scoreCompatibility(item, {
-              mode: mode === 'couple' ? 'couple' : 'anchor',
-            });
-            return (
-              <button
-                key={item.id}
-                type="button"
-                disabled={isProgressing || !enabled}
-                onClick={() => toggleCatalogSelection(item.id)}
-                aria-pressed={selected}
-                title={
-                  !enabled
-                    ? '이 컷을 만들려면 필요한 앵커 / 입력이 부족해요'
-                    : compat.reasons[0]
-                }
-                className={`relative flex flex-col overflow-hidden rounded-md border text-left transition-colors ${
-                  selected
-                    ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
-                    : 'border-[#E8DCC9] hover:border-[#8B7355]'
-                } ${dim ? 'opacity-50' : ''}`}
-              >
-                {/* 우상단 체크 인디케이터 — 좌상단 PersonalityBadge 와 겹치지 않도록 우측에 배치.
-                    배경 이미지의 명도와 무관하게 보이도록 흰 테두리 + 그림자 + 반투명 배경 적용.
-                    선택 시: 채워진 다크 박스 + 흰 ✓.  미선택 시: 반투명 다크 박스 + 흰 테두리. */}
-                <span
-                  className={`pointer-events-none absolute right-2 top-2 z-20 grid h-6 w-6 place-items-center rounded-full border-2 text-[13px] font-bold leading-none shadow-md backdrop-blur-sm transition-all ${
-                    selected
-                      ? 'border-white bg-[#3D2E1F] text-white scale-110'
-                      : 'border-white/90 bg-black/35 text-white/0'
-                  }`}
-                  aria-hidden
-                >
-                  ✓
-                </span>
-                {/* 호환성 배지 — 좌하단 (PersonalityBadge 는 좌상단). caution 이상에서만 표시. */}
-                {compat.level !== 'safe' && (
-                  <span
-                    className={`pointer-events-none absolute bottom-12 left-2 z-20 rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none shadow-md ${
-                      compat.level === 'risky'
-                        ? 'bg-red-600/95 text-white'
-                        : 'bg-amber-500/95 text-white'
-                    }`}
-                  >
-                    {compat.level === 'risky' ? '⚠ 변형 위험' : '⚠ 강한 스타일'}
-                  </span>
-                )}
-                <CatalogThumbnail src={item.image} alt={item.label} />
-                <PersonalityBadge personality={item.personality} />
-                <div className="p-2">
-                  <p className="text-xs font-medium text-[#3D2E1F]">{item.label}</p>
-                  <p className="mt-0.5 text-[10px] text-[#8B7355]">{item.hint}</p>
-                </div>
-              </button>
-            );
-          })}
+        {/* 검색 필터 — chip 토글 3그룹. couple 모드에서 모드 필터로 이미 추려진
+            modeFilteredCatalog 를 기준으로 총량 표시. */}
+        <div className="mt-3">
+          <CatalogFilterBar
+            value={catalogFilter}
+            onChange={setCatalogFilter}
+            resultCount={{
+              shown: visibleCatalog.length,
+              total: modeFilteredCatalog.length,
+            }}
+          />
         </div>
+
+        {visibleCatalog.length === 0 ? (
+          <p className="mt-3 rounded-md border border-dashed border-[#E8DCC9] bg-white p-6 text-center text-xs text-[#8B7355]">
+            선택한 필터 조합에 맞는 카탈로그가 없어요. 필터를 조정해 보세요.
+          </p>
+        ) : (
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            {visibleCatalog.map((item) => {
+              const selected = selectedIds.has(item.id);
+              const enabled = isCatalogGeneratable(item);
+              // 카탈로그 호환성 — intensity 기반 정성적 경고.
+              const compat = scoreCompatibility(item, {
+                mode: mode === 'couple' ? 'couple' : 'anchor',
+              });
+              return (
+                <CatalogCard
+                  key={item.id}
+                  variant="picker"
+                  item={item}
+                  selected={selected}
+                  disabled={isProgressing || !enabled}
+                  onClick={() => toggleCatalogSelection(item.id)}
+                  title={
+                    !enabled
+                      ? '이 컷을 만들려면 필요한 앵커 / 입력이 부족해요'
+                      : compat.reasons[0]
+                  }
+                  topRight={
+                    <span
+                      className={`pointer-events-none absolute right-2 top-2 z-20 grid h-6 w-6 place-items-center rounded-full border-2 text-[13px] font-bold leading-none shadow-md backdrop-blur-sm transition-all ${
+                        selected
+                          ? 'border-white bg-[#3D2E1F] text-white scale-110'
+                          : 'border-white/90 bg-black/35 text-white/0'
+                      }`}
+                      aria-hidden
+                    >
+                      ✓
+                    </span>
+                  }
+                  overlay={
+                    compat.level !== 'safe' ? (
+                      <span
+                        className={`pointer-events-none absolute bottom-[60px] left-2 z-20 rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none shadow-md ${
+                          compat.level === 'risky'
+                            ? 'bg-red-600/95 text-white'
+                            : 'bg-amber-500/95 text-white'
+                        }`}
+                      >
+                        {compat.level === 'risky' ? '⚠ 변형 위험' : '⚠ 강한 스타일'}
+                      </span>
+                    ) : null
+                  }
+                />
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* 4. 생성 */}
@@ -1399,7 +1442,7 @@ export function SnapGenerator({ catalog }: Props) {
               : `⚠️ ${submitSummary.ok}개 시작 · ${submitSummary.failed.length}개 실패`}
           </h2>
           <p className="mt-1 text-xs text-[#5C4633]">
-            평균 20–60초 후에 완성됩니다. 화면을 떠나도 생성은 계속 진행되며, 결과는
+            평균 60~120초 후에 완성됩니다. 화면을 떠나도 생성은 계속 진행되며, 결과는
             마이페이지에서 모아 볼 수 있어요.
           </p>
           {submitSummary.failed.length > 0 && (
@@ -1530,21 +1573,6 @@ function AnchorRowGrid({
         })}
       </div>
     </div>
-  );
-}
-
-function PersonalityBadge({ personality }: { personality: SnapCatalogItem['personality'] }) {
-  const config = {
-    together: { label: '함께', color: 'bg-[#3D2E1F]/85' },
-    'groom-solo': { label: '신랑 단독', color: 'bg-blue-600/85' },
-    'bride-solo': { label: '신부 단독', color: 'bg-pink-600/85' },
-  }[personality];
-  return (
-    <span
-      className={`absolute left-1 top-1 rounded px-1.5 py-0.5 text-[9px] font-medium text-white ${config.color}`}
-    >
-      {config.label}
-    </span>
   );
 }
 
@@ -1825,33 +1853,130 @@ function AnchorBigPreview({ url, label }: { url: string | null; label: string })
   );
 }
 
-function ModeToggleButton({
+/** 입력 모드 카드 — 셀카 / 커플 두 케이스에서 한 번에 큰 카드로 선택. */
+function ModeCard({
+  title,
+  description,
   selected,
   disabled,
   onClick,
-  children,
 }: {
+  title: string;
+  description: React.ReactNode;
   selected: boolean;
   disabled?: boolean;
   onClick: () => void;
-  children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
-      role="tab"
-      aria-selected={selected}
+      role="radio"
+      aria-checked={selected}
       disabled={disabled}
       onClick={onClick}
-      className={`rounded px-3 py-1.5 transition-colors ${
+      className={`flex flex-col gap-1.5 rounded-md border p-3 text-left transition-colors ${
         selected
-          ? 'bg-white font-medium text-[#3D2E1F] shadow-sm ring-1 ring-[#D4C5B0]'
-          : 'text-[#8B7355] hover:text-[#3D2E1F]'
+          ? 'border-[#3D2E1F] bg-white ring-2 ring-[#3D2E1F]/20'
+          : 'border-[#E8DCC9] bg-white hover:border-[#8B7355]'
       } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
     >
-      {children}
+      <span className="flex items-center gap-1.5">
+        <span
+          className={`grid h-3.5 w-3.5 shrink-0 place-items-center rounded-full border-2 ${
+            selected ? 'border-[#3D2E1F] bg-[#3D2E1F]' : 'border-[#D4C5B0] bg-white'
+          }`}
+          aria-hidden
+        >
+          {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+        </span>
+        <span className="text-sm font-semibold text-[#3D2E1F]">{title}</span>
+      </span>
+      <span className="text-[11px] leading-relaxed text-[#5C4633]">{description}</span>
     </button>
   );
+}
+
+/** 셀카 sub-toggle — "1장씩" / "3장씩" 두 옵션을 같은 모양의 작은 카드로. */
+function SubToggleButton({
+  selected,
+  disabled,
+  onClick,
+  title,
+  desc,
+}: {
+  selected: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      disabled={disabled}
+      onClick={onClick}
+      className={`flex flex-col gap-0.5 rounded-md border px-2.5 py-2 text-left transition-colors ${
+        selected
+          ? 'border-[#3D2E1F] bg-white ring-2 ring-[#3D2E1F]/20'
+          : 'border-[#D4C5B0] bg-white hover:border-[#8B7355]'
+      } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+    >
+      <span className="text-[11px] font-semibold text-[#3D2E1F]">{title}</span>
+      <span className="text-[10px] leading-snug text-[#8B7355]">{desc}</span>
+    </button>
+  );
+}
+
+/** 상단 StepIndicator 가 보여줄 4-step 상태를 현재 state 로부터 계산. */
+function buildSteps({
+  mode,
+  inputsReady,
+  hasFullAnchor,
+  selectedCount,
+  submitted,
+}: {
+  mode: InputMode;
+  inputsReady: boolean;
+  hasFullAnchor: boolean;
+  selectedCount: number;
+  submitted: boolean;
+}): SnapStep[] {
+  const isCouple = mode === 'couple';
+  // 단계 별 done 판정.
+  const photoDone = inputsReady;
+  const anchorDone = isCouple ? true : hasFullAnchor; // couple 모드는 자동 통과
+  const catalogDone = selectedCount > 0;
+  // active 는 첫 번째 미완료 단계 (submitted 면 모두 done).
+  const decideActive = (i: number): boolean => {
+    if (submitted) return false;
+    const doneFlags = [photoDone, anchorDone, catalogDone, false];
+    for (let j = 0; j < doneFlags.length; j += 1) {
+      if (!doneFlags[j]) return i === j;
+    }
+    return false;
+  };
+  const statusOf = (i: number, done: boolean, skipped = false): SnapStep['status'] => {
+    if (skipped) return 'skipped';
+    if (done) return 'done';
+    if (decideActive(i)) return 'active';
+    return 'pending';
+  };
+  return [
+    { n: 1, label: '사진 업로드', status: statusOf(0, photoDone) },
+    {
+      n: 2,
+      label: '앵커 만들기',
+      status: isCouple ? 'skipped' : statusOf(1, anchorDone),
+    },
+    { n: 3, label: '카탈로그 선택', status: statusOf(2, catalogDone) },
+    {
+      n: 4,
+      label: '생성',
+      status: submitted ? 'done' : statusOf(3, false),
+    },
+  ];
 }
 
 
@@ -1975,13 +2100,17 @@ function FaceUploader({
 }
 
 /**
- * 업로드 박스 안에 그리는 얼굴 / 어깨 가이드 오버레이.
+ * 업로드 박스 안에 그리는 얼굴 / 목 / 어깨 가이드 오버레이.
  *
- * 사용자가 적정 거리·구도로 사진을 찍도록 유도 — 얼굴은 위쪽 가운데 원 안에,
- * 어깨는 아래 좌우 V 라인 안에 들어오게 안내. 업로드 전엔 진한 라인 (opacity
- * 0.6), 업로드 후엔 흐린 가이드 (0.25) 로 검토용 표시 유지.
+ * 사용자가 적정 거리·구도로 사진을 찍도록 유도:
+ *   - 얼굴: 세로 타원 (실제 한국인 얼굴 비율에 가까운 5:6) 으로 위쪽 가운데.
+ *   - 목  : 얼굴 하단에서 어깨로 내려가는 짧은 두 선 (안쪽으로 살짝 좁아짐).
+ *   - 어깨: 자연스러운 곡선 — 가운데가 위로 올라오는 사다리꼴 라인 (트래피지움).
  *
- * SVG 정규화 좌표계 (0~100 × 0~100) — wide 박스 / 정사각형 모두 동일 비율로 그려짐.
+ * 업로드 전엔 진한 라인 (opacity 0.6), 업로드 후엔 흐린 가이드 (0.25) 로
+ * 검토용 표시 유지.
+ *
+ * SVG 정규화 좌표계 — wide(4:3)/정사각형 모두 동일 비율로 그려짐.
  */
 function UploadGuideOverlay({
   wide = false,
@@ -1990,19 +2119,39 @@ function UploadGuideOverlay({
   wide?: boolean;
   opacity?: number;
 }) {
-  // 얼굴 원 위치: 상단 ~28% 중심, 반지름 ~22%. 어깨 V 라인: 얼굴 아래에서 시작해 박스 좌우 하단까지.
-  // wide 박스(4:3) 일 때는 viewBox 비율을 맞춰 정사각형 가이드를 가운데 정렬.
+  // 좌표 기준 — wide 박스(4:3) 일 때는 viewBox 비율을 맞춰 정사각형 가이드를 가운데 정렬.
   const viewBox = wide ? '0 0 133 100' : '0 0 100 100';
   const cx = wide ? 66.5 : 50;
-  const faceCy = 32;
-  const faceR = 20;
-  // 어깨: 얼굴 하단에서 시작해 박스 좌우 70% 폭으로 벌어지며 박스 바닥까지.
-  const shoulderTopY = faceCy + faceR + 4; // 얼굴 아래 살짝 띄움
-  const shoulderHalfWidth = wide ? 50 : 38; // 박스에 따른 절반 폭
+
+  // 얼굴 타원 — 세로 5:6 비율. 머리카락은 포함하지 않고 이마~턱 라인.
+  const faceCy = 30;
+  const faceRx = 17; // 가로 반지름
+  const faceRy = 21; // 세로 반지름 (5:6 비율)
+
+  // 목 — 얼굴 하단에서 어깨까지. 안쪽으로 살짝 좁아지는 사다리꼴.
+  const neckTopY = faceCy + faceRy - 1; // 얼굴 하단보다 살짝 위 (턱 끝선과 자연스럽게 이어지도록)
+  const neckTopHalfWidth = faceRx * 0.4; // 얼굴 폭의 40% — 턱 아래 목 시작
+  const neckBottomY = neckTopY + 8; // 목 길이
+  const neckBottomHalfWidth = faceRx * 0.5; // 어깨 가까이서 살짝 벌어짐 (목 → 승모근)
+
+  // 어깨 — 목 아래에서 박스 좌우 끝까지. 가운데가 살짝 위로 올라오는 자연스러운 곡선.
+  // M(좌측 끝 바닥) → C(좌측 어깨 끝 위) → C(목 아래 가운데) → 같은 식으로 우측.
+  const shoulderEdgeY = neckBottomY + 6; // 어깨 가장 위쪽 (목 아래)
+  const shoulderHalfWidth = wide ? 56 : 42; // 박스 끝 근처
   const bottomY = 100;
-  const shoulderPath = wide
-    ? `M ${cx - shoulderHalfWidth} ${bottomY} Q ${cx - 22} ${shoulderTopY + 6} ${cx} ${shoulderTopY} Q ${cx + 22} ${shoulderTopY + 6} ${cx + shoulderHalfWidth} ${bottomY}`
-    : `M ${cx - shoulderHalfWidth} ${bottomY} Q ${cx - 20} ${shoulderTopY + 6} ${cx} ${shoulderTopY} Q ${cx + 20} ${shoulderTopY + 6} ${cx + shoulderHalfWidth} ${bottomY}`;
+
+  // 어깨 라인 (좌측 끝 바닥 → 좌측 어깨 위 → 목 좌측 → 목 우측 → 우측 어깨 위 → 우측 끝 바닥).
+  // C(control1, control2, end) 형태의 cubic Bezier.
+  const shoulderPath = [
+    `M ${cx - shoulderHalfWidth} ${bottomY}`,
+    `L ${cx - shoulderHalfWidth} ${shoulderEdgeY + 6}`,
+    `C ${cx - shoulderHalfWidth + 8} ${shoulderEdgeY}, ${cx - neckBottomHalfWidth - 6} ${shoulderEdgeY - 2}, ${cx - neckBottomHalfWidth} ${neckBottomY}`,
+    `L ${cx - neckTopHalfWidth} ${neckTopY}`,
+    `M ${cx + neckTopHalfWidth} ${neckTopY}`,
+    `L ${cx + neckBottomHalfWidth} ${neckBottomY}`,
+    `C ${cx + neckBottomHalfWidth + 6} ${shoulderEdgeY - 2}, ${cx + shoulderHalfWidth - 8} ${shoulderEdgeY}, ${cx + shoulderHalfWidth} ${shoulderEdgeY + 6}`,
+    `L ${cx + shoulderHalfWidth} ${bottomY}`,
+  ].join(' ');
 
   return (
     <svg
@@ -2012,10 +2161,17 @@ function UploadGuideOverlay({
       className="pointer-events-none absolute inset-0 h-full w-full"
       style={{ opacity }}
     >
-      <g fill="none" stroke="#8B7355" strokeWidth="0.8" strokeDasharray="2 1.6" strokeLinecap="round">
-        {/* 얼굴 가이드 원 */}
-        <circle cx={cx} cy={faceCy} r={faceR} />
-        {/* 어깨 가이드 곡선 */}
+      <g
+        fill="none"
+        stroke="#8B7355"
+        strokeWidth="0.9"
+        strokeDasharray="2 1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {/* 얼굴 가이드 타원 (세로 5:6) */}
+        <ellipse cx={cx} cy={faceCy} rx={faceRx} ry={faceRy} />
+        {/* 목 + 어깨 라인 */}
         <path d={shoulderPath} />
       </g>
     </svg>

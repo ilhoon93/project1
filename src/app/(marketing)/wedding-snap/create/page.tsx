@@ -5,7 +5,7 @@ import { SnapGenerator } from '@/components/snap/SnapGenerator';
 import { getAvailableCatalog } from '@/lib/snap/catalog-availability';
 
 export const metadata: Metadata = {
-  title: 'AI 웨딩스냅 — 사진 입력 / 카탈로그 선택',
+  title: 'AI 웨딩스냅 — 사진 업로드 / 카탈로그 선택',
 };
 
 export default async function WeddingSnapCreatePage() {
@@ -22,10 +22,10 @@ export default async function WeddingSnapCreatePage() {
   return (
     <main className="mx-auto max-w-3xl px-4 pb-20 pt-8 sm:px-6">
       <h1 className="text-xl font-semibold tracking-tight text-[#3D2E1F]">
-        AI 웨딩스냅 — 샘플 테스트
+        AI 웨딩스냅 만들기
       </h1>
       <p className="mt-2 text-xs text-[#8B7355]">
-        MVP 단계 · 결제 없이 카탈로그 1컷씩 시험 생성
+        평균 생성 시간 60~120초 · 1컷당 스냅 크레딧 1개 차감
       </p>
       <SnapGenerator catalog={availableCatalog} />
     </main>
