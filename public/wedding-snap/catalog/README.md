@@ -100,11 +100,15 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 이 폴더에 올리면 즉시 노출/사용됩니다 (`getAvailableCatalog()` 가 파일 유무를
 서버사이드에서 자동 체크하므로 별도 토글 불필요).
 
-## 합성 방식별 결과 예시 (선택)
+## 합성 방식별 결과 예시 (선택, 카탈로그-별 N장 그리드용)
 
 `public/wedding-snap/catalog/examples/<id>-<mode>.jpg` 규칙으로 strict /
 prompt-only 두 모드의 예시 결과 이미지를 올리면 스냅 생성 페이지의 "4. 합성
 방식" 단계에서 자동으로 노출됩니다.
+
+> 1. 사진 업로드 모드 카드 (셀카 / 커플) 에 대표 1세트씩 보여주는 입력→결과
+> 예시는 별도 디렉토리 `public/wedding-snap/mode-examples/` 를 사용합니다
+> (해당 디렉토리의 README 참고).
 
 ```
 examples/studio-couple-blackwhite-strict.jpg
