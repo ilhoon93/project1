@@ -48,6 +48,9 @@ type Props = PreviewProps | PickerProps;
 
 export function CatalogCard(props: Props) {
   const { item, overlay, topRight } = props;
+  // 카드 height 일관성을 위해 부모 컨테이너에 h-full 을 줘서 그리드 row 의
+  // max-height 에 모든 카드가 stretch 되도록 한다. 내부는 flex 로 이미지(고정
+  // aspect 3:4) + caption(고정 h-16) 만 차지하므로 height 가 모든 카드에서 동일.
   const inner = (
     <>
       {topRight}
@@ -60,7 +63,7 @@ export function CatalogCard(props: Props) {
 
   if (props.variant === 'preview') {
     return (
-      <div className="relative flex flex-col overflow-hidden rounded-md border border-[#E8DCC9] bg-white">
+      <div className="relative flex h-full flex-col overflow-hidden rounded-md border border-[#E8DCC9] bg-white">
         {inner}
       </div>
     );
@@ -74,7 +77,7 @@ export function CatalogCard(props: Props) {
       onClick={onClick}
       aria-pressed={selected}
       title={title}
-      className={`relative flex flex-col overflow-hidden rounded-md border text-left transition-colors ${
+      className={`relative flex h-full flex-col overflow-hidden rounded-md border text-left transition-colors ${
         selected
           ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
           : 'border-[#E8DCC9] hover:border-[#8B7355]'
@@ -86,11 +89,15 @@ export function CatalogCard(props: Props) {
 }
 
 function CardCaption({ label, hint }: { label: string; hint: string }) {
-  // min-h 로 라벨 1줄 + hint 2줄을 항상 차지하게 해서 카드 높이 통일.
-  // line-clamp-2 는 hint 가 길어도 2줄까지만 + ellipsis.
+  // h-16 (=64px) 고정 — 라벨 1줄 truncate + hint 2줄 line-clamp 가 들어가는
+  // 최소 + 여유 공간. min-h 가 아닌 정확한 h 로 모든 카드 caption 영역 동일.
+  // flex-1 으로 남은 공간을 caption 이 차지 → 카드 전체가 그리드 row 에 맞춰
+  // stretch 됐을 때도 이미지 영역 비율 유지 + caption 영역 통일.
   return (
-    <div className="flex min-h-[56px] flex-col gap-0.5 p-2">
-      <p className="truncate text-xs font-medium text-[#3D2E1F]">{label}</p>
+    <div className="flex h-16 flex-col justify-start gap-0.5 px-2 py-2">
+      <p className="truncate text-xs font-medium leading-tight text-[#3D2E1F]">
+        {label}
+      </p>
       <p className="line-clamp-2 text-[10px] leading-snug text-[#8B7355]">{hint}</p>
     </div>
   );

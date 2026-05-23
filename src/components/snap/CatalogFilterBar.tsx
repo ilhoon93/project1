@@ -72,7 +72,6 @@ const BACKDROP_OPTIONS: Array<{ value: CatalogBackdrop; label: string }> = [
 
 const FRAMING_OPTIONS: Array<{ value: CatalogFraming; label: string }> = [
   { value: 'closeup', label: '클로즈업' },
-  { value: 'half', label: '반신' },
   { value: 'full', label: '전신' },
 ];
 

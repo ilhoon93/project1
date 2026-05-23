@@ -16,8 +16,6 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 **Together (커플) — 활성**
 | id | 라벨 | 파일 경로 |
 | --- | --- | --- |
-| `meadow-spring` | 야외 가든 | `meadow-spring.jpg` |
-| `bridge-goldenhour` | 브릿지 골든아워 | `bridge-goldenhour.jpg` |
 | `beach-classic-white` | 비치 클래식 화이트 | `beach-classic-white.jpg` |
 | `seoul-nightview` | 서울 야경 루프탑 | `seoul-nightview.jpg` |
 | `studio-floral-pastel` | 플라워 파스텔 스튜디오 | `studio-floral-pastel.jpg` |
@@ -50,12 +48,15 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `vintage-90s-street-fullbody` | 90s 빈티지 거리 풀신 | `vintage-90s-street-fullbody.jpg` |
 | `cinema-popcorn-couple` | 영화관 팝콘 데이트 | `cinema-popcorn-couple.jpg` |
 | `hanbok-couple-studio` | 한복 스튜디오 핑크·라일락 | `hanbok-couple-studio.jpg` |
+| `studio-arch-window-couple` | 아치 창 + 베이지 슈트 머메이드 | `studio-arch-window-couple.jpg` |
+| `garden-finger-heart` | 가든 손가락 하트 | `garden-finger-heart.jpg` |
+| `beige-wall-cheek-lean` | 베이지 벽 머리 기댐 | `beige-wall-cheek-lean.jpg` |
+| `meadow-blue-sky-couple` | 들판 푸른 하늘 풀신 | `meadow-blue-sky-couple.jpg` |
 
 **Solo (단독) — 활성**
 | id | 라벨 | 파일 경로 |
 | --- | --- | --- |
 | `groom-portrait-studio` | 신랑 스튜디오 단독 | `groom-portrait-studio.jpg` |
-| `bride-bouquet` | 신부 부케 | `bride-bouquet.jpg` |
 | `bride-vintage-car` | 신부 빈티지 카 | `bride-vintage-car.jpg` |
 | `bride-garden-twirl` | 신부 가든 베일 트월 | `bride-garden-twirl.jpg` |
 | `bride-veil-closeup` | 신부 베일 클로즈업 | `bride-veil-closeup.jpg` |
@@ -69,6 +70,11 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `groom-vintage-window` | 신랑 빈티지 인테리어 창가 | `groom-vintage-window.jpg` |
 | `bride-sofa-ballgown` | 신부 화이트 카우치 볼가운 | `bride-sofa-ballgown.jpg` |
 | `bride-garden-ballgown` | 신부 정원 풀턱 + 사이드 브레이드 | `bride-garden-ballgown.jpg` |
+| `bride-mirror-lipstick` | 신부 거울 앞 립스틱 | `bride-mirror-lipstick.jpg` |
+| `groom-fullbody-classic` | 신랑 풀신 클래식 슈트 | `groom-fullbody-classic.jpg` |
+| `bride-floral-bed-seated` | 신부 꽃밭 앉음 | `bride-floral-bed-seated.jpg` |
+| `bride-offshoulder-bouquet` | 신부 오프숄더 풀신 | `bride-offshoulder-bouquet.jpg` |
+| `groom-beach-greensuit` | 신랑 해변 그린 슈트 | `groom-beach-greensuit.jpg` |
 
 **Hidden (정의만 유지 · picker 노출 X)**
 
@@ -79,7 +85,10 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 
 | id | 라벨 | 사유 |
 | --- | --- | --- |
-| `studio-classic` | 클래식 스튜디오 | 마스터 미업로드 |
+| `studio-classic` | 클래식 스튜디오 | 마스터 미업로드 (대체 컷 `studio-classic-greenbouquet`) |
+| `meadow-spring` | 야외 가든 | 마스터 삭제됨 (대체 컷 `meadow-blue-sky-couple`) |
+| `bridge-goldenhour` | 브릿지 골든아워 | 마스터 삭제됨 (대체 컷 `city-goldenhour-balcony`) |
+| `bride-bouquet` | 신부 부케 | 마스터 삭제됨 (대체 컷 `bride-offshoulder-bouquet`) |
 | `hanok-courtyard` | 한옥 정원 | 마스터 미업로드 |
 | `city-goldenhour` | 도심 골든아워 | 마스터 미업로드 (대체 컷 `city-goldenhour-balcony`) |
 | `beach-sunset` | 바닷가 석양 | 마스터 미업로드 |
@@ -90,6 +99,23 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 새 카탈로그 추가 시: `SNAP_CATALOG` 에 항목을 추가하고 같은 `id` 의 jpg 를
 이 폴더에 올리면 즉시 노출/사용됩니다 (`getAvailableCatalog()` 가 파일 유무를
 서버사이드에서 자동 체크하므로 별도 토글 불필요).
+
+## 합성 방식별 결과 예시 (선택)
+
+`public/wedding-snap/catalog/examples/<id>-<mode>.jpg` 규칙으로 strict /
+prompt-only 두 모드의 예시 결과 이미지를 올리면 스냅 생성 페이지의 "4. 합성
+방식" 단계에서 자동으로 노출됩니다.
+
+```
+examples/studio-couple-blackwhite-strict.jpg
+examples/studio-couple-blackwhite-prompt-only.jpg
+examples/canola-field-walk-strict.jpg
+examples/canola-field-walk-prompt-only.jpg
+...
+```
+
+파일이 없으면 onError → 카탈로그 마스터 이미지로 자동 fallback. 새 예시를 추가
+해도 별도 코드 수정 없이 즉시 노출.
 
 ## 권장 규격
 
