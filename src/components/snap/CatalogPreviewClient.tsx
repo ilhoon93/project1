@@ -35,7 +35,9 @@ export function CatalogPreviewClient({ items }: { items: SnapCatalogItem[] }) {
           선택한 필터 조합에 맞는 카탈로그가 없어요. 필터를 조정해 보세요.
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+        // auto-rows-fr 로 한 row 안의 모든 카드가 동일 height 로 stretch.
+        // CatalogCard 의 h-full 과 결합되어 카드 caption 영역까지 정렬 통일.
+        <div className="grid auto-rows-fr grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {filtered.map((item) => (
             <CatalogCard key={item.id} variant="preview" item={item} />
           ))}

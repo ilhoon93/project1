@@ -10,6 +10,7 @@ import {
 } from '@/lib/uploads';
 import { Button } from '@/components/ui/button';
 import type { SnapCatalogItem } from '@/lib/snap/catalog';
+import { catalogExampleImage } from '@/lib/snap/catalog';
 import { CatalogCard } from '@/components/snap/CatalogCard';
 import { StepIndicator, type SnapStep } from '@/components/snap/StepIndicator';
 import {
@@ -1248,61 +1249,6 @@ export function SnapGenerator({ catalog }: Props) {
           <span className="text-[10px] text-[#8B7355]">· 현재 경로: {pathHint}</span>
         </p>
 
-        {/* 합성 방식 선택 — 같은 카탈로그라도 두 가지 버전으로 생성 가능.
-            셀카/앵커 모드와 커플 모드 모두 동일 토글 노출. 라벨/설명은 모드별로 살짝 다름.
-            (커플 모드에서는 "포즈" 가 사용자 사진에서 오므로 trade-off 가 의상/배경
-             충실도 vs 얼굴 보존으로 단순화됨) */}
-        <div className="mt-3 flex flex-col gap-2 rounded-md border border-dashed border-[#E8DCC9] bg-[#FAF7F2]/60 p-2.5">
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="text-[11px] font-medium text-[#3D2E1F]">합성 방식</span>
-            <span className="text-[10px] text-[#8B7355]">
-              이번 선택 {selectedIds.size}개에 모두 적용
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              disabled={isProgressing}
-              onClick={() => setImageReference('strict')}
-              aria-pressed={imageReference === 'strict'}
-              className={`flex flex-col items-start gap-0.5 rounded-md border px-2.5 py-2 text-left transition-colors ${
-                imageReference === 'strict'
-                  ? 'border-[#3D2E1F] bg-white ring-2 ring-[#3D2E1F]/20'
-                  : 'border-[#E8DCC9] bg-white hover:border-[#8B7355]'
-              } ${isProgressing ? 'opacity-60' : ''}`}
-            >
-              <span className="text-[11px] font-medium text-[#3D2E1F]">
-                {mode === 'couple' ? '카탈로그 충실 (strict)' : '구도 우선 (strict)'}
-              </span>
-              <span className="text-[10px] leading-snug text-[#8B7355]">
-                {mode === 'couple'
-                  ? '카탈로그 마스터의 의상/배경/조명을 그대로 재현. 얼굴이 미세하게 카탈로그 톤에 끌릴 수 있음.'
-                  : '카탈로그 마스터 컷의 포즈/구도/조명을 그대로 재현. 얼굴 보존은 face-swap 단계 의존.'}
-              </span>
-            </button>
-            <button
-              type="button"
-              disabled={isProgressing}
-              onClick={() => setImageReference('prompt-only')}
-              aria-pressed={imageReference === 'prompt-only'}
-              className={`flex flex-col items-start gap-0.5 rounded-md border px-2.5 py-2 text-left transition-colors ${
-                imageReference === 'prompt-only'
-                  ? 'border-[#3D2E1F] bg-white ring-2 ring-[#3D2E1F]/20'
-                  : 'border-[#E8DCC9] bg-white hover:border-[#8B7355]'
-              } ${isProgressing ? 'opacity-60' : ''}`}
-            >
-              <span className="text-[11px] font-medium text-[#3D2E1F]">
-                {mode === 'couple' ? '얼굴 보존 (prompt-only)' : '유사도 우선 (prompt-only)'}
-              </span>
-              <span className="text-[10px] leading-snug text-[#8B7355]">
-                {mode === 'couple'
-                  ? '마스터 이미지를 빼고 텍스트로만 분위기 지시. 얼굴 보존이 가장 강함. 의상·배경 디테일은 매번 달라짐.'
-                  : '마스터 컷을 안 쓰고 텍스트로만 scene 지시. 앵커 파이프라인 수준의 얼굴 일치, 포즈는 컨셉만 보장.'}
-              </span>
-            </button>
-          </div>
-        </div>
-
         {/* 검색 필터 — chip 토글 3그룹. couple 모드에서 모드 필터로 이미 추려진
             modeFilteredCatalog 를 기준으로 총량 표시. */}
         <div className="mt-3">
@@ -1321,7 +1267,7 @@ export function SnapGenerator({ catalog }: Props) {
             선택한 필터 조합에 맞는 카탈로그가 없어요. 필터를 조정해 보세요.
           </p>
         ) : (
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          <div className="mt-3 grid auto-rows-fr grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {visibleCatalog.map((item) => {
               const selected = selectedIds.has(item.id);
               const enabled = isCatalogGeneratable(item);
@@ -1374,9 +1320,62 @@ export function SnapGenerator({ catalog }: Props) {
         )}
       </section>
 
-      {/* 4. 생성 */}
+      {/* 4. 합성 방식 — 별도 step. 각 모드 카드에 "선택한 카탈로그의 모드별
+            결과 예시 썸네일" 슬롯이 있어 사용자가 어떤 식으로 결과가 나오는지
+            한눈에 비교 가능. 예시 이미지는 public/wedding-snap/catalog/examples/
+            <id>-<mode>.jpg 규칙으로 admin 이 미리 올림. 없으면 마스터 이미지로
+            자동 fallback. */}
       <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
-        <h2 className="text-sm font-medium text-[#3D2E1F]">생성</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-sm font-medium text-[#3D2E1F]">4. 합성 방식</h2>
+          {selectedCatalogs.length > 0 && (
+            <span className="text-[10px] text-[#8B7355]">
+              이번 선택 {selectedCatalogs.length}개에 모두 적용
+            </span>
+          )}
+        </div>
+        <p className="mt-1 text-xs text-[#8B7355]">
+          {selectedCatalogs.length === 0
+            ? '카탈로그를 1개 이상 선택하면 모드별 예시 결과 썸네일이 보여요.'
+            : mode === 'couple'
+              ? '커플 사진은 두 방식 결과가 의상·배경 충실도 vs 얼굴 보존으로 갈려요. 예시 보고 골라주세요.'
+              : '같은 카탈로그라도 모드에 따라 결과가 달라요. 예시 보고 골라주세요.'}
+        </p>
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <ImageReferenceCard
+            value="strict"
+            current={imageReference}
+            disabled={isProgressing}
+            onSelect={() => setImageReference('strict')}
+            title={mode === 'couple' ? '카탈로그 충실 (strict)' : '구도 우선 (strict)'}
+            description={
+              mode === 'couple'
+                ? '카탈로그 마스터의 의상/배경/조명을 그대로 재현. 얼굴이 미세하게 카탈로그 톤에 끌릴 수 있음.'
+                : '카탈로그 마스터 컷의 포즈/구도/조명을 그대로 재현. 얼굴 보존은 face-swap 단계 의존.'
+            }
+            examples={selectedCatalogs}
+            exampleMode="strict"
+          />
+          <ImageReferenceCard
+            value="prompt-only"
+            current={imageReference}
+            disabled={isProgressing}
+            onSelect={() => setImageReference('prompt-only')}
+            title={mode === 'couple' ? '얼굴 보존 (prompt-only)' : '유사도 우선 (prompt-only)'}
+            description={
+              mode === 'couple'
+                ? '마스터 이미지를 빼고 텍스트로만 분위기 지시. 얼굴 보존이 가장 강함. 의상·배경 디테일은 매번 달라짐.'
+                : '마스터 컷을 안 쓰고 텍스트로만 scene 지시. 앵커 파이프라인 수준의 얼굴 일치, 포즈는 컨셉만 보장.'
+            }
+            examples={selectedCatalogs}
+            exampleMode="prompt-only"
+          />
+        </div>
+      </section>
+
+      {/* 5. 생성 */}
+      <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
+        <h2 className="text-sm font-medium text-[#3D2E1F]">5. 생성</h2>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Button type="button" onClick={() => void handleGenerateCatalog()} disabled={!canGenerateCatalog}>
             {stage === 'submitting'
@@ -1929,7 +1928,121 @@ function SubToggleButton({
   );
 }
 
-/** 상단 StepIndicator 가 보여줄 4-step 상태를 현재 state 로부터 계산. */
+/**
+ * 합성 방식 (strict / prompt-only) 카드 — 카드 안에 선택한 카탈로그의 모드별
+ * 결과 예시 썸네일을 작게 N장 노출.
+ *
+ * - examples 가 비어 있으면 (선택 카탈로그 0) 안내 placeholder.
+ * - 각 썸네일은 `public/wedding-snap/catalog/examples/<id>-<mode>.jpg` 를
+ *   <img> 로 시도하고, 없으면 onError 로 카탈로그 마스터로 자동 fallback.
+ * - 최대 4장까지만 노출 (5개 이상 선택 시 +N 칩으로 표시).
+ */
+function ImageReferenceCard({
+  value,
+  current,
+  disabled,
+  onSelect,
+  title,
+  description,
+  examples,
+  exampleMode,
+}: {
+  value: 'strict' | 'prompt-only';
+  current: 'strict' | 'prompt-only';
+  disabled: boolean;
+  onSelect: () => void;
+  title: string;
+  description: string;
+  examples: SnapCatalogItem[];
+  exampleMode: 'strict' | 'prompt-only';
+}) {
+  const selected = current === value;
+  const visibleExamples = examples.slice(0, 4);
+  const extra = Math.max(0, examples.length - visibleExamples.length);
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      disabled={disabled}
+      onClick={onSelect}
+      className={`flex flex-col gap-2 rounded-md border p-3 text-left transition-colors ${
+        selected
+          ? 'border-[#3D2E1F] bg-white ring-2 ring-[#3D2E1F]/20'
+          : 'border-[#E8DCC9] bg-white hover:border-[#8B7355]'
+      } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+    >
+      <span className="flex items-center gap-1.5">
+        <span
+          className={`grid h-3.5 w-3.5 shrink-0 place-items-center rounded-full border-2 ${
+            selected ? 'border-[#3D2E1F] bg-[#3D2E1F]' : 'border-[#D4C5B0] bg-white'
+          }`}
+          aria-hidden
+        >
+          {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+        </span>
+        <span className="text-sm font-semibold text-[#3D2E1F]">{title}</span>
+      </span>
+      <span className="text-[11px] leading-relaxed text-[#5C4633]">{description}</span>
+      {visibleExamples.length > 0 && (
+        <div className="mt-1 flex flex-col gap-1">
+          <span className="text-[10px] font-medium text-[#8B7355]">예시 결과</span>
+          <div className="grid grid-cols-4 gap-1">
+            {visibleExamples.map((item) => (
+              <ExampleThumb
+                key={item.id}
+                item={item}
+                exampleMode={exampleMode}
+              />
+            ))}
+            {extra > 0 && (
+              <span className="grid aspect-[3/4] place-items-center rounded border border-dashed border-[#D4C5B0] bg-[#FAF7F2] text-[10px] font-medium text-[#8B7355]">
+                +{extra}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </button>
+  );
+}
+
+/**
+ * 모드별 예시 결과 thumbnail. 카탈로그 마스터 자체로 fallback (onError).
+ * 추후 admin 이 examples/<id>-<mode>.jpg 를 올리면 즉시 노출됨.
+ */
+function ExampleThumb({
+  item,
+  exampleMode,
+}: {
+  item: SnapCatalogItem;
+  exampleMode: 'strict' | 'prompt-only';
+}) {
+  const exampleSrc = catalogExampleImage(item, exampleMode);
+  return (
+    <div
+      title={`${item.label} · ${exampleMode === 'strict' ? 'strict' : 'prompt-only'} 예시`}
+      className="relative overflow-hidden rounded border border-[#E8DCC9] bg-[#F5EDE0]"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={exampleSrc}
+        alt={`${item.label} ${exampleMode} 예시 결과`}
+        className="block aspect-[3/4] w-full object-cover"
+        onError={(e) => {
+          // examples/ 파일 없으면 카탈로그 마스터로 fallback (admin 이 아직 안 올렸을 때).
+          const target = e.currentTarget;
+          if (target.src.endsWith(exampleSrc)) target.src = item.image;
+        }}
+      />
+    </div>
+  );
+}
+
+/** 상단 StepIndicator 가 보여줄 5-step 상태를 현재 state 로부터 계산.
+ *   1 사진 → 2 앵커 → 3 카탈로그 → 4 합성 방식 → 5 생성.
+ *   합성 방식(strict / prompt-only) 은 항상 default 가 있어 "done" 으로 간주하되,
+ *   사용자가 카탈로그를 골랐을 때 active 로 표시. couple 모드에선 앵커 단계 'skipped'. */
 function buildSteps({
   mode,
   inputsReady,
@@ -1946,12 +2059,13 @@ function buildSteps({
   const isCouple = mode === 'couple';
   // 단계 별 done 판정.
   const photoDone = inputsReady;
-  const anchorDone = isCouple ? true : hasFullAnchor; // couple 모드는 자동 통과
+  const anchorDone = isCouple ? true : hasFullAnchor;
   const catalogDone = selectedCount > 0;
+  const modeDone = catalogDone; // 합성 방식은 default 있으니 카탈로그 선택까지 마치면 자동 done.
   // active 는 첫 번째 미완료 단계 (submitted 면 모두 done).
   const decideActive = (i: number): boolean => {
     if (submitted) return false;
-    const doneFlags = [photoDone, anchorDone, catalogDone, false];
+    const doneFlags = [photoDone, anchorDone, catalogDone, modeDone, false];
     for (let j = 0; j < doneFlags.length; j += 1) {
       if (!doneFlags[j]) return i === j;
     }
@@ -1971,10 +2085,11 @@ function buildSteps({
       status: isCouple ? 'skipped' : statusOf(1, anchorDone),
     },
     { n: 3, label: '카탈로그 선택', status: statusOf(2, catalogDone) },
+    { n: 4, label: '합성 방식', status: statusOf(3, modeDone) },
     {
-      n: 4,
+      n: 5,
       label: '생성',
-      status: submitted ? 'done' : statusOf(3, false),
+      status: submitted ? 'done' : statusOf(4, false),
     },
   ];
 }

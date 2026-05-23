@@ -17,8 +17,12 @@ export function CatalogThumbnail({
   src: string;
   alt: string;
 }) {
+  // 박스: 항상 3:4 비율 + 베이지 배경 + flex center.
+  // 이미지: object-contain 으로 가로/세로 비율 유지하며 박스 안에 중앙 정렬.
+  //   가로형 마스터 → 위아래 여백,  세로형 → 좌우 여백 (모두 박스 가운데).
+  //   별도 `mx-auto my-auto` 없이도 flex center 부모가 처리.
   return (
-    <div className="grid aspect-[3/4] w-full place-items-center bg-[#F5EDE0]">
+    <div className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden bg-[#F5EDE0]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
@@ -32,11 +36,11 @@ export function CatalogThumbnail({
         }}
       />
       <div
-        className="hidden h-full w-full flex-col items-center justify-center px-2 text-center text-[10px] text-[#8B7355]"
+        className="absolute inset-0 hidden flex-col items-center justify-center px-2 text-center text-[10px] text-[#8B7355]"
         style={{ display: 'none' }}
       >
         <span className="mb-1">📷</span>
-        <span className="font-mono">{src}</span>
+        <span className="font-mono break-all">{src}</span>
         <span className="mt-1 opacity-70">샘플 이미지 추가 필요</span>
       </div>
     </div>

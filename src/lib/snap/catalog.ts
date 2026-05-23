@@ -26,13 +26,14 @@
 export type CatalogPersonality = 'together' | 'groom-solo' | 'bride-solo';
 
 /**
- * 카탈로그 컷의 프레이밍 (얼굴 크기 / body 비율).
- *   - 'closeup' : 클로즈업 — 가슴 위 / 어깨~머리 위주, 얼굴이 프레임의 큰 비중.
- *   - 'half'    : 반신 — 허리~무릎 위까지 (waist-up / knee-up 등).
- *   - 'full'    : 전신 — 머리부터 발끝까지 전체.
+ * 카탈로그 컷의 프레이밍 (얼굴 크기 / body 비율). 2분류:
+ *   - 'closeup' : 클로즈업/반신 — 얼굴 위주 (chest-up / shoulder / waist-up).
+ *   - 'full'    : 전신 — 무릎 위 이상 보이는 컷 (knee-up / three-quarter / full-body).
  * 필터 UI 에서 사용자가 원하는 프레이밍만 추리는 데 쓰임. 미지정 시 'full' 로 간주.
+ * (이전 'half' 는 closeup 으로 통합 — 사용자 입장에선 얼굴 크게 보이는 컷 vs 풀신
+ *  으로 단순 구분이 명확함.)
  */
-export type CatalogFraming = 'closeup' | 'half' | 'full';
+export type CatalogFraming = 'closeup' | 'full';
 
 /**
  * 카탈로그 배경 단순 분류 — 필터 UI 는 "스튜디오 / 야외" 2그룹만 노출.
@@ -131,6 +132,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'outdoor',
     personality: 'together',
     intensity: 'low',
+    hidden: true, // 마스터 이미지 삭제됨 — 대체 컷 meadow-blue-sky-couple 사용 가능
     framing: 'full',
     image: '/wedding-snap/catalog/meadow-spring.jpg',
     promptHint:
@@ -198,6 +200,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'urban',
     personality: 'together',
     intensity: 'high',
+    hidden: true, // 마스터 이미지 삭제됨 — 유사 컷 city-goldenhour-balcony 사용 가능
     framing: 'closeup',
     image: '/wedding-snap/catalog/bridge-goldenhour.jpg',
     promptHint:
@@ -303,7 +306,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'outdoor',
     personality: 'together',
     intensity: 'medium',
-    framing: 'half',
+    framing: 'closeup',
     image: '/wedding-snap/catalog/meadow-casual-shades.jpg',
     promptHint:
       'Outdoor scene seated on a lush green lawn (uniform short grass filling the entire background, no trees or sky visible — just grass), warm late-afternoon natural sunlight from camera-left creating soft rim on hair and shoulders. Shot on 50–85mm portrait lens, three-quarter / waist-up framing, slight low-angle from ground level, shallow depth of field on the couple. Bride: spaghetti-strap white tulle wedding dress with layered ruffle skirt cascading over crossed legs, sheer cathedral veil softly draped behind her hair, hair in a clean middle-parted low style, sleek black cat-eye sunglasses, tan suede ankle boots, one hand propping up her chin with elbow on knee — relaxed cool posture. Groom: dark indigo denim button-up shirt (slightly faded), dark navy trousers, white tube socks, navy canvas sneakers, short neat dark hair, large black square sunglasses, seated with knees up and back relaxed, both hands cradling a wild bouquet of pink hyacinth, yellow craspedia, purple statice and trailing red amaranthus between his knees. Pose: bride seated on the grass to the left, groom seated to her right slightly higher, both facing camera straight on with calm cool neutral expressions, no smiles, gen-Z 90s editorial vibe. Color grade: muted natural greens with warm cream skin midtones, slight film softness, contrasted vintage prewedding mood — must read as warm bright daytime, NOT studio, NOT golden hour.',
@@ -323,7 +326,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'urban',
     personality: 'together',
     intensity: 'high',
-    framing: 'half',
+    framing: 'full',
     image: '/wedding-snap/catalog/bridge-night-noir.jpg',
     promptHint:
       'Outdoor scene on a city bridge / pedestrian overpass at night, distant skyline visible as blurred bokeh of warm tungsten window lights and cool blue LED accents, painted steel guardrail visible behind the couple, asphalt road slightly visible beyond. Single warm tungsten street lamp out of frame upper-left providing strong directional key light, deep moody shadows on the right side of faces, cinematic noir mood. Shot on 50–85mm portrait lens, three-quarter framing, eye-level camera, shallow depth of field with creamy city bokeh behind. Bride: elegant sleeveless black halter-neck cocktail dress with high mock-neck collar, long dramatic crystal-drop earrings catching the lamp light, sleek low-ponytail hair with side parting, soft natural makeup with neutral lip, holding a small bouquet of saturated red carnations and dahlias close at her waist. Groom: black three-piece formal suit (jacket + waistcoat + trousers) with crisp white shirt and slim black silk bow / scarf-tie, short neat dark hair, soft natural composed expression. Pose: standing close together with groom slightly behind bride, his right hand gently resting on bride\'s left shoulder, both turned 3/4 toward camera-right looking softly off into the distance (NOT at camera), calm cinematic introspective mood. Color grade: cinematic warm tungsten highlights with deep cool teal-blue shadows, rich blacks, gentle film grain — must clearly read as warm-lit urban night, NOT golden hour, NOT studio.',
@@ -364,7 +367,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'studio',
     personality: 'together',
     intensity: 'low',
-    framing: 'half',
+    framing: 'closeup',
     image: '/wedding-snap/catalog/studio-couple-puppy.jpg',
     promptHint:
       'Indoor studio with seamless soft cream / off-white painted wall backdrop, couple seated together on a dark charcoal-gray modern sofa, soft diffused daylight from a large window out of frame camera-left creating clean gentle highlights and no harsh shadows. Shot on 50–85mm portrait lens, three-quarter (waist-up) framing, eye-level camera, shallow depth of field. Bride: strapless soft blush-pink layered tulle wedding gown with subtle beaded bodice and voluminous skirt cascading across the sofa, long straight dark hair with soft side-swept fringe, dainty small earrings, soft natural makeup with rosy lip, seated slightly turned toward the groom with one hand gently resting on top of his head or shoulder, calm warm smile looking at camera. Groom: clean black fine-knit round-neck sweater with simple white inner shirt collar peeking at the neckline, short neat dark hair, soft natural composed smile looking at camera. Between them in the groom\'s lap: a small fluffy apricot-brown toy poodle puppy with a tiny white ribbon collar, sitting calmly facing camera. Color grade: airy bright cream highlights with soft blush accent on the gown and clean warm skin midtones, gentle film softness — romantic intimate K-prewedding magazine atmosphere with a heart-warming pet companion, never oversaturated. Must clearly read as soft indoor natural-window-light studio, NOT outdoor, NOT golden hour.',
@@ -418,7 +421,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'outdoor',
     personality: 'together',
     intensity: 'low',
-    framing: 'half',
+    framing: 'closeup',
     image: '/wedding-snap/catalog/garden-champagne-toast.jpg',
     promptHint:
       'Outdoor refined private garden scene with lush dense green foliage and tall white delphinium / hydrangea blooms filling the entire background, bright warm late-morning natural sunlight filtering through the leaves creating soft dappled highlights on hair and shoulders, no harsh shadows. Couple seated together at a small round table draped in soft ivory linen, set with a polished silver champagne bucket holding a chilled bottle, two cream taper candles in silver candlesticks, and a silver footed bowl of fresh green grapes and yellow pears in the foreground. Shot on 50–85mm portrait lens, three-quarter (waist-up) framing, slight low-angle camera, shallow depth of field with creamy floral bokeh behind. Groom: black peak-lapel formal suit with crisp white shirt, neat solid-black silk bow tie, and a single small white rose boutonniere on the lapel, short neat dark hair, calm warm soft smile. Bride: ivory champagne silk satin spaghetti-strap slip wedding dress with delicate cowl neckline, long dark hair pulled back in a clean smooth low chignon, dainty drop earrings, soft natural rosy makeup, big bright genuine open-mouth laughing smile while looking warmly at the groom. Pose: seated face-to-face at the table, both raising matching coupé-style champagne glasses to clink in a romantic toast at chest level, bride leaning warmly toward groom with one hand on his arm. Color grade: bright airy outdoor whites with fresh saturated garden greens and warm cream skin midtones, refined romantic European garden editorial atmosphere — must clearly read as warm bright late-morning daylight in a private garden, NOT golden hour, NOT studio.',
@@ -494,7 +497,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'studio',
     personality: 'together',
     intensity: 'low',
-    framing: 'half',
+    framing: 'closeup',
     image: '/wedding-snap/catalog/conservatory-sofa-couple.jpg',
     promptHint:
       'Indoor bright conservatory / glass-house living room scene with floor-to-ceiling white-framed glass windows behind the couple, lush tropical green palm fronds and foliage softly visible outside in the green-bokeh garden behind, soft warm diffused natural daylight pouring in from the windows creating gentle clean highlights on the couple and the cream sofa, no harsh shadows. Shot on 50–85mm portrait lens, three-quarter (waist-up) framing, eye-level camera, shallow depth of field. Couple seated very close together on a clean cream-upholstered modern sofa. Bride: strapless ivory layered tulle wedding gown with delicate ruched sweetheart neckline and voluminous skirt cascading across the sofa, long dark-brown softly waved hair with soft side-parted bangs flowing freely past her shoulders, dainty small gold ring on visible hand, soft natural rosy makeup with warm bright smile, seated to camera-left leaning her head and temple gently onto the groom\'s right shoulder, one hand softly resting at her chin in a relaxed pose. Groom: clean tailored deep navy two-piece notch-lapel formal suit with crisp white shirt (no tie, top button casually unbuttoned), short neat dark side-swept hair, calm warm genuine bright closed-mouth smile, both hands gently clasped together resting on his knees, seated to camera-right with his shoulders squared toward camera. Pose: both clearly facing camera with warm direct eye contact and big natural smiles, relaxed intimate K-prewedding magazine moment. Color grade: bright airy whites with fresh saturated tropical greens softly blurred behind, clean warm cream skin midtones — must clearly read as soft warm indoor natural-window-light conservatory, NOT outdoor, NOT golden hour.',
@@ -610,7 +613,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'urban',
     personality: 'together',
     intensity: 'high',
-    framing: 'half',
+    framing: 'closeup',
     image: '/wedding-snap/catalog/city-goldenhour-balcony.jpg',
     promptHint:
       'Outdoor scene on an ornate carved-stone balcony overlooking a distant downtown city skyline at warm late-afternoon golden hour (strong warm low sun directly behind the couple creating strong honey-amber backlight with subtle lens flare and warm hazy atmosphere, distant skyscrapers and rolling hills softly silhouetted in the hazy sky to camera-right). Carved baroque stone balustrade with decorative columns visible to camera-left and along the lower foreground, soft warm breeze gently moving the bride\'s long hair. Shot on 50–85mm portrait lens, three-quarter / waist-up framing, eye-level camera, shallow depth of field with cinematic warm sun-flare. Groom: clean black notch-lapel two-piece formal suit with crisp white shirt and slim solid-black silk necktie, short neat dark side-swept hair with soft natural texture, calm warm soft genuine closed-mouth smile, standing close behind and slightly to camera-left of bride. Bride: clean ivory off-shoulder satin A-line wedding dress with elegant ruched ruffle neckline and softly draped sweetheart bodice, long honey-brown softly waved hair flowing freely past her shoulders catching warm rim light, dainty drop earrings, soft natural rosy makeup with warm gentle closed-mouth smile, holding a beautiful round bridal bouquet of white garden roses, white spray roses and trailing greenery in both hands resting gently at her waist. Pose: intimate close together — groom leaning in to softly press his cheek tenderly against the bride\'s left temple from behind-left, his right arm wrapped warmly around her waist with hand softly resting on her hip, bride looking softly toward camera with quiet warm natural smile while groom looks lovingly down at her. Color grade: cinematic honey-amber highlights with gentle teal shadows, slight film haze and grain — must clearly read as warm late-afternoon golden hour with strong backlight, NOT noon, NOT blue hour, NOT studio.',
@@ -800,7 +803,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'urban',
     personality: 'together',
     intensity: 'low',
-    framing: 'half',
+    framing: 'closeup',
     image: '/wedding-snap/catalog/cinema-popcorn-couple.jpg',
     promptHint:
       'Indoor empty modern movie cinema theater scene with rows of plush vibrant red cinema seats stretching diagonally back into the dark background on both sides, dim warm cinematic lighting with a single bright cool-blue projector light beam glowing from the back-center wall above casting subtle volumetric light into the dark room. Couple seated together in the center seat of the front-center row, soft cool ambient glow on the couple from the projector beam mixed with warm soft fill from camera-front. Shot on 35–50mm lens for environmental cinema feel, three-quarter (waist-up) framing, eye-level camera, shallow depth of field on the couple with the red seats softly bokeh-blurred behind. Bride: soft champagne / pale-blush layered tulle ball-gown wedding dress with delicate beaded sweetheart bodice and voluminous skirt cascading lushly across the cinema seat, long honey-brown softly waved hair flowing freely past her shoulders, dainty drop earrings, soft natural rosy makeup with warm bright closed-mouth smile, seated to camera-left with both hands softly clasped together in her lap. Groom: sharp black peak-lapel two-piece formal tuxedo with crisp white dress shirt and neat solid-black silk bow tie tied at the collar, short neat dark side-swept hair, calm warm genuine bright closed-mouth smile, seated to camera-right with one leg casually crossed over the other, holding a large white-and-black vertical-striped classic cinema-style popcorn bucket overflowing with warm golden popcorn in both hands resting at his lap, sharing the popcorn warmly between them. Pose: bride and groom seated very close shoulder-to-shoulder both warmly facing camera with bright genuine smiles, popcorn bucket centered between them as the focal joyful element, intimate playful cinema date wedding moment. Color grade: rich saturated red seat tones with subtle cool-blue projector glow accent and warm cream skin midtones, refined cinematic playful K-prewedding magazine atmosphere — must clearly read as warm cinematic indoor cinema room with subtle cool projector glow, NOT outdoor, NOT golden hour, NOT studio gray backdrop.',
@@ -833,6 +836,79 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
       [0.56, 0.06, 0.18, 0.20],
     ],
   },
+  {
+    id: 'studio-arch-window-couple',
+    label: '아치 창 + 베이지 슈트 머메이드',
+    hint: '아치형 창 + 베이지 슈트 + 화이트 머메이드 풀신',
+    category: 'studio',
+    personality: 'together',
+    intensity: 'low',
+    framing: 'full',
+    image: '/wedding-snap/catalog/studio-arch-window-couple.jpg',
+    promptHint:
+      'Indoor bright studio with a tall white-framed arched window backdrop opening onto a lush green garden softly visible outside, soft warm diffused natural daylight pouring through the arched window creating clean luminous backlit highlights on the couple, no harsh shadows, polished cream concrete floor. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, eye-level camera, shallow depth of field on the couple with creamy green foliage bokeh behind. Groom: clean tailored warm beige / oatmeal-tan two-piece notch-lapel formal suit with crisp white dress shirt and slim solid-black silk necktie, polished black derby shoes, short neat dark side-swept hair, calm warm genuine closed-mouth bright smile, standing tall to camera-left holding a small loose round bouquet of fresh white anemones and trailing greenery in his right hand at waist level between the couple. Bride: elegant ivory champagne satin halter-neck floor-length mermaid wedding dress with subtle high neckline and dramatic long sweep train cascading luxuriously across the floor to camera-right, hair pulled back into a clean smooth low ponytail with side wisps, dainty drop earrings, soft natural rosy makeup with warm bright genuine closed-mouth smile, standing close to camera-right with body slightly turned toward groom and one arm warmly linked around his arm at the elbow. Pose: bride to camera-right and groom to camera-left standing very close together facing camera straight on, both clearly facing camera with warm direct eye contact and bright genuine smiles, refined classic Korean K-prewedding magazine garden-light studio atmosphere. Color grade: bright airy whites with fresh saturated garden greens softly blurred behind and clean warm cream skin midtones — must clearly read as soft warm indoor natural-window-light studio, NOT outdoor, NOT golden hour.',
+    faceMaskRegions: [
+      [0.30, 0.10, 0.18, 0.18],
+      [0.52, 0.14, 0.18, 0.18],
+    ],
+  },
+  {
+    id: 'garden-finger-heart',
+    label: '가든 손가락 하트',
+    hint: '꽃밭 + 베일 + 손가락 하트 클로즈업',
+    category: 'outdoor',
+    personality: 'together',
+    intensity: 'low',
+    framing: 'closeup',
+    image: '/wedding-snap/catalog/garden-finger-heart.jpg',
+    promptHint:
+      'Outdoor lush garden scene with abundant pink, peach and cream roses softly out of focus filling the entire background, warm dappled afternoon natural sunlight filtering through the leaves creating soft warm rim on hair and shoulders, no harsh shadows. Shot on 85mm portrait lens, chest-up close framing with both faces nearly cheek-to-cheek and centered, eye-level camera, shallow depth of field with creamy floral bokeh behind. Bride: clean ivory strapless sweetheart-neckline wedding dress with subtle beaded bodice softly visible at the lower edge, long fine-mesh white tulle cathedral veil softly draped behind her head and trailing past her shoulders, long honey-brown softly waved hair flowing freely past her shoulders, dainty drop earrings, soft natural rosy makeup with warm bright genuine open-mouth laughing smile, right hand raised in front of her chest making half of a small finger-heart shape (curved thumb + index finger). Groom: sharp black peak-lapel two-piece formal tuxedo with crisp white dress shirt, neat solid-black silk bow tie tied at the collar, and a small fresh white floral boutonniere on the left lapel, short neat dark side-swept hair, calm warm genuine soft closed-mouth smile, left hand raised in front of his chest meeting the bride\'s hand to complete a small joined finger-heart shape between them. Pose: bride to camera-left and groom to camera-right standing very close cheek-to-cheek facing camera straight on with bright warm direct eye contact, their joined fingers forming a small heart shape centered just below their faces, refined romantic playful K-prewedding garden moment. Color grade: bright airy outdoor whites with fresh saturated rose-garden pinks/peaches and clean warm cream skin midtones, romantic K-prewedding magazine garden atmosphere — must clearly read as warm dappled late-afternoon outdoor daylight, NOT golden hour, NOT studio.',
+    manualKelvin: 5400,
+    manualMoodHint:
+      'warm dappled late-afternoon garden daylight with pink/peach rose-garden bokeh, playful joined finger-heart moment, romantic K-prewedding mood',
+    faceMaskRegions: [
+      [0.18, 0.10, 0.32, 0.50],
+      [0.50, 0.10, 0.32, 0.50],
+    ],
+  },
+  {
+    id: 'beige-wall-cheek-lean',
+    label: '베이지 벽 머리 기댐',
+    hint: '베이지 벽 + 들꽃 부케 + 머리 기댐',
+    category: 'outdoor',
+    personality: 'together',
+    intensity: 'low',
+    framing: 'closeup',
+    image: '/wedding-snap/catalog/beige-wall-cheek-lean.jpg',
+    promptHint:
+      'Outdoor refined scene against a clean warm beige / cream painted plaster wall as backdrop with soft dappled leaf shadows from a nearby tree filtering across the wall, a small visible green branch with leaves softly entering the upper-left edge of the frame, warm soft late-afternoon natural daylight from camera-front creating clean gentle highlights with no harsh shadows. Shot on 85mm portrait lens, chest-up close framing with bride leaning her head softly onto groom, eye-level camera, shallow depth of field. Groom: clean black notch-lapel two-piece formal suit with matching black inner dress shirt (no separate white shirt, no tie), short neat dark side-swept hair, calm warm soft genuine closed-mouth smile, standing tall to camera-left with both arms wrapped warmly around the bride from behind in a gentle hug. Bride: clean ivory sleeveless V-neck delicate-lace overlay sleeveless wedding dress with subtle tulle bodice, long dark hair flowing freely past her shoulders with side parting, dainty crystal-drop earring on the visible ear, soft natural rosy makeup with warm bright genuine closed-mouth smile, standing close in front of groom to camera-right gently leaning her head and temple onto the groom\'s right shoulder while looking softly at camera, holding a small loose bouquet of fresh white daisies, chamomile florals and trailing greenery in both hands lifted gently up at chest level between her and the groom. Pose: couple very close cheek-to-shoulder with bride to camera-right and groom to camera-left, both warmly facing camera with soft direct eye contact and gentle smiles, refined romantic intimate K-prewedding magazine moment. Color grade: warm cream wall tones with soft dappled leaf shadows and clean warm cream skin midtones, refined Korean K-prewedding magazine warm-natural atmosphere — must clearly read as soft warm late-afternoon natural daylight against a warm wall, NOT golden hour, NOT studio gray backdrop.',
+    manualKelvin: 5200,
+    manualMoodHint:
+      'warm late-afternoon outdoor daylight against a warm beige plaster wall with soft dappled leaf shadows, refined intimate K-prewedding mood',
+    faceMaskRegions: [
+      [0.18, 0.18, 0.28, 0.38],
+      [0.48, 0.26, 0.28, 0.38],
+    ],
+  },
+  {
+    id: 'meadow-blue-sky-couple',
+    label: '들판 푸른 하늘 풀신',
+    hint: '잔디 들판 + 푸른 하늘 + 백합 부케 + 풀신 정자세',
+    category: 'outdoor',
+    personality: 'together',
+    intensity: 'medium',
+    framing: 'full',
+    image: '/wedding-snap/catalog/meadow-blue-sky-couple.jpg',
+    promptHint:
+      'Outdoor wide green grassy meadow with low rolling forested hills in the mid-ground and clean saturated deep-blue clear sky filling the upper half of the frame, bright warm late-morning natural sunlight from camera-front-right creating clean gentle highlights, no harsh shadows. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, slight low-angle camera, shallow depth of field on the couple with soft green meadow and distant hill bokeh. Groom: sharp black peak-lapel two-piece formal tuxedo with crisp white dress shirt, neat solid-black silk necktie, and a small fresh white floral boutonniere on the left lapel, polished black oxford shoes, short neat dark side-swept hair, calm warm genuine soft closed-mouth smile, standing tall to camera-left holding the bride\'s hand at his side. Bride: clean ivory champagne satin strapless sweetheart-neckline classic ball-gown wedding dress with subtle ruched bodice and dramatic voluminous floor-length skirt cascading lushly to the grass with subtle sweep train, hair pulled back into a clean smooth low updo with side bang, dainty drop earrings, soft natural rosy makeup with warm bright genuine closed-mouth smile, holding a beautiful round loose bouquet of fresh white lily-of-the-valley sprays and trailing greenery in both hands at her waist. Pose: bride to camera-right and groom to camera-left standing close together holding hands warmly facing camera straight on, both with shoulders gently squared toward camera and warm direct eye contact, refined classic Korean K-prewedding magazine meadow moment. Color grade: bright airy outdoor whites with fresh saturated grass greens and clean saturated deep-blue sky and warm cream skin midtones, refined classic Korean K-prewedding magazine meadow atmosphere — must clearly read as warm bright late-morning daylight in a green meadow under blue sky, NOT golden hour, NOT studio.',
+    manualKelvin: 5500,
+    manualMoodHint:
+      'warm bright late-morning outdoor daylight in a green meadow under deep saturated blue sky, refined classic K-prewedding mood',
+    faceMaskRegions: [
+      [0.32, 0.22, 0.16, 0.16],
+      [0.54, 0.22, 0.16, 0.16],
+    ],
+  },
   // ── Solo (단독) 컷 ────────────────────────────────────────
   // 이미지 파일은 사용자가 별도로 마스터를 만들어 같은 id 로 저장해야 함.
   // (예: public/wedding-snap/catalog/groom-portrait-studio.jpg)
@@ -842,7 +918,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     hint: '뉴트럴 그레이 + 정장 클로즈업',
     category: 'studio',
     personality: 'groom-solo',
-    framing: 'half',
+    framing: 'closeup',
     image: '/wedding-snap/catalog/groom-portrait-studio.jpg',
     promptHint:
       'Solo groom portrait — only the groom is in the frame, no bride, no other people. Indoor studio with seamless neutral gray backdrop, two-source softbox lighting from front-left and front-right at 45° down. Shot on 85mm portrait lens, chest-up to waist-up framing, eye-level camera, shallow depth of field. Groom: black peak-lapel tuxedo with white shirt and black bow tie, perfectly tailored, lapels crisp. Confident natural posture, slight head tilt, soft genuine smile or composed neutral expression. Editorial portrait atmosphere, neutral color grade with subtle warm midtones.',
@@ -855,7 +931,8 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     hint: '단독 클로즈업 + 부케',
     category: 'studio',
     personality: 'bride-solo',
-    framing: 'half',
+    hidden: true, // 마스터 이미지 삭제됨 — 대체 컷 bride-offshoulder-bouquet 사용 가능
+    framing: 'closeup',
     image: '/wedding-snap/catalog/bride-bouquet.jpg',
     promptHint:
       'Solo bride portrait — only the bride is in the frame, no groom, no other people. Indoor studio with seamless soft cream / off-white backdrop, soft directional light from front-left like a large window. Shot on 85mm portrait lens, waist-up framing, eye-level camera, shallow depth of field. Bride: ivory A-line wedding dress with off-shoulder neckline and lace bodice, holding a lush white-and-blush bouquet near her chest. Soft natural smile, eyes slightly toward the camera, gentle hand grip on the bouquet. Color grade: clean cream highlights, soft warm midtones.',
@@ -882,7 +959,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'outdoor',
     personality: 'bride-solo',
     hidden: true, // 마스터 이미지 미업로드 (bride-garden-twirl 가 유사 컨셉)
-    framing: 'half',
+    framing: 'full',
     image: '/wedding-snap/catalog/bride-veil-flow.jpg',
     promptHint:
       'Solo bride shot — only the bride in frame, no groom, no other people. Soft outdoor setting with a neutral blurred background (light foliage or pale wall), warm late-afternoon natural light from behind producing a gentle rim along the veil. Shot on 85mm portrait lens, three-quarter (knee-up) framing, slight three-quarter (~20°) angle. Bride: ivory A-line wedding dress with a long tulle veil floating gently in a light breeze, holding a small white bouquet, eyes softly looking aside or down. Color grade: warm pastel with soft pink and cream highlights, dreamy but not over-glowed.',
@@ -895,7 +972,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'studio',
     personality: 'bride-solo',
     hidden: true, // 마스터 이미지 미업로드
-    framing: 'half',
+    framing: 'closeup',
     image: '/wedding-snap/catalog/bride-window.jpg',
     promptHint:
       'Solo bride shot — only the bride in frame, no groom. Indoor room beside a large window with soft natural daylight pouring in from camera-left, sheer curtain diffusing the light. Shot on 50–85mm lens, waist-up framing, three-quarter angle so the window light wraps gently around the face. Bride: ivory A-line wedding dress with off-shoulder neckline, hands resting at her side or lightly on the windowsill, looking softly out the window or toward camera. Color grade: airy clean whites with cool window light tone, soft warm skin midtones. Calm contemplative mood.',
@@ -907,7 +984,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     hint: '클래식 컨버터블 + 풍성한 튤',
     category: 'outdoor',
     personality: 'bride-solo',
-    framing: 'half',
+    framing: 'closeup',
     image: '/wedding-snap/catalog/bride-vintage-car.jpg',
     promptHint:
       'Solo bride shot — only the bride in frame, no groom, no other people. Seated inside a vintage convertible automobile with polished mahogany wood trim and cream leather interior, the voluminous ivory tulle skirt of her gown overflowing dramatically across the seat and pooling out of frame. Soft sunlit landscape visible through the side window — distant cypress trees and a faint lake horizon with warm hazy glow. Shot on 50–85mm portrait lens, chest-up to waist-up framing, slight three-quarter angle so the bride looks softly out toward the window. Bride: strapless ivory wedding dress with intricate lace bodice and detached lace sleeves on upper arms, pearl drop earrings, hair pulled back into a sleek smooth low style or soft loose waves. One hand resting gently near her collarbone or shoulder, eyes off-camera in a quiet introspective gaze, soft natural lips. Color grade: warm golden ambient with creamy highlights and rich amber midtones, gentle haze. Editorial bridal magazine atmosphere.',
@@ -922,7 +999,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'outdoor',
     personality: 'bride-solo',
     intensity: 'medium',
-    framing: 'half',
+    framing: 'full',
     image: '/wedding-snap/catalog/bride-garden-twirl.jpg',
     promptHint:
       'Solo bride shot — only the bride in frame, no groom, no other people. Outdoor green park scene with lush dense foliage trees filling the background (no buildings, sky barely visible at top), soft hazy afternoon daylight providing even diffuse illumination. White rose petals floating and falling in mid-air around the bride for dynamic motion. Shot on 50–85mm portrait lens, three-quarter framing (upper-thigh up), eye-level camera, shallow depth of field on subject with creamy green foliage bokeh. Bride: structured strapless ivory mermaid wedding dress with delicate lace bodice and dramatic layered ruffle mermaid skirt cascading to the ground, long cathedral-length tulle veil floating in the breeze diagonally across the frame, hair in a clean center-parted low chignon with side wisps, small pearl drop earrings, soft natural makeup with rosy lip. Pose: standing facing slightly away then turning her upper body BACK toward camera over her left shoulder (~30–40° three-quarter angle, face still clearly visible), right arm raised high holding a small bouquet of white garden roses with greenery up above her head, left hand pulling the floating veil out and across her front waist creating a dramatic sweeping motion, bright big genuine smile with eyes on camera. Color grade: bright airy daylight greens with clean ivory whites and warm cream skin midtones, dreamy joyful motion atmosphere — must read as bright outdoor afternoon, NOT golden hour, NOT studio.',
@@ -953,7 +1030,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'tradition',
     personality: 'bride-solo',
     intensity: 'medium',
-    framing: 'half',
+    framing: 'full',
     image: '/wedding-snap/catalog/hanok-greenhanbok-peek.jpg',
     promptHint:
       'Solo bride shot — only the bride in frame, no groom, no other people. Traditional Korean hanok interior view: a warm cream / off-white painted heavy wooden door partially open in the foreground (subject leaning around its right edge), beyond the door a soft teal-painted hanji wall and dark red-orange lacquered wooden beams across the top of the frame, glimpse of another wooden door panel deeper inside. Soft natural indoor daylight from an unseen window providing gentle warm illumination on her face, no harsh shadows. Shot on 50–85mm portrait lens, three-quarter (knee-up) framing, eye-level camera, moderate depth of field so the door edge and her face are both crisp. Bride: traditional Korean hanbok consisting of a warm dove-gray short jeogori (top) with white collar trim and clean white goreum tie, and a long soft mint-green chima (skirt) flowing down. Long straight black hair styled in a single thick side-braided ponytail draped over her right shoulder, no veil, no other accessories. Pose: standing playfully behind the heavy wooden door, leaning around its right edge to peek out toward camera, both hands lightly gripping the door\'s top edge near her face, head tilted slightly to one side, lips slightly parted in a soft surprised / playful expression, eyes wide and curious looking straight at camera, gentle smile. Color grade: warm muted earth tones with soft mint accent from the chima and warm dark red from the wooden beams, refined natural traditional editorial mood — must clearly read as traditional indoor daylight, NOT golden hour, NOT studio.',
@@ -970,7 +1047,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'studio',
     personality: 'groom-solo',
     intensity: 'low',
-    framing: 'half',
+    framing: 'closeup',
     image: '/wedding-snap/catalog/groom-monochrome-suit.jpg',
     promptHint:
       'Solo groom portrait — only the groom is in the frame, no bride, no other people. Monochrome black-and-white editorial portrait. Indoor studio with seamless soft gradient dark-gray to medium-gray backdrop, single soft directional key light from camera-left at 45° down, gentle fill from camera-right preserving shadow detail on the right side of the face and suit. Shot on 85mm portrait lens, waist-up framing, slight three-quarter (~10–15°) body angle to camera-right with face turned back toward camera, shallow depth of field. Groom: sharp black two-piece notch-lapel formal suit with a crisp white dress shirt and slim solid-black silk necktie tied neatly, jacket buttoned at the top button only, short neat dark hair brushed back, calm composed neutral expression with mouth softly closed, slight head tilt down catching shadow under the brow. Pose: both hands brought together near waist level, right hand gently adjusting the left jacket cuff / cuff link in a refined editorial gesture, eyes looking directly at camera with quiet confidence. Color grade: pure monochrome black-and-white film tones with rich deep blacks, smooth midtone grays and clean specular highlights on the shirt — must clearly read as classic B&W editorial menswear portrait, NOT color, NOT outdoor.',
@@ -1020,7 +1097,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'outdoor',
     personality: 'groom-solo',
     intensity: 'medium',
-    framing: 'half',
+    framing: 'full',
     image: '/wedding-snap/catalog/groom-meadow-bowtie.jpg',
     promptHint:
       'Solo groom portrait — only the groom is in the frame, no bride, no other people. Outdoor wide green grass meadow with low rolling forested hills in the distance, bright fluffy white cumulus clouds in a clean saturated blue sky filling the upper half of the frame, warm late-afternoon natural sunlight from camera-right creating gentle rim on hair and shoulders. Shot on 50–85mm portrait lens, three-quarter / knee-up framing, slight low-angle camera capturing both the groom and the sky, shallow depth of field on subject with soft green meadow bokeh behind. Groom: clean classic black two-piece notch-lapel formal suit with crisp white dress shirt and neat solid-black silk bow tie tied at the collar, top button fastened, short neat dark-brown side-swept hair with soft natural texture, bright big genuine open-mouth smile with teeth showing and warm crinkled eyes looking directly at camera. Pose: standing relaxed and centered on the lawn, body facing camera straight on with shoulders slightly squared back, left hand casually tucked into the trouser pocket, right hand naturally lowered at his side gently holding a small bouquet of fresh white garden roses, white spray roses, and trailing greenery — bouquet visible just at the lower-right of the frame near the hip. Color grade: bright airy outdoor daylight with saturated clean blue sky, fresh vivid greens and warm cream skin midtones, joyful fresh K-prewedding magazine atmosphere — must clearly read as bright warm late-afternoon daylight, NOT golden hour, NOT studio, NOT noon glare.',
@@ -1037,7 +1114,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'studio',
     personality: 'groom-solo',
     intensity: 'low',
-    framing: 'half',
+    framing: 'full',
     image: '/wedding-snap/catalog/groom-bouquet-sniff.jpg',
     promptHint:
       'Solo groom portrait — only the groom is in the frame, no bride, no other people. Indoor studio with seamless soft cool light-gray painted backdrop, single soft large diffused key light from camera-left at 45° creating gentle clean highlights on the face and suit lapel with very soft fall-off shadow on the right side, no harsh shadows. Shot on 85mm portrait lens, three-quarter (knee-up) framing, eye-level camera, shallow depth of field. Groom: sharp tailored black two-piece notch-lapel formal suit with crisp white dress shirt (collar unbuttoned at the very top, no tie) and a small fresh white floral boutonniere pinned to the left lapel, short neat dark-brown side-swept hair with soft natural texture, calm soft serene closed-eyes expression with a gentle peaceful half-smile. Pose: standing centered facing camera, right hand tucked casually into the trouser pocket, left hand raised holding a beautiful lush bridal bouquet of white lilies, white carnations, white spray roses and trailing eucalyptus greenery (wrapped at the stems with a soft ivory satin ribbon trailing down) lifted gently up to his face so he can softly close his eyes and breathe in the floral scent — refined romantic editorial moment of a groom enjoying the bouquet. Color grade: cool airy light-gray backdrop with clean warm cream skin midtones and rich black suit tones, calm refined minimalist K-prewedding studio editorial atmosphere — must clearly read as soft indoor studio diffused light, NOT outdoor, NOT golden hour.',
@@ -1068,7 +1145,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'studio',
     personality: 'groom-solo',
     intensity: 'medium',
-    framing: 'half',
+    framing: 'closeup',
     image: '/wedding-snap/catalog/groom-vintage-window.jpg',
     promptHint:
       'Solo groom portrait — only the groom is in the frame, no bride, no other people. Indoor warm cinematic classic vintage interior scene with sage-green painted wall and dark mahogany wood wainscoting in the background, an antique carved dark-wood chair softly visible to camera-right, vintage wood-frame doorway with warm directional natural sunlight pouring in from a hidden window to camera-left creating a strong warm key light on the groom\'s face and shoulder with rich deep shadow on the right side, deep moody dramatic lighting. Shot on 50–85mm portrait lens, waist-up framing, eye-level camera, shallow depth of field. Groom: sharp black velvet shawl / peak-lapel formal tuxedo with crisp white wing-collar shirt and neat solid-black silk bow tie tied at the collar, jacket buttoned at the top button only, short neat dark side-swept hair softly textured, calm pensive composed neutral expression with mouth softly closed and slight head tilt. Pose: seated relaxed on the antique wooden chair facing camera-left in profile (~80° three-quarter angle to camera-right), left elbow resting on the knee with hand softly relaxed downward, right hand resting on the other knee, head turned to look softly out the unseen window to camera-left with quiet introspective gaze and gentle natural lips, classic cinematic 1930s-era refined groom editorial moment. Color grade: cinematic warm tungsten highlights with deep sage-green wall midtones and rich shadow detail, soft film grain — must clearly read as warm cinematic vintage interior natural-window light, NOT studio, NOT outdoor, NOT golden hour outdoors.',
@@ -1085,7 +1162,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     category: 'studio',
     personality: 'bride-solo',
     intensity: 'low',
-    framing: 'half',
+    framing: 'closeup',
     image: '/wedding-snap/catalog/bride-sofa-ballgown.jpg',
     promptHint:
       'Solo bride shot — only the bride in frame, no groom, no other people. Indoor bright studio scene with seamless soft cream / off-white sheer-curtained window backdrop, a small clean cream-upholstered antique sofa centered in the frame, soft warm diffused natural daylight pouring in from large window behind the sofa through the sheer curtains creating clean luminous backlit highlights on hair and shoulders with very soft fall-off shadows, no harsh shadows. Shot on 50–85mm portrait lens, three-quarter (waist-up) framing, eye-level camera, shallow depth of field. Bride: strapless ivory wedding ball-gown with delicate ruched sweetheart lace-and-beaded bodice and dramatic voluminous full tulle ball-gown skirt cascading lushly across the entire sofa and beyond the lower edges of the frame, long honey-brown softly waved hair flowing freely past her shoulders catching soft warm backlit rim light, large dramatic crystal-drop earrings catching the light, soft natural rosy makeup with warm bright genuine closed-mouth smile, seated calmly in the center of the sofa with one elbow propped softly on the seat-back and right hand gently raised under her chin in a relaxed elegant pose. To camera-right resting on the sofa beside her: a beautiful round loose bouquet of pastel-pink garden roses, blush spray roses, soft lilac sweet-peas, peach lisianthus and trailing eucalyptus greenery wrapped with a soft ivory satin ribbon. Pose: seated centered on the sofa facing camera straight on with body slightly turned and head tilted softly to one side, warm direct eye contact with camera and gentle natural smile. Color grade: bright airy backlit whites with clean warm cream skin midtones, very low contrast, dreamy minimalist K-prewedding bridal magazine beauty editorial — must clearly read as soft warm indoor natural-window-light studio, NOT outdoor, NOT golden hour.',
@@ -1109,6 +1186,80 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     // solo 풀신 — 얼굴은 프레임 상단 중앙, 비교적 작게.
     faceMaskRegions: [[0.40, 0.16, 0.22, 0.20]],
   },
+  {
+    id: 'bride-mirror-lipstick',
+    label: '신부 거울 앞 립스틱',
+    hint: '거울 앞 + 티아라·베일 + 립 메이크업 자세',
+    category: 'studio',
+    personality: 'bride-solo',
+    intensity: 'low',
+    framing: 'closeup',
+    image: '/wedding-snap/catalog/bride-mirror-lipstick.jpg',
+    promptHint:
+      'Solo bride shot — only the bride in frame, no groom, no other people. Indoor bright wedding-day getting-ready studio scene with a tall vertical mirror with thin warm-tungsten LED light strip framing the visible left edge of the mirror in the background, soft warm diffused natural daylight from a hidden window creating clean luminous highlights on the bride with no harsh shadows. Shot on 85mm portrait lens, chest-up close framing, slight three-quarter (~10°) angle, eye-level camera, shallow depth of field. Bride: clean ivory strapless sweetheart-neckline classic ball-gown wedding dress with delicate intricate floral lace embroidery throughout the bodice softly visible at the lower edge of the frame, a delicate silver-tone bridal tiara / crown with crystals nestled prominently on her head, long fine-mesh white tulle cathedral veil softly draped behind her head, hair pulled back into a clean smooth low bun with side wisps, dainty pearl drop earring on the visible ear, delicate single-strand pearl necklace, soft natural pink-rosy makeup, holding a slim silver-tone lipstick tube up to her lips in her right hand in an elegant getting-ready beauty gesture. Pose: standing in front of the mirror looking softly toward camera while applying the lipstick with calm gentle natural expression, refined romantic bridal getting-ready editorial moment. Color grade: bright airy warm cream highlights with subtle warm tungsten mirror-light accent and clean warm cream skin midtones, refined dreamy bridal magazine getting-ready atmosphere — must clearly read as soft warm indoor natural-window-light getting-ready studio, NOT outdoor, NOT golden hour.',
+    manualKelvin: 5000,
+    manualMoodHint:
+      'soft warm indoor getting-ready studio light with warm tungsten mirror-light accent, refined romantic bridal getting-ready editorial mood',
+    faceMaskRegions: [[0.30, 0.14, 0.36, 0.40]],
+  },
+  {
+    id: 'groom-fullbody-classic',
+    label: '신랑 풀신 클래식 슈트',
+    hint: '베이지 벽 + 보타이 + 부토니에 풀신',
+    category: 'studio',
+    personality: 'groom-solo',
+    intensity: 'low',
+    framing: 'full',
+    image: '/wedding-snap/catalog/groom-fullbody-classic.jpg',
+    promptHint:
+      'Solo groom portrait — only the groom is in the frame, no bride, no other people. Indoor studio with seamless soft warm cream / beige painted plaster wall backdrop and warm honey wood plank floor, soft warm diffused natural daylight from a large hidden window creating clean luminous highlights, no harsh shadows. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect capturing the groom head-to-toe, slight low-angle camera, shallow depth of field. Groom: sharp black peak-lapel two-piece formal tuxedo with crisp white dress shirt, neat solid-black silk bow tie tied at the collar, and a beautiful prominent rustic dried beige / cream / dried pampas grass + dried-leaf boutonniere on the left lapel, polished black oxford shoes, short neat dark side-swept hair with soft natural texture, calm warm genuine soft closed-mouth smile. Pose: standing centered facing camera straight on with both hands casually tucked into trouser pockets, shoulders relaxed and slightly squared, calm confident editorial menswear stance. Color grade: bright airy warm cream / beige highlights with rich deep blacks of the tuxedo and warm cream skin midtones, refined classic Korean K-prewedding magazine menswear studio atmosphere — must clearly read as soft warm indoor natural-window-light studio, NOT outdoor, NOT golden hour.',
+    manualKelvin: 5000,
+    manualMoodHint:
+      'soft warm indoor studio light with warm cream / beige wall backdrop, refined classic K-prewedding menswear full-body editorial mood',
+    faceMaskRegions: [[0.40, 0.18, 0.20, 0.18]],
+  },
+  {
+    id: 'bride-floral-bed-seated',
+    label: '신부 꽃밭 앉음',
+    hint: '파스텔 꽃밭 + 풀튤 가운 + 턱 받침 앉은 자세',
+    category: 'studio',
+    personality: 'bride-solo',
+    intensity: 'low',
+    framing: 'closeup',
+    image: '/wedding-snap/catalog/bride-floral-bed-seated.jpg',
+    promptHint:
+      'Solo bride shot — only the bride in frame, no groom, no other people. Indoor bright dreamy studio scene with abundant pastel floral arrangements completely surrounding the bride and filling the entire background — tall stems of pastel pink garden roses, blush spray roses, lilac delphinium, pale-peach lisianthus, cream hydrangea and trailing greenery framing the bride on all sides, soft warm diffused beauty light from front creating clean luminous skin tones, no harsh shadows. Shot on 85mm portrait lens, chest-up close framing with bride centered surrounded by the floral bed, eye-level camera, shallow depth of field with creamy pastel floral bokeh. Bride: clean ivory strapless sweetheart-neckline classic wedding ball-gown with delicate beaded bodice and dramatic voluminous full tulle skirt cascading lushly around her into the floral bed, long honey-brown softly waved hair flowing freely past her shoulders with side parting, dainty large drop earring catching the light on visible ear, soft natural rosy makeup with warm bright genuine soft closed-mouth smile. Pose: seated calmly centered in the floral bed with body slightly turned, right hand softly raised under her chin in a relaxed elegant pose, looking softly toward camera with warm gentle smile and soft eyes, refined romantic dreamy bridal beauty editorial moment. Color grade: bright airy whites with abundant pastel pink / lilac / peach floral accents and clean warm cream skin midtones, refined dreamy minimalist bridal magazine beauty atmosphere — must clearly read as soft warm indoor studio beauty light, NOT outdoor, NOT golden hour.',
+    faceMaskRegions: [[0.30, 0.10, 0.36, 0.40]],
+  },
+  {
+    id: 'bride-offshoulder-bouquet',
+    label: '신부 오프숄더 풀신',
+    hint: '오프숄더 슬립 + 큰 화이트/핑크 부케 풀신',
+    category: 'studio',
+    personality: 'bride-solo',
+    intensity: 'low',
+    framing: 'full',
+    image: '/wedding-snap/catalog/bride-offshoulder-bouquet.jpg',
+    promptHint:
+      'Solo bride shot — only the bride in frame, no groom, no other people. Indoor studio with seamless soft cool light-gray gradient backdrop, soft large diffused front beauty light creating clean luminous skin tones and very soft fall-off shadow, no harsh shadows. Shot on 50–85mm portrait lens, full-body / three-quarter framing in tall vertical aspect capturing the bride from head to just below the waist with floor space below, eye-level camera, shallow depth of field. Bride: clean ivory off-shoulder wide-cap-sleeve floor-length flowing satin slip-style wedding dress with elegant deep fold-over off-shoulder neckline (cape sleeves draping over upper arms) and soft natural A-line skirt cascading to floor with subtle sweep train, hair pulled back into a clean smooth low chignon with side wisps, dainty small earrings, soft natural rosy makeup with warm gentle closed-mouth smile, holding a lush large round bouquet of fresh white peonies, white garden roses, soft pink ranunculus and abundant trailing fresh green eucalyptus and ivy greenery cradled in both hands at chest level (bouquet dramatically large and the centerpiece of the frame). Pose: standing centered facing camera straight on with body slightly turned, both hands cradling the lush dramatic floral bouquet at chest level, calm soft gentle natural expression looking softly toward camera, refined classic Korean K-prewedding magazine bridal editorial moment. Color grade: bright airy whites with rich saturated fresh greens and soft pink/cream floral accents and clean warm cream skin midtones, refined classic Korean K-prewedding magazine bridal studio atmosphere — must clearly read as soft indoor studio beauty light, NOT outdoor, NOT golden hour.',
+    faceMaskRegions: [[0.36, 0.10, 0.28, 0.30]],
+  },
+  {
+    id: 'groom-beach-greensuit',
+    label: '신랑 해변 그린 슈트',
+    hint: '바다 + 짙은 그린 슈트 + 드라이 부케 옆모습',
+    category: 'beach',
+    personality: 'groom-solo',
+    intensity: 'medium',
+    framing: 'full',
+    image: '/wedding-snap/catalog/groom-beach-greensuit.jpg',
+    promptHint:
+      'Solo groom portrait — only the groom is in the frame, no bride, no other people. Outdoor wide quiet beach scene with calm gray-blue ocean and softly breaking waves stretching to a flat horizon directly behind the groom, soft pale-gray overcast sky filling the upper half of the frame, warm beige wet sand underfoot, soft diffused even natural daylight (overcast — no harsh shadows). Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, slight three-quarter (~20°) angle with body in profile and face turned softly back toward camera, eye-level camera, shallow depth of field with creamy ocean bokeh behind. Groom: sharp tailored deep forest-green / hunter-green peak-lapel two-piece formal suit with crisp white dress shirt (no tie, top button casually undone), a beautiful prominent dried pampas grass + dusty pink dried-rose + dried-greenery boutonniere on the left lapel, polished black oxford shoes, short neat dark side-swept hair, calm cool serene neutral expression with mouth softly closed, refined moody editorial menswear feel. Pose: standing tall in profile facing camera-left with body in three-quarter angle, both hands behind the back warmly holding a large rustic asymmetric bouquet of dried pampas grass, dried pale-pink garden roses, dried eucalyptus and dried beige-toned florals trailing down behind him, head turned softly back over his right shoulder toward camera with quiet introspective gaze, refined cinematic moody coastal menswear editorial moment. Color grade: cool muted gray-blue ocean and pale overcast sky with rich deep saturated forest-green suit accent and warm cream skin midtones, refined moody cinematic Korean K-prewedding coastal editorial atmosphere — must clearly read as soft cool overcast daylight at a quiet beach, NOT golden hour, NOT studio.',
+    manualKelvin: 6000,
+    manualMoodHint:
+      'soft cool overcast daylight at a quiet beach with saturated deep forest-green suit accent and dried-floral menswear bouquet, refined moody cinematic Korean K-prewedding coastal mood',
+    faceMaskRegions: [[0.36, 0.16, 0.22, 0.20]],
+  },
 ];
 
 export const isSnapCatalogId = (v: string): boolean =>
@@ -1130,4 +1281,24 @@ export function backdropOf(item: SnapCatalogItem): CatalogBackdrop {
  */
 export function framingOf(item: SnapCatalogItem): CatalogFraming {
   return item.framing ?? 'full';
+}
+
+/**
+ * 합성 방식(strict / prompt-only) 별 결과 예시 썸네일 경로.
+ *
+ * 사용자가 카탈로그를 고르고 합성 방식을 선택할 때 "이 모드로 만들면 어떤 식
+ * 으로 나오는지" 를 미리 보여주기 위한 admin-uploaded 예시 이미지.
+ * 파일 경로 규칙:
+ *   public/wedding-snap/catalog/examples/{id}-{mode}.jpg
+ *
+ * 파일이 없으면 UI 가 onError → 카탈로그 마스터 이미지로 자동 fallback.
+ * 새 예시 추가는 같은 규칙으로 jpg 만 올리면 즉시 노출.
+ */
+export type CatalogExampleMode = 'strict' | 'prompt-only';
+
+export function catalogExampleImage(
+  item: SnapCatalogItem,
+  mode: CatalogExampleMode,
+): string {
+  return `/wedding-snap/catalog/examples/${item.id}-${mode}.jpg`;
 }
