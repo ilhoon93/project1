@@ -386,7 +386,7 @@ function SnapJobsGallery({
             진행 중인 작업 {pending.length}개
           </p>
           <p className="text-[10px] text-amber-800">
-            평균 20–60초 소요. 자동 새로고침 되며, 페이지를 떠나도 백그라운드에서
+            평균 60~120초 소요. 자동 새로고침 되며, 페이지를 떠나도 백그라운드에서
             계속 진행됩니다.
           </p>
           <ul className="flex flex-col gap-1 text-[11px] text-amber-900">

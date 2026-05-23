@@ -1,0 +1,46 @@
+'use client';
+
+/**
+ * 랜딩 페이지(/wedding-snap) 카탈로그 미리보기.
+ *
+ * 서버에서 `getAvailableCatalog()` 으로 받은 visible 항목 전체를 props 로 받고,
+ * client-side 에서 chip 필터(personality / backdrop / framing) 를 적용해 그리드를
+ * 다시 그린다. 생성 페이지(/wedding-snap/create) 의 picker 와 동일한 필터 컴포넌트
+ * (CatalogFilterBar) + 동일한 카드(CatalogCard) 를 써서 두 페이지의 UX 일관성을 유지.
+ */
+
+import { useState } from 'react';
+import type { SnapCatalogItem } from '@/lib/snap/catalog';
+import { CatalogCard } from '@/components/snap/CatalogCard';
+import {
+  CatalogFilterBar,
+  EMPTY_CATALOG_FILTER,
+  applyCatalogFilter,
+  type CatalogFilterState,
+} from '@/components/snap/CatalogFilterBar';
+
+export function CatalogPreviewClient({ items }: { items: SnapCatalogItem[] }) {
+  const [filter, setFilter] = useState<CatalogFilterState>(EMPTY_CATALOG_FILTER);
+  const filtered = applyCatalogFilter(items, filter);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <CatalogFilterBar
+        value={filter}
+        onChange={setFilter}
+        resultCount={{ shown: filtered.length, total: items.length }}
+      />
+      {filtered.length === 0 ? (
+        <p className="rounded-md border border-dashed border-[#E8DCC9] bg-white p-6 text-center text-xs text-[#8B7355]">
+          선택한 필터 조합에 맞는 카탈로그가 없어요. 필터를 조정해 보세요.
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          {filtered.map((item) => (
+            <CatalogCard key={item.id} variant="preview" item={item} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
