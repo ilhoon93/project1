@@ -1069,13 +1069,6 @@ export function SnapGenerator({ catalog }: Props) {
           </div>
         )}
 
-        {mode !== 'couple' && hasFullAnchor && (
-          <p className="mt-3 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-3 text-xs text-[#5C4633]">
-            ✓ 신랑/신부 앵커가 저장되어 있어요. 카탈로그를 바로 선택할 수 있고,
-            얼굴이 마음에 안 들면 아래에서 셀카를 다시 업로드해 신랑/신부
-            슬롯별로 부분 재생성도 가능합니다.
-          </p>
-        )}
 
         {showCoupleInputs && (
           <div className="mt-3 flex flex-col gap-2">
@@ -1433,7 +1426,7 @@ export function SnapGenerator({ catalog }: Props) {
                             : 'bg-amber-500/95 text-white'
                         }`}
                       >
-                        {compat.level === 'risky' ? '🔴 비추' : '🟡 주의'}
+                        {compat.level === 'risky' ? '비추' : '주의'}
                       </span>
                     ) : null
                   }
