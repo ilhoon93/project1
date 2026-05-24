@@ -109,128 +109,16 @@ export interface SnapCatalogItem {
    */
   manualMoodHint?: string;
   /**
-   * (선택) true 면 카탈로그/스냅생성 picker 양쪽에서 숨김.
-   * 사용 케이스:
-   *   - 마스터 이미지가 아직 안 올라온 항목 (정의는 유지하고 노출만 차단)
-   *   - 운영 중에 일시적으로 내릴 항목
-   * 과거 생성물 lookup (`findSnapCatalog`) 은 hidden 무시하므로 마이페이지에서
-   *  여전히 라벨이 보인다. 새 선택만 차단.
+   * @deprecated 이 필드는 더 이상 사용되지 않습니다. picker 노출 차단은 admin
+   * 페이지(`/admin/snap-catalog-tags`) 에서 `hidden` 태그를 세팅해 관리하세요.
+   * 호환성을 위해 type 만 유지하지만 catalog-availability 가 이 값을 무시
+   * 합니다 (PR B 이후). 모든 항목의 hidden:true 정의는 catalog.ts 에서 제거됨.
    */
   hidden?: boolean;
 }
 
 export const SNAP_CATALOG: SnapCatalogItem[] = [
   // ── Together (커플) 컷 ────────────────────────────────────
-  {
-    id: 'studio-classic',
-    label: '클래식 스튜디오',
-    hint: '뉴트럴 그레이 + 소프트박스',
-    category: 'studio',
-    personality: 'together',
-    intensity: 'low',
-    hidden: true, // 마스터 이미지 미업로드
-    framing: 'full',
-    image: '/wedding-snap/catalog/studio-classic.jpg',
-    promptHint:
-      'Indoor studio with seamless neutral gray backdrop. Two-source softbox lighting from front-left and front-right at 45° down, soft floor pickup creating gentle shadow under the couple, polished floor reflecting the dress hem. Shot on 50–85mm portrait lens, eye-level camera, shallow depth of field. Groom: black peak-lapel tuxedo with white shirt and black bow tie. Bride: ivory A-line wedding dress with off-shoulder neckline and lace bodice, holding a small white bouquet at waist level. Editorial portrait atmosphere, color grade with subtle warm midtones and neutral highlights. Pose: standing close together, slight three-quarter angle, bride leaning gently toward groom, both looking at camera with natural soft smiles.',
-    // together: 신랑(왼쪽), 신부(오른쪽) 얼굴 영역. 정면 풀신/반신 컷 기준 추정치.
-    faceMaskRegions: [
-      [0.30, 0.16, 0.18, 0.22],
-      [0.52, 0.16, 0.18, 0.22],
-    ],
-  },
-  {
-    id: 'meadow-spring',
-    label: '야외 가든',
-    hint: '사이프러스 배경 + 잔디 + 자연광',
-    category: 'outdoor',
-    personality: 'together',
-    intensity: 'low',
-    hidden: true, // 마스터 이미지 삭제됨 — 대체 컷 meadow-blue-sky-couple 사용 가능
-    framing: 'full',
-    image: '/wedding-snap/catalog/meadow-spring.jpg',
-    promptHint:
-      'Outdoor garden with tall cypress and pine trees forming a green backdrop, well-kept lawn underfoot, soft overcast natural lighting (no harsh sun, no blown highlights). Shot on 50–85mm lens, eye-level camera, slight background compression with shallow depth of field. Groom: black formal suit with white shirt and black tie. Bride: ivory satin off-shoulder A-line wedding dress holding a small bouquet of white and green florals. Full-body or three-quarter pose, standing slightly turned toward each other on the lawn, classic Korean studio outdoor wedding aesthetic. Color grade: cool greens with soft warm skin tones, never oversaturated. Gentle breeze hinting at fabric movement.',
-    faceMaskRegions: [
-      [0.28, 0.16, 0.16, 0.18],
-      [0.52, 0.20, 0.16, 0.18],
-    ],
-  },
-  {
-    id: 'hanok-courtyard',
-    label: '한옥 정원',
-    hint: '벚꽃 + 기왓장 햇살',
-    category: 'tradition',
-    personality: 'together',
-    intensity: 'medium',
-    hidden: true, // 마스터 이미지 미업로드
-    framing: 'full',
-    image: '/wedding-snap/catalog/hanok-courtyard.jpg',
-    promptHint:
-      'Traditional Korean hanok courtyard with falling cherry blossom petals in the air and on the stone path, dappled sunlight filtering through the trees, wooden architecture and gray-tile roofline as backdrop. Shot on 50–85mm lens, slight low-angle to frame the eaves. Groom: black peak-lapel tuxedo with white shirt and black bow tie. Bride: ivory A-line dress with subtle beading, holding a small white-and-pink bouquet. Warm cultural lighting with golden highlights on hair and shoulders, color grade biased toward warm peach and soft pink. Pose: standing close together on the stone path with petals around them, soft natural smiles. No harsh shadows.',
-    faceMaskRegions: [
-      [0.30, 0.18, 0.16, 0.20],
-      [0.52, 0.18, 0.16, 0.20],
-    ],
-  },
-  {
-    id: 'city-goldenhour',
-    label: '도심 골든아워',
-    hint: '노을빛 유리벽',
-    category: 'urban',
-    personality: 'together',
-    intensity: 'high',
-    hidden: true, // 마스터 이미지 미업로드 (city-goldenhour-balcony 가 유사 컨셉으로 신규 추가됨)
-    framing: 'full',
-    image: '/wedding-snap/catalog/city-goldenhour.jpg',
-    promptHint:
-      'Modern city street at golden hour (warm orange sun low in the sky, long soft rim light on hair and shoulders — must clearly be golden hour, NOT noon, NOT blue hour). Glass skyscrapers in background reflecting the sunset, wet pavement adding subtle catch lights. Shot on 35–50mm lens for a wider environmental feel, shallow depth of field on subjects. Groom: sharp black tuxedo. Bride: sleek ivory satin A-line dress. Cinematic metropolitan atmosphere, color grade leans warm amber + teal shadow contrast. Pose: walking gently side by side or standing close on the pavement, natural casual movement.',
-    faceMaskRegions: [
-      [0.30, 0.20, 0.14, 0.16],
-      [0.50, 0.22, 0.14, 0.16],
-    ],
-  },
-  {
-    id: 'beach-sunset',
-    label: '바닷가 석양',
-    hint: '잔잔한 파도 + 노을',
-    category: 'beach',
-    personality: 'together',
-    intensity: 'high',
-    hidden: true, // 마스터 이미지 미업로드
-    framing: 'full',
-    image: '/wedding-snap/catalog/beach-sunset.jpg',
-    promptHint:
-      'Quiet beach at golden sunset, soft waves rolling on the shore, light sea breeze hinting at fabric movement, warm horizon glow filling the background. Shot on 50–85mm lens, shallow depth of field, slight backlight rim light from the setting sun. Groom: black beach-formal tuxedo (slightly relaxed fit). Bride: ivory chiffon A-line dress with light lace, hem grazing the wet sand. Warm tropical lighting, color grade with warm amber highlights and soft teal shadows. Pose: standing close on the wet sand with bare or simple shoes, looking softly at each other or toward the horizon. No harsh sun glare on faces.',
-    faceMaskRegions: [
-      [0.30, 0.22, 0.16, 0.18],
-      [0.52, 0.22, 0.16, 0.18],
-    ],
-  },
-  {
-    id: 'bridge-goldenhour',
-    label: '브릿지 골든아워',
-    hint: '석양 백라이트 + 스톤 발루스트레이드',
-    category: 'urban',
-    personality: 'together',
-    intensity: 'high',
-    hidden: true, // 마스터 이미지 삭제됨 — 유사 컷 city-goldenhour-balcony 사용 가능
-    framing: 'closeup',
-    image: '/wedding-snap/catalog/bridge-goldenhour.jpg',
-    promptHint:
-      'Outdoor scene on an ornate stone bridge at golden hour, low sun directly behind the couple creating strong warm backlight with subtle lens flare and hazy atmosphere, distant city skyline barely visible as silhouettes in the haze. Carved stone balustrade visible to one side, light wind moving the bride’s hair. Shot on 50–85mm lens, eye-level, shallow depth of field with cinematic sun-flare. Groom: black peak-lapel suit with white shirt and dark tie, short well-groomed hair with a neat mustache. Bride: ivory off-shoulder wedding dress with structured bodice, holding a small bouquet of eucalyptus and white florals. Pose: intimate close together — groom leaning in to kiss the bride near her temple or cheek while the bride looks softly toward camera with a quiet natural smile, the hairline catching warm rim light. Color grade: honey-amber highlights with gentle teal shadows, slight film haze and grain — must clearly read as warm late-afternoon, NOT noon, NOT blue hour.',
-    // 강한 backlit + honey-amber 시네마틱 그레이드라 평균 RGB 휴리스틱이 부정확.
-    // 명시적으로 골든아워 색온도 + mood 지정.
-    manualKelvin: 3000,
-    manualMoodHint:
-      'honey-amber backlit golden hour, warm rim light with teal-shadow film grade, late-afternoon haze',
-    // 신랑(왼쪽 상단, 키스 자세로 약간 앞으로 기울임), 신부(오른쪽, 살짝 아래).
-    // 정확한 좌표는 마스터 컷을 보면서 미세조정 권장.
-    faceMaskRegions: [
-      [0.30, 0.32, 0.16, 0.18],
-      [0.46, 0.40, 0.16, 0.18],
-    ],
-  },
   {
     id: 'beach-classic-white',
     label: '비치 클래식 화이트',
@@ -1242,60 +1130,6 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
       'Solo groom portrait — only the groom is in the frame, no bride, no other people. Indoor studio with seamless neutral gray backdrop, two-source softbox lighting from front-left and front-right at 45° down. Shot on 85mm portrait lens, chest-up to waist-up framing, eye-level camera, shallow depth of field. Groom: black peak-lapel tuxedo with white shirt and black bow tie, perfectly tailored, lapels crisp. Confident natural posture, slight head tilt, soft genuine smile or composed neutral expression. Editorial portrait atmosphere, neutral color grade with subtle warm midtones.',
     // solo 클로즈업 / 반신: 얼굴 정중앙 상단 — drift 가장 뚜렷한 케이스, blur 효과 큼.
     faceMaskRegions: [[0.30, 0.10, 0.40, 0.45]],
-  },
-  {
-    id: 'bride-bouquet',
-    label: '신부 부케',
-    hint: '단독 클로즈업 + 부케',
-    category: 'studio',
-    personality: 'bride-solo',
-    hidden: true, // 마스터 이미지 삭제됨 — 대체 컷 bride-offshoulder-bouquet 사용 가능
-    framing: 'closeup',
-    image: '/wedding-snap/catalog/bride-bouquet.jpg',
-    promptHint:
-      'Solo bride portrait — only the bride is in the frame, no groom, no other people. Indoor studio with seamless soft cream / off-white backdrop, soft directional light from front-left like a large window. Shot on 85mm portrait lens, waist-up framing, eye-level camera, shallow depth of field. Bride: ivory A-line wedding dress with off-shoulder neckline and lace bodice, holding a lush white-and-blush bouquet near her chest. Soft natural smile, eyes slightly toward the camera, gentle hand grip on the bouquet. Color grade: clean cream highlights, soft warm midtones.',
-    faceMaskRegions: [[0.32, 0.08, 0.36, 0.30]],
-  },
-  {
-    id: 'groom-walk-away',
-    label: '신랑 뒤돌아 걷는 컷',
-    hint: '복도 + 빈티지 톤',
-    category: 'urban',
-    personality: 'groom-solo',
-    hidden: true, // 마스터 이미지 미업로드
-    framing: 'full',
-    hasSideAngle: true, // walking away, glance back over shoulder
-    image: '/wedding-snap/catalog/groom-walk-away.jpg',
-    promptHint:
-      'Solo groom shot — only the groom in frame, no bride. Long perspective hallway or colonnade with arched windows, soft natural light from the side. Shot on 35–50mm lens, slight low-angle, deep depth of field showing the corridor lines converging. Groom walking away from camera, glancing back over his shoulder with a soft natural smile, jacket gently catching the light. Black peak-lapel tuxedo, polished oxford shoes. Color grade: muted warm earth tones with soft blue shadows, subtle film-like texture. Cinematic narrative atmosphere.',
-    // walking-away 컷은 얼굴이 작고 옆모습이라 drift 가 덜 보이지만 보존성 측면에서 light region 만.
-    faceMaskRegions: [[0.40, 0.18, 0.18, 0.16]],
-  },
-  {
-    id: 'bride-veil-flow',
-    label: '신부 베일 자연광',
-    hint: '베일 흩날림 + 부드러운 빛',
-    category: 'outdoor',
-    personality: 'bride-solo',
-    hidden: true, // 마스터 이미지 미업로드 (bride-garden-twirl 가 유사 컨셉)
-    framing: 'full',
-    image: '/wedding-snap/catalog/bride-veil-flow.jpg',
-    promptHint:
-      'Solo bride shot — only the bride in frame, no groom, no other people. Soft outdoor setting with a neutral blurred background (light foliage or pale wall), warm late-afternoon natural light from behind producing a gentle rim along the veil. Shot on 85mm portrait lens, three-quarter (knee-up) framing, slight three-quarter (~20°) angle. Bride: ivory A-line wedding dress with a long tulle veil floating gently in a light breeze, holding a small white bouquet, eyes softly looking aside or down. Color grade: warm pastel with soft pink and cream highlights, dreamy but not over-glowed.',
-    faceMaskRegions: [[0.35, 0.12, 0.30, 0.28]],
-  },
-  {
-    id: 'bride-window',
-    label: '신부 창가 자연광',
-    hint: '실내 창가 + 단독 반신',
-    category: 'studio',
-    personality: 'bride-solo',
-    hidden: true, // 마스터 이미지 미업로드
-    framing: 'closeup',
-    image: '/wedding-snap/catalog/bride-window.jpg',
-    promptHint:
-      'Solo bride shot — only the bride in frame, no groom. Indoor room beside a large window with soft natural daylight pouring in from camera-left, sheer curtain diffusing the light. Shot on 50–85mm lens, waist-up framing, three-quarter angle so the window light wraps gently around the face. Bride: ivory A-line wedding dress with off-shoulder neckline, hands resting at her side or lightly on the windowsill, looking softly out the window or toward camera. Color grade: airy clean whites with cool window light tone, soft warm skin midtones. Calm contemplative mood.',
-    faceMaskRegions: [[0.35, 0.12, 0.30, 0.30]],
   },
   {
     id: 'bride-vintage-car',

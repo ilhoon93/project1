@@ -93,25 +93,17 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `groom-hotel-stairs` | 신랑 호텔 계단 단독 | `groom-hotel-stairs.jpg` |
 | `bride-nyc-chrysler` | 신부 NYC 크라이슬러 빌딩 | `bride-nyc-chrysler.jpg` |
 
-**Hidden (정의만 유지 · picker 노출 X)**
+**Hidden 처리**
 
-`hidden:true` 로 마킹된 항목은 [`SNAP_CATALOG`](../../../src/lib/snap/catalog.ts) 에는
-정의가 남아 있어 `findSnapCatalog` 가 과거 결과물의 라벨 lookup 에는 응답하지만,
-랜딩 미리보기 / 스냅 생성 picker 양쪽에서 모두 숨겨진다. 마스터 jpg 를 올린 뒤
-`hidden:true` 만 제거하면 즉시 활성화.
+picker 에서 카탈로그를 숨기려면 운영자가 admin 페이지
+(`/admin/snap-catalog-tags`) 에서 해당 카탈로그의 두 input_condition (셀카 모드 /
+커플 전신) 양쪽 모두 `hidden` 태그를 세팅하세요. 변경 즉시 사용자 페이지 반영.
 
-| id | 라벨 | 사유 |
-| --- | --- | --- |
-| `studio-classic` | 클래식 스튜디오 | 마스터 미업로드 (대체 컷 `studio-classic-greenbouquet`) |
-| `meadow-spring` | 야외 가든 | 마스터 삭제됨 (대체 컷 `meadow-blue-sky-couple`) |
-| `bridge-goldenhour` | 브릿지 골든아워 | 마스터 삭제됨 (대체 컷 `city-goldenhour-balcony`) |
-| `bride-bouquet` | 신부 부케 | 마스터 삭제됨 (대체 컷 `bride-offshoulder-bouquet`) |
-| `hanok-courtyard` | 한옥 정원 | 마스터 미업로드 |
-| `city-goldenhour` | 도심 골든아워 | 마스터 미업로드 (대체 컷 `city-goldenhour-balcony`) |
-| `beach-sunset` | 바닷가 석양 | 마스터 미업로드 |
-| `groom-walk-away` | 신랑 뒤돌아 걷는 컷 | 마스터 미업로드 |
-| `bride-veil-flow` | 신부 베일 자연광 | 마스터 미업로드 (유사 컷 `bride-garden-twirl`) |
-| `bride-window` | 신부 창가 자연광 | 마스터 미업로드 |
+마스터 이미지(jpg)가 없는 카탈로그는 `getAvailableCatalog()` 가 fs.statSync 로
+자동 제외하므로 별도 hidden 세팅 없이도 picker / landing 양쪽에서 안 보입니다.
+
+(이전엔 `catalog.ts` 의 `hidden:true` 필드로 관리했으나 admin 페이지로 일원화됐고,
+정의되어 있던 10개 hidden 항목 자체는 catalog.ts 에서 완전 제거됨.)
 
 새 카탈로그 추가 시: `SNAP_CATALOG` 에 항목을 추가하고 같은 `id` 의 jpg 를
 이 폴더에 올리면 즉시 노출/사용됩니다 (`getAvailableCatalog()` 가 파일 유무를

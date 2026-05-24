@@ -188,6 +188,8 @@ export function SnapGenerator({ catalog, adminTags }: Props) {
   // 비어 있으면 전체 노출. 랜딩 미리보기와 동일한 컴포넌트(CatalogFilterBar) 사용.
   const [catalogFilter, setCatalogFilter] =
     useState<CatalogFilterState>(EMPTY_CATALOG_FILTER);
+  // "추천만 보기" 토글 — 운영자 recommend 태그 카탈로그만 노출 (caution/risky 숨김).
+  const [onlyRecommended, setOnlyRecommended] = useState<boolean>(false);
   // 카탈로그 합성 방식 — 'strict' (마스터 컷 참조, 포즈 재현 강함)
   //                  / 'prompt-only' (마스터 안 쓰고 텍스트로만 scene 지시, 얼굴 보존 강함).
   // 이번 batch 의 모든 선택 카탈로그에 동일하게 적용.
@@ -668,14 +670,28 @@ export function SnapGenerator({ catalog, adminTags }: Props) {
     }
     return true;
   });
-  // 정렬: 추천 태그 카탈로그 먼저, 그 외는 원래 순서 유지 (stable sort).
-  const sortedModeFiltered = modeFilteredCatalog.slice().sort((a, b) => {
-    if (!adminCondition) return 0;
-    const aRec = adminTags[a.id]?.[adminCondition] === 'recommend' ? 1 : 0;
-    const bRec = adminTags[b.id]?.[adminCondition] === 'recommend' ? 1 : 0;
-    return bRec - aRec;
-  });
-  const visibleCatalog = applyCatalogFilter(sortedModeFiltered, catalogFilter);
+  // 정렬: 추천 > 기본(미설정) > 주의 > 비추 순. 같은 등급 내에서는 원래 순서 유지 (stable sort).
+  // hidden 은 위 필터에서 이미 제외. recommend 가 가장 앞, risky 가 가장 뒤.
+  const tagRank = (id: string): number => {
+    if (!adminCondition) return 1;
+    const tag = adminTags[id]?.[adminCondition];
+    if (tag === 'recommend') return 0;
+    if (tag === 'caution') return 2;
+    if (tag === 'risky') return 3;
+    return 1; // null / 미설정 = 기본 (safe)
+  };
+  const sortedModeFiltered = modeFilteredCatalog.slice().sort(
+    (a, b) => tagRank(a.id) - tagRank(b.id),
+  );
+  // "추천만 보기" 토글 — caution/risky 제외 (recommend + safe 만 노출).
+  const onlyRecommendedFiltered = onlyRecommended
+    ? sortedModeFiltered.filter((c) => {
+        if (!adminCondition) return true;
+        const tag = adminTags[c.id]?.[adminCondition];
+        return tag !== 'caution' && tag !== 'risky';
+      })
+    : sortedModeFiltered;
+  const visibleCatalog = applyCatalogFilter(onlyRecommendedFiltered, catalogFilter);
 
   // 한 카탈로그가 현재 입력 (mode + anchor) 으로 생성 가능한지 판정.
   // 다중 선택 UI 가 개별 카탈로그 자체의 enable/disable 판단에 사용.
@@ -1375,9 +1391,10 @@ export function SnapGenerator({ catalog, adminTags }: Props) {
           <span className="text-[10px] text-[#8B7355]">· 현재 경로: {pathHint}</span>
         </p>
 
-        {/* 검색 필터 — chip 토글 3그룹. couple 모드에서 모드 필터로 이미 추려진
-            modeFilteredCatalog 를 기준으로 총량 표시. */}
-        <div className="mt-3">
+        {/* 좌측: 모드별 카탈로그 선택 가이드 / 우측: 검색 필터.
+            데스크탑(lg) 에선 가로 2단, 모바일에선 세로로 쌓임. */}
+        <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <CatalogSelectionGuide />
           <CatalogFilterBar
             value={catalogFilter}
             onChange={setCatalogFilter}
@@ -1385,6 +1402,8 @@ export function SnapGenerator({ catalog, adminTags }: Props) {
               shown: visibleCatalog.length,
               total: modeFilteredCatalog.length,
             }}
+            onlyRecommended={onlyRecommended}
+            onOnlyRecommendedChange={setOnlyRecommended}
           />
         </div>
 
@@ -2146,6 +2165,31 @@ function CoupleFaceMetaBadge({
     );
   }
   return null;
+}
+
+/**
+ * 카탈로그 선택 가이드 박스 — 사용자가 본인 입력 케이스에 맞춰 어떤 카탈로그를
+ * 고르면 좋은지 한눈에 보여줌. "카탈로그 컷 선택" 섹션의 검색 필터와 좌우 2단 배치.
+ */
+function CatalogSelectionGuide() {
+  return (
+    <div className="flex flex-col gap-2 rounded-md border border-dashed border-[#E8DCC9] bg-[#FAF7F2]/60 p-2.5">
+      <span className="text-[11px] font-medium text-[#3D2E1F]">
+        카탈로그 선택 가이드
+      </span>
+      <ul className="flex flex-col gap-1 text-[11px] leading-relaxed text-[#5C4633]">
+        <li>
+          <strong>셀카 모드</strong> → 솔로컷, 얼굴 클로즈업(반신 이상 컷)
+        </li>
+        <li>
+          <strong>커플 사진 (클로즈업)</strong> → 모든 커플 카탈로그
+        </li>
+        <li>
+          <strong>커플 사진 (전신)</strong> → 멋진 배경의 전신 커플 카탈로그
+        </li>
+      </ul>
+    </div>
+  );
 }
 
 /**
