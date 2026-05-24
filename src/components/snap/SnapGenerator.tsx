@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import type { SnapCatalogItem } from '@/lib/snap/catalog';
 import { catalogExampleImage } from '@/lib/snap/catalog';
+import { detectFaces, type FaceMeta } from '@/lib/snap/face-detect';
 import { CatalogCard } from '@/components/snap/CatalogCard';
 import { StepIndicator, type SnapStep } from '@/components/snap/StepIndicator';
 import {
@@ -127,6 +128,12 @@ export function SnapGenerator({ catalog }: Props) {
   const [groomFaces, setGroomFaces] = useState<[FaceState, FaceState, FaceState]>(emptyFaceTriple);
   const [brideFaces, setBrideFaces] = useState<[FaceState, FaceState, FaceState]>(emptyFaceTriple);
   const [couple, setCouple] = useState<FaceState>(emptyFace);
+  // 커플 사진 face 메타 — 업로드 직후 client-side MediaPipe 로 측정.
+  // null = 미측정 / 측정 실패. 호환성 점수 계산에서 fallback 처리.
+  const [coupleFaceMeta, setCoupleFaceMeta] = useState<FaceMeta | null>(null);
+  const [coupleFaceMetaStatus, setCoupleFaceMetaStatus] = useState<
+    'idle' | 'measuring' | 'ready' | 'error'
+  >('idle');
   const [groomBody, setGroomBody] = useState<BodyForm>({ heightCm: '', weightKg: '' });
   const [brideBody, setBrideBody] = useState<BodyForm>({ heightCm: '', weightKg: '' });
 
@@ -171,6 +178,9 @@ export function SnapGenerator({ catalog }: Props) {
   //                  / 'prompt-only' (마스터 안 쓰고 텍스트로만 scene 지시, 얼굴 보존 강함).
   // 이번 batch 의 모든 선택 카탈로그에 동일하게 적용.
   const [imageReference, setImageReference] = useState<'strict' | 'prompt-only'>('strict');
+  // 자동 모드 추천 banner 닫힘 여부. 사용자가 "유지" 누르면 같은 batch 동안 다시 안 뜸.
+  // 다음 batch (제출 후 다시 선택) 에는 false 로 리셋.
+  const [modeRecommendDismissed, setModeRecommendDismissed] = useState<boolean>(false);
   // 동의 게이트 — null = 로딩 중, true = 미동의(모달 표시), false = 동의 완료.
   // 진입 시 /api/snap/consent GET 으로 상태 조회 후 결정.
   const [needsConsent, setNeedsConsent] = useState<boolean | null>(null);
@@ -199,6 +209,12 @@ export function SnapGenerator({ catalog }: Props) {
 
   // 앵커가 "완전히" 저장됐는지 — 신랑/신부 둘 다 set.
   const hasFullAnchor = !!anchor?.groomAnchorUrl && !!anchor?.brideAnchorUrl;
+  // 앵커 분기 모드 — hasFullAnchor 일 때만 의미:
+  //   false (default) = "기존 앵커 사용" — 사진/키몸무게/앵커 만들기 섹션 collapse
+  //   true            = "앵커 새로 만들기" — 모든 입력 섹션 노출
+  // hasFullAnchor 가 false 면 무조건 true 처럼 동작 (재방문 첫 사용자가 아니라 신규).
+  // 실제 섹션 노출은 showSelfieInputs / showAnchorBuilder 가 이 값 + mode 를 결합해 판단.
+  const [anchorRecreateMode, setAnchorRecreateMode] = useState<boolean>(false);
 
   // 초기 로드.
   useEffect(() => {
@@ -271,6 +287,38 @@ export function SnapGenerator({ catalog }: Props) {
       canceled = true;
     };
   }, []);
+
+  // 커플 사진 업로드 → MediaPipe 로 face count + 얼굴 크기 비율 자동 측정.
+  // preview (Object URL 또는 signed URL) 이 있을 때 한 번만 실행. 모드가 couple 아니면 skip.
+  useEffect(() => {
+    if (mode !== 'couple') {
+      setCoupleFaceMeta(null);
+      setCoupleFaceMetaStatus('idle');
+      return;
+    }
+    if (!couple.preview) {
+      setCoupleFaceMeta(null);
+      setCoupleFaceMetaStatus('idle');
+      return;
+    }
+    let canceled = false;
+    setCoupleFaceMetaStatus('measuring');
+    detectFaces(couple.preview)
+      .then((meta) => {
+        if (canceled) return;
+        setCoupleFaceMeta(meta);
+        setCoupleFaceMetaStatus('ready');
+      })
+      .catch(() => {
+        if (canceled) return;
+        // 모델 로드 실패 / 이미지 로드 실패 — 측정 없이 진행 (호환성은 default safe 로 fallback).
+        setCoupleFaceMeta(null);
+        setCoupleFaceMetaStatus('error');
+      });
+    return () => {
+      canceled = true;
+    };
+  }, [mode, couple.preview]);
 
   const numAngles = mode === 'selfies3' ? 3 : 1;
 
@@ -699,15 +747,21 @@ export function SnapGenerator({ catalog }: Props) {
     setSubmitSummary({ ok: ok.length, failed });
     // 성공한 카탈로그는 선택 해제 (실패한 건 재시도 위해 유지).
     setSelectedIds(new Set(failed.map((f) => f.catalogId)));
+    // 다음 batch 에서는 자동 모드 추천 banner 다시 노출.
+    setModeRecommendDismissed(false);
     setStage('submitted');
   };
 
   // ── 헬퍼 / 표시용 ───────────────────────────────────────
   // 셀카 모드 = 항상 입력 + 앵커 빌더 노출. 앵커 이미 저장됐어도 부분 재생성
   // 가능해야 하므로 hide 하지 않음.
-  const showSelfieInputs = mode !== 'couple';
+  // 셀카 모드 + 기존 앵커가 있고 "기존 사용" 선택 시 입력 영역 collapse.
+  // 신규 사용자 / 커플 모드 / "새로 만들기" 선택 시는 노출.
+  const showSelfieInputs = mode !== 'couple' && (!hasFullAnchor || anchorRecreateMode);
   const showCoupleInputs = mode === 'couple';
-  const showAnchorBuilder = mode !== 'couple';
+  const showAnchorBuilder = mode !== 'couple' && (!hasFullAnchor || anchorRecreateMode);
+  // 셀카 모드 + 기존 앵커가 있을 때만 노출하는 분기 토글.
+  const showAnchorBranchToggle = mode !== 'couple' && hasFullAnchor;
 
   const pathHint = (() => {
     if (mode === 'couple') return '커플 사진 기반 (앵커 영향 없음)';
@@ -718,6 +772,20 @@ export function SnapGenerator({ catalog }: Props) {
     if (k === 'groom-solo') return '신랑 앵커 단독 컷';
     if (k === 'bride-solo') return '신부 앵커 단독 컷';
     return '신랑·신부 앵커 합성';
+  })();
+
+  // 선택한 카탈로그 중 호환성 caution/risky 라 prompt-only 가 권장되는 항목 개수.
+  // 자동 모드 추천 banner 가 카탈로그 합성 방식이 'strict' 인 상태에서 이 개수 > 0
+  // 이면 사용자에게 한 번 클릭으로 prompt-only 전환을 권유.
+  const promptOnlyRecommendedCount = (() => {
+    const compatMode = mode === 'couple' ? 'couple' : 'anchor';
+    return selectedCatalogs.filter((item) => {
+      const r = scoreCompatibility(item, {
+        mode: compatMode,
+        faceSizeRatio: coupleFaceMeta?.faceSizeRatio ?? null,
+      });
+      return r.recommendedMode === 'prompt-only';
+    }).length;
   })();
 
   // 상단 StatusCard 가 표시할 앵커 URL — slot 별 selectedXxxAnchorId 기준.
@@ -820,8 +888,40 @@ export function SnapGenerator({ catalog }: Props) {
           />
         </div>
 
-        {/* 셀카 모드 선택 시 — 1장 vs 3장 sub-toggle. */}
-        {mode !== 'couple' && (
+        {/* 기존 앵커가 있으면 분기 토글 — "기존 앵커 사용" / "앵커 새로 만들기".
+            재방문 사용자가 매번 사진/앵커 입력을 다시 보지 않아도 되게 collapse. */}
+        {showAnchorBranchToggle && (
+          <div className="mt-3 flex flex-col gap-2 rounded-md border border-[#3D2E1F]/15 bg-[#FAF7F2] p-3">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-[11px] font-medium text-[#3D2E1F]">
+                저장된 앵커가 있어요
+              </span>
+              <span className="text-[10px] text-[#8B7355]">
+                새 셀카로 다시 만들어도 됩니다
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <SubToggleButton
+                selected={!anchorRecreateMode}
+                disabled={isProgressing || isAnchorBusy}
+                onClick={() => setAnchorRecreateMode(false)}
+                title="기존 앵커 사용"
+                desc="저장된 신랑·신부 앵커 그대로 사용. 사진 업로드 생략."
+              />
+              <SubToggleButton
+                selected={anchorRecreateMode}
+                disabled={isProgressing || isAnchorBusy}
+                onClick={() => setAnchorRecreateMode(true)}
+                title="앵커 새로 만들기"
+                desc="새 셀카로 다시 합성. 키·몸무게도 함께 갱신 가능."
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 셀카 모드 선택 시 — 1장 vs 3장 sub-toggle.
+            "기존 사용" 선택 시는 사진 입력 자체가 collapse 라 1장/3장 구분 의미 없음 → 숨김. */}
+        {mode !== 'couple' && showSelfieInputs && (
           <div className="mt-3 flex flex-col gap-2 rounded-md border border-dashed border-[#E8DCC9] bg-[#FAF7F2]/60 p-2.5">
             <span className="text-[11px] font-medium text-[#3D2E1F]">셀카 장수</span>
             <div className="grid grid-cols-2 gap-2">
@@ -978,25 +1078,34 @@ export function SnapGenerator({ catalog }: Props) {
         )}
 
         {showCoupleInputs && (
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <FaceUploader
-              label="커플 사진"
-              face={couple}
-              disabled={isProgressing || isAnchorBusy}
-              onPick={() => coupleRef.current?.click()}
-              wide
-            />
-            <input
-              ref={coupleRef}
-              type="file"
-              accept={IMAGE_LIMITS.acceptMime.join(',')}
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void handleFaceUpload('couple', 0, f);
-                e.target.value = '';
-              }}
-            />
+          <div className="mt-3 flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-3">
+              <FaceUploader
+                label="커플 사진"
+                face={couple}
+                disabled={isProgressing || isAnchorBusy}
+                onPick={() => coupleRef.current?.click()}
+                wide
+              />
+              <input
+                ref={coupleRef}
+                type="file"
+                accept={IMAGE_LIMITS.acceptMime.join(',')}
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void handleFaceUpload('couple', 0, f);
+                  e.target.value = '';
+                }}
+              />
+            </div>
+            {/* 커플 사진 face 측정 상태 — 카탈로그 호환성 판정에 사용. */}
+            {couple.url && coupleFaceMetaStatus !== 'idle' && (
+              <CoupleFaceMetaBadge
+                status={coupleFaceMetaStatus}
+                meta={coupleFaceMeta}
+              />
+            )}
           </div>
         )}
       </section>
@@ -1285,9 +1394,10 @@ export function SnapGenerator({ catalog }: Props) {
             {visibleCatalog.map((item) => {
               const selected = selectedIds.has(item.id);
               const enabled = isCatalogGeneratable(item);
-              // 카탈로그 호환성 — intensity 기반 정성적 경고.
+              // 카탈로그 호환성 — intensity + framing + (커플 모드) 입력 face size.
               const compat = scoreCompatibility(item, {
                 mode: mode === 'couple' ? 'couple' : 'anchor',
+                faceSizeRatio: coupleFaceMeta?.faceSizeRatio ?? null,
               });
               return (
                 <CatalogCard
@@ -1323,7 +1433,7 @@ export function SnapGenerator({ catalog }: Props) {
                             : 'bg-amber-500/95 text-white'
                         }`}
                       >
-                        {compat.level === 'risky' ? '⚠ 변형 위험' : '⚠ 강한 스타일'}
+                        {compat.level === 'risky' ? '🔴 비추' : '🟡 주의'}
                       </span>
                     ) : null
                   }
@@ -1355,6 +1465,40 @@ export function SnapGenerator({ catalog }: Props) {
               ? '커플 사진은 두 방식 결과가 의상·배경 충실도 vs 얼굴 보존으로 갈려요. 예시 보고 골라주세요.'
               : '같은 카탈로그라도 모드에 따라 결과가 달라요. 예시 보고 골라주세요.'}
         </p>
+
+        {/* 자동 모드 추천 banner — 호환성 점수 기반.
+              선택한 카탈로그 중 prompt-only 가 권장되는 게 1개 이상 있고 현재 strict
+              모드면 한 번 클릭으로 전환하라고 권유. 사용자가 강한 안내를 받아 실패 케이스
+              사전 회피 가능. dismiss 후엔 다시 strict 로 돌아가도 안 보임 (state 로 관리). */}
+        {imageReference === 'strict' &&
+          promptOnlyRecommendedCount > 0 &&
+          !modeRecommendDismissed && (
+            <div className="mt-3 flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50/70 p-3 text-xs text-amber-900 sm:flex-row sm:items-center">
+              <span className="flex-1">
+                선택한 컷 중 <strong>{promptOnlyRecommendedCount}개</strong>는{' '}
+                <strong>prompt-only 모드</strong>가 얼굴 보존이 더 잘 돼요.
+                자동 전환할까요?
+              </span>
+              <div className="flex shrink-0 gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setImageReference('prompt-only')}
+                >
+                  자동 전환
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setModeRecommendDismissed(true)}
+                >
+                  유지
+                </Button>
+              </div>
+            </div>
+          )}
+
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           <ImageReferenceCard
             value="strict"
@@ -2024,6 +2168,50 @@ function SubToggleButton({
       <span className="text-[10px] leading-snug text-[#8B7355]">{desc}</span>
     </button>
   );
+}
+
+/**
+ * 커플 사진 face 측정 결과 작은 인디케이터 — 카탈로그 호환성에 어떻게 반영
+ * 되는지 사용자에게 투명하게 노출. 측정 실패 시 "측정 못 함, 일반 규칙 적용" 안내.
+ */
+function CoupleFaceMetaBadge({
+  status,
+  meta,
+}: {
+  status: 'measuring' | 'ready' | 'error';
+  meta: FaceMeta | null;
+}) {
+  if (status === 'measuring') {
+    return (
+      <p className="text-[10px] text-[#8B7355]">
+        ⏳ 사진 분석 중… (얼굴 크기 측정 후 호환 카탈로그 자동 추천)
+      </p>
+    );
+  }
+  if (status === 'error') {
+    return (
+      <p className="text-[10px] text-amber-700">
+        ⚠ 얼굴 자동 측정 실패 — 일반 호환성 규칙으로 진행됩니다.
+      </p>
+    );
+  }
+  if (status === 'ready' && meta) {
+    const r = meta.faceSizeRatio;
+    const sizeLabel =
+      meta.faceCount === 0
+        ? '얼굴을 못 찾았어요 — 정면 얼굴이 잘 보이는 사진을 권장합니다'
+        : r >= 0.25
+          ? '얼굴 크게 보이는 사진 — 대부분 카탈로그에 잘 맞아요'
+          : r >= 0.15
+            ? '보통 반신 사진 — 클로즈업 카탈로그는 살짝 주의'
+            : '얼굴 작은 전신 사진 — 클로즈업 카탈로그는 변형 위험이 있어요';
+    return (
+      <p className="text-[10px] text-[#5C4633]">
+        ✓ 얼굴 {meta.faceCount}개 감지 · {sizeLabel}
+      </p>
+    );
+  }
+  return null;
 }
 
 /**
