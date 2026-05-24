@@ -10,7 +10,6 @@ import {
 } from '@/lib/uploads';
 import { Button } from '@/components/ui/button';
 import type { SnapCatalogItem } from '@/lib/snap/catalog';
-import { catalogExampleImage } from '@/lib/snap/catalog';
 import { detectFaces, type FaceMeta } from '@/lib/snap/face-detect';
 import {
   ExampleFlowModal,
@@ -894,9 +893,6 @@ export function SnapGenerator({ catalog }: Props) {
               <span className="text-[11px] font-medium text-[#3D2E1F]">
                 저장된 앵커가 있어요
               </span>
-              <span className="text-[10px] text-[#8B7355]">
-                새 셀카로 다시 만들어도 됩니다
-              </span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <SubToggleButton
@@ -1486,8 +1482,6 @@ export function SnapGenerator({ catalog }: Props) {
             onSelect={() => setImageReference('strict')}
             title="기본 모드"
             description="카탈로그 사진의 의상·배경·포즈를 그대로 따라 만듭니다. 대부분의 컷에서 자연스럽게 동작해요."
-            examples={selectedCatalogs}
-            exampleMode="strict"
           />
           <ImageReferenceCard
             value="prompt-only"
@@ -1496,8 +1490,6 @@ export function SnapGenerator({ catalog }: Props) {
             onSelect={() => setImageReference('prompt-only')}
             title="얼굴 강화 모드"
             description="카탈로그 구도를 살짝 양보하고 내 얼굴 유사도를 최우선으로 보존합니다. 측면·전신 컷이나 결과가 어색했던 컷에 효과적."
-            examples={selectedCatalogs}
-            exampleMode="prompt-only"
           />
         </div>
       </section>
@@ -2132,13 +2124,9 @@ function CoupleFaceMetaBadge({
 }
 
 /**
- * 합성 방식 (strict / prompt-only) 카드 — 카드 안에 선택한 카탈로그의 모드별
- * 결과 예시 썸네일을 작게 N장 노출.
- *
- * - examples 가 비어 있으면 (선택 카탈로그 0) 안내 placeholder.
- * - 각 썸네일은 `public/wedding-snap/catalog/examples/<id>-<mode>.jpg` 를
- *   <img> 로 시도하고, 없으면 onError 로 카탈로그 마스터로 자동 fallback.
- * - 최대 4장까지만 노출 (5개 이상 선택 시 +N 칩으로 표시).
+ * 합성 방식 (기본 / 얼굴 강화) 카드 — 라디오 인디케이터 + 제목 + 설명만.
+ * (이전엔 카드 안에 선택한 카탈로그별 예시 결과 N장 그리드가 있었으나 노이즈로
+ *  판단되어 제거. 모드 선택에 집중하도록 단순화.)
  */
 function ImageReferenceCard({
   value,
@@ -2147,8 +2135,6 @@ function ImageReferenceCard({
   onSelect,
   title,
   description,
-  examples,
-  exampleMode,
 }: {
   value: 'strict' | 'prompt-only';
   current: 'strict' | 'prompt-only';
@@ -2156,12 +2142,8 @@ function ImageReferenceCard({
   onSelect: () => void;
   title: string;
   description: string;
-  examples: SnapCatalogItem[];
-  exampleMode: 'strict' | 'prompt-only';
 }) {
   const selected = current === value;
-  const visibleExamples = examples.slice(0, 4);
-  const extra = Math.max(0, examples.length - visibleExamples.length);
   return (
     <button
       type="button"
@@ -2187,58 +2169,7 @@ function ImageReferenceCard({
         <span className="text-sm font-semibold text-[#3D2E1F]">{title}</span>
       </span>
       <span className="text-[11px] leading-relaxed text-[#5C4633]">{description}</span>
-      {visibleExamples.length > 0 && (
-        <div className="mt-1 flex flex-col gap-1">
-          <span className="text-[10px] font-medium text-[#8B7355]">예시 결과</span>
-          <div className="grid grid-cols-4 gap-1">
-            {visibleExamples.map((item) => (
-              <ExampleThumb
-                key={item.id}
-                item={item}
-                exampleMode={exampleMode}
-              />
-            ))}
-            {extra > 0 && (
-              <span className="grid aspect-[3/4] place-items-center rounded border border-dashed border-[#D4C5B0] bg-[#FAF7F2] text-[10px] font-medium text-[#8B7355]">
-                +{extra}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
     </button>
-  );
-}
-
-/**
- * 모드별 예시 결과 thumbnail. 카탈로그 마스터 자체로 fallback (onError).
- * 추후 admin 이 examples/<id>-<mode>.jpg 를 올리면 즉시 노출됨.
- */
-function ExampleThumb({
-  item,
-  exampleMode,
-}: {
-  item: SnapCatalogItem;
-  exampleMode: 'strict' | 'prompt-only';
-}) {
-  const exampleSrc = catalogExampleImage(item, exampleMode);
-  return (
-    <div
-      title={`${item.label} · ${exampleMode === 'strict' ? '기본 모드' : '얼굴 강화 모드'} 예시`}
-      className="relative overflow-hidden rounded border border-[#E8DCC9] bg-[#F5EDE0]"
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={exampleSrc}
-        alt={`${item.label} ${exampleMode} 예시 결과`}
-        className="block aspect-[3/4] w-full object-cover"
-        onError={(e) => {
-          // examples/ 파일 없으면 카탈로그 마스터로 fallback (admin 이 아직 안 올렸을 때).
-          const target = e.currentTarget;
-          if (target.src.endsWith(exampleSrc)) target.src = item.image;
-        }}
-      />
-    </div>
   );
 }
 
