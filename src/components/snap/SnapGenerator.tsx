@@ -23,7 +23,12 @@ import {
   applyCatalogFilter,
   type CatalogFilterState,
 } from '@/components/snap/CatalogFilterBar';
-import { scoreCompatibility } from '@/lib/snap/catalog-compatibility';
+import {
+  evaluateCompatibility,
+  isCatalogHidden,
+  resolveAdminCondition,
+} from '@/lib/snap/catalog-compatibility';
+import type { CatalogAdminTagMap } from '@/lib/snap/catalog-admin-tags';
 import { ConsentModal } from '@/components/snap/ConsentModal';
 import {
   ANCHOR_TEMPLATES,
@@ -100,6 +105,12 @@ interface AnchorCandidate {
 
 interface Props {
   catalog: SnapCatalogItem[];
+  /**
+   * 운영자가 admin 페이지에서 세팅한 카탈로그별 태그 map.
+   * 사용자 페이지의 호환성 판정 / 추천 정렬 / hidden 필터에 모두 사용.
+   * 미설정 카탈로그 = default safe.
+   */
+  adminTags: CatalogAdminTagMap;
 }
 
 function parseBody(b: BodyForm): { heightCm: number; weightKg: number } | null {
@@ -123,7 +134,7 @@ async function parseRes(res: Response) {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export function SnapGenerator({ catalog }: Props) {
+export function SnapGenerator({ catalog, adminTags }: Props) {
   // 입력 모드 — 셀카 1장씩 (디폴트) / 셀카 3장씩 (정면+좌45°+우45°) / 커플 사진.
   const [mode, setMode] = useState<InputMode>('selfies1');
 
@@ -638,14 +649,33 @@ export function SnapGenerator({ catalog }: Props) {
   };
 
   // ── 카탈로그 생성 ────────────────────────────────────────
-  // 카탈로그 필터링 2단계:
+  // 현재 mode + 입력 face size 로 admin condition 결정 (한 번만 derive 해서 재사용).
+  const adminCondition = resolveAdminCondition(
+    mode === 'couple' ? 'couple' : 'anchor',
+    coupleFaceMeta?.faceSizeRatio ?? null,
+  );
+
+  // 카탈로그 필터링 3단계:
   //   1. mode-based — couple 모드에서는 solo 카탈로그는 의미 없어 숨김.
-  //   2. user-driven — picker 위에 chip 필터(personality/backdrop/framing) 적용.
+  //   2. admin hidden — 현재 condition 에서 운영자가 hidden 태그 단 카탈로그 제외.
+  //   3. user-driven — picker 위 chip 필터(personality/backdrop/framing) 적용.
+  // 그리고 recommend 태그 카탈로그가 그리드 앞쪽에 오도록 정렬.
   const modeFilteredCatalog = catalog.filter((c) => {
-    if (mode === 'couple') return c.personality === 'together';
+    if (mode === 'couple' && c.personality !== 'together') return false;
+    if (adminCondition) {
+      const tag = adminTags[c.id]?.[adminCondition];
+      if (isCatalogHidden(tag)) return false;
+    }
     return true;
   });
-  const visibleCatalog = applyCatalogFilter(modeFilteredCatalog, catalogFilter);
+  // 정렬: 추천 태그 카탈로그 먼저, 그 외는 원래 순서 유지 (stable sort).
+  const sortedModeFiltered = modeFilteredCatalog.slice().sort((a, b) => {
+    if (!adminCondition) return 0;
+    const aRec = adminTags[a.id]?.[adminCondition] === 'recommend' ? 1 : 0;
+    const bRec = adminTags[b.id]?.[adminCondition] === 'recommend' ? 1 : 0;
+    return bRec - aRec;
+  });
+  const visibleCatalog = applyCatalogFilter(sortedModeFiltered, catalogFilter);
 
   // 한 카탈로그가 현재 입력 (mode + anchor) 으로 생성 가능한지 판정.
   // 다중 선택 UI 가 개별 카탈로그 자체의 enable/disable 판단에 사용.
@@ -779,19 +809,13 @@ export function SnapGenerator({ catalog }: Props) {
     return '신랑·신부 앵커 합성';
   })();
 
-  // 선택한 카탈로그 중 호환성 caution/risky 라 prompt-only 가 권장되는 항목 개수.
-  // 자동 모드 추천 banner 가 카탈로그 합성 방식이 'strict' 인 상태에서 이 개수 > 0
-  // 이면 사용자에게 한 번 클릭으로 prompt-only 전환을 권유.
-  const promptOnlyRecommendedCount = (() => {
-    const compatMode = mode === 'couple' ? 'couple' : 'anchor';
-    return selectedCatalogs.filter((item) => {
-      const r = scoreCompatibility(item, {
-        mode: compatMode,
-        faceSizeRatio: coupleFaceMeta?.faceSizeRatio ?? null,
-      });
-      return r.recommendedMode === 'prompt-only';
-    }).length;
-  })();
+  // 선택한 카탈로그 중 운영자가 caution/risky 태그 단 것 개수.
+  // 합성 방식이 'strict' 인 상태에서 이 개수 > 0 이면 자동 모드 추천 banner 노출.
+  const promptOnlyRecommendedCount = selectedCatalogs.filter((item) => {
+    if (!adminCondition) return false;
+    const tag = adminTags[item.id]?.[adminCondition];
+    return evaluateCompatibility(tag).recommendedMode === 'prompt-only';
+  }).length;
 
   // 상단 StatusCard 가 표시할 앵커 URL — slot 별 selectedXxxAnchorId 기준.
   //   - 'current'  : active anchor (snap_anchors 의 해당 slot)
@@ -1373,11 +1397,11 @@ export function SnapGenerator({ catalog }: Props) {
             {visibleCatalog.map((item) => {
               const selected = selectedIds.has(item.id);
               const enabled = isCatalogGeneratable(item);
-              // 카탈로그 호환성 — intensity + framing + (커플 모드) 입력 face size.
-              const compat = scoreCompatibility(item, {
-                mode: mode === 'couple' ? 'couple' : 'anchor',
-                faceSizeRatio: coupleFaceMeta?.faceSizeRatio ?? null,
-              });
+              // 호환성 — admin 페이지에서 운영자가 설정한 태그 lookup.
+              const adminTag = adminCondition
+                ? adminTags[item.id]?.[adminCondition] ?? null
+                : null;
+              const compat = evaluateCompatibility(adminTag);
               return (
                 <CatalogCard
                   key={item.id}
@@ -1385,6 +1409,7 @@ export function SnapGenerator({ catalog }: Props) {
                   item={item}
                   selected={selected}
                   disabled={isProgressing || !enabled}
+                  isRecommended={compat.isRecommended}
                   onClick={() => toggleCatalogSelection(item.id)}
                   title={
                     !enabled
