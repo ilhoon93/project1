@@ -839,9 +839,6 @@ export function SnapGenerator({ catalog }: Props) {
       {/* 1. 사진 업로드 — 모드 카드 2개 → 셀카 sub-toggle */}
       <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
         <h2 className="text-sm font-medium text-[#3D2E1F]">1. 사진 업로드</h2>
-        <p className="mt-1 text-xs text-[#8B7355]">
-          만들 방식을 골라주세요. 평균 생성 시간 60~120초.
-        </p>
 
         {/* 모드 카드 2개 — 셀카로 만들기 / 커플 사진으로 만들기.
             각 카드에 설명을 풀어써서 사용자가 자기 케이스에 맞는 모드를 한 번에 선택. */}
@@ -981,30 +978,18 @@ export function SnapGenerator({ catalog }: Props) {
             <p className="font-semibold text-amber-800">
               📸 무조건 잘 나오는 커플 사진 가이드
             </p>
-            <p className="mt-1.5 text-[10px] font-semibold text-amber-900">필수</p>
             <ul className="mt-0.5 list-disc space-y-1 pl-4">
               <li>
                 <strong>사진이 누워있지 않은지</strong> 미리보기에서 확인. 가로로 보이면
                 회전해서 다시 업로드해주세요.
               </li>
               <li>
-                두 사람 모두 <strong>카메라 정면</strong>을 바라보는 사진. 옆모습·딴 데
-                보는 사진은 얼굴이 재구성됩니다.
-              </li>
-              <li>
                 <strong>얼굴이 또렷</strong>해야 해요. 흐림·강한 필터·흑백·세피아·마스크·
-                선글라스는 피해주세요.
+                머플러·모자·선글라스는 피해주세요.
               </li>
               <li>
                 <strong>반신 ~ 무릎 위</strong> 컷이 가장 안정적이에요. 풍경 위주 풀샷은
-                얼굴이 작아져서 변형 위험이 커집니다.
-              </li>
-            </ul>
-            <p className="mt-2 text-[10px] font-semibold text-amber-900">권장</p>
-            <ul className="mt-0.5 list-disc space-y-1 pl-4">
-              <li>
-                <strong>가벼운 옷차림</strong>. 두꺼운 패딩·롱코트·후드·머플러·하이넥은
-                어깨·턱선을 가려서 합성이 어색해집니다.
+                얼굴이 작아져서 카탈로그 선택시 주의가 필요해요.
               </li>
               <li>
                 <strong>밝은 자연광</strong> 또는 균일한 실내 조명. 강한 역광·반쪽 그늘은
@@ -1013,10 +998,6 @@ export function SnapGenerator({ catalog }: Props) {
               <li>
                 두 사람 어깨가 <strong>가볍게 닿거나 팔짱</strong>. 멀리 떨어진 투샷보다
                 결과가 안정적이에요.
-              </li>
-              <li>
-                키 차이가 크면 한 사람이 살짝 굽혀서 <strong>얼굴 높이를 비슷하게</strong>
-                맞춰주세요.
               </li>
             </ul>
           </div>

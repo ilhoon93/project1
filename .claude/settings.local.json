@@ -82,7 +82,21 @@
       "Bash(gh pr create --title '스냅 만들기 모드 카드에 입력→결과 대표 예시 슬롯' --body ' *)",
       "Bash(git -C C:/project1 checkout -b claude/snap-catalog-add-17)",
       "Bash(git -C C:/project1 push -u origin claude/snap-catalog-add-17)",
-      "Bash(gh pr create --title '스냅 카탈로그 17장 신규 추가 \\(together 15 / solo 2\\)' --body ' *)"
+      "Bash(gh pr create --title '스냅 카탈로그 17장 신규 추가 \\(together 15 / solo 2\\)' --body ' *)",
+      "Bash(git -C C:/project1 checkout -b claude/snap-anchor-branch-compat-recommend)",
+      "Bash(git -C C:/project1 add src/components/snap/SnapGenerator.tsx src/lib/snap/catalog-compatibility.ts src/lib/snap/face-detect.ts package.json package-lock.json)",
+      "Bash(git -C C:/project1 push -u origin claude/snap-anchor-branch-compat-recommend)",
+      "Bash(gh pr create --title '스냅 앵커 분기 + 호환성 v2 + 자동 prompt-only 추천 + 커플 face 측정' --body ' *)",
+      "Bash(git -C C:/project1 checkout -b claude/snap-fix-unused-show-anchor-inputs)",
+      "Bash(git -C C:/project1 add src/components/snap/SnapGenerator.tsx)",
+      "Bash(git -C C:/project1 commit -m ' *)",
+      "Bash(git -C C:/project1 push -u origin claude/snap-fix-unused-show-anchor-inputs)",
+      "Bash(gh pr create --title 'fix: 미사용 변수 showAnchorInputs 제거 \\(Vercel 빌드 hotfix\\)' --body ' *)",
+      "Bash(gh pr *)",
+      "Bash(git -C C:/project1 checkout -b claude/snap-compat-v3-mode-split)",
+      "Bash(git -C C:/project1 add src/components/snap/SnapGenerator.tsx src/lib/snap/catalog.ts src/lib/snap/catalog-compatibility.ts)",
+      "Bash(git -C C:/project1 push -u origin claude/snap-compat-v3-mode-split)",
+      "Bash(grep -nE \"\\(text|className\\).*[가-힣]{2,}\" src/components/snap/SnapGenerator.tsx)"
     ]
   }
 }
