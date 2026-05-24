@@ -1,32 +1,43 @@
 /**
- * 카탈로그 ↔ 입력 사진 호환성 점수.
+ * 카탈로그 ↔ 입력 사진 호환성 점수 — v3.
  *
- * 같은 카탈로그라도 입력 사진 조건(조명·얼굴 크기·구도 등) 에 따라 결과 품질이
- * 크게 갈리므로, 사용자가 "위험 조합" 을 고르기 전에 사전 경고하는 데이터를 제공.
+ * 셀카 모드와 커플 모드의 위험 패턴이 매우 다르므로 모드별로 완전히 분리된
+ * 규칙으로 판정. 카탈로그 자체 그레이드 강도 (intensity) 패널티는 제거 — 운영
+ * 데이터로 보니 intensity 만으로는 위험도 예측이 부정확했음.
  *
- * 점수 의미:
- *   ≥ 0.7   : safe    — 추천 (별 표시)
- *   0.4..0.7: caution — 경고 배지 + prompt-only 모드 추천
- *   < 0.4   : risky   — 강한 경고 + prompt-only 모드 강추
+ * 등급:
+ *   safe    : 그대로 진행해도 OK (배지 없음)
+ *   caution : 주의 — prompt-only 권장 + 자동 모드 전환 banner 노출
+ *   risky   : 비추 — prompt-only 강력 권장 (현재는 셀카 모드의 measurable 위험 케이스에만 사용)
  *
- * v2 규칙 (`framing` + `faceSizeRatio` 차원 추가):
+ * ── 셀카 모드 (anchor) ──────────────────────────────────
  *
- *   [셀카 / anchor 모드]
- *   - 카탈로그 framing=full      → caution (얼굴 작아져 유사도 ↓, prompt-only 추천)
- *   - 카탈로그 framing=closeup   → safe
- *   (셀카 모드에서는 anchor 가 이미 closeup 으로 normalize 돼서 들어가므로 카탈로그
- *    framing 만으로 판정.)
+ *   1. personality === 'groom-solo' 또는 'bride-solo'
+ *      → 항상 safe. (앵커가 클로즈업 normalize 라 단독 컷에는 잘 맞음.)
+ *   2. personality === 'together' + framing === 'full' + hasSideAngle
+ *      → risky (비추). 함께 + 전신 + 측면 = 얼굴이 작아지면서 측면 재구성 위험
+ *        이 동시에 작용. prompt-only 강추.
+ *   3. 그 외
+ *      → safe.
  *
- *   [커플 모드 + 입력 faceSizeRatio]
- *   - 입력 얼굴 큼 (≥ 0.25)           → 모든 카탈로그 safe (얼굴 비중 크니 어떤 컷에도 잘 들어감)
- *   - 입력 얼굴 보통 (0.15~0.25)      → closeup 카탈로그 caution / full 카탈로그 safe
- *   - 입력 얼굴 작음 (< 0.15, 전신)   → closeup 카탈로그 risky / full 카탈로그 caution
- *   - 입력 메타 없음 (faceSizeRatio 미측정) → intensity 패널티만 적용 (v1 호환)
+ *   ※ 셀카 모드는 anchor 가 canonical normalize 됐다고 가정 → 입력 face size /
+ *     luminance 패널티는 적용 안 함.
  *
- *   + intensity 패널티는 v1 그대로 누적 적용.
+ * ── 커플 모드 ──────────────────────────────────────────
  *
- * 셀카 / 앵커 모드에서는 anchor 가 canonical 이미 normalize 됐다고 가정해 입력
- * 사진의 luminance / faceSize 패널티는 적용 안 함 — 커플 모드에서만 적용.
+ *   사용자 입력의 가장 큰 얼굴 폭 비율 (faceSizeRatio) 을 client-side
+ *   MediaPipe 로 측정. 측정 실패 시 (faceSizeRatio = null) → 무조건 safe
+ *   (fallback). 이 모드에서는 risky 등급을 만들지 않음 — 사용자가 입력 사진을
+ *   기준으로 결과가 거의 보장되므로 강한 경고는 과함.
+ *
+ *   1. faceSizeRatio >= SMALL_FACE_RATIO (얼굴 크게 보이는 입력)
+ *      → 모든 카탈로그 safe.
+ *   2. faceSizeRatio < SMALL_FACE_RATIO (전신 입력, 얼굴 작음)
+ *      AND (카탈로그 framing === 'closeup'  OR  카탈로그 isSeated === true)
+ *      → caution. 입력 전신 vs 카탈로그 클로즈업/앉음 = 구도 미스매치로 얼굴
+ *        강하게 재구성될 수 있음. prompt-only 권장.
+ *   3. 그 외 (faceSizeRatio < SMALL_FACE_RATIO + 카탈로그 full + 서 있음)
+ *      → safe (입력과 카탈로그 모두 전신 서있음 = 자연스럽게 매칭).
  */
 
 import type { SnapCatalogItem } from '@/lib/snap/catalog';
@@ -36,114 +47,89 @@ export type CompatibilityLevel = 'safe' | 'caution' | 'risky';
 export type RecommendedReferenceMode = 'strict' | 'prompt-only';
 
 export interface CompatibilityResult {
-  score: number; // 0..1
+  /** 등급 (UI 배지 / 추천 banner 조건). */
   level: CompatibilityLevel;
-  reasons: string[]; // 사용자에게 보여줄 short reason 들
-  /** caution / risky 일 때 권장 합성 방식 — 자동 모드 추천 banner 가 사용. */
+  /** 사용자에게 보여줄 짧은 사유. caution/risky 일 때만 채워짐. */
+  reasons: string[];
+  /** caution / risky 일 때 권장 합성 방식 (자동 모드 추천 banner 가 사용). */
   recommendedMode?: RecommendedReferenceMode;
 }
 
 export interface CompatibilityInputMeta {
-  /** 'couple' 일 때만 입력 패널티 적용 */
+  /** 'couple' 일 때만 입력 face 메타 사용. 'anchor' 는 카탈로그 메타만으로 판정. */
   mode: 'couple' | 'anchor' | 'unknown';
-  /** validation 단계에서 측정. null = 미검출 */
-  faceCount?: number | null;
-  /** 가장 작은 얼굴 짧은 변 (px). null = 미검출 */
-  minFaceSize?: number | null;
-  /** 평균 luminance 0..255. null = 미측정 */
-  avgLuminance?: number | null;
   /**
-   * v2 추가 — 입력 사진의 가장 큰 얼굴 폭 ÷ 이미지 폭 (0..1).
-   * MediaPipe Face Detector 등으로 client-side 측정. null = 미측정.
-   * 커플 모드에서만 사용:
-   *   ≥ 0.25 = 얼굴 크게 보이는 셀카-like 입력
-   *   < 0.15 = 얼굴 작은 전신 입력 (closeup 카탈로그와 조합 시 변형 위험)
+   * 커플 모드 입력 사진의 가장 큰 얼굴 폭 ÷ 이미지 폭 (0..1).
+   * MediaPipe Face Detector 로 client-side 측정. null = 미측정.
+   *   ≥ 0.15 = 얼굴이 충분히 크게 보임 (셀카·반신)
+   *   < 0.15 = 얼굴 작음 (전신 입력)
    */
   faceSizeRatio?: number | null;
 }
 
+/** 입력 얼굴이 이 비율 미만이면 "전신/얼굴 작음" 으로 간주. */
 const SMALL_FACE_RATIO = 0.15;
-const LARGE_FACE_RATIO = 0.25;
 
 export function scoreCompatibility(
-  catalog: Pick<SnapCatalogItem, 'intensity' | 'label' | 'framing'>,
+  catalog: Pick<
+    SnapCatalogItem,
+    'personality' | 'framing' | 'hasSideAngle' | 'isSeated' | 'label'
+  >,
   input: CompatibilityInputMeta,
 ): CompatibilityResult {
-  const reasons: string[] = [];
-  let recommendedMode: RecommendedReferenceMode | undefined;
-
-  // 1) intensity 베이스 패널티.
-  const intensity = catalog.intensity ?? 'medium';
-  let score = 1.0;
-  if (intensity === 'medium') score -= 0.15;
-  else if (intensity === 'high') {
-    score -= 0.3;
-    reasons.push('강한 스타일 카탈로그 — 입력 사진의 톤·조명을 크게 변환합니다');
-  }
-
-  // 2) framing × mode 패널티 — v2 핵심.
-  const framing = framingOf(catalog as SnapCatalogItem);
-
+  // ── 셀카 (anchor) 모드 ──────────────────────────────────
   if (input.mode === 'anchor') {
-    // 셀카/앵커 모드 — 카탈로그가 풀신이면 얼굴이 작아져 유사도 떨어짐.
-    if (framing === 'full') {
-      score -= 0.25;
-      reasons.push('전신 컷은 얼굴이 작아져 유사도가 떨어질 수 있어요');
-      recommendedMode = 'prompt-only';
-    }
-  } else if (input.mode === 'couple') {
-    // 커플 모드 — 입력 사진 얼굴 크기에 따라 카탈로그 framing 과 호환성 갈림.
-    const faceRatio = input.faceSizeRatio ?? null;
-    if (faceRatio !== null) {
-      if (faceRatio < SMALL_FACE_RATIO) {
-        // 입력이 전신 (얼굴 작음).
-        if (framing === 'closeup') {
-          score -= 0.4;
-          reasons.push(
-            '입력 사진은 전신인데 카탈로그가 클로즈업 — 얼굴이 강하게 재구성될 위험',
-          );
-          recommendedMode = 'prompt-only';
-        } else {
-          score -= 0.2;
-          reasons.push('입력 얼굴이 작아서 일부 구도는 유사도가 떨어질 수 있어요');
-          recommendedMode = 'prompt-only';
-        }
-      } else if (faceRatio < LARGE_FACE_RATIO && framing === 'closeup') {
-        // 보통 반신 입력 + 클로즈업 카탈로그 → 약한 주의.
-        score -= 0.15;
-        reasons.push('카탈로그 구도가 입력 사진보다 더 가까워요');
-        recommendedMode = 'prompt-only';
-      }
-    }
-
-    // 3) 기존 minFaceSize / luminance 패널티 (faceSizeRatio 보강).
-    if (typeof input.minFaceSize === 'number' && input.minFaceSize < 120) {
-      score -= 0.1;
-      if (!reasons.some((r) => r.includes('얼굴'))) {
-        reasons.push(`얼굴이 작아요 (${input.minFaceSize}px). 반신 컷 권장`);
-      }
-    }
+    // 단독 컷은 항상 safe.
     if (
-      typeof input.avgLuminance === 'number' &&
-      input.avgLuminance < 70 &&
-      intensity === 'high'
+      catalog.personality === 'groom-solo' ||
+      catalog.personality === 'bride-solo'
     ) {
-      score -= 0.2;
-      reasons.push(
-        '야경/저조도 사진과 강한 backlight 카탈로그 조합은 변형 위험이 큽니다',
-      );
-      recommendedMode = 'prompt-only';
+      return { level: 'safe', reasons: [] };
     }
+    // 함께 컷 + 전신 + 측면 = 변형 위험 큼 → 비추.
+    if (
+      catalog.personality === 'together' &&
+      framingOf(catalog as SnapCatalogItem) === 'full' &&
+      catalog.hasSideAngle === true
+    ) {
+      return {
+        level: 'risky',
+        reasons: [
+          '전신 + 측면 컷은 셀카로 만들 때 얼굴이 작아지면서 측면 재구성 위험이 큽니다',
+        ],
+        recommendedMode: 'prompt-only',
+      };
+    }
+    return { level: 'safe', reasons: [] };
   }
 
-  score = Math.max(0, Math.min(1, score));
-  const level: CompatibilityLevel =
-    score >= 0.7 ? 'safe' : score >= 0.4 ? 'caution' : 'risky';
+  // ── 커플 모드 ──────────────────────────────────────────
+  if (input.mode === 'couple') {
+    const faceRatio = input.faceSizeRatio ?? null;
+    // 측정 실패 또는 큰 얼굴 입력 → 안전.
+    if (faceRatio === null || faceRatio >= SMALL_FACE_RATIO) {
+      return { level: 'safe', reasons: [] };
+    }
+    // 입력 전신 + 카탈로그가 클로즈업 또는 앉아있음 → 구도 미스매치.
+    const framing = framingOf(catalog as SnapCatalogItem);
+    const isCloseup = framing === 'closeup';
+    const isSeated = catalog.isSeated === true;
+    if (isCloseup || isSeated) {
+      const reason = isCloseup && isSeated
+        ? '입력은 전신인데 카탈로그가 클로즈업 + 앉은 자세 — 구도 차이가 큽니다'
+        : isCloseup
+          ? '입력은 전신인데 카탈로그가 클로즈업 — 얼굴이 강하게 재구성될 수 있어요'
+          : '입력은 전신인데 카탈로그가 앉은 자세 — 구도 차이로 얼굴이 틀어질 수 있어요';
+      return {
+        level: 'caution',
+        reasons: [reason],
+        recommendedMode: 'prompt-only',
+      };
+    }
+    // 입력 전신 + 카탈로그 전신/서 있음 → 안전 (자연스럽게 매칭).
+    return { level: 'safe', reasons: [] };
+  }
 
-  return {
-    score,
-    level,
-    reasons,
-    recommendedMode: level === 'safe' ? undefined : recommendedMode,
-  };
+  // ── unknown ────────────────────────────────────────────
+  return { level: 'safe', reasons: [] };
 }
