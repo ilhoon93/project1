@@ -25,33 +25,40 @@ export function StepIndicator({ steps }: { steps: SnapStep[] }) {
   return (
     <ol
       aria-label="스냅 생성 진행 단계"
-      className="flex items-center gap-1 overflow-x-auto rounded-md border border-[#E8DCC9] bg-white p-2"
+      className="flex items-center gap-2 overflow-x-auto rounded-md border border-[#E8DCC9] bg-white p-2.5"
     >
       {steps.map((s, idx) => {
         const isLast = idx === steps.length - 1;
         return (
-          <li key={s.n} className="flex flex-1 items-center gap-1.5">
-            <StepDot status={s.status} n={s.n} />
-            <span
-              className={`flex-1 truncate text-[11px] ${
-                s.status === 'done'
-                  ? 'font-medium text-[#3D2E1F]'
-                  : s.status === 'active'
+          <li
+            key={s.n}
+            className="flex shrink-0 items-center gap-2 sm:flex-1 sm:shrink"
+          >
+            <div className="flex shrink-0 items-center gap-1.5">
+              <StepDot status={s.status} n={s.n} />
+              <span
+                className={`whitespace-nowrap text-[11px] ${
+                  s.status === 'done'
                     ? 'font-medium text-[#3D2E1F]'
-                    : s.status === 'skipped'
-                      ? 'text-[#B0A289] line-through'
-                      : 'text-[#8B7355]'
-              }`}
-            >
-              {s.label}
-            </span>
+                    : s.status === 'active'
+                      ? 'font-medium text-[#3D2E1F]'
+                      : s.status === 'skipped'
+                        ? 'text-[#B0A289] line-through'
+                        : 'text-[#8B7355]'
+                }`}
+              >
+                {s.label}
+              </span>
+            </div>
             {!isLast && (
               <span
-                className={`h-px w-3 shrink-0 sm:w-4 ${
-                  s.status === 'done' ? 'bg-[#3D2E1F]' : 'bg-[#E8DCC9]'
-                }`}
                 aria-hidden
-              />
+                className={`shrink-0 select-none text-base font-light leading-none ${
+                  s.status === 'done' ? 'text-[#3D2E1F]' : 'text-[#D4C5B0]'
+                } sm:ml-auto`}
+              >
+                →
+              </span>
             )}
           </li>
         );
@@ -60,9 +67,16 @@ export function StepIndicator({ steps }: { steps: SnapStep[] }) {
   );
 }
 
+/**
+ * 단계 인디케이터의 원형 dot.
+ *   done    : 다크 배경 + 흰 ✓ (완료 표시 유지)
+ *   active  : 두꺼운 다크 테두리 + 흰 배경 + 다크 숫자 (현재 단계 강조)
+ *   pending : 연한 배경 + 회색 숫자 (아직 안 함, 숫자 명시)
+ *   skipped : 연한 배경 + 회색 — (모드상 건너뛴 단계, 예: couple 모드의 앵커)
+ */
 function StepDot({ status, n }: { status: SnapStep['status']; n: number }) {
   const base =
-    'grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-semibold leading-none';
+    'grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-semibold leading-none';
   if (status === 'done') {
     return <span className={`${base} bg-[#3D2E1F] text-white`} aria-hidden>✓</span>;
   }
@@ -77,7 +91,11 @@ function StepDot({ status, n }: { status: SnapStep['status']; n: number }) {
     );
   }
   if (status === 'skipped') {
-    return <span className={`${base} bg-[#E8DCC9] text-[#B0A289]`} aria-hidden>—</span>;
+    return <span className={`${base} bg-[#F5EDE0] text-[#B0A289]`} aria-hidden>—</span>;
   }
-  return <span className={`${base} bg-[#E8DCC9] text-[#8B7355]`} aria-hidden>{n}</span>;
+  return (
+    <span className={`${base} bg-[#F5EDE0] text-[#8B7355]`} aria-hidden>
+      {n}
+    </span>
+  );
 }

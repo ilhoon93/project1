@@ -51,8 +51,9 @@ export function getAvailableCatalogWith(tagMap: CatalogAdminTagMap): SnapCatalog
 
 function filterCatalog(tagMap: CatalogAdminTagMap): SnapCatalogItem[] {
   return SNAP_CATALOG.filter((item) => {
-    if (item.hidden) return false;
-    // admin: 양쪽 condition 모두 hidden 이면 baseline 에서 제외
+    // admin: 양쪽 condition 모두 hidden 이면 baseline 에서 제외.
+    // (한쪽만 hidden 이면 다른 mode 에서는 보여야 하므로 baseline 에는 노출 —
+    //  SnapGenerator 의 mode 별 필터에서 추가 차단.)
     const tags = tagMap[item.id];
     if (
       tags?.selfies === 'hidden' &&
@@ -60,7 +61,7 @@ function filterCatalog(tagMap: CatalogAdminTagMap): SnapCatalogItem[] {
     ) {
       return false;
     }
-    // 파일 존재 체크
+    // 파일 존재 체크 — 마스터 jpg 가 없으면 자동 제외.
     const rel = item.image.startsWith('/') ? item.image.slice(1) : item.image;
     const abs = path.join(process.cwd(), 'public', rel);
     try {

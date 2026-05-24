@@ -80,15 +80,30 @@ interface Props {
   onChange: (next: CatalogFilterState) => void;
   /** chip 위에 보일 결과 카운트 — 옵션 (예: 표시 N / 전체 M) */
   resultCount?: { shown: number; total: number };
+  /**
+   * "추천만 보기" 모드 (있으면 추천 태그 카탈로그만 노출, 주의/비추 숨김).
+   * undefined = 토글 UI 자체 안 보임 (admin 태그 없는 환경에서 사용).
+   */
+  onlyRecommended?: boolean;
+  onOnlyRecommendedChange?: (next: boolean) => void;
 }
 
-export function CatalogFilterBar({ value, onChange, resultCount }: Props) {
+export function CatalogFilterBar({
+  value,
+  onChange,
+  resultCount,
+  onlyRecommended,
+  onOnlyRecommendedChange,
+}: Props) {
   const toggle = <T,>(set: ReadonlySet<T>, v: T): Set<T> => {
     const next = new Set(set);
     if (next.has(v)) next.delete(v);
     else next.add(v);
     return next;
   };
+
+  const showRecommendToggle =
+    typeof onlyRecommended === 'boolean' && !!onOnlyRecommendedChange;
 
   return (
     <div className="flex flex-col gap-2 rounded-md border border-dashed border-[#E8DCC9] bg-[#FAF7F2]/60 p-2.5">
@@ -114,6 +129,25 @@ export function CatalogFilterBar({ value, onChange, resultCount }: Props) {
         </div>
       </div>
 
+      {/* 추천만 보기 / 전체 보기 — 가장 자주 쓰는 1차 필터라 맨 위. */}
+      {showRecommendToggle && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="w-9 shrink-0 text-[10px] font-medium text-[#5C4633]">
+            모드
+          </span>
+          <PrimaryToggle
+            selected={!!onlyRecommended}
+            onClick={() => onOnlyRecommendedChange!(true)}
+            label="추천만 보기"
+          />
+          <PrimaryToggle
+            selected={!onlyRecommended}
+            onClick={() => onOnlyRecommendedChange!(false)}
+            label="전체 보기"
+          />
+        </div>
+      )}
+
       <FilterChipGroup
         label="누가"
         options={PERSONALITY_OPTIONS}
@@ -133,6 +167,31 @@ export function CatalogFilterBar({ value, onChange, resultCount }: Props) {
         onToggle={(v) => onChange({ ...value, framings: toggle(value.framings, v) })}
       />
     </div>
+  );
+}
+
+function PrimaryToggle({
+  selected,
+  onClick,
+  label,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+        selected
+          ? 'border-emerald-700 bg-emerald-600 text-white'
+          : 'border-[#D4C5B0] bg-white text-[#5C4633] hover:border-[#8B7355] hover:text-[#3D2E1F]'
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
