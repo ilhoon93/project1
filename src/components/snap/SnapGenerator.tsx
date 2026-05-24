@@ -1435,23 +1435,19 @@ export function SnapGenerator({ catalog }: Props) {
         <p className="mt-1 text-xs text-[#8B7355]">
           {selectedCatalogs.length === 0
             ? '카탈로그를 1개 이상 선택하면 모드별 예시 결과 썸네일이 보여요.'
-            : mode === 'couple'
-              ? '커플 사진은 두 방식 결과가 의상·배경 충실도 vs 얼굴 보존으로 갈려요. 예시 보고 골라주세요.'
-              : '같은 카탈로그라도 모드에 따라 결과가 달라요. 예시 보고 골라주세요.'}
+            : '기본은 카탈로그 사진을 그대로 따라 만들고, 얼굴이 어색하면 강화 모드로 한 번 더 보강할 수 있어요.'}
         </p>
 
         {/* 자동 모드 추천 banner — 호환성 점수 기반.
-              선택한 카탈로그 중 prompt-only 가 권장되는 게 1개 이상 있고 현재 strict
-              모드면 한 번 클릭으로 전환하라고 권유. 사용자가 강한 안내를 받아 실패 케이스
-              사전 회피 가능. dismiss 후엔 다시 strict 로 돌아가도 안 보임 (state 로 관리). */}
+              선택한 카탈로그 중 얼굴 강화가 권장되는 게 1개 이상 있고 현재 기본 모드
+              (strict) 면 한 번 클릭으로 강화 모드 (prompt-only) 로 전환 권유. */}
         {imageReference === 'strict' &&
           promptOnlyRecommendedCount > 0 &&
           !modeRecommendDismissed && (
             <div className="mt-3 flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50/70 p-3 text-xs text-amber-900 sm:flex-row sm:items-center">
               <span className="flex-1">
                 선택한 컷 중 <strong>{promptOnlyRecommendedCount}개</strong>는{' '}
-                <strong>prompt-only 모드</strong>가 얼굴 보존이 더 잘 돼요.
-                자동 전환할까요?
+                <strong>얼굴 강화 모드</strong>가 더 잘 맞아요. 켜시겠어요?
               </span>
               <div className="flex shrink-0 gap-2">
                 <Button
@@ -1459,7 +1455,7 @@ export function SnapGenerator({ catalog }: Props) {
                   size="sm"
                   onClick={() => setImageReference('prompt-only')}
                 >
-                  자동 전환
+                  강화 켜기
                 </Button>
                 <Button
                   type="button"
@@ -1467,7 +1463,7 @@ export function SnapGenerator({ catalog }: Props) {
                   variant="outline"
                   onClick={() => setModeRecommendDismissed(true)}
                 >
-                  유지
+                  기본 유지
                 </Button>
               </div>
             </div>
@@ -1479,12 +1475,8 @@ export function SnapGenerator({ catalog }: Props) {
             current={imageReference}
             disabled={isProgressing}
             onSelect={() => setImageReference('strict')}
-            title={mode === 'couple' ? '카탈로그 충실 (strict)' : '구도 우선 (strict)'}
-            description={
-              mode === 'couple'
-                ? '카탈로그 마스터의 의상/배경/조명을 그대로 재현. 얼굴이 미세하게 카탈로그 톤에 끌릴 수 있음.'
-                : '카탈로그 마스터 컷의 포즈/구도/조명을 그대로 재현. 얼굴 보존은 face-swap 단계 의존.'
-            }
+            title="기본 모드"
+            description="카탈로그 사진의 의상·배경·포즈를 그대로 따라 만듭니다. 대부분의 컷에서 자연스럽게 동작해요."
             examples={selectedCatalogs}
             exampleMode="strict"
           />
@@ -1493,12 +1485,8 @@ export function SnapGenerator({ catalog }: Props) {
             current={imageReference}
             disabled={isProgressing}
             onSelect={() => setImageReference('prompt-only')}
-            title={mode === 'couple' ? '얼굴 보존 (prompt-only)' : '유사도 우선 (prompt-only)'}
-            description={
-              mode === 'couple'
-                ? '마스터 이미지를 빼고 텍스트로만 분위기 지시. 얼굴 보존이 가장 강함. 의상·배경 디테일은 매번 달라짐.'
-                : '마스터 컷을 안 쓰고 텍스트로만 scene 지시. 앵커 파이프라인 수준의 얼굴 일치, 포즈는 컨셉만 보장.'
-            }
+            title="얼굴 강화 모드"
+            description="카탈로그 구도를 살짝 양보하고 내 얼굴 유사도를 최우선으로 보존합니다. 측면·전신 컷이나 결과가 어색했던 컷에 효과적."
             examples={selectedCatalogs}
             exampleMode="prompt-only"
           />
@@ -2281,7 +2269,7 @@ function ExampleThumb({
   const exampleSrc = catalogExampleImage(item, exampleMode);
   return (
     <div
-      title={`${item.label} · ${exampleMode === 'strict' ? 'strict' : 'prompt-only'} 예시`}
+      title={`${item.label} · ${exampleMode === 'strict' ? '기본 모드' : '얼굴 강화 모드'} 예시`}
       className="relative overflow-hidden rounded border border-[#E8DCC9] bg-[#F5EDE0]"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
