@@ -213,9 +213,8 @@ export function SnapGenerator({ catalog }: Props) {
   //   false (default) = "기존 앵커 사용" — 사진/키몸무게/앵커 만들기 섹션 collapse
   //   true            = "앵커 새로 만들기" — 모든 입력 섹션 노출
   // hasFullAnchor 가 false 면 무조건 true 처럼 동작 (재방문 첫 사용자가 아니라 신규).
+  // 실제 섹션 노출은 showSelfieInputs / showAnchorBuilder 가 이 값 + mode 를 결합해 판단.
   const [anchorRecreateMode, setAnchorRecreateMode] = useState<boolean>(false);
-  // 실제로 입력 섹션을 보여줄지 — hasFullAnchor 면 토글 따름, 아니면 무조건 노출.
-  const showAnchorInputs = mode === 'couple' ? false : !hasFullAnchor || anchorRecreateMode;
 
   // 초기 로드.
   useEffect(() => {
