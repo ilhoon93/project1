@@ -1,135 +1,112 @@
 /**
- * 카탈로그 ↔ 입력 사진 호환성 점수 — v3.
+ * 카탈로그 호환성 판정 v4 — 운영자 수동 태그 lookup 전용.
  *
- * 셀카 모드와 커플 모드의 위험 패턴이 매우 다르므로 모드별로 완전히 분리된
- * 규칙으로 판정. 카탈로그 자체 그레이드 강도 (intensity) 패널티는 제거 — 운영
- * 데이터로 보니 intensity 만으로는 위험도 예측이 부정확했음.
+ * v3 까지는 framing × hasSideAngle × isSeated × faceSizeRatio 자동 휴리스틱이
+ * caution/risky 등급을 산출했지만, 운영하면서 정확도가 낮아 운영자가 admin 페이지
+ * (/admin/snap-catalog-tags) 에서 카탈로그별 × 입력 조건별 태그를 직접 세팅하는
+ * 방식으로 전환. 자동 휴리스틱은 완전 제거.
  *
- * 등급:
- *   safe    : 그대로 진행해도 OK (배지 없음)
- *   caution : 주의 — prompt-only 권장 + 자동 모드 전환 banner 노출
- *   risky   : 비추 — prompt-only 강력 권장 (현재는 셀카 모드의 measurable 위험 케이스에만 사용)
+ * 흐름:
+ *   1. resolveAdminCondition(mode, faceSizeRatio) → 'selfies' | 'couple-fullbody' | null
+ *      (커플 모드 + 얼굴 큰 입력은 null = 항상 safe)
+ *   2. tagMap[catalogId][adminCondition] 으로 운영자 태그 lookup
+ *   3. evaluateCompatibility(adminTag) → CompatibilityResult (level, reasons, recommendedMode, isRecommended)
+ *   4. isCatalogHidden(adminTag) → picker 노출 차단 판정 (별도)
  *
- * ── 셀카 모드 (anchor) ──────────────────────────────────
- *
- *   1. personality === 'groom-solo' 또는 'bride-solo'
- *      → 항상 safe. (앵커가 클로즈업 normalize 라 단독 컷에는 잘 맞음.)
- *   2. personality === 'together' + framing === 'full' + hasSideAngle
- *      → risky (비추). 함께 + 전신 + 측면 = 얼굴이 작아지면서 측면 재구성 위험
- *        이 동시에 작용. prompt-only 강추.
- *   3. 그 외
- *      → safe.
- *
- *   ※ 셀카 모드는 anchor 가 canonical normalize 됐다고 가정 → 입력 face size /
- *     luminance 패널티는 적용 안 함.
- *
- * ── 커플 모드 ──────────────────────────────────────────
- *
- *   사용자 입력의 가장 큰 얼굴 폭 비율 (faceSizeRatio) 을 client-side
- *   MediaPipe 로 측정. 측정 실패 시 (faceSizeRatio = null) → 무조건 safe
- *   (fallback). 이 모드에서는 risky 등급을 만들지 않음 — 사용자가 입력 사진을
- *   기준으로 결과가 거의 보장되므로 강한 경고는 과함.
- *
- *   1. faceSizeRatio >= SMALL_FACE_RATIO (얼굴 크게 보이는 입력)
- *      → 모든 카탈로그 safe.
- *   2. faceSizeRatio < SMALL_FACE_RATIO (전신 입력, 얼굴 작음)
- *      AND (카탈로그 framing === 'closeup'  OR  카탈로그 isSeated === true)
- *      → caution. 입력 전신 vs 카탈로그 클로즈업/앉음 = 구도 미스매치로 얼굴
- *        강하게 재구성될 수 있음. prompt-only 권장.
- *   3. 그 외 (faceSizeRatio < SMALL_FACE_RATIO + 카탈로그 full + 서 있음)
- *      → safe (입력과 카탈로그 모두 전신 서있음 = 자연스럽게 매칭).
+ * 운영자 태그 미설정 = "운영자 평가 없음" = safe default.
  */
 
-import type { SnapCatalogItem } from '@/lib/snap/catalog';
-import { framingOf } from '@/lib/snap/catalog';
+import type {
+  CatalogAdminTag,
+  CatalogInputCondition,
+} from '@/lib/snap/catalog-admin-tags';
 
 export type CompatibilityLevel = 'safe' | 'caution' | 'risky';
 export type RecommendedReferenceMode = 'strict' | 'prompt-only';
 
 export interface CompatibilityResult {
-  /** 등급 (UI 배지 / 추천 banner 조건). */
+  /** 등급 — UI 배지 / banner 조건. */
   level: CompatibilityLevel;
   /** 사용자에게 보여줄 짧은 사유. caution/risky 일 때만 채워짐. */
   reasons: string[];
   /** caution / risky 일 때 권장 합성 방식 (자동 모드 추천 banner 가 사용). */
   recommendedMode?: RecommendedReferenceMode;
+  /** 운영자가 '추천' 태그를 단 경우 true — 카드 추천 배지 + 정렬 우선순위에 사용. */
+  isRecommended: boolean;
 }
 
-export interface CompatibilityInputMeta {
-  /** 'couple' 일 때만 입력 face 메타 사용. 'anchor' 는 카탈로그 메타만으로 판정. */
-  mode: 'couple' | 'anchor' | 'unknown';
-  /**
-   * 커플 모드 입력 사진의 가장 큰 얼굴 폭 ÷ 이미지 폭 (0..1).
-   * MediaPipe Face Detector 로 client-side 측정. null = 미측정.
-   *   ≥ 0.15 = 얼굴이 충분히 크게 보임 (셀카·반신)
-   *   < 0.15 = 얼굴 작음 (전신 입력)
-   */
-  faceSizeRatio?: number | null;
-}
-
-/** 입력 얼굴이 이 비율 미만이면 "전신/얼굴 작음" 으로 간주. */
+/** 입력 얼굴이 이 비율 미만이면 "전신/얼굴 작음" 으로 간주 (커플 모드만). */
 const SMALL_FACE_RATIO = 0.15;
 
-export function scoreCompatibility(
-  catalog: Pick<
-    SnapCatalogItem,
-    'personality' | 'framing' | 'hasSideAngle' | 'isSeated' | 'label'
-  >,
-  input: CompatibilityInputMeta,
+/**
+ * 현재 사용 mode + 커플 입력 얼굴 크기 → admin 페이지의 input_condition 매핑.
+ *
+ *   - mode === 'anchor' (셀카1/3) → 'selfies'
+ *   - mode === 'couple' + faceSizeRatio < 0.15 (전신 입력) → 'couple-fullbody'
+ *   - mode === 'couple' + faceSizeRatio >= 0.15 또는 미측정 → null (어떤 condition 도 아님 = 항상 safe)
+ *
+ * null 이 반환되면 evaluateCompatibility(null) = safe 가 되어 운영자가 별도로
+ * 신경 쓸 필요 없음.
+ */
+export function resolveAdminCondition(
+  mode: 'anchor' | 'couple' | 'unknown',
+  faceSizeRatio: number | null | undefined,
+): CatalogInputCondition | null {
+  if (mode === 'anchor') return 'selfies';
+  if (
+    mode === 'couple' &&
+    typeof faceSizeRatio === 'number' &&
+    faceSizeRatio < SMALL_FACE_RATIO
+  ) {
+    return 'couple-fullbody';
+  }
+  return null;
+}
+
+/**
+ * 운영자 태그 기반 호환성 판정.
+ * adminTag 가 null/undefined 면 default safe (배지 없음, 추천 banner 없음).
+ */
+export function evaluateCompatibility(
+  adminTag: CatalogAdminTag | null | undefined,
 ): CompatibilityResult {
-  // ── 셀카 (anchor) 모드 ──────────────────────────────────
-  if (input.mode === 'anchor') {
-    // 단독 컷은 항상 safe.
-    if (
-      catalog.personality === 'groom-solo' ||
-      catalog.personality === 'bride-solo'
-    ) {
-      return { level: 'safe', reasons: [] };
-    }
-    // 함께 컷 + 전신 + 측면 = 변형 위험 큼 → 비추.
-    if (
-      catalog.personality === 'together' &&
-      framingOf(catalog as SnapCatalogItem) === 'full' &&
-      catalog.hasSideAngle === true
-    ) {
+  if (!adminTag) {
+    return { level: 'safe', reasons: [], isRecommended: false };
+  }
+  switch (adminTag) {
+    case 'recommend':
+      return { level: 'safe', reasons: [], isRecommended: true };
+    case 'caution':
+      return {
+        level: 'caution',
+        reasons: [
+          '이 조건에서는 결과가 어색할 수 있어 얼굴 강화 모드를 권장합니다',
+        ],
+        recommendedMode: 'prompt-only',
+        isRecommended: false,
+      };
+    case 'risky':
       return {
         level: 'risky',
         reasons: [
-          '전신 + 측면 컷은 셀카로 만들 때 얼굴이 작아지면서 측면 재구성 위험이 큽니다',
+          '이 조건에서는 얼굴 변형 위험이 큽니다. 얼굴 강화 모드를 강력 권장합니다.',
         ],
         recommendedMode: 'prompt-only',
+        isRecommended: false,
       };
-    }
-    return { level: 'safe', reasons: [] };
+    case 'hidden':
+      // hidden 은 caller 가 isCatalogHidden() 으로 사전 차단해야 함.
+      // 도달하면 안전하게 safe 로 fallback.
+      return { level: 'safe', reasons: [], isRecommended: false };
   }
+}
 
-  // ── 커플 모드 ──────────────────────────────────────────
-  if (input.mode === 'couple') {
-    const faceRatio = input.faceSizeRatio ?? null;
-    // 측정 실패 또는 큰 얼굴 입력 → 안전.
-    if (faceRatio === null || faceRatio >= SMALL_FACE_RATIO) {
-      return { level: 'safe', reasons: [] };
-    }
-    // 입력 전신 + 카탈로그가 클로즈업 또는 앉아있음 → 구도 미스매치.
-    const framing = framingOf(catalog as SnapCatalogItem);
-    const isCloseup = framing === 'closeup';
-    const isSeated = catalog.isSeated === true;
-    if (isCloseup || isSeated) {
-      const reason = isCloseup && isSeated
-        ? '입력은 전신인데 카탈로그가 클로즈업 + 앉은 자세 — 구도 차이가 큽니다'
-        : isCloseup
-          ? '입력은 전신인데 카탈로그가 클로즈업 — 얼굴이 강하게 재구성될 수 있어요'
-          : '입력은 전신인데 카탈로그가 앉은 자세 — 구도 차이로 얼굴이 틀어질 수 있어요';
-      return {
-        level: 'caution',
-        reasons: [reason],
-        recommendedMode: 'prompt-only',
-      };
-    }
-    // 입력 전신 + 카탈로그 전신/서 있음 → 안전 (자연스럽게 매칭).
-    return { level: 'safe', reasons: [] };
-  }
-
-  // ── unknown ────────────────────────────────────────────
-  return { level: 'safe', reasons: [] };
+/**
+ * adminTag 가 'hidden' 인지 — picker 노출 차단 판정.
+ * 호출부에서 visibleCatalog 계산 시 이걸 먼저 체크해 카드 자체를 안 그림.
+ */
+export function isCatalogHidden(
+  adminTag: CatalogAdminTag | null | undefined,
+): boolean {
+  return adminTag === 'hidden';
 }

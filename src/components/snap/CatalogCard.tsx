@@ -30,6 +30,8 @@ interface BaseProps {
   overlay?: ReactNode;
   /** 카드 우상단 추가 인디케이터 (예: ✓ 체크). picker 에서만 사용. */
   topRight?: ReactNode;
+  /** 운영자가 '추천' 태그를 단 카탈로그면 좌상단 personality 배지 아래에 ★ 추천 chip 표시. */
+  isRecommended?: boolean;
 }
 
 interface PreviewProps extends BaseProps {
@@ -47,7 +49,7 @@ interface PickerProps extends BaseProps {
 type Props = PreviewProps | PickerProps;
 
 export function CatalogCard(props: Props) {
-  const { item, overlay, topRight } = props;
+  const { item, overlay, topRight, isRecommended } = props;
   // 카드 height 일관성을 위해 부모 컨테이너에 h-full 을 줘서 그리드 row 의
   // max-height 에 모든 카드가 stretch 되도록 한다. 내부는 flex 로 이미지(고정
   // aspect 3:4) + caption(고정 h-16) 만 차지하므로 height 가 모든 카드에서 동일.
@@ -56,7 +58,7 @@ export function CatalogCard(props: Props) {
       {topRight}
       {overlay}
       <CatalogThumbnail src={item.image} alt={item.label} />
-      <PersonalityBadge personality={item.personality} />
+      <BadgeStack personality={item.personality} isRecommended={isRecommended ?? false} />
       <CardCaption label={item.label} hint={item.hint} />
     </>
   );
@@ -103,17 +105,34 @@ function CardCaption({ label, hint }: { label: string; hint: string }) {
   );
 }
 
-function PersonalityBadge({ personality }: { personality: SnapCatalogItem['personality'] }) {
+/**
+ * 좌상단 배지 스택 — personality 배지 + (옵션) 운영자 추천 배지.
+ * 두 배지를 세로로 쌓아 서로 겹치지 않게.
+ */
+function BadgeStack({
+  personality,
+  isRecommended,
+}: {
+  personality: SnapCatalogItem['personality'];
+  isRecommended: boolean;
+}) {
   const config = {
     together: { label: '함께', color: 'bg-[#3D2E1F]/85' },
     'groom-solo': { label: '신랑 단독', color: 'bg-blue-600/85' },
     'bride-solo': { label: '신부 단독', color: 'bg-pink-600/85' },
   }[personality];
   return (
-    <span
-      className={`absolute left-1 top-1 z-10 rounded px-1.5 py-0.5 text-[9px] font-medium text-white ${config.color}`}
-    >
-      {config.label}
-    </span>
+    <div className="absolute left-1 top-1 z-10 flex flex-col items-start gap-1">
+      <span
+        className={`rounded px-1.5 py-0.5 text-[9px] font-medium text-white shadow-sm ${config.color}`}
+      >
+        {config.label}
+      </span>
+      {isRecommended && (
+        <span className="rounded bg-emerald-600/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow-sm">
+          ★ 추천
+        </span>
+      )}
+    </div>
   );
 }

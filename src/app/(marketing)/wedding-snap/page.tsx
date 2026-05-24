@@ -10,9 +10,13 @@ export const metadata: Metadata = {
     '신랑 신부 셀카 1장씩이면 50가지 베스트샷이 우리 얼굴로. 19,900원으로 시작하는 AI 웨딩 스튜디오.',
 };
 
-export default function WeddingSnapLandingPage() {
-  // hidden / 마스터 파일 없는 항목 제외 — picker 와 동일 기준으로 노출.
-  const visibleCatalog = getAvailableCatalog();
+// admin 태그 변경이 즉시 반영되도록 cache 없음 (양쪽 condition 모두 hidden 인
+// 카탈로그는 landing 미리보기에서도 자동 제외됨).
+export const dynamic = 'force-dynamic';
+
+export default async function WeddingSnapLandingPage() {
+  // hidden / 마스터 파일 없음 / admin 양쪽 hidden 인 항목 제외.
+  const visibleCatalog = await getAvailableCatalog();
   return (
     <main className="mx-auto max-w-4xl px-4 pb-20 pt-10 sm:px-6">
       <Hero />
