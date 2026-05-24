@@ -410,6 +410,24 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['snap_jobs']['Insert']>;
         Relationships: [];
       };
+      snap_catalog_tags: {
+        Row: {
+          catalog_id: string;
+          input_condition: 'selfies' | 'couple-fullbody';
+          tag: 'recommend' | 'caution' | 'risky' | 'hidden';
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          catalog_id: string;
+          input_condition: 'selfies' | 'couple-fullbody';
+          tag: 'recommend' | 'caution' | 'risky' | 'hidden';
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['snap_catalog_tags']['Insert']>;
+        Relationships: [];
+      };
       snap_consent: {
         Row: {
           id: string;
