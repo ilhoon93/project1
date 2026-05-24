@@ -12,6 +12,10 @@ import { Button } from '@/components/ui/button';
 import type { SnapCatalogItem } from '@/lib/snap/catalog';
 import { catalogExampleImage } from '@/lib/snap/catalog';
 import { detectFaces, type FaceMeta } from '@/lib/snap/face-detect';
+import {
+  ExampleFlowModal,
+  type ExampleFlowMode,
+} from '@/components/snap/ExampleFlowModal';
 import { CatalogCard } from '@/components/snap/CatalogCard';
 import { StepIndicator, type SnapStep } from '@/components/snap/StepIndicator';
 import {
@@ -181,6 +185,8 @@ export function SnapGenerator({ catalog }: Props) {
   // 자동 모드 추천 banner 닫힘 여부. 사용자가 "유지" 누르면 같은 batch 동안 다시 안 뜸.
   // 다음 batch (제출 후 다시 선택) 에는 false 로 리셋.
   const [modeRecommendDismissed, setModeRecommendDismissed] = useState<boolean>(false);
+  // "예시 보기" 모달 — null = 닫힘, 'selfies' | 'couple' = 해당 모드 흐름 표시.
+  const [exampleModalMode, setExampleModalMode] = useState<ExampleFlowMode | null>(null);
   // 동의 게이트 — null = 로딩 중, true = 미동의(모달 표시), false = 동의 완료.
   // 진입 시 /api/snap/consent GET 으로 상태 조회 후 결정.
   const [needsConsent, setNeedsConsent] = useState<boolean | null>(null);
@@ -815,6 +821,13 @@ export function SnapGenerator({ catalog }: Props) {
         <ConsentModal onAccept={() => setNeedsConsent(false)} />
       )}
 
+      {/* 모드별 합성 흐름 예시 모달 — "예시 보기" 버튼 클릭 시 노출. */}
+      <ExampleFlowModal
+        mode={exampleModalMode}
+        onClose={() => setExampleModalMode(null)}
+      />
+
+
       {/* 0. 현재 상태 카드 — 크레딧 + 선택된 앵커 썸네일.
             selectedAnchorId 가 'current' 면 active anchor URL, library id 면 해당
             라이브러리 항목 URL. 라이브러리에서 골랐을 때 즉시 상단에 반영. */}
@@ -855,13 +868,7 @@ export function SnapGenerator({ catalog }: Props) {
             selected={mode === 'selfies1' || mode === 'selfies3'}
             disabled={isProgressing || isAnchorBusy}
             onClick={() => setMode('selfies1')}
-            example={{
-              inputSrc: '/wedding-snap/mode-examples/selfies-input.jpg',
-              inputAlt: '신랑·신부 셀카 입력 예시',
-              resultSrc: '/wedding-snap/mode-examples/selfies-result.jpg',
-              resultAlt: '셀카 모드 카탈로그 합성 결과 예시',
-              caption: '셀카 1장 → 50가지 컷',
-            }}
+            onShowExample={() => setExampleModalMode('selfies')}
           />
           <ModeCard
             title="커플 사진으로 만들기"
@@ -875,13 +882,7 @@ export function SnapGenerator({ catalog }: Props) {
             selected={mode === 'couple'}
             disabled={isProgressing || isAnchorBusy}
             onClick={() => setMode('couple')}
-            example={{
-              inputSrc: '/wedding-snap/mode-examples/couple-input.jpg',
-              inputAlt: '커플 사진 1장 입력 예시',
-              resultSrc: '/wedding-snap/mode-examples/couple-result.jpg',
-              resultAlt: '커플 모드 카탈로그 합성 결과 예시',
-              caption: '커플 사진 → 의상·배경 교체',
-            }}
+            onShowExample={() => setExampleModalMode('couple')}
           />
         </div>
 
@@ -1004,16 +1005,24 @@ export function SnapGenerator({ catalog }: Props) {
         )}
 
         {showSelfieInputs && (
-          <div className="mt-3 flex flex-col gap-4">
+          // 1장 모드: 신랑 + 신부 각 1박스를 가로 grid-cols-2 로 나란히.
+          // 3장 모드: 각 person 별 3박스 row 가 커서 세로 stack 유지.
+          <div
+            className={`mt-3 ${
+              numAngles === 1
+                ? 'grid grid-cols-2 gap-3'
+                : 'flex flex-col gap-4'
+            }`}
+          >
             <AngleRow
-              personLabel="신랑 얼굴"
+              personLabel={numAngles === 1 ? '신랑' : '신랑 얼굴'}
               numAngles={numAngles}
               faces={groomFaces}
               refs={groomRefs}
               disabled={isProgressing || isAnchorBusy}
             />
             <AngleRow
-              personLabel="신부 얼굴"
+              personLabel={numAngles === 1 ? '신부' : '신부 얼굴'}
               numAngles={numAngles}
               faces={brideFaces}
               refs={brideRefs}
@@ -1714,7 +1723,11 @@ function AngleRow({
         {personLabel}{' '}
         {numAngles > 1 && <span className="text-[10px] text-[#8B7355]">— {numAngles}각도</span>}
       </p>
-      <div className={`grid gap-2 ${numAngles === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+      <div
+        className={`grid gap-2 ${
+          numAngles === 3 ? 'grid-cols-3' : numAngles === 2 ? 'grid-cols-2' : 'grid-cols-1'
+        }`}
+      >
         {Array.from({ length: numAngles }).map((_, idx) => (
           <FaceUploader
             key={idx}
@@ -1975,43 +1988,39 @@ function AnchorBigPreview({ url, label }: { url: string | null; label: string })
 /**
  * 입력 모드 카드 — 셀카 / 커플 두 케이스를 큰 카드로 선택.
  *
- * `example` prop 으로 "이렇게 입력하면 이런 결과가 나와요" 미리보기 1세트를
- * 카드 하단에 표시 — 사용자가 처음 모드를 고를 때 직관적으로 이해할 수 있게.
- * 입력 사진 + → + 결과 사진 두 썸네일. 파일이 아직 없으면(onError) placeholder
- * 박스로 대체되어 깨짐 없이 노출. admin 이 mode-examples/ 에 jpg 만 올리면 즉시 노출.
+ * 카드 하단에는 "예시 보기" 버튼이 들어가 클릭 시 ExampleFlowModal 이 열림.
+ * 카드 자체 클릭은 모드 선택, 버튼 클릭은 stopPropagation 으로 모달만 열림.
  */
-interface ModeExample {
-  inputSrc: string;
-  inputAlt: string;
-  resultSrc: string;
-  resultAlt: string;
-  /** "정면 클로즈업 1장" 같은 1줄 부연 (옵션) */
-  caption?: string;
-}
-
 function ModeCard({
   title,
   description,
   selected,
   disabled,
   onClick,
-  example,
+  onShowExample,
 }: {
   title: string;
   description: React.ReactNode;
   selected: boolean;
   disabled?: boolean;
   onClick: () => void;
-  example?: ModeExample;
+  /** "예시 보기" 버튼 핸들러. 없으면 버튼 숨김. */
+  onShowExample?: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <div
       role="radio"
       aria-checked={selected}
-      disabled={disabled}
-      onClick={onClick}
-      className={`flex flex-col gap-1.5 rounded-md border p-3 text-left transition-colors ${
+      tabIndex={disabled ? -1 : 0}
+      onClick={() => !disabled && onClick()}
+      onKeyDown={(e) => {
+        if (disabled) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className={`flex cursor-pointer flex-col gap-1.5 rounded-md border p-3 text-left transition-colors ${
         selected
           ? 'border-[#3D2E1F] bg-white ring-2 ring-[#3D2E1F]/20'
           : 'border-[#E8DCC9] bg-white hover:border-[#8B7355]'
@@ -2029,72 +2038,18 @@ function ModeCard({
         <span className="text-sm font-semibold text-[#3D2E1F]">{title}</span>
       </span>
       <span className="text-[11px] leading-relaxed text-[#5C4633]">{description}</span>
-      {example && <ModeExamplePair example={example} />}
-    </button>
-  );
-}
-
-/**
- * 입력 → 결과 예시 1세트 — 카드 하단에 작게 표시. 두 썸네일 사이 화살표.
- * 둘 다 3:4 비율 작은 카드. 파일이 아직 없으면 onError → placeholder 텍스트로 fallback.
- */
-function ModeExamplePair({ example }: { example: ModeExample }) {
-  return (
-    <div className="mt-1.5 flex flex-col gap-1">
-      <span className="text-[10px] font-medium text-[#8B7355]">예시</span>
-      <div className="flex items-center gap-1.5">
-        <ModeExampleThumb src={example.inputSrc} alt={example.inputAlt} label="입력 사진" />
-        <span
-          aria-hidden
-          className="text-base font-light leading-none text-[#8B7355]"
+      {onShowExample && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onShowExample();
+          }}
+          className="mt-1 self-start text-[11px] font-medium text-[#3D2E1F] underline underline-offset-2 hover:text-[#5C4633]"
         >
-          →
-        </span>
-        <ModeExampleThumb src={example.resultSrc} alt={example.resultAlt} label="결과" />
-        {example.caption && (
-          <span className="ml-auto text-[10px] leading-snug text-[#8B7355]">
-            {example.caption}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/** 모드 예시 입력/결과 작은 썸네일 (3:4, 약 56–72px 폭). onError 시 placeholder. */
-function ModeExampleThumb({
-  src,
-  alt,
-  label,
-}: {
-  src: string;
-  alt: string;
-  label: string;
-}) {
-  return (
-    <div
-      title={alt}
-      className="relative h-16 w-12 overflow-hidden rounded border border-[#E8DCC9] bg-[#F5EDE0]"
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={alt}
-        className="block h-full w-full object-cover"
-        onError={(e) => {
-          const target = e.currentTarget;
-          target.style.display = 'none';
-          const fb = target.nextElementSibling as HTMLElement | null;
-          if (fb) fb.style.display = 'flex';
-        }}
-      />
-      <div
-        className="absolute inset-0 hidden flex-col items-center justify-center px-1 text-center text-[9px] leading-tight text-[#8B7355]"
-        style={{ display: 'none' }}
-      >
-        <span>{label}</span>
-        <span className="opacity-60">준비 중</span>
-      </div>
+          예시 보기 →
+        </button>
+      )}
     </div>
   );
 }
