@@ -3,10 +3,14 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 
 /**
- * GET /api/snap/jobs?kind=catalog|anchor&limit=50
+ * GET /api/snap/jobs?kind=catalog|anchor&limit=500
  *
  * 현재 사용자의 snap_jobs 목록 반환 — 마이페이지 결과 갤러리용.
  * 가장 최근 순. status='failed' 도 포함 (사용자가 환불/재시도 판단).
+ *
+ * default limit 500 으로 늘림 — 한 사용자가 수백 장씩 생성하는 케이스에서
+ * 오래된 결과가 마이페이지에서 사라져 보이지 않게 되는 문제 fix.
+ * max 1000 까지 허용 (response 용량 trade-off — 응답 크기는 수십 KB 수준).
  */
 
 const NO_STORE_HEADERS = {
@@ -23,7 +27,7 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const kind = url.searchParams.get('kind');
-  const limit = Math.min(Number(url.searchParams.get('limit') ?? 100), 200);
+  const limit = Math.min(Number(url.searchParams.get('limit') ?? 500), 1000);
 
   const admin = createAdminClient();
   let query = admin
