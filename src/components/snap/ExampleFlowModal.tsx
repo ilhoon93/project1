@@ -1,35 +1,41 @@
 'use client';
 
 /**
- * 모드별 합성 흐름 예시를 보여주는 모달.
+ * 모드별 합성 흐름 예시 모달.
  *
  * 호출처: SnapGenerator 의 "1. 사진 업로드" 섹션 ModeCard 의 "예시 보기" 버튼.
  *
  * 흐름:
- *   셀카 모드 →
- *     "이런 셀카 3장을 올리면 돼요" — 정면 / 좌 45° / 우 45° 셀카 3장 표시.
- *     사용자가 처음 모드를 선택할 때 가장 궁금한 "입력 사진 형태" 를 단순 시각화.
- *   커플 모드 →
- *     row 1: 커플사진 → 카탈로그 → 결과 (예시 1)
- *     row 2: 커플사진 → 카탈로그 → 결과 (예시 2)
+ *   셀카 모드 → 3 row (신랑/신부/함께):
+ *     row 1: [신랑셀카 3장] → [신랑앵커] → [카탈로그] → [결과]
+ *     row 2: [신부셀카 3장] → [신부앵커] → [카탈로그] → [결과]
+ *     row 3: [신랑앵커 + 신부앵커] → [카탈로그] → [결과]
+ *
+ *   커플 모드 → 2 row:
+ *     row 1: [커플사진] → [카탈로그] → [결과]
+ *     row 2: [커플사진] → [카탈로그] → [결과]
+ *
+ * 각 step 은 1~3장의 썸네일을 가로 배치 (FlowStep.srcs[]). 칸 폭은 썸네일 수에
+ * 비례. 모든 썸네일 클릭 시 lightbox 로 확대 (ESC / 외부 클릭 / × 로 닫기).
  *
  * 이미지 파일 규약: public/wedding-snap/mode-examples/<...>.jpg (README 참고).
  * 카탈로그 칸은 SNAP_CATALOG 에서 EXAMPLE_CATALOG_IDS 로 지정한 항목의 마스터를
  * 그대로 사용 — admin 이 mode-examples/ 에 카탈로그 사본을 또 올릴 필요 없음.
  * 파일이 없으면 onError → "준비 중" placeholder 로 fallback.
- *
- * 모든 썸네일은 클릭 시 lightbox 로 확대 (ESC / 외부 클릭 / × 로 닫기).
  */
 
 import { useEffect, useState } from 'react';
 import { findSnapCatalog } from '@/lib/snap/catalog';
 
 /**
- * 각 row 의 카탈로그 칸에 보일 catalog id.
- * 운영하면서 더 좋은 reference 컷이 있으면 여기만 바꾸면 됨.
- * (모두 active 항목이어야 함 — hidden 인 항목 쓰면 결과 칸이 placeholder 로 빠짐.)
+ * 각 row 의 카탈로그 칸에 보일 catalog id. 운영 중 더 좋은 reference 가 생기면
+ * 여기만 바꾸면 됨. (모두 active 항목이어야 함 — hidden 인 항목 쓰면 결과 칸이
+ * placeholder 로 빠짐.)
  */
 const EXAMPLE_CATALOG_IDS = {
+  groomSolo: 'groom-portrait-studio',
+  brideSolo: 'bride-floral-bed-seated',
+  together: 'studio-couple-blackwhite',
   couple1: 'beach-classic-white',
   couple2: 'paris-eiffel-walk',
 } as const;
@@ -45,7 +51,7 @@ export function ExampleFlowModal({
   mode: ExampleFlowMode | null;
   onClose: () => void;
 }) {
-  // lightbox state — 어떤 썸네일을 클릭했는지 src 만 저장.
+  // lightbox state — 클릭한 썸네일 src.
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   // ESC 로 닫기 (lightbox 가 열려 있으면 lightbox 먼저, 아니면 모달).
@@ -69,7 +75,7 @@ export function ExampleFlowModal({
 
   const title =
     mode === 'selfies'
-      ? '셀카로 만들기 — 입력 셀카 예시'
+      ? '셀카로 만들기 — 흐름 예시'
       : '커플 사진으로 만들기 — 흐름 예시';
 
   return (
@@ -82,7 +88,7 @@ export function ExampleFlowModal({
         onClick={onClose}
       >
         <div
-          className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white shadow-2xl"
+          className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* 헤더 */}
@@ -102,35 +108,121 @@ export function ExampleFlowModal({
           <div className="flex flex-col gap-5 px-5 py-4">
             <p className="text-[11px] leading-relaxed text-[#5C4633]">
               {mode === 'selfies'
-                ? '신랑·신부 각자 아래와 같은 정면 / 좌 45° / 우 45° 셀카 3장씩 준비해 주세요. 사진을 누르면 크게 볼 수 있어요.'
+                ? '신랑·신부 각자 셀카 3장(정면/좌45°/우45°)으로 앵커를 만들고, 그 앵커를 카탈로그에 합성합니다. 함께 컷 / 신랑 단독 / 신부 단독 컷 모두 가능. 사진을 누르면 크게 볼 수 있어요.'
                 : '두 사람이 함께 찍힌 커플 사진 1장으로 만듭니다. 포즈·체형·상호작용을 그대로 유지하며 카탈로그의 의상/배경만 바꿔요. (함께 컷만 가능)'}
             </p>
 
             {mode === 'selfies' ? (
-              <SelfieAnglesRow onPick={setLightboxSrc} />
+              <>
+                <ExampleFlowRow
+                  title="신랑 단독 컷 만들기"
+                  steps={[
+                    {
+                      srcs: [
+                        `${MODE_BASE}/selfies-groom-front.jpg`,
+                        `${MODE_BASE}/selfies-groom-left.jpg`,
+                        `${MODE_BASE}/selfies-groom-right.jpg`,
+                      ],
+                      label: '신랑 셀카 3장',
+                    },
+                    {
+                      srcs: [`${MODE_BASE}/selfies-groom-anchor.jpg`],
+                      label: '신랑 앵커',
+                    },
+                    {
+                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.groomSolo)],
+                      label: '카탈로그',
+                    },
+                    {
+                      srcs: [`${MODE_BASE}/selfies-groom-result.jpg`],
+                      label: '결과',
+                    },
+                  ]}
+                  onPick={setLightboxSrc}
+                />
+                <ExampleFlowRow
+                  title="신부 단독 컷 만들기"
+                  steps={[
+                    {
+                      srcs: [
+                        `${MODE_BASE}/selfies-bride-front.jpg`,
+                        `${MODE_BASE}/selfies-bride-left.jpg`,
+                        `${MODE_BASE}/selfies-bride-right.jpg`,
+                      ],
+                      label: '신부 셀카 3장',
+                    },
+                    {
+                      srcs: [`${MODE_BASE}/selfies-bride-anchor.jpg`],
+                      label: '신부 앵커',
+                    },
+                    {
+                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.brideSolo)],
+                      label: '카탈로그',
+                    },
+                    {
+                      srcs: [`${MODE_BASE}/selfies-bride-result.jpg`],
+                      label: '결과',
+                    },
+                  ]}
+                  onPick={setLightboxSrc}
+                />
+                <ExampleFlowRow
+                  title="함께 컷 만들기"
+                  steps={[
+                    {
+                      srcs: [
+                        `${MODE_BASE}/selfies-groom-anchor.jpg`,
+                        `${MODE_BASE}/selfies-bride-anchor.jpg`,
+                      ],
+                      label: '신랑 + 신부 앵커',
+                    },
+                    {
+                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.together)],
+                      label: '카탈로그',
+                    },
+                    {
+                      srcs: [`${MODE_BASE}/selfies-together-result.jpg`],
+                      label: '결과',
+                    },
+                  ]}
+                  onPick={setLightboxSrc}
+                />
+              </>
             ) : (
               <>
                 <ExampleFlowRow
                   title="예시 1"
                   steps={[
-                    { src: `${MODE_BASE}/couple-input.jpg`, label: '커플 사진' },
                     {
-                      src: imageForCatalogId(EXAMPLE_CATALOG_IDS.couple1),
+                      srcs: [`${MODE_BASE}/couple-input.jpg`],
+                      label: '커플 사진',
+                    },
+                    {
+                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.couple1)],
                       label: '카탈로그',
                     },
-                    { src: `${MODE_BASE}/couple-result-1.jpg`, label: '결과' },
+                    {
+                      srcs: [`${MODE_BASE}/couple-result-1.jpg`],
+                      label: '결과',
+                    },
                   ]}
                   onPick={setLightboxSrc}
                 />
                 <ExampleFlowRow
                   title="예시 2"
                   steps={[
-                    { src: `${MODE_BASE}/couple-input.jpg`, label: '커플 사진' },
                     {
-                      src: imageForCatalogId(EXAMPLE_CATALOG_IDS.couple2),
+                      srcs: [`${MODE_BASE}/couple-input.jpg`],
+                      label: '커플 사진',
+                    },
+                    {
+                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.couple2)],
                       label: '카탈로그',
                     },
-                    { src: `${MODE_BASE}/couple-result-2.jpg`, label: '결과' },
+                    {
+                      srcs: [`${MODE_BASE}/couple-result-2.jpg`],
+                      label: '결과',
+                    },
                   ]}
                   onPick={setLightboxSrc}
                 />
@@ -151,7 +243,7 @@ export function ExampleFlowModal({
         </div>
       </div>
 
-      {/* lightbox — 클릭한 썸네일을 화면 가득 확대. 클릭 또는 ✕ 로 닫기. */}
+      {/* lightbox — 클릭한 썸네일 풀스크린 확대. */}
       {lightboxSrc && (
         <div
           role="dialog"
@@ -184,37 +276,9 @@ export function ExampleFlowModal({
   );
 }
 
-/** 셀카 모드 — 정면 / 좌 / 우 3장을 한 줄로 표시. 클릭 시 lightbox. */
-function SelfieAnglesRow({ onPick }: { onPick: (src: string) => void }) {
-  const angles: Array<{ src: string; label: string }> = [
-    { src: `${MODE_BASE}/selfies-front.jpg`, label: '정면' },
-    { src: `${MODE_BASE}/selfies-left.jpg`, label: '좌 45°' },
-    { src: `${MODE_BASE}/selfies-right.jpg`, label: '우 45°' },
-  ];
-  return (
-    <div className="flex flex-col gap-2 rounded-md border border-[#E8DCC9] bg-[#FAF7F2]/40 p-3">
-      <p className="text-[12px] font-medium text-[#3D2E1F]">셀카 3장 (3장씩 모드 기준)</p>
-      <div className="grid grid-cols-3 gap-2">
-        {angles.map((angle) => (
-          <FlowThumb
-            key={angle.src}
-            step={{ src: angle.src, label: angle.label }}
-            size="lg"
-            onPick={onPick}
-          />
-        ))}
-      </div>
-      <p className="text-[10px] leading-snug text-[#8B7355]">
-        ※ 1장씩 모드는 정면 1장만 올리시면 됩니다.
-      </p>
-    </div>
-  );
-}
-
 interface FlowStep {
-  src: string;
-  /** "신랑 + 신부 앵커" 같은 칸에서 두 번째 썸네일을 같이 그릴 때 사용 */
-  secondarySrc?: string;
+  /** 1~3장 가로 배치. 클릭 시 lightbox 로 개별 확대. */
+  srcs: string[];
   label: string;
 }
 
@@ -249,27 +313,40 @@ function ExampleFlowRow({
   );
 }
 
+/**
+ * 한 step 의 박스 — 라벨 + 1~3장 썸네일 grid.
+ * 썸네일 수에 따라 width / grid-cols 가 비례하게 변동.
+ *   1장: w ≈ 64px,  grid-cols-1
+ *   2장: w ≈ 112px, grid-cols-2
+ *   3장: w ≈ 160px, grid-cols-3
+ */
 function FlowThumb({
   step,
-  size = 'sm',
   onPick,
 }: {
   step: FlowStep;
-  size?: 'sm' | 'lg';
   onPick: (src: string) => void;
 }) {
-  const widthClass = size === 'lg' ? 'w-full' : 'w-16 shrink-0 sm:w-20';
+  const count = step.srcs.length;
+  const widthClass =
+    count === 3
+      ? 'w-40 shrink-0 sm:w-48'
+      : count === 2
+        ? 'w-28 shrink-0 sm:w-32'
+        : 'w-16 shrink-0 sm:w-20';
+  const colsClass =
+    count === 3 ? 'grid-cols-3' : count === 2 ? 'grid-cols-2' : 'grid-cols-1';
   return (
     <div className={`flex ${widthClass} flex-col gap-1`}>
-      <div className="flex gap-0.5">
-        <ThumbBox src={step.src} alt={step.label} onPick={onPick} />
-        {step.secondarySrc && (
+      <div className={`grid gap-0.5 ${colsClass}`}>
+        {step.srcs.map((src, idx) => (
           <ThumbBox
-            src={step.secondarySrc}
-            alt={`${step.label} (보조)`}
+            key={`${src}-${idx}`}
+            src={src}
+            alt={`${step.label} ${count > 1 ? idx + 1 : ''}`.trim()}
             onPick={onPick}
           />
-        )}
+        ))}
       </div>
       <span className="text-center text-[10px] leading-tight text-[#5C4633]">
         {step.label}

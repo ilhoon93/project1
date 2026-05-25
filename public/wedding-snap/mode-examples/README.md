@@ -9,16 +9,23 @@
 사용되는 카탈로그 id 는 [`ExampleFlowModal.tsx`](../../../src/components/snap/ExampleFlowModal.tsx)
 의 `EXAMPLE_CATALOG_IDS` 상수 참고.
 
+모든 썸네일은 클릭 시 lightbox 로 풀스크린 확대 가능 (ESC / 외부 클릭 / ✕ 닫기).
+
 ## 흐름
 
-### 셀카로 만들기
+### 셀카로 만들기 — 3 row
 ```
-입력 셀카 3장 (3장씩 모드 기준)
-  [정면] [좌 45°] [우 45°]
-  ※ 각 사진 클릭 시 lightbox 로 크게 보기
+신랑 단독 컷 만들기
+  [신랑셀카 3장(정면/좌/우)] → [신랑앵커] → [카탈로그] → [결과]
+
+신부 단독 컷 만들기
+  [신부셀카 3장(정면/좌/우)] → [신부앵커] → [카탈로그] → [결과]
+
+함께 컷 만들기
+  [신랑앵커 + 신부앵커] → [카탈로그] → [결과]
 ```
 
-### 커플 사진으로 만들기
+### 커플 사진으로 만들기 — 2 row
 ```
 예시 1
   [커플사진] → [카탈로그] → [결과]
@@ -29,31 +36,43 @@
 
 ## 파일 규약
 
+### 셀카 모드 (10개)
 | 경로 | 용도 |
 | --- | --- |
-| `selfies-front.jpg` | 셀카 모드 — 정면 셀카 예시 |
-| `selfies-left.jpg` | 셀카 모드 — 좌 45° 셀카 예시 |
-| `selfies-right.jpg` | 셀카 모드 — 우 45° 셀카 예시 |
-| `couple-input.jpg` | 커플 사진 입력 예시 (모달 모든 row 공통) |
-| `couple-result-1.jpg` | 커플 예시 1 — 결과 (Beach Classic White 카탈로그 기준) |
-| `couple-result-2.jpg` | 커플 예시 2 — 결과 (Paris Eiffel Walk 카탈로그 기준) |
+| `selfies-groom-front.jpg` | 신랑 정면 셀카 |
+| `selfies-groom-left.jpg` | 신랑 좌 45° 셀카 |
+| `selfies-groom-right.jpg` | 신랑 우 45° 셀카 |
+| `selfies-groom-anchor.jpg` | 신랑 앵커 결과 (row 1 + row 3 의 좌측 앵커) |
+| `selfies-groom-result.jpg` | 신랑 단독 카탈로그 합성 결과 |
+| `selfies-bride-front.jpg` | 신부 정면 셀카 |
+| `selfies-bride-left.jpg` | 신부 좌 45° 셀카 |
+| `selfies-bride-right.jpg` | 신부 우 45° 셀카 |
+| `selfies-bride-anchor.jpg` | 신부 앵커 결과 (row 2 + row 3 의 우측 앵커) |
+| `selfies-bride-result.jpg` | 신부 단독 카탈로그 합성 결과 |
+| `selfies-together-result.jpg` | 함께 카탈로그 합성 결과 |
+
+### 커플 모드 (3개)
+| 경로 | 용도 |
+| --- | --- |
+| `couple-input.jpg` | 커플 사진 입력 예시 (모든 row 공통) |
+| `couple-result-1.jpg` | 커플 예시 1 결과 (Beach Classic White 기준) |
+| `couple-result-2.jpg` | 커플 예시 2 결과 (Paris Eiffel Walk 기준) |
 
 코드에서 path 가 직접 지정되어 있어 admin 이 같은 이름으로 jpg 만 올리면 즉시
-노출. 파일 미존재 시 `onError` → "준비 중" placeholder 박스로 fallback (UI 깨짐
-없음).
+노출. 파일 미존재 시 `onError` → "준비 중" placeholder 박스로 fallback.
 
 ## 권장 규격
 
-- **비율**: 세로 3:4 (모달 안 56×72px 정도로 렌더 → 해상도는 자유)
-- **해상도**: 가로 360px 이상 권장 (retina 대응)
-- **용량**: 100KB 이하
+- **비율**: 세로 3:4 (모달 안 60~160px 폭으로 렌더 → lightbox 클릭 시 풀스크린이라 해상도 자유)
+- **해상도**: 가로 600px 이상 권장 (lightbox 풀스크린 대응)
+- **용량**: 200KB 이하
 - **내용**:
-  - selfie 들 — 정면 얼굴이 잘 보이는 셀카 한 장씩
-  - anchor 들 — 같은 사람의 앵커 생성 결과 (스튜디오 normalize 컷)
-  - result 들 — 그 앵커로 만든 카탈로그 결과 (실제 운영 데이터 잘 나온 컷 추천)
+  - selfies-*-front/left/right — 신랑/신부 각자 정면 + 좌45° + 우45° 셀카
+  - selfies-*-anchor — 같은 사람의 앵커 생성 결과 (스튜디오 normalize 컷)
+  - selfies-*-result, selfies-together-result — 카탈로그 합성 결과
   - couple-input — 두 사람이 함께 정면 반신 컷
-- **컬러**: 셀카·앵커·결과의 톤이 너무 달라 보이지 않게 (사용자가 "변환 폭"
-  체감을 명확히 받게)
+  - couple-result-* — 그 사진을 베이스로 의상/배경 바꾼 결과
+- **컬러**: 셀카·앵커·결과의 톤이 너무 달라 보이지 않게 (사용자가 "변환 폭" 체감을 명확히 받게)
 
 ## 카탈로그 칸 변경
 
@@ -62,29 +81,23 @@ EXAMPLE_CATALOG_IDS 상수의 id 만 변경하면 모달의 카탈로그 칸이 
 
 ```ts
 const EXAMPLE_CATALOG_IDS = {
-  groomSolo: 'groom-portrait-studio',   // 신랑 단독 row 카탈로그 칸
-  brideSolo: 'bride-floral-bed-seated', // 신부 단독 row 카탈로그 칸
-  together:  'studio-couple-blackwhite',// 함께 row 카탈로그 칸
-  couple1:   'beach-classic-white',     // 커플 예시 1 row 카탈로그 칸
-  couple2:   'paris-eiffel-walk',       // 커플 예시 2 row 카탈로그 칸
+  groomSolo: 'groom-portrait-studio',
+  brideSolo: 'bride-floral-bed-seated',
+  together:  'studio-couple-blackwhite',
+  couple1:   'beach-classic-white',
+  couple2:   'paris-eiffel-walk',
 };
 ```
 
-위 id 들은 모두 active (hidden:false) 상태여야 마스터 이미지가 로드됨.
-
-## 파일이 없을 때
-
-`onError` 핸들러가 자동으로 "준비 중" placeholder 박스를 표시. 모달 자체는 정상
-동작, 카드 흐름 이해는 그대로 가능.
+위 id 들은 모두 active (admin 페이지에서 hidden 태그가 없거나 양쪽 모두 hidden 이
+아닌) 상태여야 마스터 이미지가 정상 로드됨.
 
 ## Deprecated (이전 PR 의 파일들)
 
-다음 파일들은 더 이상 사용되지 않습니다 — 셀카 모드 팝업이 정면/좌/우 3장
-구조로 단순화되며 신랑/신부 + 흐름 row 가 제거됨:
-- `selfies-input.jpg` / `selfies-result.jpg`
-- `selfies-groom-selfie.jpg` / `selfies-groom-anchor.jpg` / `selfies-groom-result.jpg`
-- `selfies-bride-selfie.jpg` / `selfies-bride-anchor.jpg` / `selfies-bride-result.jpg`
-- `selfies-together-result.jpg`
-- `couple-result.jpg`
+다음 파일들은 더 이상 사용되지 않습니다:
+- `selfies-input.jpg` / `selfies-result.jpg` (PR #154 — 첫 1세트 슬롯)
+- `selfies-front.jpg` / `selfies-left.jpg` / `selfies-right.jpg` (PR #165 —
+  사람 구분 없는 3장 grid; 이번에 사람별로 다시 분리됨)
+- `couple-result.jpg` (PR #154 — 단일 결과)
 
 남아 있어도 무해 (사용처 없음). 필요 시 git 으로 삭제.
