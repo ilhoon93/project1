@@ -208,7 +208,7 @@ function SnapTab({
         cache: 'no-store',
       });
       // 2. jobs 목록.
-      const res = await fetch('/api/snap/jobs?kind=catalog&limit=100', {
+      const res = await fetch('/api/snap/jobs?kind=catalog&limit=500', {
         cache: 'no-store',
       });
       if (res.ok) {
