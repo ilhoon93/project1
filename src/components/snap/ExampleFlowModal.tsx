@@ -33,11 +33,11 @@ import { findSnapCatalog } from '@/lib/snap/catalog';
  * placeholder 로 빠짐.)
  */
 const EXAMPLE_CATALOG_IDS = {
-  groomSolo: 'groom-portrait-studio',
-  brideSolo: 'bride-floral-bed-seated',
-  together: 'studio-couple-blackwhite',
-  couple1: 'beach-classic-white',
-  couple2: 'paris-eiffel-walk',
+  groomSolo: 'groom-hotel-stairs',
+  brideSolo: 'bride-paris-eiffel',
+  together: 'garden-finger-heart',
+  couple1: 'studio-couple-puppy',
+  couple2: 'budapest-bastion-sunset',
 } as const;
 
 const MODE_BASE = '/wedding-snap/mode-examples';
