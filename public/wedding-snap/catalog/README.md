@@ -4,6 +4,17 @@
 얼굴을 업로드하면 이 폴더의 이미지가 모델에게 "이 컷처럼 합성해" 라는 구도/배경
 reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 
+## 현재 카탈로그 규모
+
+- **Together (커플) — 활성**: 61개 (스튜디오 / 한옥 / 도심 / 해외 풍경 포함)
+- **Solo (단독) — 활성**: 24개 (신랑 솔로 / 신부 솔로)
+- **총합**: 85개
+
+랜딩 페이지(`/wedding-snap`) 와 생성 페이지(`/wedding-snap/create`) 양쪽 모두
+카탈로그 그리드는 **24개/페이지 페이지네이션** 으로 표시되고, 검색 필터
+(누가 / 배경 / 컷) + 모드(추천만 / 전체) + 정렬(추천순 / 인기순 / 좋아요순) 이
+적용됩니다.
+
 ## 업로드 위치 / 파일명
 
 `public/wedding-snap/catalog/{id}.jpg`
@@ -106,42 +117,55 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `bride-pink-hanbok-studio` | 신부 핑크 한복 스튜디오 | `bride-pink-hanbok-studio.jpg` |
 | `bride-rose-garden-pink-seated` | 신부 장미정원 핑크 드레스 | `bride-rose-garden-pink-seated.jpg` |
 
+## 운영자 태그 시스템 (`/admin/snap-catalog-tags`)
+
+각 카탈로그는 입력 조건 (셀카 모드 / 커플 전신) 별로 다음 4가지 태그 중 하나를
+운영자가 부여할 수 있어요:
+
+| 태그 | 사용자 페이지 노출 |
+| --- | --- |
+| `recommend` | ★추천 emerald 배지 표시 + 정렬 상단 |
+| `caution` | "주의" amber 배지 표시 |
+| `risky` | "비추" red 배지 표시 + 정렬 하단 |
+| `hidden` | picker / 랜딩에서 완전 숨김 |
+| (미설정) | safe (기본) 등급으로 표시 |
+
+태그는 `snap_catalog_tags` 테이블에 저장 (마이그레이션 028) 되며 변경 즉시
+사용자 페이지에 반영됩니다 (page-level `dynamic = 'force-dynamic'`).
+
+picker 에서 카탈로그를 완전히 숨기려면 두 input_condition 양쪽 모두 `hidden`
+으로 세팅하세요. 한쪽만 hidden 이면 그 모드에서만 노출에서 빠지고, 반대 모드
+에선 그대로 보입니다.
+
 **Hidden 처리**
 
-picker 에서 카탈로그를 숨기려면 운영자가 admin 페이지
-(`/admin/snap-catalog-tags`) 에서 해당 카탈로그의 두 input_condition (셀카 모드 /
-커플 전신) 양쪽 모두 `hidden` 태그를 세팅하세요. 변경 즉시 사용자 페이지 반영.
+- 마스터 이미지(jpg)가 없는 카탈로그는 `getAvailableCatalog()` 가 fs.statSync 로
+  자동 제외하므로 별도 hidden 세팅 없이도 picker / landing 양쪽에서 안 보입니다.
+- (이전엔 `catalog.ts` 의 `hidden:true` 필드로 관리했으나 admin 페이지로 일원화됐고,
+  정의되어 있던 10개 hidden 항목 자체는 catalog.ts 에서 완전 제거됨.)
 
-마스터 이미지(jpg)가 없는 카탈로그는 `getAvailableCatalog()` 가 fs.statSync 로
-자동 제외하므로 별도 hidden 세팅 없이도 picker / landing 양쪽에서 안 보입니다.
+## 통계 관리 (`/admin/snap-catalog-stats`)
 
-(이전엔 `catalog.ts` 의 `hidden:true` 필드로 관리했으나 admin 페이지로 일원화됐고,
-정의되어 있던 10개 hidden 항목 자체는 catalog.ts 에서 완전 제거됨.)
+마이페이지의 좋아요 / 재생성 액션이 `snap_catalog_stats` view 로 집계되어
+admin 페이지에서 카탈로그 × 모드(selfies / couple) 단위로 다음 지표를 볼 수 있어요:
 
-새 카탈로그 추가 시: `SNAP_CATALOG` 에 항목을 추가하고 같은 `id` 의 jpg 를
-이 폴더에 올리면 즉시 노출/사용됩니다 (`getAvailableCatalog()` 가 파일 유무를
-서버사이드에서 자동 체크하므로 별도 토글 불필요).
+- `gen_count` — 누적 완료된 생성 수
+- `like_count` / `like_rate` — 좋아요 비율
+- `regen_count` / `regen_rate` — 재생성 비율
 
-## 합성 방식별 결과 예시 (선택, 카탈로그-별 N장 그리드용)
+like_rate 가 낮거나 regen_rate 가 높은 카탈로그는 운영자 검토 대상 (태그 조정 또는
+prompt 보강).
 
-`public/wedding-snap/catalog/examples/<id>-<mode>.jpg` 규칙으로 strict /
-prompt-only 두 모드의 예시 결과 이미지를 올리면 스냅 생성 페이지의 "4. 합성
-방식" 단계에서 자동으로 노출됩니다.
+이 통계는 사용자 페이지의 **정렬 옵션** ("인기순" / "좋아요순") 에도 사용됩니다.
 
-> 1. 사진 업로드 모드 카드 (셀카 / 커플) 에 대표 1세트씩 보여주는 입력→결과
-> 예시는 별도 디렉토리 `public/wedding-snap/mode-examples/` 를 사용합니다
-> (해당 디렉토리의 README 참고).
+## 새 카탈로그 추가
 
-```
-examples/studio-couple-blackwhite-strict.jpg
-examples/studio-couple-blackwhite-prompt-only.jpg
-examples/canola-field-walk-strict.jpg
-examples/canola-field-walk-prompt-only.jpg
-...
-```
-
-파일이 없으면 onError → 카탈로그 마스터 이미지로 자동 fallback. 새 예시를 추가
-해도 별도 코드 수정 없이 즉시 노출.
+1. `SNAP_CATALOG` 에 새 항목 (id / label / hint / category / personality /
+   framing / promptHint / faceMaskRegions / 등) 추가.
+2. 같은 `id.jpg` 를 이 폴더에 업로드.
+3. 다음 배포부터 자동 노출 — `getAvailableCatalog()` 가 fs 체크로 picker /
+   랜딩 양쪽 검증.
+4. (선택) admin 페이지에서 추천 / 주의 / 비추 태그 부여.
 
 ## 권장 규격
 
