@@ -67,6 +67,16 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `porto-balcony-sunset` | 포르토 발코니 골든아워 | `porto-balcony-sunset.jpg` |
 | `prague-sunflower-cheer` | 프라하 + 해바라기 환호 | `prague-sunflower-cheer.jpg` |
 | `yacht-cabin-lean` | 요트 캐빈 어깨 기댐 | `yacht-cabin-lean.jpg` |
+| `beach-sunset-sparkler-couple` | 비치 일몰 스파클러 | `beach-sunset-sparkler-couple.jpg` |
+| `brick-alley-blackwhite-couple` | 브릭 골목 흑백 미니드레스 | `brick-alley-blackwhite-couple.jpg` |
+| `night-rain-umbrella-couple` | 비오는 밤 우산 산책 | `night-rain-umbrella-couple.jpg` |
+| `hanok-royal-purple-couple` | 한옥 보라 한복 커플 | `hanok-royal-purple-couple.jpg` |
+| `yosemite-trail-walk` | 요세미티 트레일 워킹 | `yosemite-trail-walk.jpg` |
+| `vintage-parlor-veil-lap` | 빈티지 응접실 무릎 베개 | `vintage-parlor-veil-lap.jpg` |
+| `jeju-rocky-veil-couple` | 제주 바위 일몰 베일 | `jeju-rocky-veil-couple.jpg` |
+| `desert-vintage-convertible-couple` | 사막 빈티지 컨버터블 | `desert-vintage-convertible-couple.jpg` |
+| `wooden-stairs-bouquet-couple` | 우드 계단 안개꽃 부케 | `wooden-stairs-bouquet-couple.jpg` |
+| `countryside-sunflower-leather` | 시골길 해바라기 가죽자켓 | `countryside-sunflower-leather.jpg` |
 
 **Solo (단독) — 활성**
 | id | 라벨 | 파일 경로 |
@@ -92,6 +102,9 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `groom-beach-greensuit` | 신랑 해변 그린 슈트 | `groom-beach-greensuit.jpg` |
 | `groom-hotel-stairs` | 신랑 호텔 계단 단독 | `groom-hotel-stairs.jpg` |
 | `bride-nyc-chrysler` | 신부 NYC 크라이슬러 빌딩 | `bride-nyc-chrysler.jpg` |
+| `hanok-corridor-bride-peek` | 한옥 회랑 신부 한복 | `hanok-corridor-bride-peek.jpg` |
+| `bride-pink-hanbok-studio` | 신부 핑크 한복 스튜디오 | `bride-pink-hanbok-studio.jpg` |
+| `bride-rose-garden-pink-seated` | 신부 장미정원 핑크 드레스 | `bride-rose-garden-pink-seated.jpg` |
 
 **Hidden 처리**
 

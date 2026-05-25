@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { checkAdmin } from '@/lib/auth/admin';
 import { SNAP_CATALOG } from '@/lib/snap/catalog';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 import { CatalogStatsTable, type StatsRow } from './CatalogStatsTable';
 
 export const metadata: Metadata = {
@@ -35,9 +35,10 @@ export default async function SnapCatalogStatsAdminPage() {
   const ctx = await checkAdmin();
   if (!ctx) notFound();
 
-  // view 는 RLS 없이 authenticated 모두 read. admin client 사용해 안정성 확보.
-  const admin = createAdminClient();
-  const { data, error } = await admin
+  // view 는 RLS 없이 authenticated 모두 read 가능 (031 마이그에서 grant).
+  // 일반 server client 로 충분 — service role key 환경 의존 없음.
+  const supabase = createClient();
+  const { data, error } = await supabase
     .from('snap_catalog_stats')
     .select(
       'catalog_id, mode, gen_count, like_count, regen_count, like_rate, regen_rate',

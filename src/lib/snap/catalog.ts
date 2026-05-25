@@ -1454,6 +1454,248 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
       'warm bright late-afternoon NYC urban daylight overlooking 6th Avenue with iconic Chrysler Building backdrop and yellow-cab accents, refined modern editorial Korean K-prewedding international travel mood',
     faceMaskRegions: [[0.42, 0.20, 0.18, 0.18]],
   },
+
+  // ─────────────────────────────────────────────────────────
+  // 2026-05 신규 13장 (Gemini 10 + nano-banana 3) — 커플 10 / 신부 3
+  // ─────────────────────────────────────────────────────────
+  {
+    id: 'beach-sunset-sparkler-couple',
+    label: '비치 일몰 스파클러',
+    hint: '핑크 sky + 스파클러 + 베일 슬립드레스',
+    category: 'beach',
+    personality: 'together',
+    intensity: 'high',
+    framing: 'full',
+    image: '/wedding-snap/catalog/beach-sunset-sparkler-couple.jpg',
+    promptHint:
+      'Outdoor beach scene at golden / pink hour right after sunset — soft pastel pink-to-lavender sky gradient filling the upper half, calm dark sea horizon mid-frame with gentle small waves, wide soft beige sand stretching to the foreground with the couple barefoot on the sand. Two lit sparkler / firework sticks held one in each of their outer hands sending bright warm-white sparks outward and slightly downward (no overexposed core blow-out, sparks read as defined particles). Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, eye-level camera, shallow depth of field with creamy sea bokeh behind. Bride: simple sleeveless ivory satin slip A-line wedding dress with subtle square neckline, short flowing tulle veil with small pearl-pin hair accent, hair softly tucked behind one ear, soft natural rosy makeup with neutral lip, holding a small loose bouquet of cream garden roses at her waist with her free hand, leaning warmly into the groom. Groom: pale soft pink button-up shirt sleeves rolled, slim navy formal trousers, dark thin tie, short neat dark hair, soft natural relaxed smile, his free arm gently around the bride’s shoulder. Pose: couple standing close side by side facing camera, both holding sparklers outward, both softly smiling at camera with calm joyful relaxed expressions, refined modern Korean K-prewedding beach sunset moment. Color grade: warm pink-lavender pastel sky highlights with deep navy sea shadows, warm cream skin midtones, gentle film grain — must clearly read as warm soft just-after-sunset beach light, NOT noon, NOT studio.',
+    manualKelvin: 3200,
+    manualMoodHint:
+      'pastel pink-lavender post-sunset beach sky with warm sparkler glow, calm dark sea horizon, gentle film grain, refined modern Korean K-prewedding mood',
+    faceMaskRegions: [
+      [0.30, 0.30, 0.16, 0.16],
+      [0.52, 0.24, 0.16, 0.16],
+    ],
+  },
+  {
+    id: 'brick-alley-blackwhite-couple',
+    label: '브릭 골목 흑백 미니드레스',
+    hint: '벽돌벽 + 흑백 + 신랑 앉음 + 미니 튤 드레스',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'high',
+    framing: 'full',
+    hasSideAngle: false,
+    isSeated: true, // 신랑은 stone step 에 앉음
+    image: '/wedding-snap/catalog/brick-alley-blackwhite-couple.jpg',
+    promptHint:
+      'Outdoor narrow downtown brick alley scene, tall textured red-brick walls filling both sides with subtle weathering and seam lines, single small stone step / curb where the groom is seated. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, slight low-angle eye-level camera, shallow depth of field with crisp brick wall behind. **Render the final image in deep monochrome black-and-white** with rich blacks and clean midtone grays, magazine editorial mood. Groom: slim black two-piece suit with thin black tie and crisp white shirt, polished black oxford shoes, short dark hair loosely parted, calm composed neutral expression looking softly toward camera, seated on the stone step with knees apart and elbows resting on knees, both hands relaxed. Bride: short above-the-knee ivory tulle mini wedding dress with structured corset bodice and bustier sweetheart neckline, dramatic ruffled long puff sleeve falling off the shoulder on one side, white pointed-toe pumps, hair pulled back in a soft low chignon with side wisps, soft neutral makeup, holding a small loose dried-flower bouquet with trailing ribbon in her right hand at her hip. Pose: groom seated on the step on the left, bride standing tall next to him on the right with body slightly turned 3/4 toward camera, her left hand gently resting on his shoulder / head, both with calm cool neutral introspective magazine-editorial expressions (no smiles). Color grade: pure deep monochrome black-and-white with rich blacks and clean midtone grays, subtle film grain — must clearly read as editorial monochrome alley shoot, NOT studio, NOT color.',
+    manualKelvin: 5500,
+    manualMoodHint:
+      'editorial monochrome black-and-white narrow brick alley shoot, calm cool neutral magazine mood, subtle film grain',
+    faceMaskRegions: [
+      [0.22, 0.42, 0.16, 0.16],
+      [0.50, 0.20, 0.16, 0.16],
+    ],
+  },
+  {
+    id: 'hanok-corridor-bride-peek',
+    label: '한옥 회랑 신부 한복',
+    hint: '한옥 단청 회랑 + 베이지 저고리 + 민트 치마',
+    category: 'tradition',
+    personality: 'bride-solo',
+    intensity: 'medium',
+    framing: 'closeup',
+    image: '/wedding-snap/catalog/hanok-corridor-bride-peek.jpg',
+    promptHint:
+      'Solo bride shot — only the bride in frame, no groom, no other people. Outdoor traditional Korean palace hanok wooden corridor with rich vermilion-red lacquered columns receding into the soft-focus background, ornate green-and-red dancheong painted ceiling beams above, smooth grey stone floor below, warm soft daylight filtering through the corridor. Shot on 50–85mm portrait lens, chest-up / waist-up framing, eye-level camera, shallow depth of field with creamy red-column bokeh behind. Bride: traditional Korean hanbok — cream / ivory pale jeogori (top jacket) with delicate pale floral white embroidery, deep mint-green floor-length chima (skirt) softly draped, hair pulled back in a clean smooth low chignon with traditional red-and-gold binyeo / daenggi hairpin accents on each side, soft natural rosy makeup with neutral pink lip. Pose: bride standing tall in the center of the corridor facing camera straight on with body slightly turned 3/4 toward camera, both hands gently resting at front, looking softly toward camera with calm refined elegant composed expression with mouth softly closed. Color grade: warm bright daylight in red-vermillion palace corridor with rich red-column accents and mint-green hanbok focal color, refined K-traditional editorial atmosphere — must clearly read as warm bright daylight, NOT golden hour, NOT studio.',
+    manualKelvin: 5200,
+    manualMoodHint:
+      'warm bright daylight in vermilion-and-dancheong hanok corridor, refined K-traditional editorial mood, soft floral hanbok focal color',
+    faceMaskRegions: [[0.38, 0.30, 0.22, 0.22]],
+  },
+  {
+    id: 'night-rain-umbrella-couple',
+    label: '비오는 밤 우산 산책',
+    hint: '도심 다리 + 비 + 투명 우산 + 손잡고 웃기',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'high',
+    framing: 'closeup',
+    image: '/wedding-snap/catalog/night-rain-umbrella-couple.jpg',
+    promptHint:
+      'Outdoor pedestrian bridge / promenade in a downtown city at rainy night, soft warm tungsten paper-lantern / shop window lights bokeh in the deep background, wet glistening bridge floor reflecting orange light streaks, gentle rain visible as soft streaks across the frame. A single transparent dome umbrella held by the groom above both heads catching the warm light. Shot on 50–85mm portrait lens, three-quarter chest-up framing, eye-level camera, shallow depth of field with creamy warm rainy-city bokeh behind. Bride: pale champagne / ivory short-sleeve A-line silky satin midi wedding dress with sweetheart neckline, sleek center-parted long hair, soft natural rosy makeup with neutral lip. Groom: light beige / cream two-piece formal suit with light blue shirt unbuttoned at collar (no tie), short neat dark hair. Pose: couple walking close together holding hands, both leaning warmly into each other under the transparent umbrella, both laughing freely and looking at each other with big genuine candid smiles — joyful candid prewedding rainy walk movement, not a static pose. Color grade: warm tungsten night palette with golden orange highlights, deep cool teal-blue shadows in wet pavement reflections, gentle film grain — must clearly read as warm rainy city night, NOT golden hour, NOT studio.',
+    manualKelvin: 3000,
+    manualMoodHint:
+      'warm tungsten rainy city night under transparent umbrella, joyful candid laughing prewedding mood, golden-orange highlights with teal wet-pavement reflections, gentle film grain',
+    faceMaskRegions: [
+      [0.22, 0.32, 0.18, 0.20],
+      [0.56, 0.18, 0.18, 0.22],
+    ],
+  },
+  {
+    id: 'hanok-royal-purple-couple',
+    label: '한옥 보라 한복 커플',
+    hint: '한옥 누각 + 갓 + 보라 두루마기 + 보라 저고리',
+    category: 'tradition',
+    personality: 'together',
+    intensity: 'medium',
+    framing: 'full',
+    image: '/wedding-snap/catalog/hanok-royal-purple-couple.jpg',
+    promptHint:
+      'Outdoor traditional Korean palace courtyard with classic green-and-red dancheong painted hanok pavilion roof rising in the soft-focus background, neat manicured low pine trees on each side, smooth stone-paved courtyard floor underfoot, clean bright pale-blue sky with soft warm white cumulus clouds, warm bright midday daylight. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, slight low-angle eye-level camera, shallow depth of field with creamy hanok bokeh behind. Groom: traditional Korean royal hanbok — pale lavender-purple floor-length durumagi (long coat) over a white inner robe, deep navy-blue waist sash, white baji trousers, brown leather hwa boots, classic black gat traditional hat with sheer brim, short neat dark hair, calm composed soft neutral expression. Bride: traditional Korean royal hanbok — lavender-purple short jeogori jacket with crisp white collar trim over a long floor-length white chima skirt with subtle volume, pale embroidered norigae traditional pendant draping at the waist, hair pulled into a clean smooth low chignon with traditional pink-and-gold floral binyeo / daenggi hairpin and small flower accents framing the temples, soft natural rosy makeup with neutral pink lip. Pose: couple standing close side by side facing camera, both bodies slightly turned 3/4 toward camera, hands gently clasped softly in front, both with calm refined elegant serene expressions with mouth softly closed, refined royal K-traditional editorial mood. Color grade: warm bright midday daylight in hanok palace courtyard with rich lavender-purple hanbok and dancheong color accents, refined royal K-traditional editorial atmosphere — must clearly read as warm bright midday daylight, NOT golden hour, NOT studio.',
+    manualKelvin: 5400,
+    manualMoodHint:
+      'warm bright midday daylight in palace hanok courtyard, lavender-purple royal hanbok focal color with dancheong accents, refined K-traditional editorial mood',
+    faceMaskRegions: [
+      [0.26, 0.20, 0.18, 0.18],
+      [0.56, 0.24, 0.16, 0.16],
+    ],
+  },
+  {
+    id: 'yosemite-trail-walk',
+    label: '요세미티 트레일 워킹',
+    hint: '하프돔 + 화이트 턱시도 + 골든아워 트레일',
+    category: 'outdoor',
+    personality: 'together',
+    intensity: 'high',
+    framing: 'full',
+    image: '/wedding-snap/catalog/yosemite-trail-walk.jpg',
+    promptHint:
+      'Outdoor mountain national park scene on a soft asphalt trail with a dramatic granite half-dome / monolithic mountain cliff rising prominently in the soft-focus background, scattered tall pine trees framing both sides, warm late-afternoon golden-hour natural sunlight from camera-back-right creating strong warm rim on hair and shoulders with a soft sun-flare in the upper-right corner. Shot on 35–50mm portrait lens for environmental walking feel, full-body framing in tall vertical aspect, slight low-angle eye-level camera, shallow depth of field with creamy mountain bokeh behind. Groom: clean ivory / white peak-lapel tuxedo jacket with black satin lapel accent, black bow tie, white shirt, slim black formal trousers, polished black oxford shoes, short neat dark hair, soft natural laughing smile looking at the bride. Bride: lush ivory tulle A-line / ballgown floor-length wedding dress with delicate lace bodice and deep V-neckline thin straps, long loose dark wavy hair flowing past her shoulders, soft natural rosy makeup with neutral lip, holding a loose cascading bouquet of white roses with trailing green eucalyptus in her free hand. Pose: couple walking side by side along the trail holding hands, both turned slightly toward each other looking at one another with big genuine candid laughing smiles mid-step — candid joyful prewedding walking moment, not a static pose. Color grade: warm golden-hour highlights with soft sun-flare and rich saturated mountain greens, warm cream skin midtones, gentle film grain — must clearly read as warm late-afternoon golden hour, NOT noon, NOT studio.',
+    manualKelvin: 3200,
+    manualMoodHint:
+      'warm golden-hour mountain trail with dramatic half-dome backdrop, sun-flare and joyful candid laughing walk, gentle film grain',
+    faceMaskRegions: [
+      [0.28, 0.32, 0.16, 0.18],
+      [0.56, 0.30, 0.16, 0.18],
+    ],
+  },
+  {
+    id: 'bride-pink-hanbok-studio',
+    label: '신부 핑크 한복 스튜디오',
+    hint: '아이보리 저고리 + 핑크 치마 + 베이지 드레이프 배경',
+    category: 'studio',
+    personality: 'bride-solo',
+    intensity: 'low',
+    framing: 'full',
+    image: '/wedding-snap/catalog/bride-pink-hanbok-studio.jpg',
+    promptHint:
+      'Solo bride shot — only the bride in frame, no groom, no other people. Indoor studio with soft beige / cream warm-toned draped fabric backdrop filling the upper background and pale wooden floor underfoot, soft diffused natural-feel studio light from camera-left creating gentle soft shadows. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, eye-level camera, shallow depth of field. Bride: traditional Korean hanbok — pale ivory-cream short jeogori (top jacket) with crisp white collar trim and a small pale pink bow knot, voluminous floor-length pastel pink chima (skirt) with subtle soft embroidered white floral motifs along the lower hem, pale pink ribbon tied at the waist, hair pulled back into a clean smooth low chignon with delicate floral pink-and-white binyeo hairpin accent above one ear, soft natural rosy makeup with neutral pink lip, hands gently resting softly at her side. Pose: bride standing tall facing camera straight on with body slightly turned 3/4 toward camera-right, soft serene composed elegant calm expression with mouth softly closed, refined K-traditional studio bridal magazine mood. Color grade: warm soft cream and pastel pink palette with clean warm skin midtones, refined K-traditional editorial bridal magazine atmosphere — must clearly read as soft warm studio light, NOT golden hour, NOT bright outdoor.',
+    faceMaskRegions: [[0.42, 0.18, 0.16, 0.16]],
+  },
+  {
+    id: 'vintage-parlor-veil-lap',
+    label: '빈티지 응접실 무릎 베개',
+    hint: '동양화 액자 + 빈티지 소파 + 베일 + 무릎 베개',
+    category: 'studio',
+    personality: 'together',
+    intensity: 'medium',
+    framing: 'closeup',
+    isSeated: true, // 신부 앉은 자세 + 신랑 무릎 베개
+    image: '/wedding-snap/catalog/vintage-parlor-veil-lap.jpg',
+    promptHint:
+      'Indoor warm vintage parlor / antique sitting room scene, dark mahogany wooden wall paneling in the background with a traditional East-Asian landscape ink painting framed and hung at center, vintage marble-top antique side table with a small white potted plant and small antique kettle and worn old hardback books, vintage upholstered floral pattern sofa with cream and soft beige tones where the couple is posed. Shot on 50–85mm portrait lens, chest-up / waist-up framing, eye-level camera, shallow depth of field with crisp antique parlor backdrop behind. Bride: ivory off-shoulder lace fit-and-flare wedding dress with delicate lace bodice and short ruffled sleeves, long sheer cathedral veil softly draping behind her hair and over her shoulders, long center-parted dark wavy hair flowing past her shoulders, soft natural rosy makeup with rich rosy red lip, both hands gently cradling the groom’s head resting on her lap. Groom: clean white classic dress shirt sleeves rolled (no jacket), short neat dark hair, calm composed soft neutral expression with mouth softly closed, lying with his head softly resting in the bride’s lap. Pose: bride seated upright on the vintage sofa looking softly toward camera with calm refined elegant magazine-editorial expression (subtle gentle smile only), groom lying with his head softly cradled in her lap looking softly toward camera with calm composed expression, refined modern Korean K-prewedding vintage-parlor editorial mood. Color grade: warm vintage interior palette with rich mahogany browns and warm cream skin midtones, soft warm indoor light, subtle film grain — must clearly read as warm vintage indoor parlor light, NOT golden hour, NOT bright outdoor.',
+    manualKelvin: 3400,
+    manualMoodHint:
+      'warm vintage parlor interior with antique floral sofa and East-Asian landscape painting, refined modern Korean K-prewedding editorial mood, subtle film grain',
+    faceMaskRegions: [
+      [0.46, 0.20, 0.18, 0.20],
+      [0.32, 0.58, 0.18, 0.20],
+    ],
+  },
+  {
+    id: 'jeju-rocky-veil-couple',
+    label: '제주 바위 일몰 베일',
+    hint: '제주 화산암 + 긴 베일 + 머메이드 드레스 + 핑크 부케',
+    category: 'outdoor',
+    personality: 'together',
+    intensity: 'medium',
+    framing: 'full',
+    image: '/wedding-snap/catalog/jeju-rocky-veil-couple.jpg',
+    promptHint:
+      'Outdoor Jeju-island volcanic-rocky coastline scene at warm late-afternoon hour, dark grey volcanic basalt rocks scattered across the foreground where the couple stands, calm pale-blue sea horizon mid-frame with distant blue mountain silhouettes in the soft-focus background, clean pale-blue sky filling the upper half, warm soft natural sunlight from camera-left creating soft rim on hair and the bride’s veil. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, eye-level camera, shallow depth of field with creamy sea bokeh behind. Bride: clean ivory satin strapless sweetheart-neckline floor-length fitted mermaid wedding dress with subtle ruched bodice and dramatic long sweep train cascading lushly behind her over the rocks, long dramatic cathedral-length sheer tulle veil softly flowing in the sea breeze to camera-left, hair pulled back into a clean smooth low chignon, soft natural rosy makeup with neutral pink lip, holding a loose round bouquet of soft pink garden roses with trailing pink silk ribbon at her front in both hands. Groom: classic black peak-lapel two-piece tuxedo with crisp white shirt and slim black silk bow tie, polished black oxford shoes, short neat dark hair, soft natural calm composed expression with subtle gentle smile. Pose: couple standing close side by side facing camera, bride softly leaning into the groom with her left arm linked through his right arm, both bodies slightly turned 3/4 toward camera, both with calm refined elegant serene composed expressions, refined modern Korean K-prewedding island coastal editorial mood. Color grade: warm soft late-afternoon coastal daylight with rich saturated pink-bouquet accent and clean warm cream skin midtones, refined modern Korean K-prewedding atmosphere — must clearly read as warm bright late-afternoon coastal light, NOT golden hour, NOT studio.',
+    manualKelvin: 5000,
+    manualMoodHint:
+      'warm soft late-afternoon Jeju volcanic-rocky coastline with flowing cathedral veil, refined modern Korean K-prewedding island coastal editorial mood',
+    faceMaskRegions: [
+      [0.32, 0.28, 0.14, 0.16],
+      [0.54, 0.24, 0.14, 0.16],
+    ],
+  },
+  {
+    id: 'bride-rose-garden-pink-seated',
+    label: '신부 장미정원 핑크 드레스',
+    hint: '흰 장미 + 핑크 튤 + 잔디 앉은 자세',
+    category: 'outdoor',
+    personality: 'bride-solo',
+    intensity: 'medium',
+    framing: 'full',
+    isSeated: true,
+    image: '/wedding-snap/catalog/bride-rose-garden-pink-seated.jpg',
+    promptHint:
+      'Solo bride shot — only the bride in frame, no groom, no other people. Outdoor lush english-garden scene framed by abundant white garden rose climbing arches on each side filling both edges of the frame, soft green ornamental grass and small white baby’s-breath flowers scattered across the foreground, soft diffused overcast natural daylight creating gentle soft light on the subject. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, eye-level camera, shallow depth of field with creamy white-rose floral bokeh behind. Bride: lush pastel dusty-pink tulle floor-length ball-gown wedding dress with off-shoulder sweetheart neckline and delicate beaded bodice with subtle floral applique, full layered tulle skirt softly spread around her on the grass, long center-parted dark wavy hair flowing past her shoulders with small dainty pearl drop earrings, soft natural rosy makeup with neutral pink lip. Pose: bride seated softly on the green grass facing camera, knees gently folded to one side under the tulle skirt, one arm resting gently on the raised knee with hand gently cradling chin / cheek, looking softly toward camera with calm refined elegant serene composed expression with mouth softly closed, refined modern Korean K-prewedding garden editorial bridal magazine mood. Color grade: soft pastel pink and crisp white-rose floral palette with rich green-foliage accents and clean warm cream skin midtones, soft diffused overcast daylight, refined modern Korean K-prewedding bridal magazine atmosphere — must clearly read as soft overcast garden daylight, NOT golden hour, NOT studio.',
+    faceMaskRegions: [[0.42, 0.28, 0.16, 0.16]],
+  },
+  {
+    id: 'desert-vintage-convertible-couple',
+    label: '사막 빈티지 컨버터블',
+    hint: '흰 컨버터블 + 검은 턱시도 + 선글라스 + 사막 산',
+    category: 'outdoor',
+    personality: 'together',
+    intensity: 'medium',
+    framing: 'full',
+    isSeated: true, // 신부는 차 트렁크에 앉음, 신랑 기댐
+    image: '/wedding-snap/catalog/desert-vintage-convertible-couple.jpg',
+    promptHint:
+      'Outdoor cinematic wide-frame desert scene with a dramatic rugged grey-and-tan mountain range rising in the soft-focus background, sparse pale dune grass and small desert shrubs scattered across the mid-ground, soft beige sand foreground where the couple is posed beside a classic 1960s vintage white convertible cabriolet car parked across the lower half of the frame with one rear door open. Shot on 50mm cinematic lens, wide-frame full-body framing in square / 1:1 aspect, eye-level camera, shallow depth of field with crisp mountain backdrop behind. Groom: classic black peak-lapel two-piece tuxedo with crisp white shirt and slim black silk bow tie, polished black oxford shoes, slim black wayfarer sunglasses, short neat dark hair, calm cool neutral composed expression with mouth softly closed, leaning casually back against the open car door with arms relaxed at sides. Bride: clean ivory tulle strapless sweetheart-neckline midi-length wedding dress with subtle beaded bodice and full layered tulle skirt, hair softly center-parted and pulled into a clean smooth low chignon, large slim white cat-eye sunglasses, delicate white strappy heel sandals, holding a loose round bouquet of dried pale pampas grass and cream protea in her right hand at her hip. Pose: groom standing left side casually leaning back against the open car door with arms relaxed at sides, bride seated on the right rear car seat with legs gently crossed and dress flowing out of the car, both bodies turned 3/4 toward camera, both with calm cool neutral magazine-editorial expressions (no smiles, refined editorial mood). Color grade: warm desert-beige and tan mountain palette with crisp white-car accent and clean warm cream skin midtones, refined editorial Korean K-prewedding cinematic-desert atmosphere — must clearly read as warm bright daylight, NOT golden hour, NOT studio.',
+    manualKelvin: 5400,
+    manualMoodHint:
+      'warm cinematic desert daylight with classic white vintage convertible and rugged mountain backdrop, refined editorial Korean K-prewedding cool neutral mood',
+    faceMaskRegions: [
+      [0.28, 0.24, 0.14, 0.16],
+      [0.56, 0.34, 0.14, 0.16],
+    ],
+  },
+  {
+    id: 'wooden-stairs-bouquet-couple',
+    label: '우드 계단 안개꽃 부케',
+    hint: '빈티지 우드 계단 + 안개꽃 부케 + 활짝 웃음',
+    category: 'studio',
+    personality: 'together',
+    intensity: 'low',
+    framing: 'full',
+    isSeated: true,
+    image: '/wedding-snap/catalog/wooden-stairs-bouquet-couple.jpg',
+    promptHint:
+      'Indoor warm vintage Korean K-traditional house interior scene with rich golden-brown polished wooden staircase rising steeply behind the couple filling most of the frame, ornate carved wooden banister on the right side, soft diffused warm natural daylight from camera-left filtering through an off-frame window creating gentle soft light on the subjects. Shot on 50–85mm portrait lens, full-body framing in square / 1:1 aspect, eye-level camera, shallow depth of field with crisp wooden staircase backdrop behind. Groom: classic black notch-lapel two-piece suit jacket with crisp white shirt and slim deep navy silk tie, soft cream / off-white slim chino trousers, polished black ankle boots, short neat dark hair, big genuine candid laughing smile looking softly toward camera with eyes softly crinkled. Bride: clean ivory satin strapless sweetheart-neckline classic A-line floor-length wedding dress with subtle ruched bodice and gracefully draped soft skirt, short flowing tulle veil softly draped behind her hair, hair pulled back into a clean smooth low chignon with small dainty pearl drop earrings, soft natural rosy makeup with neutral pink lip, holding a generous lush round bouquet of pure soft white baby’s-breath flowers in both hands at her front. Pose: couple seated close together on the wooden staircase steps facing camera, both turned slightly toward each other shoulder-to-shoulder, both with big genuine candid laughing smiles looking softly toward camera with eyes softly crinkled in joy — joyful candid prewedding moment, refined modern Korean K-prewedding editorial mood. Color grade: warm golden-brown wooden interior palette with soft cream-bouquet floral accent and clean warm cream skin midtones, soft diffused warm indoor daylight, refined modern Korean K-prewedding bridal magazine atmosphere — must clearly read as soft warm indoor daylight, NOT golden hour, NOT bright outdoor.',
+    manualKelvin: 4200,
+    manualMoodHint:
+      'soft diffused warm indoor daylight on golden-brown vintage Korean wooden staircase, joyful candid laughing prewedding mood, refined bridal-magazine editorial atmosphere',
+    faceMaskRegions: [
+      [0.28, 0.24, 0.16, 0.18],
+      [0.52, 0.24, 0.16, 0.18],
+    ],
+  },
+  {
+    id: 'countryside-sunflower-leather',
+    label: '시골길 해바라기 가죽자켓',
+    hint: '시골 마을 골목 + 가죽자켓 + 해바라기 부케 + 미니 드레스',
+    category: 'outdoor',
+    personality: 'together',
+    intensity: 'medium',
+    framing: 'full',
+    image: '/wedding-snap/catalog/countryside-sunflower-leather.jpg',
+    promptHint:
+      'Outdoor nostalgic Korean countryside village street scene at warm late-afternoon golden-hour, small low Korean countryside village houses with pale-blue and cream painted facades and grey tile roofs lining both sides of the small paved street receding into the soft-focus distance, tall slim wooden utility power pole with low overhead lines visible mid-ground, small bushes of red roses and shrubs along both sides of the road, distant low rolling green hills visible at the horizon, clean pale-blue sky with subtle warm pastel pink-and-orange golden-hour gradient at the top, warm soft late-afternoon natural sunlight from camera-back. Shot on 35–50mm portrait lens for environmental feel, full-body framing in square / 1:1 aspect, eye-level camera, shallow depth of field with creamy countryside-village bokeh behind. Groom: classic black biker / motorcycle leather jacket over a crisp light-blue chambray button-up shirt with slim retro-pattern beige-and-rust necktie, slim cream / off-white slim chino trousers, brown leather oxford shoes, short neat dark hair softly side-parted, calm composed soft neutral expression with subtle gentle smile. Bride: short above-the-knee ivory tiered ruffle puff-sleeve A-line wedding mini-dress with sweetheart neckline, short flowing tulle veil softly draped behind her hair, hair pulled back into a soft low half-up style, soft natural rosy makeup with neutral pink lip, white socks with white round-toe Mary-Jane flats, holding a generous round bouquet of vibrant fresh yellow sunflowers in both hands at her front. Pose: couple standing close side by side in the middle of the small countryside street facing camera straight on, both bodies slightly turned 3/4 toward camera, both with calm composed soft neutral expressions with subtle gentle smiles, refined nostalgic retro Korean K-prewedding countryside editorial mood. Color grade: warm soft late-afternoon countryside golden-hour palette with rich saturated sunflower-yellow bouquet focal accent, pastel-orange-and-pink sky gradient, warm cream skin midtones, gentle film grain — must clearly read as warm late-afternoon countryside golden-hour daylight, NOT noon, NOT studio.',
+    manualKelvin: 3600,
+    manualMoodHint:
+      'warm late-afternoon golden-hour Korean countryside village street with sunflower-bouquet focal accent and pastel sky gradient, refined nostalgic retro Korean K-prewedding editorial mood, gentle film grain',
+    faceMaskRegions: [
+      [0.30, 0.18, 0.14, 0.18],
+      [0.56, 0.20, 0.14, 0.18],
+    ],
+  },
 ];
 
 export const isSnapCatalogId = (v: string): boolean =>
