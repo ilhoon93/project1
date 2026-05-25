@@ -126,16 +126,23 @@ export function CatalogFilterBar({
   const showSortChips = !!sortMode && !!onSortModeChange;
 
   return (
-    <div className="flex flex-col gap-1.5 rounded-md border border-dashed border-[#E8DCC9] bg-[#FAF7F2]/60 p-2">
-      {/* 헤더 — 라벨 + 결과 카운트 + 초기화. 컴팩트하게 한 줄. */}
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="text-[11px] font-medium text-[#3D2E1F]">검색 필터</span>
+    <div className="flex flex-col gap-2 rounded-lg border border-[#E8DCC9] bg-white p-3 shadow-sm">
+      {/*
+        헤더 — 필터 아이콘 + 라벨 + 결과 카운트 + 초기화. solid 박스 + 명확한
+        섹션 분리로 시각적 hierarchy 강화 (기존 dashed border + 회색 배경 → solid
+        white 카드).
+      */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F0E8D8] pb-1.5">
+        <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#3D2E1F]">
+          <FilterIcon />
+          필터
+        </span>
         <div className="flex items-center gap-2">
           {resultCount && (
-            <span className="text-[10px] text-[#8B7355]">
+            <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[10px] font-medium text-[#5C4633] ring-1 ring-[#E8DCC9]">
               {resultCount.shown === resultCount.total
-                ? `전체 ${resultCount.total}개`
-                : `${resultCount.shown}개 / 전체 ${resultCount.total}개`}
+                ? `${resultCount.total}개`
+                : `${resultCount.shown} / ${resultCount.total}`}
             </span>
           )}
           {!isEmptyCatalogFilter(value) && (
@@ -151,60 +158,52 @@ export function CatalogFilterBar({
       </div>
 
       {/*
-        모드 + 정렬 — 가장 중요한 두 가지. 1차 액션이라 한 줄에 같이 놓고 좌우 정렬.
-        narrow 컨테이너(예: SnapGenerator 사이드바 320px) 에선 flex-wrap 으로 두 줄.
+        모드 (추천만 / 전체) — 가장 자주 쓰는 1차 액션. emerald 강조로 명확히
+        구별. 정렬과 같은 row 좌우 배치, 좁은 폭에선 wrap.
       */}
       {(showRecommendToggle || showSortChips) && (
         <div className="flex flex-wrap items-center justify-between gap-2">
           {showRecommendToggle && (
-            <div className="flex items-center gap-1">
-              <PrimaryToggle
+            <div className="inline-flex rounded-full bg-[#FAF7F2] p-0.5 ring-1 ring-[#E8DCC9]">
+              <SegmentedButton
                 selected={!!onlyRecommended}
                 onClick={() => onOnlyRecommendedChange!(true)}
                 label="추천만"
+                accent="emerald"
               />
-              <PrimaryToggle
+              <SegmentedButton
                 selected={!onlyRecommended}
                 onClick={() => onOnlyRecommendedChange!(false)}
                 label="전체"
+                accent="emerald"
               />
             </div>
           )}
           {showSortChips && (
-            <div className="flex items-center gap-1">
+            <div className="inline-flex rounded-full bg-[#FAF7F2] p-0.5 ring-1 ring-[#E8DCC9]">
               {(
                 [
                   { value: 'default', label: '추천순' },
                   { value: 'popular', label: '인기순' },
                   { value: 'most-liked', label: '좋아요순' },
                 ] as Array<{ value: CatalogSortMode; label: string }>
-              ).map((opt) => {
-                const isOn = sortMode === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => onSortModeChange!(opt.value)}
-                    aria-pressed={isOn}
-                    className={`rounded-full border px-2 py-0.5 text-[10px] transition-colors ${
-                      isOn
-                        ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white'
-                        : 'border-[#D4C5B0] bg-white text-[#5C4633] hover:border-[#8B7355]'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
+              ).map((opt) => (
+                <SegmentedButton
+                  key={opt.value}
+                  selected={sortMode === opt.value}
+                  onClick={() => onSortModeChange!(opt.value)}
+                  label={opt.label}
+                  accent="brown"
+                />
+              ))}
             </div>
           )}
         </div>
       )}
 
       {/*
-        세부 필터 (누가/배경/컷) — 한 줄에 wrap 으로 묶음. 각 그룹은 인라인 라벨 +
-        chip 들. 별도 row 3 개로 두면 빈 공간이 많아져 compact 한 인라인 배치로 변경.
-        라벨이 chip 바로 옆에 붙어 시각적으로도 그룹이 명확.
+        세부 필터 (누가/배경/컷) — 인라인 라벨 + chip. 그룹 간 세로 구분선으로
+        시각적으로 분리, 좁은 폭에선 wrap 시 구분선 자연 제거.
       */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <InlineChipGroup
@@ -231,6 +230,58 @@ export function CatalogFilterBar({
         />
       </div>
     </div>
+  );
+}
+
+/** 작은 SVG 깔때기 아이콘 — 필터 라벨 옆 시각적 단서. */
+function FilterIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className="text-[#8B7355]"
+    >
+      <path d="M3 4h14l-5.5 7v5l-3 1v-6L3 4z" />
+    </svg>
+  );
+}
+
+/**
+ * 세그먼트 컨트롤 버튼 — 추천만/전체 + 정렬 chip 에 공통 사용. 둥근 캡슐 안에서
+ * pill 형태로 선택된 버튼만 강조.
+ */
+function SegmentedButton({
+  selected,
+  onClick,
+  label,
+  accent,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  label: string;
+  accent: 'emerald' | 'brown';
+}) {
+  const activeBg = accent === 'emerald' ? 'bg-emerald-600' : 'bg-[#3D2E1F]';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium transition-colors ${
+        selected
+          ? `${activeBg} text-white shadow-sm`
+          : 'text-[#5C4633] hover:text-[#3D2E1F]'
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -272,31 +323,6 @@ function InlineChipGroup<T extends string>({
         );
       })}
     </div>
-  );
-}
-
-function PrimaryToggle({
-  selected,
-  onClick,
-  label,
-}: {
-  selected: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={selected}
-      className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
-        selected
-          ? 'border-emerald-700 bg-emerald-600 text-white'
-          : 'border-[#D4C5B0] bg-white text-[#5C4633] hover:border-[#8B7355] hover:text-[#3D2E1F]'
-      }`}
-    >
-      {label}
-    </button>
   );
 }
 

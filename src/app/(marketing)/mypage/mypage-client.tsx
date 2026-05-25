@@ -1583,8 +1583,10 @@ function CertificatePdfButton({
  * 변경 이력:
  *   - v1: 2-column 박스, p-5/text-3xl
  *   - v2: 2-column 박스 축소 (p-3/text-xl) + 보유 패키지 삭제 + 주문카드 [주문] 탭으로 이동
- *   - v3: 단일 row 인라인 한 줄로 추가 축소. "발행권 N · 영구소장권 N" 형태로
- *         차지 공간 ~1 line 으로 최소화. 클릭 UX 없으니 박스 ring 도 제거.
+ *   - v3: 단일 row 인라인 plain text. 사이즈는 작지만 가독성 부족.
+ *   - v4: 사이즈는 v3 처럼 한 줄 유지하되 chip 박스 + 아이콘으로 가독성 ↑.
+ *         각 잔액이 ring 된 capsule 로 분리, 아이콘 + 라벨 + 큰 숫자가 즉시
+ *         눈에 들어옴. 작지만 명확.
  */
 function CreditsSummary({
   balance,
@@ -1594,15 +1596,32 @@ function CreditsSummary({
   archiveBalance: number;
 }) {
   return (
-    <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-[#5C4633]">
-      <span>
-        발행권 <span className="font-semibold text-[#3D2E1F]">{balance}</span>
+    <div className="flex flex-wrap items-center gap-2">
+      <CreditChip icon="📨" label="발행권" value={balance} />
+      <CreditChip icon="🏛️" label="영구소장권" value={archiveBalance} />
+    </div>
+  );
+}
+
+function CreditChip({
+  icon,
+  label,
+  value,
+}: {
+  icon: string;
+  label: string;
+  value: number;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 ring-1 ring-[#D4C5B0]">
+      <span aria-hidden className="text-[13px] leading-none">
+        {icon}
       </span>
-      <span className="text-[#D4C5B0]">·</span>
-      <span>
-        영구소장권 <span className="font-semibold text-[#3D2E1F]">{archiveBalance}</span>
+      <span className="text-xs text-[#5C4633]">{label}</span>
+      <span className="text-sm font-semibold tabular-nums text-[#3D2E1F]">
+        {value}
       </span>
-    </p>
+    </span>
   );
 }
 

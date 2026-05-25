@@ -13,28 +13,35 @@
 
 ## 흐름
 
+모든 결과 step 은 어떤 합성 모드(기본 / 얼굴 강화) 로 만들었는지 라벨 하단에
+작게 표시 (`subLabel`).
+
 ### 셀카로 만들기 — 3 row
 ```
 신랑 단독 컷 만들기
-  [신랑셀카 3장(정면/좌/우)] → [신랑앵커] → [카탈로그] → [결과]
+  [신랑셀카 3장(정면/좌/우)] → [신랑앵커] → [카탈로그] → [결과 — 기본 모드]
 
 신부 단독 컷 만들기
-  [신부셀카 3장(정면/좌/우)] → [신부앵커] → [카탈로그] → [결과]
+  [신부셀카 3장(정면/좌/우)] → [신부앵커] → [카탈로그] → [결과 — 기본 모드]
 
 함께 컷 만들기
-  [신랑앵커 + 신부앵커] → [카탈로그] → [결과]
+  [신랑앵커 + 신부앵커] → [카탈로그] → [결과 — 기본 모드]
 ```
 
-### 커플 사진으로 만들기 — 2 row
+### 커플 사진으로 만들기 — 2 row (input 별 카탈로그 2종)
 ```
 예시 1
-  [커플사진 1] → [카탈로그] → [결과]
+  [커플사진 1] → [카탈로그 A] → [결과 A — 기본 모드]
+              → [카탈로그 B] → [결과 B — 얼굴 강화 모드]
 
 예시 2
-  [커플사진 2] → [카탈로그] → [결과]
+  [커플사진 2] → [카탈로그 A] → [결과 A — 기본 모드]
+              → [카탈로그 B] → [결과 B — 얼굴 강화 모드]
 ```
 
-(row 마다 다른 입력 사진 — 다양한 입력 케이스를 보여주기 위해 분리.)
+같은 입력 사진에서 카탈로그 + 합성 모드를 바꿔가며 만든 결과를 한 row 에 모아
+보여 줍니다. 운영팀이 "이 입력 사진을 두 모드로 돌렸을 때 차이가 이만큼 난다"
+는 걸 한 화면에서 비교 가능.
 
 ## 파일 규약
 
@@ -53,13 +60,18 @@
 | `selfies-bride-result.jpg` | 신부 단독 카탈로그 합성 결과 |
 | `selfies-together-result.jpg` | 함께 카탈로그 합성 결과 |
 
-### 커플 모드 (4개)
+### 커플 모드 (6개)
 | 경로 | 용도 |
 | --- | --- |
 | `couple-input-1.jpg` | 커플 예시 1 입력 사진 |
-| `couple-result-1.jpg` | 커플 예시 1 결과 (Beach Classic White 기준) |
+| `couple-result-1.jpg` | 커플 예시 1 결과 A — 카탈로그 `couple1a` + 기본 모드 |
+| `couple-result-1b.jpg` | 커플 예시 1 결과 B — 카탈로그 `couple1b` + 얼굴 강화 모드 |
 | `couple-input-2.jpg` | 커플 예시 2 입력 사진 |
-| `couple-result-2.jpg` | 커플 예시 2 결과 (Paris Eiffel Walk 기준) |
+| `couple-result-2.jpg` | 커플 예시 2 결과 A — 카탈로그 `couple2a` + 기본 모드 |
+| `couple-result-2b.jpg` | 커플 예시 2 결과 B — 카탈로그 `couple2b` + 얼굴 강화 모드 |
+
+⚠️ `couple-result-1b.jpg` / `couple-result-2b.jpg` 는 PR7 에서 신규 추가된 슬롯.
+파일을 올리기 전까지는 onError → "준비 중" placeholder 로 fallback 됨.
 
 코드에서 path 가 직접 지정되어 있어 admin 이 같은 이름으로 jpg 만 올리면 즉시
 노출. 파일 미존재 시 `onError` → "준비 중" placeholder 박스로 fallback.
@@ -87,8 +99,12 @@ const EXAMPLE_CATALOG_IDS = {
   groomSolo: 'groom-portrait-studio',
   brideSolo: 'bride-floral-bed-seated',
   together:  'studio-couple-blackwhite',
-  couple1:   'beach-classic-white',
-  couple2:   'paris-eiffel-walk',
+  // 커플 모드 — input 1 의 카탈로그 A/B (한 입력 + 카탈로그 2개)
+  couple1a:  'studio-couple-puppy',
+  couple1b:  'beach-sunset-sparkler-couple',
+  // 커플 모드 — input 2 의 카탈로그 A/B
+  couple2a:  'budapest-bastion-sunset',
+  couple2b:  'yosemite-trail-walk',
 };
 ```
 

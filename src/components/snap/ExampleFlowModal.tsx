@@ -7,16 +7,18 @@
  *
  * 흐름:
  *   셀카 모드 → 3 row (신랑/신부/함께):
- *     row 1: [신랑셀카 3장] → [신랑앵커] → [카탈로그] → [결과]
- *     row 2: [신부셀카 3장] → [신부앵커] → [카탈로그] → [결과]
- *     row 3: [신랑앵커 + 신부앵커] → [카탈로그] → [결과]
+ *     row 1: [신랑셀카 3장] → [신랑앵커] → [카탈로그] → [결과 (기본 모드)]
+ *     row 2: [신부셀카 3장] → [신부앵커] → [카탈로그] → [결과 (기본 모드)]
+ *     row 3: [신랑앵커 + 신부앵커] → [카탈로그] → [결과 (기본 모드)]
  *
- *   커플 모드 → 2 row:
- *     row 1: [커플사진] → [카탈로그] → [결과]
- *     row 2: [커플사진] → [카탈로그] → [결과]
+ *   커플 모드 → 2 row (input 별 2 카탈로그):
+ *     row 1: [커플사진 1] → [카탈로그 A] → [결과 A (기본)] → [카탈로그 B] → [결과 B (얼굴 강화)]
+ *     row 2: [커플사진 2] → [카탈로그 C] → [결과 C (기본)] → [카탈로그 D] → [결과 D (얼굴 강화)]
  *
  * 각 step 은 1~3장의 썸네일을 가로 배치 (FlowStep.srcs[]). 칸 폭은 썸네일 수에
  * 비례. 모든 썸네일 클릭 시 lightbox 로 확대 (ESC / 외부 클릭 / × 로 닫기).
+ *
+ * 결과 step 은 어떤 합성 모드로 만들었는지 subLabel 로 라벨 하단에 작게 표시.
  *
  * 이미지 파일 규약: public/wedding-snap/mode-examples/<...>.jpg (README 참고).
  * 카탈로그 칸은 SNAP_CATALOG 에서 EXAMPLE_CATALOG_IDS 로 지정한 항목의 마스터를
@@ -31,13 +33,17 @@ import { findSnapCatalog } from '@/lib/snap/catalog';
  * 각 row 의 카탈로그 칸에 보일 catalog id. 운영 중 더 좋은 reference 가 생기면
  * 여기만 바꾸면 됨. (모두 active 항목이어야 함 — hidden 인 항목 쓰면 결과 칸이
  * placeholder 로 빠짐.)
+ *
+ * 커플 모드는 입력 사진 1장당 2개 카탈로그 → 4개 catalog id (couple1~4).
  */
 const EXAMPLE_CATALOG_IDS = {
   groomSolo: 'groom-hotel-stairs',
   brideSolo: 'bride-paris-eiffel',
   together: 'garden-finger-heart',
-  couple1: 'studio-couple-puppy',
-  couple2: 'budapest-bastion-sunset',
+  couple1a: 'studio-couple-puppy',
+  couple1b: 'beach-sunset-sparkler-couple',
+  couple2a: 'budapest-bastion-sunset',
+  couple2b: 'yosemite-trail-walk',
 } as const;
 
 const MODE_BASE = '/wedding-snap/mode-examples';
@@ -136,6 +142,7 @@ export function ExampleFlowModal({
                     {
                       srcs: [`${MODE_BASE}/selfies-groom-result.jpg`],
                       label: '결과',
+                      subLabel: '기본 모드',
                     },
                   ]}
                   onPick={setLightboxSrc}
@@ -162,6 +169,7 @@ export function ExampleFlowModal({
                     {
                       srcs: [`${MODE_BASE}/selfies-bride-result.jpg`],
                       label: '결과',
+                      subLabel: '기본 모드',
                     },
                   ]}
                   onPick={setLightboxSrc}
@@ -183,6 +191,7 @@ export function ExampleFlowModal({
                     {
                       srcs: [`${MODE_BASE}/selfies-together-result.jpg`],
                       label: '결과',
+                      subLabel: '기본 모드',
                     },
                   ]}
                   onPick={setLightboxSrc}
@@ -190,38 +199,59 @@ export function ExampleFlowModal({
               </>
             ) : (
               <>
+                {/* 커플 모드 row 1 — input 1 + 2 카탈로그 (각각 기본 / 얼굴 강화). */}
                 <ExampleFlowRow
-                  title="예시 1"
+                  title="예시 1 — 같은 입력으로 카탈로그 2종"
                   steps={[
                     {
                       srcs: [`${MODE_BASE}/couple-input-1.jpg`],
                       label: '커플 사진',
                     },
                     {
-                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.couple1)],
-                      label: '카탈로그',
+                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.couple1a)],
+                      label: '카탈로그 A',
                     },
                     {
                       srcs: [`${MODE_BASE}/couple-result-1.jpg`],
-                      label: '결과',
+                      label: '결과 A',
+                      subLabel: '기본 모드',
+                    },
+                    {
+                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.couple1b)],
+                      label: '카탈로그 B',
+                    },
+                    {
+                      srcs: [`${MODE_BASE}/couple-result-1b.jpg`],
+                      label: '결과 B',
+                      subLabel: '얼굴 강화 모드',
                     },
                   ]}
                   onPick={setLightboxSrc}
                 />
                 <ExampleFlowRow
-                  title="예시 2"
+                  title="예시 2 — 같은 입력으로 카탈로그 2종"
                   steps={[
                     {
                       srcs: [`${MODE_BASE}/couple-input-2.jpg`],
                       label: '커플 사진',
                     },
                     {
-                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.couple2)],
-                      label: '카탈로그',
+                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.couple2a)],
+                      label: '카탈로그 A',
                     },
                     {
                       srcs: [`${MODE_BASE}/couple-result-2.jpg`],
-                      label: '결과',
+                      label: '결과 A',
+                      subLabel: '기본 모드',
+                    },
+                    {
+                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.couple2b)],
+                      label: '카탈로그 B',
+                    },
+                    {
+                      srcs: [`${MODE_BASE}/couple-result-2b.jpg`],
+                      label: '결과 B',
+                      subLabel: '얼굴 강화 모드',
                     },
                   ]}
                   onPick={setLightboxSrc}
@@ -280,6 +310,11 @@ interface FlowStep {
   /** 1~3장 가로 배치. 클릭 시 lightbox 로 개별 확대. */
   srcs: string[];
   label: string;
+  /**
+   * 라벨 아래 작게 표시할 보조 라벨. 결과 step 에 "기본 모드" / "얼굴 강화 모드"
+   * 같은 합성 모드 이름을 노출하는 데 사용.
+   */
+  subLabel?: string;
 }
 
 function ExampleFlowRow({
@@ -351,6 +386,11 @@ function FlowThumb({
       <span className="text-center text-[10px] leading-tight text-[#5C4633]">
         {step.label}
       </span>
+      {step.subLabel && (
+        <span className="text-center text-[9px] leading-tight text-[#8B7355]">
+          {step.subLabel}
+        </span>
+      )}
     </div>
   );
 }

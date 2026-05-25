@@ -43,6 +43,9 @@ import {
 const POLL_INTERVAL_MS = 5_000;
 const MAX_POLL_ATTEMPTS = 60;
 
+// 카탈로그 그리드 한 페이지 갯수 — 랜딩(CatalogPreviewClient) 과 동일.
+const CATALOG_PAGE_SIZE = 24;
+
 type InputMode = 'selfies1' | 'selfies3' | 'couple';
 
 // 카탈로그 생성 stage — 제출 직후 사용자가 페이지를 벗어나도 되게 비동기 모드.
@@ -195,6 +198,8 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
   // 비어 있으면 전체 노출. 랜딩 미리보기와 동일한 컴포넌트(CatalogFilterBar) 사용.
   const [catalogFilter, setCatalogFilter] =
     useState<CatalogFilterState>(EMPTY_CATALOG_FILTER);
+  // 카탈로그 그리드 페이징 — 24개씩 표시. 필터/정렬/모드 변경 시 첫 페이지로 복귀.
+  const [catalogPage, setCatalogPage] = useState<number>(0);
   // "추천만 보기" 토글 — 운영자 recommend 태그 카탈로그만 노출 (caution/risky 숨김).
   const [onlyRecommended, setOnlyRecommended] = useState<boolean>(false);
   // 카탈로그 정렬 모드 — default(추천순) / popular(인기순) / most-liked(좋아요순).
@@ -716,6 +721,21 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
       })
     : sortedModeFiltered;
   const visibleCatalog = applyCatalogFilter(onlyRecommendedFiltered, catalogFilter);
+
+  // 페이징 — 필터/정렬/모드 변경 시 0 페이지로 복귀.
+  useEffect(() => {
+    setCatalogPage(0);
+  }, [mode, catalogFilter, onlyRecommended, sortMode]);
+  const totalCatalogPages = Math.max(
+    1,
+    Math.ceil(visibleCatalog.length / CATALOG_PAGE_SIZE),
+  );
+  const clampedCatalogPage = Math.min(catalogPage, totalCatalogPages - 1);
+  const visibleCatalogPage = visibleCatalog.slice(
+    clampedCatalogPage * CATALOG_PAGE_SIZE,
+    clampedCatalogPage * CATALOG_PAGE_SIZE + CATALOG_PAGE_SIZE,
+  );
+  const catalogPageItems = computePageItems(clampedCatalogPage, totalCatalogPages);
 
   // 한 카탈로그가 현재 입력 (mode + anchor) 으로 생성 가능한지 판정.
   // 다중 선택 UI 가 개별 카탈로그 자체의 enable/disable 판단에 사용.
@@ -1337,7 +1357,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
       {/* 3-a. 앵커 선택 — slot 별 별도 picker.
               사용자가 신랑은 row A 의 신랑 slot, 신부는 row B 의 신부 slot 처럼
               조합해서 가장 마음에 드는 페어를 만들 수 있게 한다.
-              각 slot 카드의 🔍 → 크게 보기 lightbox, ✕ → 해당 slot 삭제. */}
+              각 slot 카드의 "크게보기" → lightbox, ✕ → 해당 slot 삭제. */}
       {mode !== 'couple' &&
         (!!anchor?.groomAnchorUrl ||
           !!anchor?.brideAnchorUrl ||
@@ -1413,7 +1433,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
           </p>
         ) : (
           <div className="mt-3 grid auto-rows-fr grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-            {visibleCatalog.map((item) => {
+            {visibleCatalogPage.map((item) => {
               const selected = selectedIds.has(item.id);
               const enabled = isCatalogGeneratable(item);
               // 호환성 — admin 페이지에서 운영자가 설정한 태그 lookup.
@@ -1463,6 +1483,54 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
                 />
               );
             })}
+          </div>
+        )}
+
+        {/* 카탈로그 그리드 페이지네이션 — 24개/페이지. 랜딩과 동일 컨벤션. */}
+        {visibleCatalog.length > 0 && totalCatalogPages > 1 && (
+          <div className="mt-3 flex w-full max-w-full flex-wrap items-center justify-center gap-1 overflow-hidden text-[11px] text-[#5C4633]">
+            <button
+              type="button"
+              onClick={() => setCatalogPage((p) => Math.max(0, p - 1))}
+              disabled={clampedCatalogPage === 0}
+              className="shrink-0 rounded border border-[#E8DCC9] bg-white px-2 py-1 hover:bg-[#FAF7F2] disabled:opacity-40"
+            >
+              이전
+            </button>
+            {catalogPageItems.map((it, idx) =>
+              it === 'ellipsis' ? (
+                <span
+                  key={`e-${idx}`}
+                  className="shrink-0 px-1 text-[#8B7355]"
+                  aria-hidden
+                >
+                  …
+                </span>
+              ) : (
+                <button
+                  key={it}
+                  type="button"
+                  onClick={() => setCatalogPage(it)}
+                  className={`min-w-[28px] shrink-0 rounded border px-2 py-1 ${
+                    it === clampedCatalogPage
+                      ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white'
+                      : 'border-[#E8DCC9] bg-white hover:bg-[#FAF7F2]'
+                  }`}
+                >
+                  {it + 1}
+                </button>
+              ),
+            )}
+            <button
+              type="button"
+              onClick={() =>
+                setCatalogPage((p) => Math.min(totalCatalogPages - 1, p + 1))
+              }
+              disabled={clampedCatalogPage >= totalCatalogPages - 1}
+              className="shrink-0 rounded border border-[#E8DCC9] bg-white px-2 py-1 hover:bg-[#FAF7F2] disabled:opacity-40"
+            >
+              다음
+            </button>
           </div>
         )}
       </section>
@@ -1800,7 +1868,7 @@ function AnchorSlotPicker({
   onDiscard: (id: string) => void;
 }) {
   // 앵커 lightbox — 클릭한 썸네일의 원본 URL. null 이면 닫힘.
-  // 선택(onSelect) 액션과 분리하기 위해 별도 🔍 버튼이 트리거.
+  // 선택(onSelect) 액션과 분리하기 위해 별도 "크게보기" 버튼이 트리거.
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   // ESC 로 닫기.
@@ -1918,8 +1986,9 @@ function AnchorSlotPicker({
 }
 
 /**
- * 썸네일 우하단의 🔍 버튼 — 부모 선택 button 과 별개로 onClick 트리거.
+ * 썸네일 우하단의 "크게보기" 텍스트 버튼 — 부모 선택 button 과 별개로 onClick 트리거.
  * pointer event stopPropagation 해서 부모 button (선택) 이 실행되지 않도록.
+ * (이전 🔍 이모지는 모바일에서 OS 별로 크기/색이 달라 보여 텍스트로 변경.)
  */
 function LightboxButton({ onClick }: { onClick: () => void }) {
   return (
@@ -1931,9 +2000,9 @@ function LightboxButton({ onClick }: { onClick: () => void }) {
       }}
       title="크게 보기"
       aria-label="크게 보기"
-      className="absolute bottom-1 right-1 z-10 grid h-5 w-5 place-items-center rounded-full bg-white/95 text-[10px] leading-none text-[#5C4633] shadow-sm ring-1 ring-[#E8DCC9] hover:text-[#3D2E1F]"
+      className="absolute bottom-1 right-1 z-10 rounded-sm bg-white/95 px-1.5 py-0.5 text-[9px] font-medium leading-none text-[#5C4633] shadow-sm ring-1 ring-[#E8DCC9] hover:text-[#3D2E1F]"
     >
-      🔍
+      크게보기
     </button>
   );
 }
@@ -2110,23 +2179,49 @@ function CoupleFaceMetaBadge({
 }
 
 /**
- * 카탈로그 선택 가이드 박스 — 사용자가 본인 입력 케이스에 맞춰 어떤 카탈로그를
+ * 카탈로그 선택 가이드 — 사용자가 본인 입력 케이스에 맞춰 어떤 카탈로그를
  * 고르면 좋은지 한눈에 보여줌. "카탈로그 컷 선택" 섹션의 검색 필터와 좌우 2단 배치.
+ *
+ * 디자인 v3:
+ *   - 좌측에 색상 accent bar (cream → brown gradient) 로 시각적 강조.
+ *   - 💡 lightbulb 이모지 + "가이드" 라벨로 정보 안내 성격 명확화.
+ *   - 모드별 항목을 카드로 분리 + 좌측에 아이콘(👤/👫) 으로 즉시 식별.
+ *   - text-[12px] 로 살짝 키워서 가독성 ↑.
  */
 function CatalogSelectionGuide() {
-  // 박스 없이 단순 텍스트 블록 — 가이드는 정보 안내일 뿐 시각적 강조 불필요.
   return (
-    <div className="mt-2 flex flex-col gap-1">
-      <span className="text-[11px] font-medium text-[#3D2E1F]">
-        자연스러운 카탈로그 가이드
-      </span>
-      <ul className="flex flex-col gap-0.5 text-[11px] leading-relaxed text-[#5C4633]">
-        <li>
-          <strong>셀카로 만들기</strong> → 신랑 솔로 or 신부 솔로, 커플 클로즈업
-          컷에 어울려요
+    <div className="mt-3 overflow-hidden rounded-lg border border-[#E8DCC9] bg-gradient-to-br from-[#FAF7F2] to-white">
+      <div className="flex items-center gap-1.5 border-b border-[#F0E8D8] bg-[#FAF7F2] px-3 py-1.5">
+        <span aria-hidden className="text-[12px]">💡</span>
+        <span className="text-[11px] font-semibold tracking-wide text-[#3D2E1F]">
+          자연스러운 카탈로그 선택 가이드
+        </span>
+      </div>
+      <ul className="flex flex-col divide-y divide-[#F0E8D8] text-[12px] leading-relaxed text-[#5C4633]">
+        <li className="flex items-start gap-2 px-3 py-2">
+          <span
+            aria-hidden
+            className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white text-[11px] ring-1 ring-[#E8DCC9]"
+          >
+            👤
+          </span>
+          <span>
+            <strong className="text-[#3D2E1F]">셀카로 만들기</strong>
+            <span className="text-[#8B7355]"> →</span> 신랑 솔로 · 신부 솔로 ·
+            커플 클로즈업 컷에 어울려요
+          </span>
         </li>
-        <li>
-          <strong>커플사진으로 만들기</strong> → 모든 커플 카탈로그에 어울려요
+        <li className="flex items-start gap-2 px-3 py-2">
+          <span
+            aria-hidden
+            className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white text-[11px] ring-1 ring-[#E8DCC9]"
+          >
+            👫
+          </span>
+          <span>
+            <strong className="text-[#3D2E1F]">커플사진으로 만들기</strong>
+            <span className="text-[#8B7355]"> →</span> 모든 커플 카탈로그에 어울려요
+          </span>
         </li>
       </ul>
     </div>
@@ -2435,4 +2530,25 @@ function UploadGuideOverlay({
       </g>
     </svg>
   );
+}
+
+/**
+ * 페이지 번호 표시 항목 계산. 총 6 페이지 이하면 전체, 그 이상이면 현재 페이지를
+ * 중심으로 윈도우 + 첫/마지막을 보여 주고 그 사이에 'ellipsis' 삽입.
+ * (CatalogPreviewClient / mypage 의 동일 헬퍼와 같은 로직.)
+ */
+function computePageItems(
+  current: number,
+  total: number,
+): Array<number | 'ellipsis'> {
+  if (total <= 6) return Array.from({ length: total }, (_, i) => i);
+  const items: Array<number | 'ellipsis'> = [];
+  const windowStart = Math.max(1, current - 1);
+  const windowEnd = Math.min(total - 2, current + 1);
+  items.push(0);
+  if (windowStart > 1) items.push('ellipsis');
+  for (let i = windowStart; i <= windowEnd; i++) items.push(i);
+  if (windowEnd < total - 2) items.push('ellipsis');
+  items.push(total - 1);
+  return items;
 }
