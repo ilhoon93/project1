@@ -28,11 +28,13 @@
 ### 커플 사진으로 만들기 — 2 row
 ```
 예시 1
-  [커플사진] → [카탈로그] → [결과]
+  [커플사진 1] → [카탈로그] → [결과]
 
 예시 2
-  [커플사진] → [카탈로그] → [결과]
+  [커플사진 2] → [카탈로그] → [결과]
 ```
+
+(row 마다 다른 입력 사진 — 다양한 입력 케이스를 보여주기 위해 분리.)
 
 ## 파일 규약
 
@@ -51,11 +53,12 @@
 | `selfies-bride-result.jpg` | 신부 단독 카탈로그 합성 결과 |
 | `selfies-together-result.jpg` | 함께 카탈로그 합성 결과 |
 
-### 커플 모드 (3개)
+### 커플 모드 (4개)
 | 경로 | 용도 |
 | --- | --- |
-| `couple-input.jpg` | 커플 사진 입력 예시 (모든 row 공통) |
+| `couple-input-1.jpg` | 커플 예시 1 입력 사진 |
 | `couple-result-1.jpg` | 커플 예시 1 결과 (Beach Classic White 기준) |
+| `couple-input-2.jpg` | 커플 예시 2 입력 사진 |
 | `couple-result-2.jpg` | 커플 예시 2 결과 (Paris Eiffel Walk 기준) |
 
 코드에서 path 가 직접 지정되어 있어 admin 이 같은 이름으로 jpg 만 올리면 즉시
@@ -70,8 +73,8 @@
   - selfies-*-front/left/right — 신랑/신부 각자 정면 + 좌45° + 우45° 셀카
   - selfies-*-anchor — 같은 사람의 앵커 생성 결과 (스튜디오 normalize 컷)
   - selfies-*-result, selfies-together-result — 카탈로그 합성 결과
-  - couple-input — 두 사람이 함께 정면 반신 컷
-  - couple-result-* — 그 사진을 베이스로 의상/배경 바꾼 결과
+  - couple-input-1/-2 — 두 사람이 함께 찍힌 정면 반신 컷, 서로 다른 입력 케이스로 다양성 보여주기
+  - couple-result-* — 같은 번호의 input 을 베이스로 의상/배경 바꾼 결과
 - **컬러**: 셀카·앵커·결과의 톤이 너무 달라 보이지 않게 (사용자가 "변환 폭" 체감을 명확히 받게)
 
 ## 카탈로그 칸 변경
@@ -99,5 +102,6 @@ const EXAMPLE_CATALOG_IDS = {
 - `selfies-front.jpg` / `selfies-left.jpg` / `selfies-right.jpg` (PR #165 —
   사람 구분 없는 3장 grid; 이번에 사람별로 다시 분리됨)
 - `couple-result.jpg` (PR #154 — 단일 결과)
+- `couple-input.jpg` (PR #160~#166 — 공통 입력; 이번에 couple-input-1/-2 로 분리)
 
 남아 있어도 무해 (사용처 없음). 필요 시 git 으로 삭제.
