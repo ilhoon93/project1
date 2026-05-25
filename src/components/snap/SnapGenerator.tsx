@@ -1367,33 +1367,37 @@ export function SnapGenerator({ catalog, adminTags }: Props) {
 
       {/* 3. 카탈로그 선택 — 다중 선택 가능 */}
       <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-sm font-medium text-[#3D2E1F]">카탈로그 컷 선택</h2>
-          {selectedIds.size > 0 && (
-            <span className="text-[11px] text-[#5C4633]">
-              {selectedIds.size}개 선택 · {selectedIds.size} 스냅 크레딧 차감
-            </span>
-          )}
-        </div>
-        <p className="mt-1 text-xs text-[#8B7355]">
-          여러 컷을 선택해 한 번에 만들 수 있어요. 1장당 스냅 크레딧 1개 차감.
-        </p>
-
-        {/* 좌측: 가이드 (넓게) / 우측: 검색 필터 (좁게).
-            데스크탑 sm+ 에선 가로 2단 (가이드 3 : 필터 2), 모바일에선 세로로 쌓임.
-            필터 컴포넌트가 충분히 컴팩트해 좁은 영역에서도 chip 들이 잘 배치됨. */}
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-[3fr_2fr]">
-          <CatalogSelectionGuide />
-          <CatalogFilterBar
-            value={catalogFilter}
-            onChange={setCatalogFilter}
-            resultCount={{
-              shown: visibleCatalog.length,
-              total: modeFilteredCatalog.length,
-            }}
-            onlyRecommended={onlyRecommended}
-            onOnlyRecommendedChange={setOnlyRecommended}
-          />
+        {/* 헤더 row — 좌측: 제목 + 선택 카운트 + 안내문 + 가이드 / 우측: 검색 필터.
+            데스크탑 lg+ 에선 헤더 line 우측에 검색 필터가 같은 줄. 모바일에선 세로 stack. */}
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-baseline gap-2">
+              <h2 className="text-sm font-medium text-[#3D2E1F]">
+                카탈로그 컷 선택
+              </h2>
+              {selectedIds.size > 0 && (
+                <span className="text-[11px] text-[#5C4633]">
+                  {selectedIds.size}개 선택 · {selectedIds.size} 스냅 크레딧 차감
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-xs text-[#8B7355]">
+              여러 컷을 선택해 한 번에 만들 수 있어요. 1장당 스냅 크레딧 1개 차감.
+            </p>
+            <CatalogSelectionGuide />
+          </div>
+          <div className="w-full lg:w-[320px] lg:shrink-0">
+            <CatalogFilterBar
+              value={catalogFilter}
+              onChange={setCatalogFilter}
+              resultCount={{
+                shown: visibleCatalog.length,
+                total: modeFilteredCatalog.length,
+              }}
+              onlyRecommended={onlyRecommended}
+              onOnlyRecommendedChange={setOnlyRecommended}
+            />
+          </div>
         </div>
 
         {visibleCatalog.length === 0 ? (
@@ -2160,12 +2164,13 @@ function CoupleFaceMetaBadge({
  * 고르면 좋은지 한눈에 보여줌. "카탈로그 컷 선택" 섹션의 검색 필터와 좌우 2단 배치.
  */
 function CatalogSelectionGuide() {
+  // 박스 없이 단순 텍스트 블록 — 가이드는 정보 안내일 뿐 시각적 강조 불필요.
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-dashed border-[#E8DCC9] bg-[#FAF7F2]/60 p-2.5">
+    <div className="mt-2 flex flex-col gap-1">
       <span className="text-[11px] font-medium text-[#3D2E1F]">
         자연스러운 카탈로그 가이드
       </span>
-      <ul className="flex flex-col gap-1 text-[11px] leading-relaxed text-[#5C4633]">
+      <ul className="flex flex-col gap-0.5 text-[11px] leading-relaxed text-[#5C4633]">
         <li>
           <strong>셀카로 만들기</strong> → 신랑 솔로 or 신부 솔로, 커플 클로즈업
           컷에 어울려요
