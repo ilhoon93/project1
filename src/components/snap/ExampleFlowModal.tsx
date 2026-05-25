@@ -194,7 +194,7 @@ export function ExampleFlowModal({
                   title="예시 1"
                   steps={[
                     {
-                      srcs: [`${MODE_BASE}/couple-input.jpg`],
+                      srcs: [`${MODE_BASE}/couple-input-1.jpg`],
                       label: '커플 사진',
                     },
                     {
@@ -212,7 +212,7 @@ export function ExampleFlowModal({
                   title="예시 2"
                   steps={[
                     {
-                      srcs: [`${MODE_BASE}/couple-input.jpg`],
+                      srcs: [`${MODE_BASE}/couple-input-2.jpg`],
                       label: '커플 사진',
                     },
                     {
