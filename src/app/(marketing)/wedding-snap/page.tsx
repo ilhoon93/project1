@@ -3,6 +3,10 @@ import type { Metadata } from 'next';
 import { getAvailableCatalog } from '@/lib/snap/catalog-availability';
 import type { SnapCatalogItem } from '@/lib/snap/catalog';
 import { CatalogPreviewClient } from '@/components/snap/CatalogPreviewClient';
+import {
+  fetchCatalogStatsMap,
+  type CatalogStatsMap,
+} from '@/lib/snap/catalog-stats';
 
 export const metadata: Metadata = {
   title: 'AI 웨딩스냅 — 우리다운',
@@ -15,12 +19,16 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function WeddingSnapLandingPage() {
-  // hidden / 마스터 파일 없음 / admin 양쪽 hidden 인 항목 제외.
-  const visibleCatalog = await getAvailableCatalog();
+  // hidden / 마스터 파일 없음 / admin 양쪽 hidden 인 항목 제외 + stats 병렬 fetch.
+  // stats 는 정렬용 — view 가 비어 있어도 빈 map 으로 안전 fallback.
+  const [visibleCatalog, catalogStats] = await Promise.all([
+    getAvailableCatalog(),
+    fetchCatalogStatsMap(),
+  ]);
   return (
     <main className="mx-auto max-w-4xl px-4 pb-20 pt-10 sm:px-6">
       <Hero />
-      <CatalogPreview items={visibleCatalog} />
+      <CatalogPreview items={visibleCatalog} catalogStats={catalogStats} />
       <HowItWorks />
       <AboutSnap />
       <PackageLineup />
@@ -156,13 +164,19 @@ function Hero() {
   );
 }
 
-function CatalogPreview({ items }: { items: SnapCatalogItem[] }) {
+function CatalogPreview({
+  items,
+  catalogStats,
+}: {
+  items: SnapCatalogItem[];
+  catalogStats: CatalogStatsMap;
+}) {
   return (
     <section className="mt-12">
       <h2 className="mb-4 text-sm font-medium tracking-wider text-[#5C4633]">
         카탈로그 미리보기
       </h2>
-      <CatalogPreviewClient items={items} />
+      <CatalogPreviewClient items={items} catalogStats={catalogStats} />
     </section>
   );
 }

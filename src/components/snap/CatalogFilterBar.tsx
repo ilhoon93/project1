@@ -37,6 +37,17 @@ export const EMPTY_CATALOG_FILTER: CatalogFilterState = {
 };
 
 /**
+ * 정렬 옵션 — 사용자 페이지에서 추천 4단계 외에 인기/좋아요 기반 정렬 추가.
+ *   default       : 기존 추천 > 기본 > 주의 > 비추 + 코드 정의 순서
+ *   popular       : gen_count 내림차순 (많이 생성된 카탈로그 우선)
+ *   most-liked    : like_count 내림차순 (가장 좋아요 많은 카탈로그 우선)
+ *
+ * snap_catalog_stats view (031) 가 popular/most-liked 의 source. stats 없는
+ * 카탈로그는 0 으로 간주되어 뒤로 밀림. tie-break 는 코드 정의 순서.
+ */
+export type CatalogSortMode = 'default' | 'popular' | 'most-liked';
+
+/**
  * `EMPTY_CATALOG_FILTER` (모든 그룹 비어 있음) 인지. true 면 "필터 없음" 으로
  * 안내 텍스트를 다르게 그릴 수 있음.
  */
@@ -86,6 +97,12 @@ interface Props {
    */
   onlyRecommended?: boolean;
   onOnlyRecommendedChange?: (next: boolean) => void;
+  /**
+   * 정렬 모드 — 옵션. 전달 시 정렬 chip 그룹 노출.
+   * undefined = 정렬 chip 자체 안 보임 (legacy 사용처 호환).
+   */
+  sortMode?: CatalogSortMode;
+  onSortModeChange?: (next: CatalogSortMode) => void;
 }
 
 export function CatalogFilterBar({
@@ -94,6 +111,8 @@ export function CatalogFilterBar({
   resultCount,
   onlyRecommended,
   onOnlyRecommendedChange,
+  sortMode,
+  onSortModeChange,
 }: Props) {
   const toggle = <T,>(set: ReadonlySet<T>, v: T): Set<T> => {
     const next = new Set(set);
@@ -104,6 +123,7 @@ export function CatalogFilterBar({
 
   const showRecommendToggle =
     typeof onlyRecommended === 'boolean' && !!onOnlyRecommendedChange;
+  const showSortChips = !!sortMode && !!onSortModeChange;
 
   return (
     <div className="flex flex-col gap-2 rounded-md border border-dashed border-[#E8DCC9] bg-[#FAF7F2]/60 p-2.5">
@@ -166,6 +186,37 @@ export function CatalogFilterBar({
         selected={value.framings}
         onToggle={(v) => onChange({ ...value, framings: toggle(value.framings, v) })}
       />
+
+      {/* 정렬 — 추천/인기/좋아요 중 단일 선택. snap_catalog_stats view 기반. */}
+      {showSortChips && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="w-9 shrink-0 text-[10px] font-medium text-[#5C4633]">정렬</span>
+          {(
+            [
+              { value: 'default', label: '추천순' },
+              { value: 'popular', label: '인기순' },
+              { value: 'most-liked', label: '좋아요순' },
+            ] as Array<{ value: CatalogSortMode; label: string }>
+          ).map((opt) => {
+            const isOn = sortMode === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onSortModeChange!(opt.value)}
+                aria-pressed={isOn}
+                className={`rounded-full border px-2.5 py-0.5 text-[11px] transition-colors ${
+                  isOn
+                    ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white'
+                    : 'border-[#D4C5B0] bg-white text-[#5C4633] hover:border-[#8B7355] hover:text-[#3D2E1F]'
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { SnapGenerator } from '@/components/snap/SnapGenerator';
 import { getAvailableCatalogWith } from '@/lib/snap/catalog-availability';
 import { fetchAllCatalogTags } from '@/lib/snap/catalog-admin-tags';
+import { fetchCatalogStatsMap } from '@/lib/snap/catalog-stats';
 
 export const metadata: Metadata = {
   title: 'AI 웨딩스냅 — 사진 업로드 / 카탈로그 선택',
@@ -20,8 +21,13 @@ export default async function WeddingSnapCreatePage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/wedding-snap/create');
 
-  // tagMap 을 먼저 fetch — getAvailableCatalogWith + SnapGenerator 양쪽에 전달.
-  const adminTags = await fetchAllCatalogTags();
+  // tagMap + stats 병렬 fetch — getAvailableCatalogWith + SnapGenerator 양쪽에 전달.
+  // stats 는 인기/좋아요순 정렬에만 사용 — 실패 시 빈 map 으로 fallback (정렬 chip
+  // 만 default 로 묶임, 기능은 그대로).
+  const [adminTags, catalogStats] = await Promise.all([
+    fetchAllCatalogTags(),
+    fetchCatalogStatsMap(),
+  ]);
   const availableCatalog = getAvailableCatalogWith(adminTags);
 
   return (
@@ -32,7 +38,11 @@ export default async function WeddingSnapCreatePage() {
       <p className="mt-2 text-xs text-[#8B7355]">
         평균 생성 시간 60~120초 · 1컷당 스냅 크레딧 1개 차감
       </p>
-      <SnapGenerator catalog={availableCatalog} adminTags={adminTags} />
+      <SnapGenerator
+        catalog={availableCatalog}
+        adminTags={adminTags}
+        catalogStats={catalogStats}
+      />
     </main>
   );
 }
