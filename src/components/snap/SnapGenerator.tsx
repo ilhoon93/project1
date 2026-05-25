@@ -814,17 +814,6 @@ export function SnapGenerator({ catalog, adminTags }: Props) {
   // 셀카 모드 + 기존 앵커가 있을 때만 노출하는 분기 토글.
   const showAnchorBranchToggle = mode !== 'couple' && hasFullAnchor;
 
-  const pathHint = (() => {
-    if (mode === 'couple') return '커플 사진 기반 (앵커 영향 없음)';
-    if (selectedCatalogs.length === 0) return '카탈로그를 선택하면 경로가 표시돼요';
-    const kinds = new Set(selectedCatalogs.map((c) => c.personality));
-    if (kinds.size > 1) return '여러 경로 혼합 (함께 / 단독)';
-    const k = selectedCatalogs[0].personality;
-    if (k === 'groom-solo') return '신랑 앵커 단독 컷';
-    if (k === 'bride-solo') return '신부 앵커 단독 컷';
-    return '신랑·신부 앵커 합성';
-  })();
-
   // 선택한 카탈로그 중 운영자가 caution/risky 태그 단 것 개수.
   // 합성 방식이 'strict' 인 상태에서 이 개수 > 0 이면 자동 모드 추천 banner 노출.
   const promptOnlyRecommendedCount = selectedCatalogs.filter((item) => {
@@ -1387,13 +1376,13 @@ export function SnapGenerator({ catalog, adminTags }: Props) {
           )}
         </div>
         <p className="mt-1 text-xs text-[#8B7355]">
-          여러 컷을 선택해 한 번에 만들 수 있어요. 1장당 스냅 크레딧 1개 차감.{' '}
-          <span className="text-[10px] text-[#8B7355]">· 현재 경로: {pathHint}</span>
+          여러 컷을 선택해 한 번에 만들 수 있어요. 1장당 스냅 크레딧 1개 차감.
         </p>
 
-        {/* 좌측: 모드별 카탈로그 선택 가이드 / 우측: 검색 필터.
-            데스크탑(lg) 에선 가로 2단, 모바일에선 세로로 쌓임. */}
-        <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+        {/* 좌측: 가이드 (넓게) / 우측: 검색 필터 (좁게).
+            데스크탑 sm+ 에선 가로 2단 (가이드 3 : 필터 2), 모바일에선 세로로 쌓임.
+            필터 컴포넌트가 충분히 컴팩트해 좁은 영역에서도 chip 들이 잘 배치됨. */}
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-[3fr_2fr]">
           <CatalogSelectionGuide />
           <CatalogFilterBar
             value={catalogFilter}
@@ -1482,9 +1471,8 @@ export function SnapGenerator({ catalog, adminTags }: Props) {
           )}
         </div>
         <p className="mt-1 text-xs text-[#8B7355]">
-          {selectedCatalogs.length === 0
-            ? '카탈로그를 1개 이상 선택하면 모드별 예시 결과 썸네일이 보여요.'
-            : '기본은 카탈로그 사진을 그대로 따라 만들고, 얼굴이 어색하면 강화 모드로 한 번 더 보강할 수 있어요.'}
+          기본은 카탈로그 사진을 그대로 따라 만들고, 얼굴이 어색하면 강화 모드로
+          한 번 더 보강할 수 있어요.
         </p>
 
         {/* 자동 모드 추천 banner — 호환성 점수 기반.
@@ -2175,17 +2163,15 @@ function CatalogSelectionGuide() {
   return (
     <div className="flex flex-col gap-2 rounded-md border border-dashed border-[#E8DCC9] bg-[#FAF7F2]/60 p-2.5">
       <span className="text-[11px] font-medium text-[#3D2E1F]">
-        카탈로그 선택 가이드
+        자연스러운 카탈로그 가이드
       </span>
       <ul className="flex flex-col gap-1 text-[11px] leading-relaxed text-[#5C4633]">
         <li>
-          <strong>셀카 모드</strong> → 솔로컷, 얼굴 클로즈업(반신 이상 컷)
+          <strong>셀카로 만들기</strong> → 신랑 솔로 or 신부 솔로, 커플 클로즈업
+          컷에 어울려요
         </li>
         <li>
-          <strong>커플 사진 (클로즈업)</strong> → 모든 커플 카탈로그
-        </li>
-        <li>
-          <strong>커플 사진 (전신)</strong> → 멋진 배경의 전신 커플 카탈로그
+          <strong>커플사진으로 만들기</strong> → 모든 커플 카탈로그에 어울려요
         </li>
       </ul>
     </div>

@@ -13,14 +13,9 @@
 
 ### 셀카로 만들기
 ```
-신랑 단독 컷 만들기
-  [신랑셀카] → [신랑앵커] → [카탈로그] → [결과]
-
-신부 단독 컷 만들기
-  [신부셀카] → [신부앵커] → [카탈로그] → [결과]
-
-함께 컷 만들기
-  [신랑앵커 + 신부앵커] → [카탈로그] → [결과]
+입력 셀카 3장 (3장씩 모드 기준)
+  [정면] [좌 45°] [우 45°]
+  ※ 각 사진 클릭 시 lightbox 로 크게 보기
 ```
 
 ### 커플 사진으로 만들기
@@ -36,13 +31,9 @@
 
 | 경로 | 용도 |
 | --- | --- |
-| `selfies-groom-selfie.jpg` | 신랑 셀카 입력 예시 |
-| `selfies-groom-anchor.jpg` | 신랑 앵커 결과 예시 (1번 row + 3번 row 의 좌측 앵커) |
-| `selfies-groom-result.jpg` | 신랑 단독 카탈로그 합성 결과 |
-| `selfies-bride-selfie.jpg` | 신부 셀카 입력 예시 |
-| `selfies-bride-anchor.jpg` | 신부 앵커 결과 예시 (2번 row + 3번 row 의 우측 앵커) |
-| `selfies-bride-result.jpg` | 신부 단독 카탈로그 합성 결과 |
-| `selfies-together-result.jpg` | 함께 카탈로그 합성 결과 |
+| `selfies-front.jpg` | 셀카 모드 — 정면 셀카 예시 |
+| `selfies-left.jpg` | 셀카 모드 — 좌 45° 셀카 예시 |
+| `selfies-right.jpg` | 셀카 모드 — 우 45° 셀카 예시 |
 | `couple-input.jpg` | 커플 사진 입력 예시 (모달 모든 row 공통) |
 | `couple-result-1.jpg` | 커플 예시 1 — 결과 (Beach Classic White 카탈로그 기준) |
 | `couple-result-2.jpg` | 커플 예시 2 — 결과 (Paris Eiffel Walk 카탈로그 기준) |
@@ -88,8 +79,12 @@ const EXAMPLE_CATALOG_IDS = {
 
 ## Deprecated (이전 PR 의 파일들)
 
-이전 PR (#154) 에서 사용했던 다음 파일들은 더 이상 사용되지 않습니다:
+다음 파일들은 더 이상 사용되지 않습니다 — 셀카 모드 팝업이 정면/좌/우 3장
+구조로 단순화되며 신랑/신부 + 흐름 row 가 제거됨:
 - `selfies-input.jpg` / `selfies-result.jpg`
+- `selfies-groom-selfie.jpg` / `selfies-groom-anchor.jpg` / `selfies-groom-result.jpg`
+- `selfies-bride-selfie.jpg` / `selfies-bride-anchor.jpg` / `selfies-bride-result.jpg`
+- `selfies-together-result.jpg`
 - `couple-result.jpg`
 
 남아 있어도 무해 (사용처 없음). 필요 시 git 으로 삭제.
