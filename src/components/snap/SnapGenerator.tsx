@@ -1392,26 +1392,31 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
 
       {/* 3. 카탈로그 선택 — 다중 선택 가능 */}
       <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
-        {/* 헤더 row — 좌측: 제목 + 선택 카운트 + 안내문 + 가이드 / 우측: 검색 필터.
-            데스크탑 lg+ 에선 헤더 line 우측에 검색 필터가 같은 줄. 모바일에선 세로 stack. */}
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-baseline gap-2">
-              <h2 className="text-sm font-medium text-[#3D2E1F]">
-                카탈로그 컷 선택
-              </h2>
-              {selectedIds.size > 0 && (
-                <span className="text-[11px] text-[#5C4633]">
-                  {selectedIds.size}개 선택 · {selectedIds.size} 스냅 크레딧 차감
-                </span>
-              )}
-            </div>
-            <p className="mt-1 text-xs text-[#8B7355]">
-              여러 컷을 선택해 한 번에 만들 수 있어요. 1장당 스냅 크레딧 1개 차감.
-            </p>
+        {/* 헤더 — 제목 + 선택 카운트 + 안내문. 한 줄 너비 사용. */}
+        <div className="flex flex-wrap items-baseline gap-2">
+          <h2 className="text-sm font-medium text-[#3D2E1F]">카탈로그 컷 선택</h2>
+          {selectedIds.size > 0 && (
+            <span className="text-[11px] text-[#5C4633]">
+              {selectedIds.size}개 선택 · {selectedIds.size} 스냅 크레딧 차감
+            </span>
+          )}
+        </div>
+        <p className="mt-1 text-xs text-[#8B7355]">
+          여러 컷을 선택해 한 번에 만들 수 있어요. 1장당 스냅 크레딧 1개 차감.
+        </p>
+
+        {/*
+          가이드 + 필터 — 헤더 아래 같은 row 에 좌우 배치. lg+ 에선 가로 정렬
+          (items-stretch 로 양쪽 박스가 같은 height), 모바일에선 세로 stack.
+          이전엔 가이드가 좌측 컬럼의 heading 아래에 위치해 필터와 시작 라인이
+          어긋났는데, heading 을 row 위로 빼고 guide / filter 를 동일한 row 의
+          형제 요소로 만들어 수평 라인 정렬.
+        */}
+        <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-stretch">
+          <div className="flex min-w-0 flex-1 flex-col">
             <CatalogSelectionGuide />
           </div>
-          <div className="w-full lg:w-[320px] lg:shrink-0">
+          <div className="flex w-full flex-col lg:w-[320px] lg:shrink-0">
             <CatalogFilterBar
               value={catalogFilter}
               onChange={setCatalogFilter}
@@ -2180,48 +2185,33 @@ function CoupleFaceMetaBadge({
 
 /**
  * 카탈로그 선택 가이드 — 사용자가 본인 입력 케이스에 맞춰 어떤 카탈로그를
- * 고르면 좋은지 한눈에 보여줌. "카탈로그 컷 선택" 섹션의 검색 필터와 좌우 2단 배치.
+ * 고르면 좋은지 한눈에 보여줌. 우측 검색 필터(CatalogFilterBar) 와 수평으로
+ * 정렬되어 같은 row 의 좌측에 위치.
  *
- * 디자인 v3:
- *   - 좌측에 색상 accent bar (cream → brown gradient) 로 시각적 강조.
- *   - 💡 lightbulb 이모지 + "가이드" 라벨로 정보 안내 성격 명확화.
- *   - 모드별 항목을 카드로 분리 + 좌측에 아이콘(👤/👫) 으로 즉시 식별.
- *   - text-[12px] 로 살짝 키워서 가독성 ↑.
+ * 디자인 v4:
+ *   - 헤더 ("자연스러운 카탈로그 선택 가이드") + 본문 2줄 구조 유지.
+ *   - 이전 v3 의 👤/👫 항목 아이콘 제거 — 텍스트만으로 정보 전달.
+ *   - 카드 형태(rounded + ring + bg gradient) + divide-y 로 행 구분.
+ *   - 좌우 가이드/필터 박스가 같은 시작 라인 + 같은 height (lg:h-full + items-stretch
+ *     로 부모에서 정렬).
  */
 function CatalogSelectionGuide() {
   return (
-    <div className="mt-3 overflow-hidden rounded-lg border border-[#E8DCC9] bg-gradient-to-br from-[#FAF7F2] to-white">
-      <div className="flex items-center gap-1.5 border-b border-[#F0E8D8] bg-[#FAF7F2] px-3 py-1.5">
-        <span aria-hidden className="text-[12px]">💡</span>
+    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-[#E8DCC9] bg-gradient-to-br from-[#FAF7F2] to-white">
+      <div className="border-b border-[#F0E8D8] bg-[#FAF7F2] px-3 py-1.5">
         <span className="text-[11px] font-semibold tracking-wide text-[#3D2E1F]">
           자연스러운 카탈로그 선택 가이드
         </span>
       </div>
-      <ul className="flex flex-col divide-y divide-[#F0E8D8] text-[12px] leading-relaxed text-[#5C4633]">
-        <li className="flex items-start gap-2 px-3 py-2">
-          <span
-            aria-hidden
-            className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white text-[11px] ring-1 ring-[#E8DCC9]"
-          >
-            👤
-          </span>
-          <span>
-            <strong className="text-[#3D2E1F]">셀카로 만들기</strong>
-            <span className="text-[#8B7355]"> →</span> 신랑 솔로 · 신부 솔로 ·
-            커플 클로즈업 컷에 어울려요
-          </span>
+      <ul className="flex flex-1 flex-col divide-y divide-[#F0E8D8] text-[12px] leading-relaxed text-[#5C4633]">
+        <li className="px-3 py-2">
+          <strong className="text-[#3D2E1F]">셀카로 만들기</strong>
+          <span className="text-[#8B7355]"> →</span> 신랑 솔로 · 신부 솔로 ·
+          커플 클로즈업 컷에 어울려요
         </li>
-        <li className="flex items-start gap-2 px-3 py-2">
-          <span
-            aria-hidden
-            className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white text-[11px] ring-1 ring-[#E8DCC9]"
-          >
-            👫
-          </span>
-          <span>
-            <strong className="text-[#3D2E1F]">커플사진으로 만들기</strong>
-            <span className="text-[#8B7355]"> →</span> 모든 커플 카탈로그에 어울려요
-          </span>
+        <li className="px-3 py-2">
+          <strong className="text-[#3D2E1F]">커플사진으로 만들기</strong>
+          <span className="text-[#8B7355]"> →</span> 모든 커플 카탈로그에 어울려요
         </li>
       </ul>
     </div>

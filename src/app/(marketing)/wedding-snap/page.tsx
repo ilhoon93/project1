@@ -84,12 +84,28 @@ function AboutSnap() {
       <h2 className="mb-4 text-sm font-medium tracking-wider text-[#5C4633]">
         AI 웨딩스냅이란?
       </h2>
-      <div className="rounded-lg border border-[#E8DCC9] bg-white p-5 text-sm leading-relaxed text-[#5C4633]">
-        신랑·신부 사진을 한 번만 잘 잡아두는{' '}
-        <strong>앵커 단계 (4장 후보 中 1장 선택)</strong> 가 첫 batch{' '}
-        <span className="text-emerald-700">무료</span>로 제공되고, 이후 카탈로그
-        50컷 풀에서 원하는 컷을 1장씩 차감해 만듭니다. 키·몸무게를 같이 입력하면
-        전신 비율이 자연스럽게 반영돼요.
+      <div className="flex flex-col gap-3 rounded-lg border border-[#E8DCC9] bg-white p-5 text-sm leading-relaxed text-[#5C4633]">
+        <p>
+          두 가지 입력 방식 — <strong>셀카로 만들기</strong> (신랑·신부 각자 셀카
+          1장 또는 정면/좌/우 3장으로 앵커 생성) 또는{' '}
+          <strong>커플사진으로 만들기</strong> (두 사람이 함께 찍힌 사진 1장) —
+          중 편한 쪽을 고르면, 카탈로그 컷의 의상·배경·구도를 그대로 두고{' '}
+          <strong>얼굴/체형만 본인 얼굴로 교체</strong>해드립니다.
+        </p>
+        <p>
+          셀카 모드는{' '}
+          <strong>앵커 단계 (4장 후보 中 1장 선택)</strong> 가 결제 후 첫 batch{' '}
+          <span className="text-emerald-700">무료</span>로 제공되고, 이후{' '}
+          <strong>80가지 이상의 카탈로그 풀</strong>에서 원하는 컷을 1장당 스냅
+          크레딧 1개씩 차감해 만듭니다. 키·몸무게를 같이 입력하면 전신 비율도
+          자연스럽게 반영돼요.
+        </p>
+        <p>
+          만든 결과는 마이페이지에 자동 저장되고,{' '}
+          <strong>좋아요·재생성 피드백</strong> 도 가능합니다. 재생성은 패키지
+          결제 시 적립된 <strong>무료 quota</strong>(snap_5 → 1회 / snap_20 →
+          4회 / snap_40 → 8회) 안에서 무료, 이후엔 1 크레딧씩 차감.
+        </p>
       </div>
     </section>
   );
@@ -102,9 +118,10 @@ function PackageLineup() {
         패키지 라인업
       </h2>
       <p className="mb-3 text-xs text-[#8B7355]">
-        실제 웨딩스튜디오 대비 1–3% 가격으로 50가지 컷을 우리 얼굴로 만들 수
-        있어요. 결제는 PortOne · 네이버 스마트스토어 양쪽 지원, 마이페이지 &ldquo;결혼알림장&rdquo;
-        탭 또는 스마트스토어 주문번호 등록을 통해 진행됩니다.
+        실제 웨딩스튜디오 대비 1–3% 가격으로 80가지 이상의 컷을 우리 얼굴로 만들
+        수 있어요. 결제는 PortOne · 네이버 스마트스토어 양쪽 지원, 마이페이지의
+        &ldquo;주문&rdquo; 탭에서 스마트스토어 주문번호 등록 또는 네이버 로그인
+        연동으로 진행됩니다.
       </p>
       <ul className="flex flex-col gap-2">
         {SNAP_PACKAGES.map((p) => (
@@ -138,10 +155,14 @@ function PackageLineup() {
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-[10px] text-[#8B7355]">
+      <p className="mt-2 text-[10px] leading-relaxed text-[#8B7355]">
         ⓘ 결제 후 크레딧은 자동 적립됩니다. 만료 없음. 환불은 결제 채널 정책을
-        따릅니다. 첫 앵커 batch (스튜디오 4종 framing) 는 무료, 재생성은 4
-        크레딧 차감.
+        따릅니다. 결제 사용자에 한해 첫 앵커 batch (4종 후보) 는 무료, 추가
+        앵커 재생성은 4 크레딧 차감.
+        <br />
+        패키지 결제 시 카탈로그 결과 <strong>재생성 무료 quota</strong> 도 함께
+        적립 — snap_5 → 1회 / snap_20 → 4회 / snap_40 → 8회. 그 이후 재생성은
+        1 크레딧 차감.
       </p>
     </section>
   );
@@ -154,15 +175,15 @@ function Hero() {
       <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
         우리 둘 셀카 한 장이면
         <br />
-        50가지 웨딩 컷이 완성됩니다
+        80가지 웨딩 컷이 완성됩니다
       </h1>
       <p className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-[#5C4633] md:text-base">
-        스튜디오·한옥·도심 골든아워·바닷가까지 — 50가지 베스트샷 중 마음에 드는 컷을
-        고르면 우리 얼굴로 자연스럽게 합성해드려요.
+        스튜디오·한옥·도심 골든아워·바닷가·해외 풍경까지 — 80가지 이상의 베스트샷
+        중 마음에 드는 컷을 고르면 우리 얼굴로 자연스럽게 합성해드려요.
       </p>
       <p className="mt-4 text-sm font-medium text-[#3D2E1F]">
-        <span className="text-2xl font-semibold">19,900원</span>
-        <span className="ml-2 text-xs text-[#8B7355]">/ 20장 패키지</span>
+        <span className="text-2xl font-semibold">13,900원</span>
+        <span className="ml-2 text-xs text-[#8B7355]">/ 20장 표준 패키지</span>
       </p>
     </section>
   );

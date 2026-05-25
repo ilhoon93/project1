@@ -126,11 +126,13 @@ export function CatalogFilterBar({
   const showSortChips = !!sortMode && !!onSortModeChange;
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-[#E8DCC9] bg-white p-3 shadow-sm">
+    <div className="flex h-full flex-col gap-2 rounded-lg border border-[#E8DCC9] bg-white p-3 shadow-sm">
       {/*
         헤더 — 필터 아이콘 + 라벨 + 결과 카운트 + 초기화. solid 박스 + 명확한
         섹션 분리로 시각적 hierarchy 강화 (기존 dashed border + 회색 배경 → solid
         white 카드).
+        h-full + 부모 row 의 items-stretch 로 좌측 CatalogSelectionGuide 와 같은
+        height 정렬 (SnapGenerator 카탈로그 섹션 헤더 아래 2-col row).
       */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F0E8D8] pb-1.5">
         <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#3D2E1F]">

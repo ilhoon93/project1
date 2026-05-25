@@ -92,13 +92,14 @@
 ## 카탈로그 칸 변경
 
 EXAMPLE_CATALOG_IDS 상수의 id 만 변경하면 모달의 카탈로그 칸이 새 마스터로
-교체됩니다 (이미지 파일 변경 없음):
+교체됩니다 (이미지 파일 변경 없음). **현재 코드의 실제 값**:
 
 ```ts
+// src/components/snap/ExampleFlowModal.tsx
 const EXAMPLE_CATALOG_IDS = {
-  groomSolo: 'groom-portrait-studio',
-  brideSolo: 'bride-floral-bed-seated',
-  together:  'studio-couple-blackwhite',
+  groomSolo: 'groom-hotel-stairs',
+  brideSolo: 'bride-paris-eiffel',
+  together:  'garden-finger-heart',
   // 커플 모드 — input 1 의 카탈로그 A/B (한 입력 + 카탈로그 2개)
   couple1a:  'studio-couple-puppy',
   couple1b:  'beach-sunset-sparkler-couple',
