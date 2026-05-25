@@ -846,25 +846,9 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
     return evaluateCompatibility(tag).recommendedMode === 'prompt-only';
   }).length;
 
-  // 상단 StatusCard 가 표시할 앵커 URL — slot 별 selectedXxxAnchorId 기준.
-  //   - 'current'  : active anchor (snap_anchors 의 해당 slot)
-  //   - library id : 해당 slot 라이브러리 항목 URL. 없으면 active 로 fallback.
-  // 사용자가 신랑/신부 picker 에서 골라도 상단 thumbnail 즉시 반영.
-  const displayedAnchor = (() => {
-    const resolveSlot = (
-      sel: string,
-      lib: LibraryAnchorSlot[],
-      activeUrl: string | null,
-    ): string | null => {
-      if (sel === 'current') return activeUrl;
-      const item = lib.find((l) => l.id === sel);
-      return item ? item.anchorUrl : activeUrl;
-    };
-    return {
-      groom: resolveSlot(selectedGroomAnchorId, groomLibrary, anchor?.groomAnchorUrl ?? null),
-      bride: resolveSlot(selectedBrideAnchorId, brideLibrary, anchor?.brideAnchorUrl ?? null),
-    };
-  })();
+  // (이전엔 StatusCard 가 사용하던 displayedAnchor — slot 별 selectedXxxAnchorId 를
+  //  resolve 해 상단 썸네일에 노출 — 박스 자체가 제거되면서 함께 삭제됨.
+  //  각 slot 의 선택 상태는 AnchorSlotPicker 가 직접 ring 으로 표시.)
 
   return (
     <div className="mt-6 flex flex-col gap-6">
@@ -880,15 +864,12 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
       />
 
 
-      {/* 0. 현재 상태 카드 — 크레딧 + 선택된 앵커 썸네일.
-            selectedAnchorId 가 'current' 면 active anchor URL, library id 면 해당
-            라이브러리 항목 URL. 라이브러리에서 골랐을 때 즉시 상단에 반영. */}
-      <StatusCard
-        snapBalance={snapBalance}
-        groomAnchorUrl={displayedAnchor.groom}
-        brideAnchorUrl={displayedAnchor.bride}
-        freeActivationAvailable={anchorFreeAvail}
-      />
+      {/*
+        과거 여기 있던 StatusCard (크레딧 + 앵커 썸네일 박스) 는 삭제됨 —
+        스냅 크레딧 / 재생성 잔량은 페이지 헤더 (create/page.tsx) 의 잔액 배지가,
+        앵커 미리보기는 아래 "사용할 앵커 선택" picker 의 lightbox 가 각각 담당.
+        중복 노출 + 세로 공간 절약을 위해 일원화.
+      */}
 
       {/* 상단 진행 단계 인디케이터 — 1 사진 → 2 앵커 → 3 카탈로그 → 4 생성.
           세로 섹션 레이아웃은 그대로 두고 사용자가 현재 어디까지 했는지 한눈에
@@ -1356,7 +1337,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
       {/* 3-a. 앵커 선택 — slot 별 별도 picker.
               사용자가 신랑은 row A 의 신랑 slot, 신부는 row B 의 신부 slot 처럼
               조합해서 가장 마음에 드는 페어를 만들 수 있게 한다.
-              각 slot 카드의 ✕ 는 그 slot 만 라이브러리에서 영구 삭제. */}
+              각 slot 카드의 🔍 → 크게 보기 lightbox, ✕ → 해당 slot 삭제. */}
       {mode !== 'couple' &&
         (!!anchor?.groomAnchorUrl ||
           !!anchor?.brideAnchorUrl ||
@@ -1365,7 +1346,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
           <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
             <h2 className="text-sm font-medium text-[#3D2E1F]">사용할 앵커 선택</h2>
             <p className="mt-1 text-xs text-[#8B7355]">
-              신랑·신부를 각자 골라 조합할 수 있어요. ✕ 는 라이브러리에서 그 slot 만 영구 삭제.
+              신랑·신부를 각자 골라 조합할 수 있어요.
             </p>
 
             <AnchorSlotPicker
@@ -1796,79 +1777,6 @@ function AngleRow({
   );
 }
 
-function StatusCard({
-  snapBalance,
-  groomAnchorUrl,
-  brideAnchorUrl,
-  freeActivationAvailable,
-}: {
-  snapBalance: number | null;
-  groomAnchorUrl: string | null;
-  brideAnchorUrl: string | null;
-  freeActivationAvailable: boolean;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const hasAny = !!groomAnchorUrl || !!brideAnchorUrl;
-  const hasBoth = !!groomAnchorUrl && !!brideAnchorUrl;
-
-  return (
-    <div className="flex flex-col gap-3 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 text-xs text-[#5C4633]">
-          <span className="rounded-full bg-white px-2 py-0.5 ring-1 ring-[#D4C5B0]">스냅 크레딧</span>
-          <span className="font-semibold text-[#3D2E1F]">
-            {snapBalance === null ? '…' : `${snapBalance} 개`}
-          </span>
-          {snapBalance !== null && snapBalance < 1 && (
-            <a
-              href="/mypage?tab=snap"
-              className="text-[11px] text-[#8B7355] underline underline-offset-2 hover:text-[#3D2E1F]"
-            >
-              패키지 구매
-            </a>
-          )}
-        </div>
-        <div className="flex flex-1 items-center gap-2 text-xs text-[#5C4633]">
-          <span className="rounded-full bg-white px-2 py-0.5 ring-1 ring-[#D4C5B0]">앵커</span>
-          {hasAny ? (
-            <>
-              <AnchorThumb url={groomAnchorUrl} label="신랑" onToggle={() => setExpanded((v) => !v)} />
-              <AnchorThumb url={brideAnchorUrl} label="신부" onToggle={() => setExpanded((v) => !v)} />
-              <span className={`font-medium ${hasBoth ? 'text-emerald-700' : 'text-amber-700'}`}>
-                {hasBoth ? '완료' : '부분 저장'}
-              </span>
-              <button
-                type="button"
-                onClick={() => setExpanded((v) => !v)}
-                className="ml-auto text-[11px] text-[#8B7355] underline underline-offset-2 hover:text-[#3D2E1F]"
-              >
-                {expanded ? '접기' : '크게 보기'}
-              </button>
-            </>
-          ) : (
-            <span className="text-[#8B7355]">
-              아직 없음
-              {freeActivationAvailable && (
-                <>
-                  {' '}
-                  · <span className="font-medium text-emerald-700">첫 batch 무료</span>
-                </>
-              )}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {hasAny && expanded && (
-        <div className="grid grid-cols-2 gap-3">
-          <AnchorBigPreview url={groomAnchorUrl} label="신랑 앵커" />
-          <AnchorBigPreview url={brideAnchorUrl} label="신부 앵커" />
-        </div>
-      )}
-    </div>
-  );
-}
-
 /**
  * slot 단위 앵커 picker. 한 줄에 "현재 (active)" 카드 + 라이브러리 카드들.
  * 각 카드 우상단 ✕ → onDiscard(id) 호출 (active 카드는 ✕ 없음, 다음 batch 저장
@@ -1891,6 +1799,20 @@ function AnchorSlotPicker({
   onSelect: (id: string) => void;
   onDiscard: (id: string) => void;
 }) {
+  // 앵커 lightbox — 클릭한 썸네일의 원본 URL. null 이면 닫힘.
+  // 선택(onSelect) 액션과 분리하기 위해 별도 🔍 버튼이 트리거.
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+  // ESC 로 닫기.
+  useEffect(() => {
+    if (!lightboxUrl) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxUrl(null);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [lightboxUrl]);
+
   const hasAny = !!activeUrl || library.length > 0;
   if (!hasAny) {
     return (
@@ -1907,20 +1829,25 @@ function AnchorSlotPicker({
       <h3 className="text-[12px] font-medium text-[#3D2E1F]">{label}</h3>
       <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
         {activeUrl && (
-          <button
-            type="button"
-            onClick={() => onSelect('current')}
-            aria-pressed={selectedId === 'current'}
-            className={`relative flex flex-col gap-1 rounded-md border p-2 text-left transition-colors ${
+          <div
+            className={`relative rounded-md border transition-colors ${
               selectedId === 'current'
                 ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
                 : 'border-[#E8DCC9] hover:border-[#8B7355]'
             }`}
           >
-            <AnchorTinyThumb url={activeUrl} />
-            <span className="text-[11px] font-medium text-[#3D2E1F]">현재</span>
-            <span className="text-[10px] text-[#8B7355]">최근 저장</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => onSelect('current')}
+              aria-pressed={selectedId === 'current'}
+              className="flex w-full flex-col gap-1 p-2 text-left"
+            >
+              <AnchorTinyThumb url={activeUrl} />
+              <span className="text-[11px] font-medium text-[#3D2E1F]">현재</span>
+              <span className="text-[10px] text-[#8B7355]">최근 저장</span>
+            </button>
+            <LightboxButton onClick={() => setLightboxUrl(activeUrl)} />
+          </div>
         )}
         {library.map((lib) => (
           <div
@@ -1943,11 +1870,14 @@ function AnchorSlotPicker({
                 {formatLibraryDate(lib.anchorCreatedAt ?? lib.discardedAt)}
               </span>
             </button>
+            {lib.anchorUrl && (
+              <LightboxButton onClick={() => setLightboxUrl(lib.anchorUrl)} />
+            )}
             <button
               type="button"
               onClick={() => onDiscard(lib.id)}
-              title="이 slot 만 라이브러리에서 영구 삭제"
-              aria-label="이 slot 만 라이브러리에서 영구 삭제"
+              title="삭제"
+              aria-label="삭제"
               className="absolute right-1 top-1 z-10 grid h-5 w-5 place-items-center rounded-full bg-white/95 text-[10px] leading-none text-[#8B7355] shadow-sm ring-1 ring-[#E8DCC9] hover:text-red-600 hover:ring-red-300"
             >
               ✕
@@ -1955,7 +1885,56 @@ function AnchorSlotPicker({
           </div>
         ))}
       </div>
+
+      {/* Lightbox modal — 화면 정중앙에 큰 앵커 이미지. backdrop 또는 ESC 로 닫기. */}
+      {lightboxUrl && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${label} 앵커 크게 보기`}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <div className="relative max-h-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={lightboxUrl}
+              alt={`${label} 앵커`}
+              className="block max-h-[85vh] w-auto rounded-md shadow-2xl"
+            />
+            <button
+              type="button"
+              onClick={() => setLightboxUrl(null)}
+              aria-label="닫기"
+              className="absolute -right-2 -top-2 grid h-7 w-7 place-items-center rounded-full bg-white text-sm text-[#3D2E1F] shadow-md hover:bg-[#FAF7F2]"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+/**
+ * 썸네일 우하단의 🔍 버튼 — 부모 선택 button 과 별개로 onClick 트리거.
+ * pointer event stopPropagation 해서 부모 button (선택) 이 실행되지 않도록.
+ */
+function LightboxButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      title="크게 보기"
+      aria-label="크게 보기"
+      className="absolute bottom-1 right-1 z-10 grid h-5 w-5 place-items-center rounded-full bg-white/95 text-[10px] leading-none text-[#5C4633] shadow-sm ring-1 ring-[#E8DCC9] hover:text-[#3D2E1F]"
+    >
+      🔍
+    </button>
   );
 }
 
@@ -1982,61 +1961,6 @@ function formatLibraryDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   return `${d.getMonth() + 1}/${d.getDate()}`;
-}
-
-function AnchorThumb({
-  url,
-  label,
-  onToggle,
-}: {
-  url: string | null;
-  label: string;
-  onToggle: () => void;
-}) {
-  if (!url) {
-    return (
-      <span className="inline-flex h-10 w-8 items-center justify-center rounded border border-dashed border-[#D4C5B0] text-[9px] text-[#8B7355]">
-        {label} X
-      </span>
-    );
-  }
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      title={`${label} 앵커 크게 보기`}
-      className="inline-flex h-10 w-8 overflow-hidden rounded border border-[#D4C5B0] transition-transform hover:scale-105"
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt={label} className="h-full w-full object-cover" />
-    </button>
-  );
-}
-
-function AnchorBigPreview({ url, label }: { url: string | null; label: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <p className="text-[11px] font-medium text-[#5C4633]">{label}</p>
-      <div className="grid aspect-[3/4] w-full place-items-center overflow-hidden rounded border border-[#D4C5B0] bg-white">
-        {url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt={label} className="block h-full w-full object-contain" />
-        ) : (
-          <span className="text-xs text-[#8B7355]">미선택</span>
-        )}
-      </div>
-      {url && (
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-center text-[10px] text-[#8B7355] underline underline-offset-2 hover:text-[#3D2E1F]"
-        >
-          새 탭에서 원본
-        </a>
-      )}
-    </div>
-  );
 }
 
 /**

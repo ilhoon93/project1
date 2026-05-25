@@ -5,14 +5,19 @@
  *
  * 서버에서 `getAvailableCatalog()` 으로 받은 visible 항목 전체를 props 로 받고,
  * client-side 에서 chip 필터(personality / backdrop / framing) + 정렬 (추천/인기/
- * 좋아요) 을 적용해 그리드를 다시 그린다. 생성 페이지(/wedding-snap/create) 의
- * picker 와 동일한 필터 컴포넌트(CatalogFilterBar) + 동일한 카드(CatalogCard) 를
+ * 좋아요) + 페이지네이션 을 적용해 그리드를 다시 그린다. 생성 페이지(/wedding-snap/create)
+ * 의 picker 와 동일한 필터 컴포넌트(CatalogFilterBar) + 동일한 카드(CatalogCard) 를
  * 써서 두 페이지의 UX 일관성을 유지.
  *
  * stats prop 이 있으면 정렬 chip 노출, 없으면 default (코드 순서) 유지.
+ *
+ * 페이지네이션:
+ *   - 한 페이지 24장 (3열 × 8행 또는 4열 × 6행).
+ *   - 필터 / 정렬 / 검색 변경 시 자동으로 첫 페이지로 복귀.
+ *   - 페이지 ≤ 6 이면 전체 번호, 그 이상이면 첫/끝 + 현재 ±1 윈도우 + ellipsis.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { SnapCatalogItem } from '@/lib/snap/catalog';
 import { CatalogCard } from '@/components/snap/CatalogCard';
 import {
@@ -24,6 +29,8 @@ import {
 } from '@/components/snap/CatalogFilterBar';
 import type { CatalogStatsMap } from '@/lib/snap/catalog-stats';
 
+const CATALOG_PAGE_SIZE = 24;
+
 export function CatalogPreviewClient({
   items,
   catalogStats,
@@ -33,6 +40,7 @@ export function CatalogPreviewClient({
 }) {
   const [filter, setFilter] = useState<CatalogFilterState>(EMPTY_CATALOG_FILTER);
   const [sortMode, setSortMode] = useState<CatalogSortMode>('default');
+  const [page, setPage] = useState(0);
 
   const sorted = useMemo(() => {
     if (!catalogStats || sortMode === 'default') return items;
@@ -50,6 +58,18 @@ export function CatalogPreviewClient({
 
   const filtered = applyCatalogFilter(sorted, filter);
 
+  // 필터/정렬 바뀌면 페이지 리셋. (전체 결과 갯수가 줄어 현재 페이지가 비어 있을 수
+  // 있음 — clamp 도 하지만 첫 페이지로 가는 게 사용자 멘탈 모델에 자연스러움.)
+  useEffect(() => {
+    setPage(0);
+  }, [filter, sortMode]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / CATALOG_PAGE_SIZE));
+  const clampedPage = Math.min(page, totalPages - 1);
+  const start = clampedPage * CATALOG_PAGE_SIZE;
+  const visible = filtered.slice(start, start + CATALOG_PAGE_SIZE);
+  const pageItems = computePageItems(clampedPage, totalPages);
+
   return (
     <div className="flex flex-col gap-3">
       <CatalogFilterBar
@@ -64,14 +84,82 @@ export function CatalogPreviewClient({
           선택한 필터 조합에 맞는 카탈로그가 없어요. 필터를 조정해 보세요.
         </p>
       ) : (
-        // auto-rows-fr 로 한 row 안의 모든 카드가 동일 height 로 stretch.
-        // CatalogCard 의 h-full 과 결합되어 카드 caption 영역까지 정렬 통일.
-        <div className="grid auto-rows-fr grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-          {filtered.map((item) => (
-            <CatalogCard key={item.id} variant="preview" item={item} />
-          ))}
-        </div>
+        <>
+          {/* auto-rows-fr 로 한 row 안의 모든 카드가 동일 height 로 stretch.
+              CatalogCard 의 h-full 과 결합되어 카드 caption 영역까지 정렬 통일. */}
+          <div className="grid auto-rows-fr grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            {visible.map((item) => (
+              <CatalogCard key={item.id} variant="preview" item={item} />
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex w-full max-w-full flex-wrap items-center justify-center gap-1 overflow-hidden pt-2 text-[11px] text-[#5C4633]">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={clampedPage === 0}
+                className="shrink-0 rounded border border-[#E8DCC9] bg-white px-2 py-1 hover:bg-[#FAF7F2] disabled:opacity-40"
+              >
+                이전
+              </button>
+              {pageItems.map((item, idx) =>
+                item === 'ellipsis' ? (
+                  <span
+                    key={`e-${idx}`}
+                    className="shrink-0 px-1 text-[#8B7355]"
+                    aria-hidden
+                  >
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setPage(item)}
+                    className={`min-w-[28px] shrink-0 rounded border px-2 py-1 ${
+                      item === clampedPage
+                        ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white'
+                        : 'border-[#E8DCC9] bg-white hover:bg-[#FAF7F2]'
+                    }`}
+                  >
+                    {item + 1}
+                  </button>
+                ),
+              )}
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={clampedPage >= totalPages - 1}
+                className="shrink-0 rounded border border-[#E8DCC9] bg-white px-2 py-1 hover:bg-[#FAF7F2] disabled:opacity-40"
+              >
+                다음
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
+}
+
+/**
+ * 페이지 번호 표시 항목 계산. 총 6 페이지 이하면 전체, 그 이상이면 현재 페이지를
+ * 중심으로 윈도우 + 첫/마지막을 보여 주고 그 사이에 'ellipsis' 삽입.
+ * (mypage 의 동일 헬퍼와 같은 로직 — 페이지 수가 적으면 그대로 표시.)
+ */
+function computePageItems(
+  current: number,
+  total: number,
+): Array<number | 'ellipsis'> {
+  if (total <= 6) return Array.from({ length: total }, (_, i) => i);
+  const items: Array<number | 'ellipsis'> = [];
+  const windowStart = Math.max(1, current - 1);
+  const windowEnd = Math.min(total - 2, current + 1);
+  items.push(0);
+  if (windowStart > 1) items.push('ellipsis');
+  for (let i = windowStart; i <= windowEnd; i++) items.push(i);
+  if (windowEnd < total - 2) items.push('ellipsis');
+  items.push(total - 1);
+  return items;
 }
