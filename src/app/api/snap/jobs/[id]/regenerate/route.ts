@@ -11,19 +11,27 @@ import { POST as generatePOST } from '@/app/api/snap/generate/route';
  * 선택한 합성 방식(기본 / 얼굴 강화) 으로.
  *
  * body: { reason: 'face_unnatural' | 'pose_diff' | 'outfit_bg' | 'other',
- *         mode:   'strict' | 'prompt-only' }
+ *         mode:   'strict' | 'prompt-only',
+ *         reasonText?: string }
  *
- * 동작:
- *   1. 원본 job 조회 + 권한 확인.
- *   2. 한 카탈로그 결과당 처음 재생성은 무료 (regen_used_free=false 면 1회).
- *   3. /api/snap/generate 를 같은 process 에서 호출해 새 job 생성
- *      (anchor 모드는 'current' 앵커 사용 — 사용자가 마이페이지에서 재생성하는
- *      케이스이므로 활성 앵커 그대로 적용).
- *      커플 모드는 원본 couple_photo_url 을 다시 사용.
- *   4. 무료 회차였다면 refund_snap_credit RPC 로 1 크레딧 환불 (net 0).
- *   5. 원본 job 의 regen_to_job_id, regen_reason, regen_used_free 갱신.
+ * ── 무료 재생성 quota 정책 (032 마이그) ──
+ *  결과당 무료 1회가 아닌, 사용자 단위 패키지별 누적 quota.
+ *    snap_5 → +1, snap_20 → +4, snap_40 → +8 (대략 결제 크레딧의 20%)
+ *  consume_free_regen RPC 가 row-level lock 으로 안전하게 차감.
+ *  잔량 > 0 이면 generate 가 차감한 1 크레딧을 refund (net 0).
+ *  잔량 0 이면 1 크레딧 그대로 차감.
  *
- * 응답: { jobId: string (new), liked: false, balance: number, freeUsed: boolean }
+ * ── 동작 ──
+ *  1. 원본 job 조회 + 권한 확인.
+ *  2. reason === 'other' 면 reasonText 필수 (1자 이상, trim 후).
+ *  3. /api/snap/generate 를 같은 process 에서 호출해 새 job 생성
+ *     (anchor 모드는 'current' 앵커 사용 — 사용자가 마이페이지에서 재생성하는
+ *     케이스이므로 활성 앵커 그대로 적용).
+ *     커플 모드는 원본 couple_photo_url 을 다시 사용.
+ *  4. 무료 quota 잔량 차감 시도. 성공이면 1 크레딧 refund. 실패면 그대로 진행.
+ *  5. 원본 job 의 regen_to_job_id, regen_reason, regen_reason_text 갱신.
+ *
+ * 응답: { jobId, requestId, balance, freeUsed, freeRemaining }
  *
  * 한계:
  *   - 커플 모드 재생성은 원본 couple_photo_url 이 만료됐을 수 있음. 그 경우는
@@ -35,6 +43,7 @@ import { POST as generatePOST } from '@/app/api/snap/generate/route';
 const Body = z.object({
   reason: z.enum(['face_unnatural', 'pose_diff', 'outfit_bg', 'other']),
   mode: z.enum(['strict', 'prompt-only']),
+  reasonText: z.string().trim().max(500).optional(),
 });
 
 export async function POST(
@@ -63,6 +72,17 @@ export async function POST(
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
+  // 'other' 이유일 때는 텍스트 필수.
+  if (body.reason === 'other') {
+    const text = body.reasonText?.trim() ?? '';
+    if (text.length === 0) {
+      return NextResponse.json(
+        { error: '기타 이유는 직접 입력해주세요' },
+        { status: 400 },
+      );
+    }
+  }
+
   const jobId = ctx.params.id;
   if (!jobId) {
     return NextResponse.json({ error: 'job id required' }, { status: 400 });
@@ -70,11 +90,11 @@ export async function POST(
 
   const admin = createAdminClient();
 
-  // 1. 원본 job 조회 + 권한 + 무료 사용 여부.
+  // 1. 원본 job 조회 + 권한.
   const { data: originalJob, error: selectErr } = await admin
     .from('snap_jobs')
     .select(
-      'id, user_id, kind, catalog_id, catalog_path, couple_photo_url, regen_used_free, status',
+      'id, user_id, kind, catalog_id, catalog_path, couple_photo_url, status',
     )
     .eq('id', jobId)
     .single();
@@ -97,8 +117,6 @@ export async function POST(
       { status: 400 },
     );
   }
-
-  const freeAvailable = !originalJob.regen_used_free;
 
   // 2. generate route 를 같은 process 에서 호출. 새 Request 객체 + cookie 전달.
   const generatePayload: Record<string, unknown> = {
@@ -156,41 +174,64 @@ export async function POST(
       requestId: generateData.requestId,
       balance: generateData.balance,
       freeUsed: false,
+      freeRemaining: null,
     });
   }
 
-  // 4. 무료 회차였다면 refund 1 크레딧 (generate 가 -1 차감했으므로 net 0).
+  // 4. 무료 quota 차감 시도. 성공이면 1 크레딧 refund (net 0).
   let finalBalance = generateData.balance ?? null;
-  if (freeAvailable) {
-    const { data: refundData, error: refundErr } = await admin.rpc(
-      'refund_snap_credit',
-      {
-        p_user_id: user.id,
-        p_amount: 1,
-        p_note: `regen-free ${originalJob.id}`,
-      } as never,
-    );
-    if (refundErr) {
-      // refund 실패해도 생성 자체는 성공 — 로그만 남기고 사용자에겐 정상 응답.
-      // (다음 PR 에서 admin 알람 / 자동 retry 가능.)
-      console.error('[snap/regenerate] refund failed', refundErr);
-    } else {
-      // RPC return 타입이 환경별로 void 또는 jsonb 라 unknown cast 후 안전하게 추출.
-      const r = refundData as { balance?: number } | null | undefined;
-      if (r && typeof r.balance === 'number') {
-        finalBalance = r.balance;
+  let freeUsed = false;
+  let freeRemaining: number | null = null;
+
+  const { data: consumeData, error: consumeErr } = await admin.rpc(
+    'consume_free_regen',
+    { p_user_id: user.id, p_amount: 1 },
+  );
+  if (consumeErr) {
+    console.error('[snap/regenerate] consume_free_regen failed', consumeErr);
+  } else {
+    const r = consumeData as { consumed?: boolean; remaining?: number } | null;
+    if (r && r.consumed === true) {
+      freeUsed = true;
+      freeRemaining = typeof r.remaining === 'number' ? r.remaining : null;
+
+      // 1 크레딧 refund — refund_snap_credit 은 always +1.
+      const { error: refundErr } = await admin.rpc(
+        'refund_snap_credit',
+        {
+          p_user_id: user.id,
+          p_note: `regen-free ${originalJob.id}`,
+          p_ref_id: originalJob.id,
+        },
+      );
+      if (refundErr) {
+        console.error('[snap/regenerate] refund failed', refundErr);
+        // refund 실패해도 quota 는 이미 차감됨 — 다음 회차에서 사용자가 손해.
+        // 운영팀이 로그 보고 수동 보정 (드문 케이스).
+      } else {
+        // refund 1 = balance + 1.
+        if (finalBalance !== null) finalBalance += 1;
       }
+    } else if (r) {
+      freeRemaining = typeof r.remaining === 'number' ? r.remaining : 0;
     }
   }
 
   // 5. 원본 job 의 regen_* 컬럼 업데이트.
+  const parentUpdate: {
+    regen_to_job_id: string;
+    regen_reason: 'face_unnatural' | 'pose_diff' | 'outfit_bg' | 'other';
+    regen_reason_text?: string;
+  } = {
+    regen_to_job_id: newJob.id,
+    regen_reason: body.reason,
+  };
+  if (body.reason === 'other' && body.reasonText) {
+    parentUpdate.regen_reason_text = body.reasonText.trim();
+  }
   const { error: linkErr } = await admin
     .from('snap_jobs')
-    .update({
-      regen_to_job_id: newJob.id,
-      regen_reason: body.reason,
-      regen_used_free: true,
-    })
+    .update(parentUpdate)
     .eq('id', jobId);
   if (linkErr) {
     console.error('[snap/regenerate] parent link update failed', linkErr);
@@ -201,6 +242,7 @@ export async function POST(
     jobId: newJob.id,
     requestId: generateData.requestId,
     balance: finalBalance,
-    freeUsed: freeAvailable,
+    freeUsed,
+    freeRemaining,
   });
 }

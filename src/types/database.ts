@@ -385,6 +385,7 @@ export type Database = {
           liked: boolean;
           liked_at: string | null;
           regen_reason: 'face_unnatural' | 'pose_diff' | 'outfit_bg' | 'other' | null;
+          regen_reason_text: string | null;
           regen_to_job_id: string | null;
           regen_used_free: boolean;
         };
@@ -414,6 +415,7 @@ export type Database = {
           liked?: boolean;
           liked_at?: string | null;
           regen_reason?: 'face_unnatural' | 'pose_diff' | 'outfit_bg' | 'other' | null;
+          regen_reason_text?: string | null;
           regen_to_job_id?: string | null;
           regen_used_free?: boolean;
         };
@@ -436,6 +438,22 @@ export type Database = {
           updated_by?: string | null;
         };
         Update: Partial<Database['public']['Tables']['snap_catalog_tags']['Insert']>;
+        Relationships: [];
+      };
+      snap_user_quota: {
+        Row: {
+          user_id: string;
+          free_regen_remaining: number;
+          total_granted: number;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          free_regen_remaining?: number;
+          total_granted?: number;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['snap_user_quota']['Insert']>;
         Relationships: [];
       };
       snap_consent: {
@@ -609,7 +627,20 @@ export type Database = {
         Relationships: [];
       };
     };
-    Views: Record<string, never>;
+    Views: {
+      snap_catalog_stats: {
+        Row: {
+          catalog_id: string;
+          mode: 'selfies' | 'couple' | 'unknown';
+          gen_count: number;
+          like_count: number;
+          regen_count: number;
+          regen_rate: number;
+          like_rate: number;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
       publish_invitation: {
         Args: { inv_id: string };
@@ -686,6 +717,10 @@ export type Database = {
           p_naver_product_no?: string | null;
           p_raw?: Json;
         };
+        Returns: Json;
+      };
+      consume_free_regen: {
+        Args: { p_user_id: string; p_amount?: number };
         Returns: Json;
       };
       invitation_is_active: {

@@ -22,7 +22,9 @@ import {
   EMPTY_CATALOG_FILTER,
   applyCatalogFilter,
   type CatalogFilterState,
+  type CatalogSortMode,
 } from '@/components/snap/CatalogFilterBar';
+import type { CatalogStatsMap } from '@/lib/snap/catalog-stats';
 import {
   evaluateCompatibility,
   isCatalogHidden,
@@ -111,6 +113,11 @@ interface Props {
    * 미설정 카탈로그 = default safe.
    */
   adminTags: CatalogAdminTagMap;
+  /**
+   * snap_catalog_stats view 에서 합산한 카탈로그별 stats (catalog_id 단위).
+   * 정렬 모드 'popular' / 'most-liked' 의 정렬 키. 없으면 정렬 chip UI 숨김.
+   */
+  catalogStats?: CatalogStatsMap;
 }
 
 function parseBody(b: BodyForm): { heightCm: number; weightKg: number } | null {
@@ -134,7 +141,7 @@ async function parseRes(res: Response) {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export function SnapGenerator({ catalog, adminTags }: Props) {
+export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
   // 입력 모드 — 셀카 1장씩 (디폴트) / 셀카 3장씩 (정면+좌45°+우45°) / 커플 사진.
   const [mode, setMode] = useState<InputMode>('selfies1');
 
@@ -190,6 +197,9 @@ export function SnapGenerator({ catalog, adminTags }: Props) {
     useState<CatalogFilterState>(EMPTY_CATALOG_FILTER);
   // "추천만 보기" 토글 — 운영자 recommend 태그 카탈로그만 노출 (caution/risky 숨김).
   const [onlyRecommended, setOnlyRecommended] = useState<boolean>(false);
+  // 카탈로그 정렬 모드 — default(추천순) / popular(인기순) / most-liked(좋아요순).
+  // stats prop 이 없으면 UI 자체 숨김.
+  const [sortMode, setSortMode] = useState<CatalogSortMode>('default');
   // 카탈로그 합성 방식 — 'strict' (마스터 컷 참조, 포즈 재현 강함)
   //                  / 'prompt-only' (마스터 안 쓰고 텍스트로만 scene 지시, 얼굴 보존 강함).
   // 이번 batch 의 모든 선택 카탈로그에 동일하게 적용.
@@ -670,8 +680,11 @@ export function SnapGenerator({ catalog, adminTags }: Props) {
     }
     return true;
   });
-  // 정렬: 추천 > 기본(미설정) > 주의 > 비추 순. 같은 등급 내에서는 원래 순서 유지 (stable sort).
-  // hidden 은 위 필터에서 이미 제외. recommend 가 가장 앞, risky 가 가장 뒤.
+  // 정렬:
+  //   default    → 추천 > 기본(미설정) > 주의 > 비추 순. 같은 등급 내 원래 순서 (stable).
+  //   popular    → gen_count 내림차순. tie-break 는 추천 등급.
+  //   most-liked → like_count 내림차순. tie-break 는 추천 등급.
+  // hidden 은 위 필터에서 이미 제외.
   const tagRank = (id: string): number => {
     if (!adminCondition) return 1;
     const tag = adminTags[id]?.[adminCondition];
@@ -680,9 +693,20 @@ export function SnapGenerator({ catalog, adminTags }: Props) {
     if (tag === 'risky') return 3;
     return 1; // null / 미설정 = 기본 (safe)
   };
-  const sortedModeFiltered = modeFilteredCatalog.slice().sort(
-    (a, b) => tagRank(a.id) - tagRank(b.id),
-  );
+  const statsKey: 'genCount' | 'likeCount' | null =
+    sortMode === 'popular'
+      ? 'genCount'
+      : sortMode === 'most-liked'
+        ? 'likeCount'
+        : null;
+  const sortedModeFiltered = modeFilteredCatalog.slice().sort((a, b) => {
+    if (statsKey && catalogStats) {
+      const va = catalogStats[a.id]?.[statsKey] ?? 0;
+      const vb = catalogStats[b.id]?.[statsKey] ?? 0;
+      if (va !== vb) return vb - va; // 내림차순
+    }
+    return tagRank(a.id) - tagRank(b.id);
+  });
   // "추천만 보기" 토글 — caution/risky 제외 (recommend + safe 만 노출).
   const onlyRecommendedFiltered = onlyRecommended
     ? sortedModeFiltered.filter((c) => {
@@ -1396,6 +1420,8 @@ export function SnapGenerator({ catalog, adminTags }: Props) {
               }}
               onlyRecommended={onlyRecommended}
               onOnlyRecommendedChange={setOnlyRecommended}
+              sortMode={catalogStats ? sortMode : undefined}
+              onSortModeChange={catalogStats ? setSortMode : undefined}
             />
           </div>
         </div>

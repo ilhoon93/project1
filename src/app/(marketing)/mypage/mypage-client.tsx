@@ -574,11 +574,7 @@ function CompletedJobsPaged({ jobs }: { jobs: SnapJob[] }) {
           onClose={() => setRegenJob(null)}
           onSubmitted={() => {
             // 모달 닫고 부모에게 알림 — 새 job 이 곧 polling 으로 잡힘.
-            // 원본 job 의 regen_used_free 도 true 로 갱신.
-            setOverrides((prev) => ({
-              ...prev,
-              [regenJob.id]: { ...prev[regenJob.id], regen_used_free: true },
-            }));
+            // (per-user 무료 quota 모델이라 per-job override 불필요.)
             setRegenJob(null);
           }}
         />
@@ -590,9 +586,15 @@ function CompletedJobsPaged({ jobs }: { jobs: SnapJob[] }) {
 /**
  * 재생성 모달 — 불만족 이유 chip + 합성 방식 선택 + 무료/유료 표시.
  *
- * 첫 재생성은 무료(regen_used_free=false), 이후는 1 크레딧 차감 정책.
- * 사용자가 [재생성] 누르면 /api/snap/jobs/[id]/regenerate POST.
- * 새 job 은 polling 으로 마이페이지 갤러리에 자동 합류.
+ * ── 무료 quota (032 마이그) ──
+ * 결과당 1회가 아닌 사용자 단위 누적. 마운트 시 /api/snap/regen-quota 로 조회.
+ * 잔량 > 0 → "무료 N회 남음" 표시. 잔량 0 → "1 크레딧 차감" 표시.
+ *
+ * ── 이유별 모드 추천 ──
+ *  face_unnatural → 얼굴 강화 모드 (prompt-only)
+ *  pose_diff      → 기본 모드 (strict)   — 강화 모드는 포즈가 더 어긋날 수 있음
+ *  outfit_bg      → 기본 모드 (strict)
+ *  other          → 추천 없음 + 자유 텍스트 입력 (필수) + 사용자가 모드 직접 선택
  */
 function RegenerateModal({
   job,
@@ -610,33 +612,66 @@ function RegenerateModal({
     { value: 'other', label: '기타' },
   ];
   const [reason, setReason] = useState<typeof REASONS[number]['value'] | null>(null);
-  // 추천 모드 — 사용자 보고된 케이스 기반:
-  //   face_unnatural / pose_diff → 'prompt-only' (얼굴 강화)
-  //   outfit_bg / other         → 'strict' (기본, 카탈로그 충실)
-  const recommendedMode: 'strict' | 'prompt-only' =
-    reason === 'face_unnatural' || reason === 'pose_diff' ? 'prompt-only' : 'strict';
+  const [reasonText, setReasonText] = useState<string>('');
+  // 이유별 추천 모드. 'other' 는 null = 추천 없음.
+  const recommendedMode: 'strict' | 'prompt-only' | null =
+    reason === 'face_unnatural'
+      ? 'prompt-only'
+      : reason === 'pose_diff' || reason === 'outfit_bg'
+        ? 'strict'
+        : null;
   const [chosenMode, setChosenMode] = useState<'strict' | 'prompt-only'>('strict');
   // reason 바뀔 때 추천 모드로 자동 전환 (사용자가 명시적으로 바꾸기 전까지).
+  // 'other' 의 경우 추천이 없으므로 chosenMode 그대로 유지.
   const [modeTouched, setModeTouched] = useState<boolean>(false);
   useEffect(() => {
-    if (!modeTouched && reason) {
+    if (!modeTouched && reason && recommendedMode) {
       setChosenMode(recommendedMode);
     }
   }, [reason, recommendedMode, modeTouched]);
 
   const [busy, setBusy] = useState<boolean>(false);
   const [err, setErr] = useState<string | null>(null);
-  const freeAvailable = !job.regen_used_free;
+
+  // 무료 재생성 quota — 마운트 시 1회 fetch.
+  const [freeRemaining, setFreeRemaining] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/snap/regen-quota', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = (await res.json()) as { freeRemaining?: number };
+        if (!cancelled && typeof data.freeRemaining === 'number') {
+          setFreeRemaining(data.freeRemaining);
+        }
+      } catch {
+        // 조회 실패 시 표시 생략, 실제 차감은 서버가 처리.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const freeAvailable = (freeRemaining ?? 0) > 0;
+
+  // 제출 가능 여부 — 이유 필수 + 'other' 는 텍스트 필수.
+  const canSubmit =
+    !!reason &&
+    !busy &&
+    (reason !== 'other' || reasonText.trim().length > 0);
 
   const handleSubmit = async () => {
-    if (!reason || busy) return;
+    if (!canSubmit || !reason) return;
     setBusy(true);
     setErr(null);
     try {
+      const payload: Record<string, unknown> = { reason, mode: chosenMode };
+      if (reason === 'other') payload.reasonText = reasonText.trim();
       const res = await fetch(`/api/snap/jobs/${job.id}/regenerate`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ reason, mode: chosenMode }),
+        body: JSON.stringify(payload),
       });
       const data = (await res.json().catch(() => ({}))) as {
         error?: string;
@@ -709,19 +744,48 @@ function RegenerateModal({
             </div>
           </div>
 
+          {reason === 'other' && (
+            <div>
+              <label
+                htmlFor="regen-reason-text"
+                className="text-xs font-medium text-[#3D2E1F]"
+              >
+                어떤 점이 아쉬우셨나요?
+              </label>
+              <textarea
+                id="regen-reason-text"
+                value={reasonText}
+                onChange={(e) => setReasonText(e.target.value.slice(0, 500))}
+                placeholder="예: 신랑 헤어가 너무 짧게 나왔어요"
+                rows={2}
+                className="mt-1.5 w-full resize-none rounded-md border border-[#D4C5B0] bg-white px-2.5 py-1.5 text-[12px] text-[#3D2E1F] placeholder:text-[#B0A088] focus:border-[#8B7355] focus:outline-none"
+                maxLength={500}
+              />
+              <p className="mt-0.5 text-right text-[10px] text-[#8B7355]">
+                {reasonText.length} / 500
+              </p>
+            </div>
+          )}
+
           {reason && (
             <div>
               <p className="text-xs font-medium text-[#3D2E1F]">합성 방식</p>
               <p className="mt-0.5 text-[10px] text-[#8B7355]">
-                선택하신 이유에 맞춰{' '}
-                <strong>
-                  {recommendedMode === 'prompt-only' ? '얼굴 강화 모드' : '기본 모드'}
-                </strong>
-                를 추천드려요.
+                {recommendedMode ? (
+                  <>
+                    선택하신 이유에 맞춰{' '}
+                    <strong>
+                      {recommendedMode === 'prompt-only' ? '얼굴 강화 모드' : '기본 모드'}
+                    </strong>
+                    를 추천드려요.
+                  </>
+                ) : (
+                  '원하시는 합성 방식을 직접 선택해주세요.'
+                )}
               </p>
               <div className="mt-2 grid grid-cols-2 gap-1.5">
                 {(['strict', 'prompt-only'] as const).map((m) => {
-                  const isRec = m === recommendedMode;
+                  const isRec = recommendedMode !== null && m === recommendedMode;
                   const selected = chosenMode === m;
                   const label = m === 'strict' ? '기본 모드' : '얼굴 강화 모드';
                   return (
@@ -753,9 +817,11 @@ function RegenerateModal({
           )}
 
           <p className="rounded border border-[#E8DCC9] bg-[#FAF7F2] px-2.5 py-1.5 text-[11px] text-[#5C4633]">
-            {freeAvailable
-              ? '이 결과의 첫 재생성은 무료에요 (이번 1회 한정).'
-              : '이미 무료 재생성을 사용했어요. 추가 재생성은 1 스냅 크레딧 차감.'}
+            {freeRemaining === null
+              ? '재생성 비용은 무료 잔량 확인 후 자동 계산돼요.'
+              : freeAvailable
+                ? `무료 재생성 ${freeRemaining}회 남았어요. 이번 재생성은 무료에요.`
+                : '무료 재생성 잔량이 모두 소진됐어요. 이번 재생성은 1 스냅 크레딧 차감돼요.'}
           </p>
 
           {err && (
@@ -777,14 +843,16 @@ function RegenerateModal({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!reason || busy}
+            disabled={!canSubmit}
             className="rounded-md bg-[#3D2E1F] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5C4633] disabled:opacity-50"
           >
             {busy
               ? '요청 중…'
-              : freeAvailable
-                ? '재생성 (무료)'
-                : '재생성 (1 크레딧)'}
+              : freeRemaining === null
+                ? '재생성'
+                : freeAvailable
+                  ? '재생성 (무료)'
+                  : '재생성 (1 크레딧)'}
           </button>
         </div>
       </div>
