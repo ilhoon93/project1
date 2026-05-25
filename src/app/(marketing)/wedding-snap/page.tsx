@@ -25,13 +25,17 @@ export default async function WeddingSnapLandingPage() {
     getAvailableCatalog(),
     fetchCatalogStatsMap(),
   ]);
+  // 섹션 순서 — 설명/진행방법/가격을 앞으로, 카탈로그 미리보기는 뒤로:
+  //   Hero → AboutSnap → HowItWorks → PackageLineup → CatalogPreview → PrimaryCta
+  // 이유: 처음 들어온 사용자가 "이게 뭐고, 어떻게 진행되고, 얼마인가" 를 먼저 보고,
+  // 그 다음 결과물 갤러리(카탈로그) 를 둘러보다 [지금 만들기] 로 자연스럽게 이어짐.
   return (
     <main className="mx-auto max-w-4xl px-4 pb-20 pt-10 sm:px-6">
       <Hero />
-      <CatalogPreview items={visibleCatalog} catalogStats={catalogStats} />
-      <HowItWorks />
       <AboutSnap />
+      <HowItWorks />
       <PackageLineup />
+      <CatalogPreview items={visibleCatalog} catalogStats={catalogStats} />
       <PrimaryCta />
     </main>
   );

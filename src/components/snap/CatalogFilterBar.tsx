@@ -126,7 +126,8 @@ export function CatalogFilterBar({
   const showSortChips = !!sortMode && !!onSortModeChange;
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-dashed border-[#E8DCC9] bg-[#FAF7F2]/60 p-2.5">
+    <div className="flex flex-col gap-1.5 rounded-md border border-dashed border-[#E8DCC9] bg-[#FAF7F2]/60 p-2">
+      {/* 헤더 — 라벨 + 결과 카운트 + 초기화. 컴팩트하게 한 줄. */}
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span className="text-[11px] font-medium text-[#3D2E1F]">검색 필터</span>
         <div className="flex items-center gap-2">
@@ -143,80 +144,133 @@ export function CatalogFilterBar({
               onClick={() => onChange(EMPTY_CATALOG_FILTER)}
               className="text-[10px] text-[#8B7355] underline underline-offset-2 hover:text-[#3D2E1F]"
             >
-              필터 초기화
+              초기화
             </button>
           )}
         </div>
       </div>
 
-      {/* 추천만 보기 / 전체 보기 — 가장 자주 쓰는 1차 필터라 맨 위. */}
-      {showRecommendToggle && (
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="w-9 shrink-0 text-[10px] font-medium text-[#5C4633]">
-            모드
-          </span>
-          <PrimaryToggle
-            selected={!!onlyRecommended}
-            onClick={() => onOnlyRecommendedChange!(true)}
-            label="추천만 보기"
-          />
-          <PrimaryToggle
-            selected={!onlyRecommended}
-            onClick={() => onOnlyRecommendedChange!(false)}
-            label="전체 보기"
-          />
+      {/*
+        모드 + 정렬 — 가장 중요한 두 가지. 1차 액션이라 한 줄에 같이 놓고 좌우 정렬.
+        narrow 컨테이너(예: SnapGenerator 사이드바 320px) 에선 flex-wrap 으로 두 줄.
+      */}
+      {(showRecommendToggle || showSortChips) && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {showRecommendToggle && (
+            <div className="flex items-center gap-1">
+              <PrimaryToggle
+                selected={!!onlyRecommended}
+                onClick={() => onOnlyRecommendedChange!(true)}
+                label="추천만"
+              />
+              <PrimaryToggle
+                selected={!onlyRecommended}
+                onClick={() => onOnlyRecommendedChange!(false)}
+                label="전체"
+              />
+            </div>
+          )}
+          {showSortChips && (
+            <div className="flex items-center gap-1">
+              {(
+                [
+                  { value: 'default', label: '추천순' },
+                  { value: 'popular', label: '인기순' },
+                  { value: 'most-liked', label: '좋아요순' },
+                ] as Array<{ value: CatalogSortMode; label: string }>
+              ).map((opt) => {
+                const isOn = sortMode === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => onSortModeChange!(opt.value)}
+                    aria-pressed={isOn}
+                    className={`rounded-full border px-2 py-0.5 text-[10px] transition-colors ${
+                      isOn
+                        ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white'
+                        : 'border-[#D4C5B0] bg-white text-[#5C4633] hover:border-[#8B7355]'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
-      <FilterChipGroup
-        label="누가"
-        options={PERSONALITY_OPTIONS}
-        selected={value.personalities}
-        onToggle={(v) => onChange({ ...value, personalities: toggle(value.personalities, v) })}
-      />
-      <FilterChipGroup
-        label="배경"
-        options={BACKDROP_OPTIONS}
-        selected={value.backdrops}
-        onToggle={(v) => onChange({ ...value, backdrops: toggle(value.backdrops, v) })}
-      />
-      <FilterChipGroup
-        label="컷"
-        options={FRAMING_OPTIONS}
-        selected={value.framings}
-        onToggle={(v) => onChange({ ...value, framings: toggle(value.framings, v) })}
-      />
+      {/*
+        세부 필터 (누가/배경/컷) — 한 줄에 wrap 으로 묶음. 각 그룹은 인라인 라벨 +
+        chip 들. 별도 row 3 개로 두면 빈 공간이 많아져 compact 한 인라인 배치로 변경.
+        라벨이 chip 바로 옆에 붙어 시각적으로도 그룹이 명확.
+      */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <InlineChipGroup
+          label="누가"
+          options={PERSONALITY_OPTIONS}
+          selected={value.personalities}
+          onToggle={(v) =>
+            onChange({ ...value, personalities: toggle(value.personalities, v) })
+          }
+        />
+        <InlineChipGroup
+          label="배경"
+          options={BACKDROP_OPTIONS}
+          selected={value.backdrops}
+          onToggle={(v) =>
+            onChange({ ...value, backdrops: toggle(value.backdrops, v) })
+          }
+        />
+        <InlineChipGroup
+          label="컷"
+          options={FRAMING_OPTIONS}
+          selected={value.framings}
+          onToggle={(v) => onChange({ ...value, framings: toggle(value.framings, v) })}
+        />
+      </div>
+    </div>
+  );
+}
 
-      {/* 정렬 — 추천/인기/좋아요 중 단일 선택. snap_catalog_stats view 기반. */}
-      {showSortChips && (
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="w-9 shrink-0 text-[10px] font-medium text-[#5C4633]">정렬</span>
-          {(
-            [
-              { value: 'default', label: '추천순' },
-              { value: 'popular', label: '인기순' },
-              { value: 'most-liked', label: '좋아요순' },
-            ] as Array<{ value: CatalogSortMode; label: string }>
-          ).map((opt) => {
-            const isOn = sortMode === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => onSortModeChange!(opt.value)}
-                aria-pressed={isOn}
-                className={`rounded-full border px-2.5 py-0.5 text-[11px] transition-colors ${
-                  isOn
-                    ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white'
-                    : 'border-[#D4C5B0] bg-white text-[#5C4633] hover:border-[#8B7355] hover:text-[#3D2E1F]'
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
+/**
+ * 인라인 chip 그룹 — 라벨 + chip 들이 한 row 안에 같이 흐른다. 여러 그룹을 한
+ * wrapping container 에 넣으면 자연스럽게 좁은 폭에서 wrap, 넓은 폭에선 한 줄에
+ * 같이 보임. (기존 FilterChipGroup 의 row 1 개 = 1 그룹 레이아웃 대비 빈공간 ↓)
+ */
+function InlineChipGroup<T extends string>({
+  label,
+  options,
+  selected,
+  onToggle,
+}: {
+  label: string;
+  options: Array<{ value: T; label: string }>;
+  selected: ReadonlySet<T>;
+  onToggle: (v: T) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <span className="text-[10px] font-medium text-[#5C4633]">{label}</span>
+      {options.map((opt) => {
+        const isOn = selected.has(opt.value);
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onToggle(opt.value)}
+            aria-pressed={isOn}
+            className={`rounded-full border px-2 py-0.5 text-[10px] transition-colors ${
+              isOn
+                ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white'
+                : 'border-[#D4C5B0] bg-white text-[#5C4633] hover:border-[#8B7355]'
+            }`}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -246,38 +300,3 @@ function PrimaryToggle({
   );
 }
 
-function FilterChipGroup<T extends string>({
-  label,
-  options,
-  selected,
-  onToggle,
-}: {
-  label: string;
-  options: Array<{ value: T; label: string }>;
-  selected: ReadonlySet<T>;
-  onToggle: (v: T) => void;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className="w-9 shrink-0 text-[10px] font-medium text-[#5C4633]">{label}</span>
-      {options.map((opt) => {
-        const isOn = selected.has(opt.value);
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => onToggle(opt.value)}
-            aria-pressed={isOn}
-            className={`rounded-full border px-2.5 py-0.5 text-[11px] transition-colors ${
-              isOn
-                ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white'
-                : 'border-[#D4C5B0] bg-white text-[#5C4633] hover:border-[#8B7355] hover:text-[#3D2E1F]'
-            }`}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}

@@ -150,9 +150,7 @@ export function MyPageClient({
         <p className="text-xs tracking-[0.3em] text-[#8B7355]">MY PAGE</p>
         <h1 className="text-2xl font-semibold tracking-tight">마이페이지</h1>
         <p className="text-sm text-muted-foreground">
-          {userName ?? userEmail ?? '내 계정'} · 발행권{' '}
-          <span className="font-semibold text-[#3D2E1F]">{creditsBalance}</span> · 영구소장권{' '}
-          <span className="font-semibold text-[#3D2E1F]">{archiveBalance}</span>
+          {userName ?? userEmail ?? '내 계정'}
         </p>
       </header>
 
@@ -173,7 +171,6 @@ export function MyPageClient({
           invitations={invitations}
           creditsBalance={creditsBalance}
           archiveBalance={archiveBalance}
-          entitlements={entitlements}
         />
       )}
       {tab === 'snap' && (
@@ -1107,12 +1104,10 @@ function SavedTab({
   invitations,
   creditsBalance,
   archiveBalance,
-  entitlements,
 }: {
   invitations: MyPageInvitation[];
   creditsBalance: number;
   archiveBalance: number;
-  entitlements: MyPageEntitlements;
 }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -1175,7 +1170,7 @@ function SavedTab({
   if (invitations.length === 0) {
     return (
       <section className="flex flex-col gap-4">
-        <CreditsSummary balance={creditsBalance} archiveBalance={archiveBalance} entitlements={entitlements} />
+        <CreditsSummary balance={creditsBalance} archiveBalance={archiveBalance} />
         <div className="flex flex-col items-center gap-4 rounded-lg bg-white p-10 text-center ring-1 ring-[#D4C5B0]">
           <p className="text-sm text-muted-foreground">아직 저장된 알림장이 없어요.</p>
           <Link
@@ -1191,7 +1186,7 @@ function SavedTab({
 
   return (
     <section className="flex flex-col gap-3">
-      <CreditsSummary balance={creditsBalance} archiveBalance={archiveBalance} entitlements={entitlements} />
+      <CreditsSummary balance={creditsBalance} archiveBalance={archiveBalance} />
 
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-medium">
@@ -1583,67 +1578,36 @@ function CertificatePdfButton({
 // ── 발행권 · 영구소장 (결혼알림장 탭에 통합) ────────────────
 
 /**
- * 결혼알림장 탭 상단에 노출되는 잔여 발행권 / 영구소장권 + 보유 패키지 + 주문번호
- * 등록 카드. 과거 별도의 "발행권 · 영구소장" 탭에 있던 콘텐츠를 알림장 흐름과 한
- * 화면에서 보이도록 통합한 것.
+ * 결혼알림장 탭 상단에 노출되는 잔여 발행권 / 영구소장권 요약 박스.
+ *
+ * 변경 이력:
+ *   - 박스 크기 축소 (p-5 → p-3, text-3xl → text-xl, 캡션 단축).
+ *   - "보유 패키지" 섹션 삭제 (사용 빈도 낮음).
+ *   - "스마트스토어 주문번호 등록" / "네이버 주문 가져오기" 카드는 [주문] 탭으로 이동.
+ *
+ * 결과: 결혼알림장 탭은 알림장 자체(편집/발행/소장) 흐름에 집중, 결제·주문 액션은
+ * [주문] 탭으로 일원화.
  */
 function CreditsSummary({
   balance,
   archiveBalance,
-  entitlements,
 }: {
   balance: number;
   archiveBalance: number;
-  entitlements: MyPageEntitlements;
 }) {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col items-center gap-1 rounded-lg bg-white p-5 text-center ring-1 ring-[#D4C5B0]">
-          <p className="text-[10px] tracking-[0.3em] text-[#8B7355]">PUBLISH</p>
-          <p className="text-3xl font-semibold tracking-tight">{balance}</p>
-          <p className="text-[11px] text-muted-foreground">발행 1회당 1개 차감</p>
-        </div>
-        <div className="flex flex-col items-center gap-1 rounded-lg bg-white p-5 text-center ring-1 ring-[#D4C5B0]">
-          <p className="text-[10px] tracking-[0.3em] text-[#8B7355]">ARCHIVE</p>
-          <p className="text-3xl font-semibold tracking-tight">{archiveBalance}</p>
-          <p className="text-[11px] text-muted-foreground">소장용 URL 영구 보관</p>
-        </div>
+    <div className="grid grid-cols-2 gap-2">
+      <div className="flex flex-col items-center gap-0.5 rounded-md bg-white p-3 text-center ring-1 ring-[#D4C5B0]">
+        <p className="text-[9px] tracking-[0.25em] text-[#8B7355]">PUBLISH</p>
+        <p className="text-xl font-semibold tracking-tight">{balance}</p>
+        <p className="text-[10px] text-muted-foreground">발행권</p>
       </div>
-
-      {/* 패키지 entitlement 현황 */}
-      <div className="flex flex-col gap-2 rounded-lg bg-white p-4 ring-1 ring-[#D4C5B0]">
-        <h3 className="text-sm font-medium">보유 패키지</h3>
-        <ul className="flex flex-col gap-1 text-xs">
-          <EntitlementRow label="AI 웨딩 스냅" unlocked={entitlements.aiSnap} />
-          <EntitlementRow label="AI 웨딩 영상" unlocked={entitlements.aiVideo} />
-          <EntitlementRow label="가족 패키지" unlocked={entitlements.familyPack} />
-        </ul>
-        <p className="text-[11px] text-muted-foreground">
-          한 번 구매하면 해당 기능이 영구적으로 잠금 해제됩니다. 구매 등록은 아래 카드에서.
-        </p>
+      <div className="flex flex-col items-center gap-0.5 rounded-md bg-white p-3 text-center ring-1 ring-[#D4C5B0]">
+        <p className="text-[9px] tracking-[0.25em] text-[#8B7355]">ARCHIVE</p>
+        <p className="text-xl font-semibold tracking-tight">{archiveBalance}</p>
+        <p className="text-[10px] text-muted-foreground">영구소장권</p>
       </div>
-
-      <RegisterOrderCard />
-      <NaverPullCard />
     </div>
-  );
-}
-
-function EntitlementRow({ label, unlocked }: { label: string; unlocked: boolean }) {
-  return (
-    <li className="flex items-center justify-between gap-2 rounded border border-[#F4EBDC] px-2.5 py-1.5">
-      <span>{label}</span>
-      <span
-        className={`rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ${
-          unlocked
-            ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-            : 'bg-muted text-muted-foreground ring-border'
-        }`}
-      >
-        {unlocked ? '잠금 해제' : '미보유'}
-      </span>
-    </li>
   );
 }
 
@@ -1733,49 +1697,64 @@ function NaverPullCard() {
 
 // ── 주문 ─────────────────────────────────────────────────────
 
+/**
+ * 주문 탭 — 과거 결제 내역 + 주문 등록 액션.
+ *
+ * 이전엔 "스마트스토어 주문번호 등록" 과 "네이버 로그인 주문 가져오기" 가 결혼
+ * 알림장 탭(CreditsSummary 하단) 에 같이 있었으나, 알림장 흐름과는 결이 달라
+ * [주문] 탭으로 이동. 사용자가 결제 후 마이페이지 → 주문 탭에서 한 화면에 등록
+ * 액션 + 내역 확인 가능.
+ */
 function OrdersTab({ orders }: { orders: MyPageOrder[] }) {
   const total = useMemo(() => orders.reduce((acc, o) => acc + (o.amount ?? 0), 0), [orders]);
 
-  if (orders.length === 0) {
-    return (
-      <section className="flex flex-col items-center gap-2 rounded-lg bg-white p-10 text-center ring-1 ring-[#D4C5B0]">
-        <p className="text-sm text-muted-foreground">아직 주문 내역이 없어요.</p>
-      </section>
-    );
-  }
-
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium">전체 주문</h2>
-        <p className="text-xs text-muted-foreground">총 결제 {total.toLocaleString()}원</p>
+    <section className="flex flex-col gap-4">
+      {/* 주문 등록 액션 — 결혼알림장 탭에서 이동. */}
+      <div className="flex flex-col gap-3">
+        <RegisterOrderCard />
+        <NaverPullCard />
       </div>
-      <ul className="flex flex-col gap-2">
-        {orders.map((o) => (
-          <li
-            key={o.id}
-            className="flex flex-col gap-1 rounded-md bg-white p-3 ring-1 ring-[#D4C5B0] sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="flex flex-col">
-              <p className="text-sm font-medium">
-                {SOURCE_LABEL[o.source]}{' '}
-                <span className="text-xs text-muted-foreground">
-                  · {o.package_code ?? 'unknown'} · 발행권 +{o.granted_credits}
-                </span>
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {formatDate(o.created_at)}{' '}
-                {o.naver_product_order_no
-                  ? `· 상품주문 ${o.naver_product_order_no}`
-                  : o.portone_payment_id
-                    ? `· 결제ID ${o.portone_payment_id}`
-                    : ''}
-              </p>
-            </div>
-            <p className="text-sm">{o.amount.toLocaleString()}원</p>
-          </li>
-        ))}
-      </ul>
+
+      {/* 결제 내역 */}
+      {orders.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 rounded-lg bg-white p-10 text-center ring-1 ring-[#D4C5B0]">
+          <p className="text-sm text-muted-foreground">아직 주문 내역이 없어요.</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium">전체 주문</h2>
+            <p className="text-xs text-muted-foreground">총 결제 {total.toLocaleString()}원</p>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {orders.map((o) => (
+              <li
+                key={o.id}
+                className="flex flex-col gap-1 rounded-md bg-white p-3 ring-1 ring-[#D4C5B0] sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex flex-col">
+                  <p className="text-sm font-medium">
+                    {SOURCE_LABEL[o.source]}{' '}
+                    <span className="text-xs text-muted-foreground">
+                      · {o.package_code ?? 'unknown'} · 발행권 +{o.granted_credits}
+                    </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDate(o.created_at)}{' '}
+                    {o.naver_product_order_no
+                      ? `· 상품주문 ${o.naver_product_order_no}`
+                      : o.portone_payment_id
+                        ? `· 결제ID ${o.portone_payment_id}`
+                        : ''}
+                  </p>
+                </div>
+                <p className="text-sm">{o.amount.toLocaleString()}원</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
   );
 }
