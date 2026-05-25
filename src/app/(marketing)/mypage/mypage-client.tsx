@@ -21,6 +21,10 @@ interface SnapJob {
   error_message: string | null;
   submitted_at: string;
   completed_at: string | null;
+  // 피드백 (PR #168~ 이후)
+  liked?: boolean;
+  regen_used_free?: boolean;
+  regen_to_job_id?: string | null;
 }
 
 interface AnchorHistoryEntry {
@@ -483,6 +487,12 @@ const RESULTS_PAGE_SIZE = 12;
 
 function CompletedJobsPaged({ jobs }: { jobs: SnapJob[] }) {
   const [page, setPage] = useState(0);
+  // 로컬 패치 — 좋아요/재생성 액션 결과를 부모 jobs 와 별개로 즉시 반영.
+  // (부모 jobs 는 polling refresh 로 결국 동기화되지만 즉각 UI 피드백 필요.)
+  const [overrides, setOverrides] = useState<Record<string, Partial<SnapJob>>>({});
+  // 재생성 모달 — null 이면 닫힘, job 객체면 해당 결과 재생성 UI 표시.
+  const [regenJob, setRegenJob] = useState<SnapJob | null>(null);
+
   const totalPages = Math.max(1, Math.ceil(jobs.length / RESULTS_PAGE_SIZE));
   const clampedPage = Math.min(page, totalPages - 1);
   const start = clampedPage * RESULTS_PAGE_SIZE;
@@ -495,9 +505,22 @@ function CompletedJobsPaged({ jobs }: { jobs: SnapJob[] }) {
   return (
     <div className="flex w-full flex-col gap-3">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-        {visible.map((j) => (
-          <SnapResultCard key={j.id} job={j} />
-        ))}
+        {visible.map((j) => {
+          const patched: SnapJob = { ...j, ...overrides[j.id] };
+          return (
+            <SnapResultCard
+              key={j.id}
+              job={patched}
+              onLikeToggled={(jobId, liked) =>
+                setOverrides((prev) => ({
+                  ...prev,
+                  [jobId]: { ...prev[jobId], liked },
+                }))
+              }
+              onRegenerateClick={(job) => setRegenJob(job)}
+            />
+          );
+        })}
       </div>
       {totalPages > 1 && (
         <div className="flex w-full max-w-full flex-wrap items-center justify-center gap-1 overflow-hidden text-[11px] text-[#5C4633]">
@@ -543,6 +566,228 @@ function CompletedJobsPaged({ jobs }: { jobs: SnapJob[] }) {
           </button>
         </div>
       )}
+
+      {/* 재생성 모달 — 카드 [재생성] 클릭 시 노출. 부모(여기서) 모달 state 관리. */}
+      {regenJob && (
+        <RegenerateModal
+          job={regenJob}
+          onClose={() => setRegenJob(null)}
+          onSubmitted={() => {
+            // 모달 닫고 부모에게 알림 — 새 job 이 곧 polling 으로 잡힘.
+            // 원본 job 의 regen_used_free 도 true 로 갱신.
+            setOverrides((prev) => ({
+              ...prev,
+              [regenJob.id]: { ...prev[regenJob.id], regen_used_free: true },
+            }));
+            setRegenJob(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * 재생성 모달 — 불만족 이유 chip + 합성 방식 선택 + 무료/유료 표시.
+ *
+ * 첫 재생성은 무료(regen_used_free=false), 이후는 1 크레딧 차감 정책.
+ * 사용자가 [재생성] 누르면 /api/snap/jobs/[id]/regenerate POST.
+ * 새 job 은 polling 으로 마이페이지 갤러리에 자동 합류.
+ */
+function RegenerateModal({
+  job,
+  onClose,
+  onSubmitted,
+}: {
+  job: SnapJob;
+  onClose: () => void;
+  onSubmitted: () => void;
+}) {
+  const REASONS: Array<{ value: 'face_unnatural' | 'pose_diff' | 'outfit_bg' | 'other'; label: string }> = [
+    { value: 'face_unnatural', label: '얼굴이 이상해요' },
+    { value: 'pose_diff', label: '컷·포즈가 다르게 나왔어요' },
+    { value: 'outfit_bg', label: '배경/의상이 이상해요' },
+    { value: 'other', label: '기타' },
+  ];
+  const [reason, setReason] = useState<typeof REASONS[number]['value'] | null>(null);
+  // 추천 모드 — 사용자 보고된 케이스 기반:
+  //   face_unnatural / pose_diff → 'prompt-only' (얼굴 강화)
+  //   outfit_bg / other         → 'strict' (기본, 카탈로그 충실)
+  const recommendedMode: 'strict' | 'prompt-only' =
+    reason === 'face_unnatural' || reason === 'pose_diff' ? 'prompt-only' : 'strict';
+  const [chosenMode, setChosenMode] = useState<'strict' | 'prompt-only'>('strict');
+  // reason 바뀔 때 추천 모드로 자동 전환 (사용자가 명시적으로 바꾸기 전까지).
+  const [modeTouched, setModeTouched] = useState<boolean>(false);
+  useEffect(() => {
+    if (!modeTouched && reason) {
+      setChosenMode(recommendedMode);
+    }
+  }, [reason, recommendedMode, modeTouched]);
+
+  const [busy, setBusy] = useState<boolean>(false);
+  const [err, setErr] = useState<string | null>(null);
+  const freeAvailable = !job.regen_used_free;
+
+  const handleSubmit = async () => {
+    if (!reason || busy) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/snap/jobs/${job.id}/regenerate`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ reason, mode: chosenMode }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        code?: string;
+      };
+      if (!res.ok) {
+        setErr(data.error ?? `요청 실패 (${res.status})`);
+        return;
+      }
+      onSubmitted();
+    } catch {
+      setErr('네트워크 오류');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ESC 닫기.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !busy) onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [busy, onClose]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={() => !busy && onClose()}
+    >
+      <div
+        className="w-full max-w-md rounded-lg bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-baseline justify-between border-b border-[#E8DCC9] px-5 py-3">
+          <h3 className="text-sm font-semibold text-[#3D2E1F]">결과 재생성</h3>
+          <button
+            type="button"
+            onClick={() => !busy && onClose()}
+            disabled={busy}
+            aria-label="닫기"
+            className="text-[#8B7355] hover:text-[#3D2E1F]"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-4 px-5 py-4">
+          <div>
+            <p className="text-xs font-medium text-[#3D2E1F]">왜 다시 만드시나요?</p>
+            <div className="mt-2 grid grid-cols-2 gap-1.5">
+              {REASONS.map((r) => (
+                <button
+                  key={r.value}
+                  type="button"
+                  onClick={() => setReason(r.value)}
+                  aria-pressed={reason === r.value}
+                  className={`rounded-md border px-2 py-1.5 text-[11px] font-medium transition-colors ${
+                    reason === r.value
+                      ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white'
+                      : 'border-[#D4C5B0] bg-white text-[#5C4633] hover:border-[#8B7355]'
+                  }`}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {reason && (
+            <div>
+              <p className="text-xs font-medium text-[#3D2E1F]">합성 방식</p>
+              <p className="mt-0.5 text-[10px] text-[#8B7355]">
+                선택하신 이유에 맞춰{' '}
+                <strong>
+                  {recommendedMode === 'prompt-only' ? '얼굴 강화 모드' : '기본 모드'}
+                </strong>
+                를 추천드려요.
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-1.5">
+                {(['strict', 'prompt-only'] as const).map((m) => {
+                  const isRec = m === recommendedMode;
+                  const selected = chosenMode === m;
+                  const label = m === 'strict' ? '기본 모드' : '얼굴 강화 모드';
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => {
+                        setChosenMode(m);
+                        setModeTouched(true);
+                      }}
+                      aria-pressed={selected}
+                      className={`relative rounded-md border px-2 py-2 text-[11px] font-medium transition-colors ${
+                        selected
+                          ? 'border-[#3D2E1F] bg-white ring-2 ring-[#3D2E1F]/20'
+                          : 'border-[#D4C5B0] bg-white text-[#5C4633] hover:border-[#8B7355]'
+                      }`}
+                    >
+                      {label}
+                      {isRec && (
+                        <span className="ml-1 rounded bg-emerald-600 px-1 py-0.5 text-[8px] text-white">
+                          추천
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <p className="rounded border border-[#E8DCC9] bg-[#FAF7F2] px-2.5 py-1.5 text-[11px] text-[#5C4633]">
+            {freeAvailable
+              ? '이 결과의 첫 재생성은 무료에요 (이번 1회 한정).'
+              : '이미 무료 재생성을 사용했어요. 추가 재생성은 1 스냅 크레딧 차감.'}
+          </p>
+
+          {err && (
+            <p role="alert" className="text-[11px] text-red-600">
+              {err}
+            </p>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-2 border-t border-[#E8DCC9] px-5 py-3">
+          <button
+            type="button"
+            onClick={() => !busy && onClose()}
+            disabled={busy}
+            className="rounded-md border border-[#D4C5B0] bg-white px-3 py-1.5 text-xs font-medium text-[#5C4633] hover:bg-[#FAF7F2] disabled:opacity-50"
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!reason || busy}
+            className="rounded-md bg-[#3D2E1F] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5C4633] disabled:opacity-50"
+          >
+            {busy
+              ? '요청 중…'
+              : freeAvailable
+                ? '재생성 (무료)'
+                : '재생성 (1 크레딧)'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -569,15 +814,55 @@ function computePageItems(
   return items;
 }
 
-function SnapResultCard({ job }: { job: SnapJob }) {
+function SnapResultCard({
+  job,
+  onLikeToggled,
+  onRegenerateClick,
+}: {
+  job: SnapJob;
+  /** 좋아요 토글 성공 후 부모 list state 업데이트용 callback. */
+  onLikeToggled?: (jobId: string, liked: boolean) => void;
+  /** 재생성 버튼 클릭 시 부모가 모달 열기. */
+  onRegenerateClick?: (job: SnapJob) => void;
+}) {
+  const [liked, setLiked] = useState<boolean>(!!job.liked);
+  const [likeBusy, setLikeBusy] = useState<boolean>(false);
+  const isCompleted = job.status === 'completed' && !!job.result_url;
+  const isCatalog = job.kind === 'catalog';
+
+  // 부모에서 job 객체가 갱신되면 (예: 폴링) liked 상태 sync.
+  useEffect(() => {
+    setLiked(!!job.liked);
+  }, [job.liked]);
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (likeBusy) return;
+    setLikeBusy(true);
+    const prev = liked;
+    setLiked(!prev); // optimistic
+    try {
+      const res = await fetch(`/api/snap/jobs/${job.id}/like`, { method: 'POST' });
+      if (!res.ok) throw new Error('like failed');
+      const data = (await res.json()) as { liked: boolean };
+      setLiked(data.liked);
+      onLikeToggled?.(job.id, data.liked);
+    } catch {
+      setLiked(prev); // revert
+    } finally {
+      setLikeBusy(false);
+    }
+  };
+
   return (
-    <a
-      href={job.result_url ?? '#'}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex flex-col overflow-hidden rounded-md border border-[#E8DCC9] bg-white transition-transform hover:scale-[1.02]"
-    >
-      <div className="grid aspect-[3/4] w-full place-items-center overflow-hidden bg-[#F5EDE0]">
+    <div className="flex flex-col overflow-hidden rounded-md border border-[#E8DCC9] bg-white">
+      <a
+        href={job.result_url ?? '#'}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="grid aspect-[3/4] w-full place-items-center overflow-hidden bg-[#F5EDE0] transition-transform hover:scale-[1.02]"
+      >
         {job.result_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -588,16 +873,51 @@ function SnapResultCard({ job }: { job: SnapJob }) {
         ) : (
           <span className="text-[10px] text-[#8B7355]">URL 없음</span>
         )}
+      </a>
+      <div className="flex flex-col gap-1.5 p-1.5">
+        <div>
+          <p className="truncate text-[11px] font-medium text-[#3D2E1F]">
+            {catalogLabel(job.catalog_id)}
+          </p>
+          <p className="text-[10px] text-[#8B7355]">
+            {formatRelative(job.completed_at ?? job.submitted_at)}
+          </p>
+        </div>
+        {/* 완료된 catalog 결과에만 좋아요 + 재생성 버튼. */}
+        {isCompleted && isCatalog && (
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={handleLike}
+              disabled={likeBusy}
+              aria-pressed={liked}
+              title={liked ? '좋아요 취소' : '좋아요'}
+              className={`flex flex-1 items-center justify-center gap-1 rounded border px-1.5 py-1 text-[10px] font-medium transition-colors disabled:opacity-50 ${
+                liked
+                  ? 'border-rose-500 bg-rose-50 text-rose-700'
+                  : 'border-[#D4C5B0] bg-white text-[#5C4633] hover:border-rose-400'
+              }`}
+            >
+              <span aria-hidden>{liked ? '♥' : '♡'}</span>
+              <span>좋아요</span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onRegenerateClick?.(job);
+              }}
+              title="재생성"
+              className="flex flex-1 items-center justify-center gap-1 rounded border border-[#D4C5B0] bg-white px-1.5 py-1 text-[10px] font-medium text-[#5C4633] transition-colors hover:border-[#8B7355]"
+            >
+              <span aria-hidden>↻</span>
+              <span>재생성</span>
+            </button>
+          </div>
+        )}
       </div>
-      <div className="p-1.5">
-        <p className="truncate text-[11px] font-medium text-[#3D2E1F]">
-          {catalogLabel(job.catalog_id)}
-        </p>
-        <p className="text-[10px] text-[#8B7355]">
-          {formatRelative(job.completed_at ?? job.submitted_at)}
-        </p>
-      </div>
-    </a>
+    </div>
   );
 }
 
