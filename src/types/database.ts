@@ -382,6 +382,11 @@ export type Database = {
           phase_timings: Record<string, number> | null;
           pipeline_stages: Record<string, string | boolean | null> | null;
           image_reference: 'strict' | 'prompt-only' | null;
+          liked: boolean;
+          liked_at: string | null;
+          regen_reason: 'face_unnatural' | 'pose_diff' | 'outfit_bg' | 'other' | null;
+          regen_to_job_id: string | null;
+          regen_used_free: boolean;
         };
         Insert: {
           id?: string;
@@ -406,6 +411,11 @@ export type Database = {
           phase_timings?: Record<string, number> | null;
           pipeline_stages?: Record<string, string | boolean | null> | null;
           image_reference?: 'strict' | 'prompt-only' | null;
+          liked?: boolean;
+          liked_at?: string | null;
+          regen_reason?: 'face_unnatural' | 'pose_diff' | 'outfit_bg' | 'other' | null;
+          regen_to_job_id?: string | null;
+          regen_used_free?: boolean;
         };
         Update: Partial<Database['public']['Tables']['snap_jobs']['Insert']>;
         Relationships: [];
