@@ -1578,15 +1578,13 @@ function CertificatePdfButton({
 // ── 발행권 · 영구소장 (결혼알림장 탭에 통합) ────────────────
 
 /**
- * 결혼알림장 탭 상단에 노출되는 잔여 발행권 / 영구소장권 요약 박스.
+ * 결혼알림장 탭 상단의 잔여 발행권 / 영구소장권 요약.
  *
  * 변경 이력:
- *   - 박스 크기 축소 (p-5 → p-3, text-3xl → text-xl, 캡션 단축).
- *   - "보유 패키지" 섹션 삭제 (사용 빈도 낮음).
- *   - "스마트스토어 주문번호 등록" / "네이버 주문 가져오기" 카드는 [주문] 탭으로 이동.
- *
- * 결과: 결혼알림장 탭은 알림장 자체(편집/발행/소장) 흐름에 집중, 결제·주문 액션은
- * [주문] 탭으로 일원화.
+ *   - v1: 2-column 박스, p-5/text-3xl
+ *   - v2: 2-column 박스 축소 (p-3/text-xl) + 보유 패키지 삭제 + 주문카드 [주문] 탭으로 이동
+ *   - v3: 단일 row 인라인 한 줄로 추가 축소. "발행권 N · 영구소장권 N" 형태로
+ *         차지 공간 ~1 line 으로 최소화. 클릭 UX 없으니 박스 ring 도 제거.
  */
 function CreditsSummary({
   balance,
@@ -1596,18 +1594,15 @@ function CreditsSummary({
   archiveBalance: number;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2">
-      <div className="flex flex-col items-center gap-0.5 rounded-md bg-white p-3 text-center ring-1 ring-[#D4C5B0]">
-        <p className="text-[9px] tracking-[0.25em] text-[#8B7355]">PUBLISH</p>
-        <p className="text-xl font-semibold tracking-tight">{balance}</p>
-        <p className="text-[10px] text-muted-foreground">발행권</p>
-      </div>
-      <div className="flex flex-col items-center gap-0.5 rounded-md bg-white p-3 text-center ring-1 ring-[#D4C5B0]">
-        <p className="text-[9px] tracking-[0.25em] text-[#8B7355]">ARCHIVE</p>
-        <p className="text-xl font-semibold tracking-tight">{archiveBalance}</p>
-        <p className="text-[10px] text-muted-foreground">영구소장권</p>
-      </div>
-    </div>
+    <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-[#5C4633]">
+      <span>
+        발행권 <span className="font-semibold text-[#3D2E1F]">{balance}</span>
+      </span>
+      <span className="text-[#D4C5B0]">·</span>
+      <span>
+        영구소장권 <span className="font-semibold text-[#3D2E1F]">{archiveBalance}</span>
+      </span>
+    </p>
   );
 }
 
