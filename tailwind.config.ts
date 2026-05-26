@@ -48,6 +48,15 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        // 우리다운 매거진 톤 — (marketing) 영역 전용. shadcn 토큰과 분리.
+        wd: {
+          ink: 'var(--wd-ink)',
+          coral: 'var(--wd-coral)',
+          cream: 'var(--wd-cream)',
+          paper: 'var(--wd-paper)',
+          mute: 'var(--wd-mute)',
+          line: 'var(--wd-line)',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -71,6 +80,8 @@ const config: Config = {
       fontFamily: {
         sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
         mono: ['var(--font-geist-mono)', 'monospace'],
+        // (marketing) 영역 영문 우드마크/eyebrow 전용 디스플레이 세리프.
+        italiana: ['var(--font-italiana)', 'Italiana', 'serif'],
       },
     },
   },
