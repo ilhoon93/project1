@@ -42,7 +42,7 @@ export function LogoutButton() {
       type="button"
       onClick={handleLogout}
       disabled={busy}
-      className="whitespace-nowrap text-xs text-[#5C4633] hover:text-[#3D2E1F] disabled:opacity-60"
+      className="whitespace-nowrap text-xs text-[var(--wd-mute)] hover:text-[var(--wd-ink)] disabled:opacity-60"
     >
       {busy ? '로그아웃 중...' : '로그아웃'}
     </button>

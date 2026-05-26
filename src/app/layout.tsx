@@ -7,6 +7,7 @@ import {
   Gaegu,
   Gowun_Batang,
   Great_Vibes,
+  Italiana,
   Montserrat,
   Nanum_Gothic,
   Noto_Sans_KR,
@@ -141,6 +142,18 @@ const pinyonScript = Pinyon_Script({
   subsets: ['latin'],
   weight: ['400'],
   variable: '--font-pinyon-script',
+  display: 'swap',
+});
+
+/*
+ * (marketing) 영역 매거진 톤 우드마크 / eyebrow 전용.
+ * 한글 콘텐츠에는 절대 적용하지 말 것 (한글 글리프 없음 → 시스템 폴백).
+ * Tailwind 에서 font-italiana 로 사용.
+ */
+const italiana = Italiana({
+  subsets: ['latin'],
+  weight: ['400'],
+  variable: '--font-italiana',
   display: 'swap',
 });
 
@@ -306,6 +319,7 @@ const koreanFontVariables = [
   fraunces.variable,
   greatVibes.variable,
   pinyonScript.variable,
+  italiana.variable,
   // 로컬 영문 장식 폰트 (src/app/fonts/english/) — picker 노출은 theme.ts
   blacksword.variable,
   fakeSerif.variable,
