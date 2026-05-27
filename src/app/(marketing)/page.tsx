@@ -7,6 +7,8 @@ import { BeforeAfterSlider } from '@/components/marketing/BeforeAfterSlider';
 import { getAvailableCatalog } from '@/lib/snap/catalog-availability';
 import { catalogCountStat } from '@/lib/snap/catalog-display';
 import { SNAP_STARTING_PRICE, formatKRW } from '@/lib/snap/packages';
+import { getHomeSamples } from '@/lib/marketing/home-samples';
+import type { AiSnapItem, SampleDesign } from '@/lib/marketing/sample-invitations';
 
 export const metadata: Metadata = {
   title: '우리다운 — 우리 다운 결혼 알림장',
@@ -20,14 +22,14 @@ export const dynamic = 'force-dynamic';
 export default async function LandingPage() {
   // AI 스냅 섹션의 카운터에 실제 카탈로그 개수를 넣기 위한 server-side fetch.
   // wedding-snap/page.tsx 와 동일한 helper 라 캐시·인증 정책이 자동 일치.
-  const catalog = await getAvailableCatalog();
+  const [catalog, home] = await Promise.all([getAvailableCatalog(), getHomeSamples()]);
   const catalogCount = catalog.length;
 
   return (
     <>
-      <Hero />
-      <DesignAndValues />
-      <AiSnapPreview catalogCount={catalogCount} />
+      <Hero aiSnaps={home.aiSnaps} designs={home.designs} />
+      <DesignAndValues designs={home.designs} />
+      <AiSnapPreview catalogCount={catalogCount} aiSnaps={home.aiSnaps} />
       <Pricing />
       <Footer />
     </>
@@ -36,7 +38,7 @@ export default async function LandingPage() {
 
 /* ─────────────────────── 1. Hero ─────────────────────── */
 
-function Hero() {
+function Hero({ aiSnaps, designs }: { aiSnaps: AiSnapItem[]; designs: SampleDesign[] }) {
   return (
     <section className="relative overflow-hidden px-6 pb-12 pt-10 text-center sm:pb-16 sm:pt-14">
       <div
@@ -83,14 +85,14 @@ function Hero() {
         </Link>
       </div>
 
-      <HeroStage />
+      <HeroStage aiSnaps={aiSnaps} designs={designs} />
     </section>
   );
 }
 
 /* ─────────────────────── 2. 디자인 + 차별화 가치 ─────────────────────── */
 
-function DesignAndValues() {
+function DesignAndValues({ designs }: { designs: SampleDesign[] }) {
   return (
     <section
       id="design-values"
@@ -109,14 +111,14 @@ function DesignAndValues() {
           엔딩까지 10개 섹션을 우리답게 구성하세요.
         </p>
 
-        <ShowcaseTabs />
+        <ShowcaseTabs designs={designs} />
 
         <div className="mt-7">
           <Link
             href="/designs"
             className="inline-flex items-center gap-1.5 rounded-full border border-[var(--wd-ink)]/25 px-5 py-2.5 text-[13px] font-medium text-[var(--wd-ink)] transition-colors hover:border-[var(--wd-ink)]/50"
           >
-            디자인 샘플 9종 전체 보기 →
+            디자인 샘플 {designs.length}종 전체 보기 →
           </Link>
         </div>
       </div>
@@ -126,7 +128,13 @@ function DesignAndValues() {
 
 /* ─────────────────────── 3. AI 웨딩스냅 미리보기 ─────────────────────── */
 
-function AiSnapPreview({ catalogCount }: { catalogCount: number }) {
+function AiSnapPreview({
+  catalogCount,
+  aiSnaps,
+}: {
+  catalogCount: number;
+  aiSnaps: AiSnapItem[];
+}) {
   return (
     <section className="border-t border-[var(--wd-line)] bg-[var(--wd-paper)] px-6 py-14 sm:py-16">
       <div className="mx-auto max-w-3xl">
@@ -154,7 +162,7 @@ function AiSnapPreview({ catalogCount }: { catalogCount: number }) {
           <Stat number="≈90s" label="컷 당 평균 생성" />
         </div>
 
-        <CatalogStrip catalogCount={catalogCount} />
+        <CatalogStrip catalogCount={catalogCount} aiSnaps={aiSnaps} />
 
         <div className="mt-6">
           <Link
@@ -174,22 +182,13 @@ function AiSnapPreview({ catalogCount }: { catalogCount: number }) {
  * 으로 채워 허전함을 없애고 스타일 다양성을 한눈에 보여준다. 가로 스크롤 +
  * 양끝 페이드 마스크. 각 타일은 /wedding-snap 으로 진입.
  */
-function CatalogStrip({ catalogCount }: { catalogCount: number }) {
-  const tiles: Array<{ id: string; label: string }> = [
-    { id: 'studio-floral-pastel', label: '플라워 파스텔' },
-    { id: 'beach-classic-white', label: '비치 클래식' },
-    { id: 'seoul-nightview', label: '서울 야경' },
-    { id: 'garden-champagne-toast', label: '가든 샴페인' },
-    { id: 'hanbok-couple-studio', label: '한복 스튜디오' },
-    { id: 'paris-eiffel-walk', label: '파리 에펠탑' },
-    { id: 'jeju-rocky-coast', label: '제주 해안' },
-    { id: 'cinema-popcorn-couple', label: '영화관 데이트' },
-    { id: 'countryside-bicycle-sunset', label: '시골길 자전거' },
-    { id: 'vintage-90s-street-vsign', label: '90s 빈티지' },
-    { id: 'yacht-sunset-hug', label: '요트 일몰' },
-    { id: 'city-goldenhour-balcony', label: '도심 골든아워' },
-  ];
-
+function CatalogStrip({
+  catalogCount,
+  aiSnaps,
+}: {
+  catalogCount: number;
+  aiSnaps: AiSnapItem[];
+}) {
   return (
     <div className="mt-6">
       <div className="mb-2.5 flex items-baseline justify-between">
@@ -201,7 +200,7 @@ function CatalogStrip({ catalogCount }: { catalogCount: number }) {
         </span>
       </div>
       <div className="flex gap-2.5 overflow-x-auto pb-1 [-webkit-mask-image:linear-gradient(90deg,transparent,#000_4%,#000_96%,transparent)] [&::-webkit-scrollbar]:hidden">
-        {tiles.map((t) => (
+        {aiSnaps.map((t) => (
           <Link
             key={t.id}
             href="/wedding-snap"
@@ -209,7 +208,7 @@ function CatalogStrip({ catalogCount }: { catalogCount: number }) {
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={`/wedding-snap/catalog/${t.id}.jpg`}
+              src={t.src}
               alt={`${t.label} AI 웨딩스냅 예시`}
               loading="lazy"
               draggable={false}
@@ -252,8 +251,8 @@ function Pricing() {
             <li>· 메인·스토리·갤러리 등 10개 섹션 구성</li>
             <li>· AI 메인 사진 1장 포함</li>
             <li>· 하객 서명·퀴즈·투표·방명록 수집</li>
-            <li>· 혼인서약서 PDF · 이미지 다운로드</li>
             <li>· 발행 후 30일간 공개</li>
+            <li>· 혼인서약서·방명록·사진 PDF·이미지 영구 소장</li>
           </ul>
 
           <Link

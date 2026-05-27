@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { SAMPLE_DESIGNS, type SampleDesign } from '@/lib/marketing/sample-invitations';
+import type { SampleDesign } from '@/lib/marketing/sample-invitations';
 import { InvitationPreview } from './InvitationPreview';
 
 /**
@@ -10,9 +10,9 @@ import { InvitationPreview } from './InvitationPreview';
  * 카드를 누르면 전체 알림장을 폰 프레임 모달로 스크롤하며 둘러볼 수 있다.
  * 모두 실제 렌더러(InvitationSlides) + 정적 샘플 데이터로 동작 (서버 호출 없음).
  */
-export function DesignCatalogClient() {
+export function DesignCatalogClient({ designs }: { designs: SampleDesign[] }) {
   const [openId, setOpenId] = useState<string | null>(null);
-  const open = SAMPLE_DESIGNS.find((d) => d.id === openId) ?? null;
+  const open = designs.find((d) => d.id === openId) ?? null;
 
   useEffect(() => {
     if (!open) return;
@@ -30,7 +30,7 @@ export function DesignCatalogClient() {
   return (
     <>
       <div className="grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3">
-        {SAMPLE_DESIGNS.map((d) => (
+        {designs.map((d) => (
           <div
             key={d.id}
             role="button"

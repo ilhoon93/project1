@@ -29,6 +29,12 @@ interface AdminPage {
 
 const ADMIN_PAGES: AdminPage[] = [
   {
+    href: '/admin/home-samples',
+    title: '메인 샘플 설정',
+    description:
+      '메인 화면의 샘플 AI스냅(폴라로이드·썸네일 스트립)과 알림장 디자인 표지(테마·효과·사진·이름)를 세팅. 저장 즉시 메인/디자인 샘플 페이지에 반영.',
+  },
+  {
     href: '/admin/snap-catalog-tags',
     title: '카탈로그 태그 관리',
     description:

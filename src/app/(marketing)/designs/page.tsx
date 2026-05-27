@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { DesignCatalogClient } from '@/components/marketing/DesignCatalogClient';
+import { getHomeSamples } from '@/lib/marketing/home-samples';
 
 export const metadata: Metadata = {
   title: '디자인 샘플 — 우리다운',
@@ -8,7 +9,10 @@ export const metadata: Metadata = {
     '컬러 테마·배경 효과·레이아웃을 조합한 알림장 디자인 샘플을 실제 미리보기로 둘러보세요.',
 };
 
-export default function DesignsPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function DesignsPage() {
+  const { designs } = await getHomeSamples();
   return (
     <main className="px-6 py-12 sm:py-16">
       <div className="mx-auto max-w-3xl">
@@ -24,7 +28,7 @@ export default function DesignsPage() {
         </p>
 
         <div className="mt-8">
-          <DesignCatalogClient />
+          <DesignCatalogClient designs={designs} />
         </div>
 
         <div className="mt-12 flex flex-wrap items-center gap-2">
