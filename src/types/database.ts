@@ -440,6 +440,24 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['snap_catalog_tags']['Insert']>;
         Relationships: [];
       };
+      marketing_home_samples: {
+        Row: {
+          id: boolean;
+          ai_snap_catalog_ids: string[];
+          designs: unknown;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: boolean;
+          ai_snap_catalog_ids?: string[];
+          designs?: unknown;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['marketing_home_samples']['Insert']>;
+        Relationships: [];
+      };
       snap_user_quota: {
         Row: {
           user_id: string;

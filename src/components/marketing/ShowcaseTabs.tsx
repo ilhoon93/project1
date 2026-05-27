@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { SAMPLE_DESIGNS } from '@/lib/marketing/sample-invitations';
+import type { SampleDesign } from '@/lib/marketing/sample-invitations';
 import { InvitationPreview } from './InvitationPreview';
 
 type TabId = 'design' | 'quiz' | 'vote' | 'guestbook' | 'vow';
@@ -24,9 +24,10 @@ const TABS: Array<{ id: TabId; name: string; tag: string }> = [
  * 마케팅 페이지 안에서만 쓰는 경량 비주얼이다. (실제 슬라이드 컴포넌트는
  * invitationId·서버 API·축하 카운트 등 부수효과가 있어 메인 임베드 부적합.)
  */
-export function ShowcaseTabs() {
+export function ShowcaseTabs({ designs }: { designs: SampleDesign[] }) {
   const [active, setActive] = useState<TabId>('design');
   const [userPicked, setUserPicked] = useState(false);
+  const designSamples = designs.slice(0, 4);
 
   useEffect(() => {
     if (userPicked) return;
@@ -43,7 +44,7 @@ export function ShowcaseTabs() {
     <div className="grid grid-cols-1 items-start gap-7 sm:grid-cols-[auto_1fr]">
       <div className="flex justify-center py-2">
         <PhoneFrame>
-          <MockDesign active={active === 'design'} />
+          <MockDesign active={active === 'design'} samples={designSamples} />
           <MockQuiz active={active === 'quiz'} />
           <MockVote active={active === 'vote'} />
           <MockGuestbook active={active === 'guestbook'} />
@@ -158,25 +159,25 @@ function TabIcon({ id, active }: { id: TabId; active: boolean }) {
 /* ─────────────────── mini mock 5 종 ─────────────────── */
 
 // 디자인 탭은 실제 알림장 렌더러로 만든 표지를 순환 (나머지 탭은 경량 mock 유지).
-const DESIGN_SAMPLES = SAMPLE_DESIGNS.slice(0, 4);
-
-function MockDesign({ active }: { active: boolean }) {
+function MockDesign({ active, samples }: { active: boolean; samples: SampleDesign[] }) {
   const [d, setD] = useState(0);
   useEffect(() => {
-    if (!active) return;
-    const i = setInterval(() => setD((v) => (v + 1) % DESIGN_SAMPLES.length), 3200);
+    if (!active || samples.length <= 1) return;
+    const i = setInterval(() => setD((v) => (v + 1) % samples.length), 3200);
     return () => clearInterval(i);
-  }, [active]);
+  }, [active, samples.length]);
 
-  const cur = DESIGN_SAMPLES[d];
+  const cur = samples[d % samples.length];
 
   return (
     <div
       className={`absolute inset-0 transition-opacity duration-500 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
     >
-      <div key={cur.id} className="absolute inset-0" style={{ animation: 'wd-fade 0.6s ease' }}>
-        <InvitationPreview design={cur} cover />
-      </div>
+      {cur && (
+        <div key={cur.id} className="absolute inset-0" style={{ animation: 'wd-fade 0.6s ease' }}>
+          <InvitationPreview design={cur} cover />
+        </div>
+      )}
     </div>
   );
 }
