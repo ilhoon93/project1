@@ -4,6 +4,7 @@ import { BrandMark } from '@/components/shared/BrandMark';
 import { HeroStage } from '@/components/marketing/HeroStage';
 import { ShowcaseTabs } from '@/components/marketing/ShowcaseTabs';
 import { BeforeAfterSlider } from '@/components/marketing/BeforeAfterSlider';
+import { FallingPetals } from '@/components/shared/FallingPetals';
 import { getAvailableCatalog } from '@/lib/snap/catalog-availability';
 import { catalogCountStat } from '@/lib/snap/catalog-display';
 import { SNAP_STARTING_PRICE, formatKRW } from '@/lib/snap/packages';
@@ -24,13 +25,45 @@ export default async function LandingPage() {
   const catalogCount = catalog.length;
 
   return (
-    <>
+    // isolate = 자체 stacking context → 배경 블롭(-z-10)이 단색 cream 위·콘텐츠
+    // 아래에 칠해지도록. overflow-hidden 으로 화면 밖으로 번지는 블롭을 클립.
+    <div className="relative isolate overflow-hidden">
+      <PageBackdrop />
       <Hero />
       <DesignAndValues />
       <AiSnapPreview catalogCount={catalogCount} />
       <Pricing />
       <Footer />
-    </>
+    </div>
+  );
+}
+
+/* ─────────────────────── 배경 장식 ─────────────────────── */
+
+/**
+ * 메인화면 배경 — 단색 cream 이 허전하지 않도록 코랄·세이지·블러쉬 톤의
+ * 큰 blur 글로우 블롭 3개를 아주 느리게 떠다니게. pointer-events-none + -z-10
+ * 으로 콘텐츠/클릭에 영향 없음. (prefers-reduced-motion 시 globals.css 가 정지.)
+ */
+function PageBackdrop() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+    >
+      <div
+        className="wd-backdrop-blob absolute -left-[15%] top-[6%] h-[44vh] w-[44vh] rounded-full bg-[var(--wd-coral)] opacity-[0.08] blur-3xl"
+        style={{ animation: 'wd-drift-1 24s ease-in-out infinite' }}
+      />
+      <div
+        className="wd-backdrop-blob absolute -right-[12%] top-[40%] h-[40vh] w-[40vh] rounded-full bg-[#9FB69A] opacity-[0.10] blur-3xl"
+        style={{ animation: 'wd-drift-2 30s ease-in-out infinite' }}
+      />
+      <div
+        className="wd-backdrop-blob absolute bottom-[6%] left-[18%] h-[38vh] w-[38vh] rounded-full bg-[#F2C9BC] opacity-[0.12] blur-3xl"
+        style={{ animation: 'wd-drift-1 27s ease-in-out infinite reverse' }}
+      />
+    </div>
   );
 }
 
@@ -43,6 +76,16 @@ function Hero() {
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-[55%] bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,253,248,0.55)_0%,transparent_70%)]"
       />
+
+      {/* Hero 영역에만 아주 옅게 떨어지는 꽃잎 — 청첩장 제품과 톤 통일.
+          opacity 로 은은하게, pointer-events-none 이라 CTA 클릭 방해 없음. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-25">
+        <FallingPetals
+          count={9}
+          type="sakura"
+          colors={['#F4D9D0', '#E8C2B8', '#EFD9CF']}
+        />
+      </div>
 
       <div className="relative mx-auto flex max-w-xl items-center justify-center gap-3">
         <span className="h-px w-6 bg-[var(--wd-coral)]/55" />
