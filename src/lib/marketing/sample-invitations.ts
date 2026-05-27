@@ -254,6 +254,20 @@ export const SAMPLE_DESIGNS: SampleDesign[] = [
     weddingDate: '2026-05-09',
     greetingShort: '햇살 가득한 날',
   }),
+  build({
+    id: 'rose-romantic',
+    name: '더스티 로즈',
+    layoutLabel: '액자 · 흰 꽃잎',
+    colorTheme: 'rose',
+    petalType: 'whitePetal',
+    font: 'gowun',
+    layout: 'frame',
+    heroImage: `${CAT}/studio-shoulder-lean.jpg`,
+    groomName: '태경',
+    brideName: '하린',
+    weddingDate: '2026-07-04',
+    greetingShort: '로즈빛 약속',
+  }),
 ];
 
 /** 표지(메인 슬라이드)만 렌더하도록 pageOrder 를 main 한 장으로 줄인 콘텐츠. */

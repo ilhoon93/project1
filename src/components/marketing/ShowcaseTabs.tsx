@@ -86,9 +86,10 @@ export function ShowcaseTabs() {
 
 function PhoneFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative aspect-[9/19] w-[240px] rounded-[36px] bg-[#15110E] p-[7px] shadow-[0_14px_40px_rgba(31,27,23,0.18)]">
-      <div className="absolute left-1/2 top-3.5 z-10 h-[6px] w-[70px] -translate-x-1/2 rounded-full bg-black" />
-      <div className="relative h-full w-full overflow-hidden rounded-[28px] bg-white">
+    <div className="rounded-[34px] bg-[#15110E] p-[8px] shadow-[0_14px_40px_rgba(31,27,23,0.18)]">
+      {/* 화면 = 정확히 9:18 → InvitationPreview 가 왜곡 없이 가득 채움 */}
+      <div className="relative aspect-[9/18] w-[228px] overflow-hidden rounded-[27px] bg-white">
+        <div className="absolute left-1/2 top-3 z-30 h-[6px] w-[64px] -translate-x-1/2 rounded-full bg-black/80" />
         {children}
       </div>
     </div>

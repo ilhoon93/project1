@@ -31,34 +31,34 @@ export function HeroStage() {
   return (
     <div className="relative mx-auto mt-10 h-[440px] max-w-[660px] sm:mt-14 sm:h-[560px]">
       <PolaroidCta
-        href="/wedding-snap?style=hanbok"
+        href="/wedding-snap/create"
         label="한복"
         img="/wedding-snap/catalog/hanbok-couple-studio.jpg"
         className="absolute left-0 top-2 -rotate-[13deg] animate-[float-a_7s_ease-in-out_infinite]"
       />
       <PolaroidCta
-        href="/wedding-snap?style=classic"
+        href="/wedding-snap/create"
         label="클래식"
         img="/wedding-snap/catalog/studio-couple-blackwhite.jpg"
         className="absolute right-0 top-6 rotate-[9deg] animate-[float-b_8s_ease-in-out_infinite] [animation-delay:0.8s]"
       />
       <PolaroidCta
-        href="/wedding-snap?style=outdoor"
+        href="/wedding-snap/create"
         label="야외"
         img="/wedding-snap/catalog/garden-champagne-toast.jpg"
         className="absolute bottom-2 left-[2%] rotate-[8deg] animate-[float-c_7.5s_ease-in-out_infinite] [animation-delay:1.5s] sm:left-[5%]"
       />
       <PolaroidCta
-        href="/wedding-snap?style=vintage"
+        href="/wedding-snap/create"
         label="빈티지"
         img="/wedding-snap/catalog/countryside-bicycle-sunset.jpg"
         className="absolute bottom-4 right-[1%] -rotate-[10deg] animate-[float-d_6.8s_ease-in-out_infinite] [animation-delay:2.2s] sm:right-[3%]"
       />
 
-      {/* 중앙 폰 mockup — 실제 알림장 표지(메인 슬라이드)를 순환 미리보기. */}
-      <div className="absolute left-1/2 top-1/2 z-[5] h-[372px] w-[176px] -translate-x-1/2 -translate-y-1/2 -rotate-2 rounded-[32px] bg-[#15110E] p-[7px] shadow-[0_32px_72px_rgba(31,27,23,0.34)] sm:h-[452px] sm:w-[214px] sm:rounded-[36px]">
-        <div className="absolute left-1/2 top-[15px] z-10 h-[5px] w-[54px] -translate-x-1/2 rounded-full bg-black" />
-        <div className="relative h-full w-full overflow-hidden rounded-[26px] bg-white sm:rounded-[30px]">
+      {/* 중앙 폰 mockup — 실제 알림장 표지(메인 슬라이드)를 9:18 비율로 순환 미리보기. */}
+      <div className="absolute left-1/2 top-1/2 z-[5] w-[206px] -translate-x-1/2 -translate-y-1/2 -rotate-2 rounded-[34px] bg-[#15110E] p-[8px] shadow-[0_34px_74px_rgba(31,27,23,0.36)] sm:w-[250px]">
+        <div className="absolute left-1/2 top-[15px] z-20 h-[5px] w-[56px] -translate-x-1/2 rounded-full bg-black/80" />
+        <div className="relative aspect-[9/18] w-full overflow-hidden rounded-[27px] bg-white">
           <div
             key={active.id}
             className="absolute inset-0"
