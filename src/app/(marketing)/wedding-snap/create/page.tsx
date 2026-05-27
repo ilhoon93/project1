@@ -42,18 +42,22 @@ export default async function WeddingSnapCreatePage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 pb-20 pt-8 sm:px-6">
-      <h1 className="text-xl font-semibold tracking-tight text-[#3D2E1F]">
-        AI 웨딩스냅 만들기
-      </h1>
-      <p className="mt-2 text-xs text-[#8B7355]">
-        평균 생성 시간 60~120초 · 1컷당 스냅 크레딧 1개 차감
-      </p>
+      {/* 헤더 — 제목 + 핵심 안내를 한 줄에. 진행 단계는 아래 StepIndicator 가,
+          크레딧 잔량은 바로 아래 잔액 배지가 담당하므로 별도 부제 문단은 생략. */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h1 className="text-xl font-semibold tracking-tight text-[#3D2E1F]">
+          AI 웨딩스냅 만들기
+        </h1>
+        <span className="text-xs text-[#8B7355]">
+          평균 60~120초 · 1컷 = 크레딧 1개
+        </span>
+      </div>
 
       {/*
         잔액 요약 헤더 — 스냅 크레딧 / 무료 재생성 잔량 / 마이페이지(AI 웨딩스냅 탭)
         바로가기. 사용자가 잔액 확인 + 결과 보러 가는 동선을 한 줄에 통합.
       */}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] px-3 py-2 text-xs">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] px-3 py-2 text-xs">
         <div className="flex flex-wrap items-center gap-3">
           <span className="flex items-baseline gap-1 text-[#5C4633]">
             <span className="text-[10px] tracking-[0.2em] text-[#8B7355]">스냅</span>
