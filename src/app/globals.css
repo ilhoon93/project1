@@ -122,30 +122,14 @@
  * 다른 라우트(editor/invitation/admin) 에서는 참조하지 않으므로 영향 없음.
  * marketing 컴포넌트가 클래스명/animation 이름으로 직접 참조한다.
  */
-@keyframes petal-fall {
-  0% {
-    transform: translateY(-8px) rotate(0);
-    opacity: 0;
-  }
-  10%,
-  90% {
-    opacity: 0.75;
-  }
-  100% {
-    transform: translateY(380px) rotate(540deg);
-    opacity: 0;
-  }
-}
-
-@keyframes ken-burns {
+@keyframes wd-fade {
   from {
-    transform: scale(1) translate(0, 0);
+    opacity: 0;
   }
   to {
-    transform: scale(1.18) translate(-3%, -3%);
+    opacity: 1;
   }
 }
-
 @keyframes float-a {
   0%,
   100% {
