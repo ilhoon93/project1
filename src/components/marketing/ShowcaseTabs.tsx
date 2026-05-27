@@ -5,11 +5,11 @@ import { useEffect, useState } from 'react';
 type TabId = 'design' | 'quiz' | 'vote' | 'guestbook' | 'vow';
 
 const TABS: Array<{ id: TabId; name: string; tag: string }> = [
-  { id: 'design', name: '움직이는 디자인', tag: '꽃잎·라인·시네마틱·미니멀 4종' },
-  { id: 'quiz', name: '하객 참여 퀴즈', tag: '신랑 신부 OX 퀴즈' },
-  { id: 'vote', name: 'A/B 투표', tag: '신혼여행지·드레스 색깔' },
-  { id: 'guestbook', name: '소장용 방명록', tag: '음성·이미지 메시지까지' },
-  { id: 'vow', name: '혼인서약서 PDF', tag: '발행 후 마이페이지 소장' },
+  { id: 'design', name: '움직이는 디자인', tag: '14가지 컬러 테마 × 배경 효과' },
+  { id: 'quiz', name: '하객 참여 퀴즈', tag: '객관식 퀴즈로 함께 노는 페이지' },
+  { id: 'vote', name: 'A/B 투표', tag: '신혼여행지·드레스 색깔 투표' },
+  { id: 'guestbook', name: '소장용 방명록', tag: '축하 메시지 + 손글씨 서명' },
+  { id: 'vow', name: '혼인서약서 PDF', tag: '발행 후 마이페이지에서 소장' },
 ];
 
 /**
@@ -277,7 +277,7 @@ function MockQuiz({ active }: { active: boolean }) {
       className={`absolute inset-0 flex flex-col justify-center bg-[var(--wd-paper)] px-5 transition-opacity duration-500 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
     >
       <div className="font-italiana text-[10px] tracking-[0.3em] text-[var(--wd-coral)]">
-        QUIZ · 02 / 05
+        QUIZ · 01 / 02
       </div>
       <div className="mt-3 text-[15px] font-medium leading-snug text-[var(--wd-ink)]">
         두 사람이 처음 만난 곳은?
@@ -349,7 +349,7 @@ function VoteRow({ label, pct, highlight }: { label: string; pct: number; highli
 
 function MockGuestbook({ active }: { active: boolean }) {
   const items = [
-    { name: '지원 누나', body: '드디어! 정말 축하해요 ❤︎', tag: '음성' },
+    { name: '지원 누나', body: '드디어! 정말 축하해요 ❤︎', tag: '서명' },
     { name: '재현 형', body: '두 사람 잘 어울려요. 오래 행복하길.' },
     { name: '하은', body: '결혼식 못 가서 미안. 사진 잔뜩 부탁!' },
   ];

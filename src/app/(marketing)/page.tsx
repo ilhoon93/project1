@@ -4,7 +4,6 @@ import { BrandMark } from '@/components/shared/BrandMark';
 import { HeroStage } from '@/components/marketing/HeroStage';
 import { ShowcaseTabs } from '@/components/marketing/ShowcaseTabs';
 import { BeforeAfterSlider } from '@/components/marketing/BeforeAfterSlider';
-import { FallingPetals } from '@/components/shared/FallingPetals';
 import { getAvailableCatalog } from '@/lib/snap/catalog-availability';
 import { catalogCountStat } from '@/lib/snap/catalog-display';
 import { SNAP_STARTING_PRICE, formatKRW } from '@/lib/snap/packages';
@@ -25,45 +24,13 @@ export default async function LandingPage() {
   const catalogCount = catalog.length;
 
   return (
-    // isolate = 자체 stacking context → 배경 블롭(-z-10)이 단색 cream 위·콘텐츠
-    // 아래에 칠해지도록. overflow-hidden 으로 화면 밖으로 번지는 블롭을 클립.
-    <div className="relative isolate overflow-hidden">
-      <PageBackdrop />
+    <>
       <Hero />
       <DesignAndValues />
       <AiSnapPreview catalogCount={catalogCount} />
       <Pricing />
       <Footer />
-    </div>
-  );
-}
-
-/* ─────────────────────── 배경 장식 ─────────────────────── */
-
-/**
- * 메인화면 배경 — 단색 cream 이 허전하지 않도록 코랄·세이지·블러쉬 톤의
- * 큰 blur 글로우 블롭 3개를 아주 느리게 떠다니게. pointer-events-none + -z-10
- * 으로 콘텐츠/클릭에 영향 없음. (prefers-reduced-motion 시 globals.css 가 정지.)
- */
-function PageBackdrop() {
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
-    >
-      <div
-        className="wd-backdrop-blob absolute -left-[15%] top-[6%] h-[44vh] w-[44vh] rounded-full bg-[var(--wd-coral)] opacity-[0.08] blur-3xl"
-        style={{ animation: 'wd-drift-1 24s ease-in-out infinite' }}
-      />
-      <div
-        className="wd-backdrop-blob absolute -right-[12%] top-[40%] h-[40vh] w-[40vh] rounded-full bg-[#9FB69A] opacity-[0.10] blur-3xl"
-        style={{ animation: 'wd-drift-2 30s ease-in-out infinite' }}
-      />
-      <div
-        className="wd-backdrop-blob absolute bottom-[6%] left-[18%] h-[38vh] w-[38vh] rounded-full bg-[#F2C9BC] opacity-[0.12] blur-3xl"
-        style={{ animation: 'wd-drift-1 27s ease-in-out infinite reverse' }}
-      />
-    </div>
+    </>
   );
 }
 
@@ -77,16 +44,6 @@ function Hero() {
         className="pointer-events-none absolute inset-x-0 top-0 h-[55%] bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,253,248,0.55)_0%,transparent_70%)]"
       />
 
-      {/* Hero 영역에만 아주 옅게 떨어지는 꽃잎 — 청첩장 제품과 톤 통일.
-          opacity 로 은은하게, pointer-events-none 이라 CTA 클릭 방해 없음. */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-25">
-        <FallingPetals
-          count={9}
-          type="sakura"
-          colors={['#F4D9D0', '#E8C2B8', '#EFD9CF']}
-        />
-      </div>
-
       <div className="relative mx-auto flex max-w-xl items-center justify-center gap-3">
         <span className="h-px w-6 bg-[var(--wd-coral)]/55" />
         <BrandMark size={20} />
@@ -96,15 +53,13 @@ function Hero() {
         <span className="h-px w-6 bg-[var(--wd-coral)]/55" />
       </div>
 
-      <h1 className="relative mx-auto mt-6 max-w-[14ch] text-[32px] font-medium leading-[1.36] tracking-tight sm:text-[36px]">
-        예식 없이도,
-        <br />
+      <h1 className="relative mx-auto mt-6 max-w-[15ch] text-balance break-keep text-[32px] font-medium leading-[1.36] tracking-tight sm:text-[36px]">
+        예식 없이도,{' '}
         <em className="not-italic text-[var(--wd-coral)]">우리의 소식을 전해요.</em>
       </h1>
-      <p className="relative mx-auto mt-5 max-w-[460px] text-[14.5px] leading-[1.75] text-[var(--wd-mute)]">
-        노웨딩·스몰웨딩 커플을 위한 감성 모바일 알림장 + AI 웨딩스냅.
-        <br />
-        3 분만에 만들어 카카오톡으로 전하세요.
+      <p className="relative mx-auto mt-5 max-w-[430px] break-keep text-[14.5px] leading-[1.75] text-[var(--wd-mute)]">
+        노웨딩·스몰웨딩 커플을 위한 감성 모바일 알림장과 AI 웨딩스냅. 3분 만에
+        만들어 카카오톡으로 소식을 전하세요.
       </p>
 
       <div className="relative mt-7 flex flex-wrap items-center justify-center gap-2">
@@ -145,12 +100,13 @@ function DesignAndValues() {
         <div className="font-italiana text-[11px] font-medium tracking-[0.18em] text-[var(--wd-coral)]">
           ONE NOTICE · MANY MOMENTS
         </div>
-        <h2 className="mt-2 max-w-[18ch] text-[22px] font-medium leading-[1.45] tracking-tight">
-          정지된 청첩장이 아닌, 짧은 영상 한 편 + 다섯 가지 약속
+        <h2 className="mt-2 max-w-[20ch] text-balance break-keep text-[22px] font-medium leading-[1.45] tracking-tight">
+          정지된 청첩장이 아닌, 함께 노는 한 편의 알림장
         </h2>
-        <p className="mb-7 mt-2 max-w-[520px] text-[14px] leading-[1.75] text-[var(--wd-mute)]">
-          움직이는 디자인 4 종 · 하객 참여 퀴즈 · A/B 투표 · 음성 방명록 · 발행 후
-          PDF 로 소장하는 혼인서약서까지 — 한 알림장에 다 담겼어요.
+        <p className="mb-7 mt-2 max-w-[540px] break-keep text-[14px] leading-[1.75] text-[var(--wd-mute)]">
+          14가지 컬러 테마와 살아 움직이는 배경, 하객이 함께하는 퀴즈와 A/B 투표,
+          손글씨 서명을 남기는 방명록, 발행 후 PDF로 간직하는 혼인서약서까지. 메인부터
+          엔딩까지 10개 섹션을 우리답게 구성하세요.
         </p>
 
         <ShowcaseTabs />
@@ -163,31 +119,33 @@ function DesignAndValues() {
 
 function AiSnapPreview({ catalogCount }: { catalogCount: number }) {
   return (
-    <section className="border-t border-[var(--wd-line)] px-6 py-14 sm:py-16">
+    <section className="border-t border-[var(--wd-line)] bg-[var(--wd-paper)] px-6 py-14 sm:py-16">
       <div className="mx-auto max-w-3xl">
         <div className="font-italiana text-[11px] font-medium tracking-[0.18em] text-[var(--wd-coral)]">
           AI WEDDING SNAP · BEFORE &amp; AFTER
         </div>
-        <h2 className="mt-2 max-w-[20ch] text-[22px] font-medium leading-[1.45] tracking-tight">
-          평소 사진 한 장이, 90 초 만에 화보로
+        <h2 className="mt-2 max-w-[20ch] text-balance break-keep text-[22px] font-medium leading-[1.45] tracking-tight">
+          평소 사진 한 장이, 90초 만에 화보로
         </h2>
-        <p className="mb-5 mt-2 max-w-[520px] text-[14px] leading-[1.75] text-[var(--wd-mute)]">
-          스튜디오·메이크업·드레스 대여 없이. 셀카 한 장이면 우리만의 웨딩 사진이
-          완성됩니다. 핸들을 좌우로 드래그해보세요.
+        <p className="mb-5 mt-2 max-w-[520px] break-keep text-[14px] leading-[1.75] text-[var(--wd-mute)]">
+          스튜디오·메이크업·드레스 대여 없이, 셀카 한 장이면 우리만의 웨딩 사진이
+          완성돼요. 핸들을 좌우로 드래그해 보세요.
         </p>
 
         <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[var(--wd-coral)]/12 px-3.5 py-1.5 text-[11.5px] font-medium text-[var(--wd-coral)]">
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--wd-coral)]" />
-          신규 가입 후 첫 결제 시 5 장 무료 체험
+          신규 가입 후 첫 결제 시 5장 무료 체험
         </div>
 
         <BeforeAfterSlider />
 
-        <div className="mt-5 grid grid-cols-3 divide-x divide-[var(--wd-line)] rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)] py-4 text-center">
+        <div className="mt-5 grid grid-cols-3 divide-x divide-[var(--wd-line)] rounded-2xl border border-[var(--wd-line)] bg-white py-4 text-center">
           <Stat number={catalogCountStat(catalogCount)} label="베스트샷 컷" />
           <Stat number="5" label="스타일 라인업" />
           <Stat number="≈90s" label="컷 당 평균 생성" />
         </div>
+
+        <CatalogStrip catalogCount={catalogCount} />
 
         <div className="mt-6">
           <Link
@@ -199,6 +157,63 @@ function AiSnapPreview({ catalogCount }: { catalogCount: number }) {
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * 실제 카탈로그 마스터 사진을 가로로 흘려보내는 스트립 — 단색 배경을 실사진
+ * 으로 채워 허전함을 없애고 스타일 다양성을 한눈에 보여준다. 가로 스크롤 +
+ * 양끝 페이드 마스크. 각 타일은 /wedding-snap 으로 진입.
+ */
+function CatalogStrip({ catalogCount }: { catalogCount: number }) {
+  const tiles: Array<{ id: string; label: string }> = [
+    { id: 'studio-floral-pastel', label: '플라워 파스텔' },
+    { id: 'beach-classic-white', label: '비치 클래식' },
+    { id: 'seoul-nightview', label: '서울 야경' },
+    { id: 'garden-champagne-toast', label: '가든 샴페인' },
+    { id: 'hanbok-couple-studio', label: '한복 스튜디오' },
+    { id: 'paris-eiffel-walk', label: '파리 에펠탑' },
+    { id: 'jeju-rocky-coast', label: '제주 해안' },
+    { id: 'cinema-popcorn-couple', label: '영화관 데이트' },
+    { id: 'countryside-bicycle-sunset', label: '시골길 자전거' },
+    { id: 'vintage-90s-street-vsign', label: '90s 빈티지' },
+    { id: 'yacht-sunset-hug', label: '요트 일몰' },
+    { id: 'city-goldenhour-balcony', label: '도심 골든아워' },
+  ];
+
+  return (
+    <div className="mt-6">
+      <div className="mb-2.5 flex items-baseline justify-between">
+        <span className="text-[12.5px] font-medium text-[var(--wd-ink)]">
+          이런 스타일까지, 골라서 우리 얼굴로
+        </span>
+        <span className="text-[11px] text-[var(--wd-mute)]">
+          전체 {catalogCount}종 중 일부
+        </span>
+      </div>
+      <div className="flex gap-2.5 overflow-x-auto pb-1 [-webkit-mask-image:linear-gradient(90deg,transparent,#000_4%,#000_96%,transparent)] [&::-webkit-scrollbar]:hidden">
+        {tiles.map((t) => (
+          <Link
+            key={t.id}
+            href="/wedding-snap"
+            className="group relative block aspect-[3/4] w-[118px] flex-shrink-0 overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[#EFE6DC]"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/wedding-snap/catalog/${t.id}.jpg`}
+              alt={`${t.label} AI 웨딩스냅 예시`}
+              loading="lazy"
+              draggable={false}
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60" />
+            <span className="absolute inset-x-2 bottom-1.5 text-[10.5px] font-medium leading-tight text-white">
+              {t.label}
+            </span>
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -222,14 +237,14 @@ function Pricing() {
         <div className="rounded-2xl bg-[var(--wd-paper)] p-8 text-center shadow-sm ring-1 ring-[var(--wd-line)]">
           <p className="font-italiana text-xs tracking-[0.3em] text-[var(--wd-coral)]">PRICE</p>
           <p className="mt-3 text-4xl font-semibold tracking-tight">9,900원</p>
-          <p className="mt-1 text-sm text-[var(--wd-mute)]">알림장 1 건 · 일시불</p>
+          <p className="mt-1 text-sm text-[var(--wd-mute)]">알림장 1건 · 일시불</p>
 
-          <ul className="mt-6 flex flex-col gap-1.5 text-left text-sm text-[var(--wd-mute)]">
-            <li>· 8 개 슬라이드 알림장 발행</li>
-            <li>· AI 메인 사진 1 장 포함</li>
+          <ul className="mt-6 flex flex-col gap-1.5 text-left text-sm text-[var(--wd-mute)] [&>li]:break-keep">
+            <li>· 메인·스토리·갤러리 등 10개 섹션 구성</li>
+            <li>· AI 메인 사진 1장 포함</li>
             <li>· 하객 서명·퀴즈·투표·방명록 수집</li>
             <li>· 혼인서약서 PDF · 이미지 다운로드</li>
-            <li>· 결혼식 후 30 일 공개</li>
+            <li>· 발행 후 30일간 공개</li>
           </ul>
 
           <Link

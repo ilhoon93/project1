@@ -4,11 +4,33 @@ import { useEffect, useRef, useState } from 'react';
 
 type Style = 'hanbok' | 'classic' | 'outdoor' | 'vintage';
 
-const STYLES: Array<{ id: Style; label: string; afterLabel: string }> = [
-  { id: 'hanbok', label: '전통 한복', afterLabel: 'AI · 전통 한복' },
-  { id: 'classic', label: '블랙 클래식', afterLabel: 'AI · 블랙 클래식' },
-  { id: 'outdoor', label: '가든 야외', afterLabel: 'AI · 가든 야외' },
-  { id: 'vintage', label: '필름 빈티지', afterLabel: 'AI · 필름 빈티지' },
+const BEFORE_IMG = '/wedding-snap/mode-examples/couple-input-1.jpg';
+
+const STYLES: Array<{ id: Style; label: string; afterLabel: string; img: string }> = [
+  {
+    id: 'hanbok',
+    label: '전통 한복',
+    afterLabel: 'AI · 전통 한복',
+    img: '/wedding-snap/catalog/hanbok-couple-studio.jpg',
+  },
+  {
+    id: 'classic',
+    label: '블랙 클래식',
+    afterLabel: 'AI · 블랙 클래식',
+    img: '/wedding-snap/catalog/studio-couple-blackwhite.jpg',
+  },
+  {
+    id: 'outdoor',
+    label: '가든 야외',
+    afterLabel: 'AI · 가든 야외',
+    img: '/wedding-snap/catalog/garden-champagne-toast.jpg',
+  },
+  {
+    id: 'vintage',
+    label: '필름 빈티지',
+    afterLabel: 'AI · 필름 빈티지',
+    img: '/wedding-snap/catalog/vintage-90s-street-vsign.jpg',
+  },
 ];
 
 /**
@@ -62,6 +84,8 @@ export function BeforeAfterSlider() {
     setPct(next);
   }
 
+  const active = STYLES.find((s) => s.id === style)!;
+
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--wd-line)] bg-white">
       <div
@@ -87,20 +111,33 @@ export function BeforeAfterSlider() {
           draggingRef.current = false;
         }}
       >
-        <div className="big-before absolute inset-0">
-          <div className="absolute left-1/4 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[13px] tracking-[0.1em] text-white/40">
-            셀카 한 장
-          </div>
+        <div className="absolute inset-0 bg-[#EFE6DC]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={BEFORE_IMG}
+            alt="평소 커플 사진 (변환 전)"
+            draggable={false}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/10" />
         </div>
         <div
-          className={`absolute inset-0 big-${style}`}
+          className="absolute inset-0 bg-[#EFE6DC]"
           style={{ clipPath: `inset(0 0 0 ${pct}%)` }}
-        />
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={active.img}
+            alt={`${active.label} AI 웨딩스냅 결과`}
+            draggable={false}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        </div>
         <div className="absolute left-3.5 top-3.5 rounded-full bg-black/55 px-3 py-1.5 text-[10.5px] font-medium tracking-wider text-white">
           BEFORE
         </div>
         <div className="absolute right-3.5 top-3.5 rounded-full bg-white/95 px-3 py-1.5 text-[10.5px] font-medium tracking-wider text-[var(--wd-ink)]">
-          {STYLES.find((s) => s.id === style)!.afterLabel}
+          {active.afterLabel}
         </div>
         <div
           className="pointer-events-none absolute bottom-0 top-0 z-[3] w-[2px] -translate-x-1/2 bg-white/95"
