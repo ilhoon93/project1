@@ -5,6 +5,8 @@ import { HeroStage } from '@/components/marketing/HeroStage';
 import { ShowcaseTabs } from '@/components/marketing/ShowcaseTabs';
 import { BeforeAfterSlider } from '@/components/marketing/BeforeAfterSlider';
 import { getAvailableCatalog } from '@/lib/snap/catalog-availability';
+import { catalogCountStat } from '@/lib/snap/catalog-display';
+import { SNAP_STARTING_PRICE, formatKRW } from '@/lib/snap/packages';
 
 export const metadata: Metadata = {
   title: '우리다운 — 우리 다운 결혼 알림장',
@@ -117,11 +119,6 @@ function DesignAndValues() {
 /* ─────────────────────── 3. AI 웨딩스냅 미리보기 ─────────────────────── */
 
 function AiSnapPreview({ catalogCount }: { catalogCount: number }) {
-  // 실제 카탈로그 개수를 10 단위로 내림 — "80+ 컷" 같은 안전한 표기.
-  // catalogCount 가 작으면 (예: 15) 그대로 노출.
-  const display =
-    catalogCount >= 30 ? `${Math.floor(catalogCount / 10) * 10}+` : `${catalogCount}`;
-
   return (
     <section className="border-t border-[var(--wd-line)] px-6 py-14 sm:py-16">
       <div className="mx-auto max-w-3xl">
@@ -144,44 +141,17 @@ function AiSnapPreview({ catalogCount }: { catalogCount: number }) {
         <BeforeAfterSlider />
 
         <div className="mt-5 grid grid-cols-3 divide-x divide-[var(--wd-line)] rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)] py-4 text-center">
-          <Stat number={display} label="베스트샷 컷" />
+          <Stat number={catalogCountStat(catalogCount)} label="베스트샷 컷" />
           <Stat number="5" label="스타일 라인업" />
           <Stat number="≈90s" label="컷 당 평균 생성" />
         </div>
 
-        <ol className="mt-5 grid gap-3 sm:grid-cols-3">
-          {[
-            { n: 1, title: '셀카 1 장 업로드', body: '30 초면 끝' },
-            { n: 2, title: '카탈로그 컷 고르기', body: '5 스타일 · 다양한 구도' },
-            { n: 3, title: 'AI 가 합성', body: '평균 90 초, 마이페이지에 저장' },
-          ].map((s) => (
-            <li
-              key={s.n}
-              className="flex gap-3 rounded-xl border border-[var(--wd-line)] bg-[var(--wd-paper)] p-3.5"
-            >
-              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--wd-ink)] text-[11px] font-medium text-[var(--wd-cream)]">
-                {s.n}
-              </span>
-              <div>
-                <p className="text-[13px] font-medium text-[var(--wd-ink)]">{s.title}</p>
-                <p className="mt-0.5 text-[11.5px] text-[var(--wd-mute)]">{s.body}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-
-        <div className="mt-6 flex flex-wrap gap-2">
+        <div className="mt-6">
           <Link
             href="/wedding-snap"
-            className="inline-flex items-center rounded-full bg-[var(--wd-ink)] px-5 py-2.5 text-[13px] font-medium text-[var(--wd-cream)]"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--wd-ink)] px-5 py-2.5 text-[13px] font-medium text-[var(--wd-cream)]"
           >
-            AI 스냅 자세히 보기
-          </Link>
-          <Link
-            href="/wedding-snap/create"
-            className="inline-flex items-center rounded-full border border-[var(--wd-ink)]/25 px-5 py-2.5 text-[13px] font-medium text-[var(--wd-ink)]"
-          >
-            바로 만들기
+            AI 화보 둘러보기 · {formatKRW(SNAP_STARTING_PRICE)}부터 →
           </Link>
         </div>
       </div>

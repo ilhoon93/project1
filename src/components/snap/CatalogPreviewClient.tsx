@@ -28,8 +28,7 @@ import {
   type CatalogSortMode,
 } from '@/components/snap/CatalogFilterBar';
 import type { CatalogStatsMap } from '@/lib/snap/catalog-stats';
-
-const CATALOG_PAGE_SIZE = 24;
+import { computePageItems, CATALOG_PAGE_SIZE } from '@/lib/utils/pagination';
 
 export function CatalogPreviewClient({
   items,
@@ -72,13 +71,17 @@ export function CatalogPreviewClient({
 
   return (
     <div className="flex flex-col gap-3">
-      <CatalogFilterBar
-        value={filter}
-        onChange={setFilter}
-        resultCount={{ shown: filtered.length, total: items.length }}
-        sortMode={catalogStats ? sortMode : undefined}
-        onSortModeChange={catalogStats ? setSortMode : undefined}
-      />
+      {/* 둘러보기의 핵심 도구라 스크롤해도 상단에 붙도록 sticky.
+          (배경 cream 위에 솔리드 화이트 카드라 겹쳐도 가독성 유지.) */}
+      <div className="sticky top-2 z-20 -mx-1 px-1">
+        <CatalogFilterBar
+          value={filter}
+          onChange={setFilter}
+          resultCount={{ shown: filtered.length, total: items.length }}
+          sortMode={catalogStats ? sortMode : undefined}
+          onSortModeChange={catalogStats ? setSortMode : undefined}
+        />
+      </div>
       {filtered.length === 0 ? (
         <p className="rounded-md border border-dashed border-[#E8DCC9] bg-white p-6 text-center text-xs text-[#8B7355]">
           선택한 필터 조합에 맞는 카탈로그가 없어요. 필터를 조정해 보세요.
@@ -141,25 +144,4 @@ export function CatalogPreviewClient({
       )}
     </div>
   );
-}
-
-/**
- * 페이지 번호 표시 항목 계산. 총 6 페이지 이하면 전체, 그 이상이면 현재 페이지를
- * 중심으로 윈도우 + 첫/마지막을 보여 주고 그 사이에 'ellipsis' 삽입.
- * (mypage 의 동일 헬퍼와 같은 로직 — 페이지 수가 적으면 그대로 표시.)
- */
-function computePageItems(
-  current: number,
-  total: number,
-): Array<number | 'ellipsis'> {
-  if (total <= 6) return Array.from({ length: total }, (_, i) => i);
-  const items: Array<number | 'ellipsis'> = [];
-  const windowStart = Math.max(1, current - 1);
-  const windowEnd = Math.min(total - 2, current + 1);
-  items.push(0);
-  if (windowStart > 1) items.push('ellipsis');
-  for (let i = windowStart; i <= windowEnd; i++) items.push(i);
-  if (windowEnd < total - 2) items.push('ellipsis');
-  items.push(total - 1);
-  return items;
 }

@@ -7,11 +7,20 @@ import {
   fetchCatalogStatsMap,
   type CatalogStatsMap,
 } from '@/lib/snap/catalog-stats';
+import { catalogCountLabel } from '@/lib/snap/catalog-display';
+import {
+  SNAP_PACKAGES,
+  SNAP_STARTING_PRICE,
+  SNAP_STANDARD_PACKAGE,
+  formatKRW,
+  freeRegenSummary,
+} from '@/lib/snap/packages';
 
 export const metadata: Metadata = {
   title: 'AI 웨딩스냅 — 우리다운',
-  description:
-    '신랑 신부 셀카 1장씩이면 50가지 베스트샷이 우리 얼굴로. 19,900원으로 시작하는 AI 웨딩 스튜디오.',
+  description: `신랑·신부 셀카로 수십 가지 웨딩 베스트샷을 우리 얼굴로. ${formatKRW(
+    SNAP_STARTING_PRICE,
+  )}부터 시작하는 AI 웨딩 스튜디오.`,
 };
 
 // admin 태그 변경이 즉시 반영되도록 cache 없음 (양쪽 condition 모두 hidden 인
@@ -25,15 +34,16 @@ export default async function WeddingSnapLandingPage() {
     getAvailableCatalog(),
     fetchCatalogStatsMap(),
   ]);
+  const catalogCount = visibleCatalog.length;
   // 섹션 순서 — 설명/진행방법/가격을 앞으로, 카탈로그 미리보기는 뒤로:
   //   Hero → AboutSnap → HowItWorks → PackageLineup → CatalogPreview → PrimaryCta
   // 이유: 처음 들어온 사용자가 "이게 뭐고, 어떻게 진행되고, 얼마인가" 를 먼저 보고,
   // 그 다음 결과물 갤러리(카탈로그) 를 둘러보다 [지금 만들기] 로 자연스럽게 이어짐.
   return (
     <main className="mx-auto max-w-4xl px-4 pb-20 pt-10 sm:px-6">
-      <Hero />
-      <AboutSnap />
-      <HowItWorks />
+      <Hero catalogCount={catalogCount} />
+      <AboutSnap catalogCount={catalogCount} />
+      <HowItWorks catalogCount={catalogCount} />
       <PackageLineup />
       <CatalogPreview items={visibleCatalog} catalogStats={catalogStats} />
       <PrimaryCta />
@@ -41,49 +51,24 @@ export default async function WeddingSnapLandingPage() {
   );
 }
 
-interface SnapPackageTier {
-  code: 'snap_5' | 'snap_20' | 'snap_40';
-  name: string;
-  credits: number;
-  price: number;
-  perImage: number;
-  highlight?: string;
-  bonus?: string;
+/** 섹션 공통 제목 — 메인 랜딩과 같은 위계(이브로우 + h2). */
+function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
+  return (
+    <div className="mb-4">
+      <p className="font-italiana text-[11px] font-medium tracking-[0.18em] text-[var(--wd-coral)]">
+        {eyebrow}
+      </p>
+      <h2 className="mt-1 text-[20px] font-medium leading-snug tracking-tight text-[#3D2E1F]">
+        {title}
+      </h2>
+    </div>
+  );
 }
 
-const SNAP_PACKAGES: SnapPackageTier[] = [
-  {
-    code: 'snap_5',
-    name: '체험팩',
-    credits: 5,
-    price: 3900,
-    perImage: 780,
-    highlight: '부담 없이 한 번 만들어 보고 싶을 때',
-  },
-  {
-    code: 'snap_20',
-    name: '표준 (가장 인기)',
-    credits: 20,
-    price: 13900,
-    perImage: 695,
-    highlight: '청첩장 메인 + 베스트샷 다양하게',
-  },
-  {
-    code: 'snap_40',
-    name: '헤비',
-    credits: 40,
-    price: 24900,
-    perImage: 622,
-    highlight: '카탈로그 풀 활용 · 가성비 최고',
-  },
-];
-
-function AboutSnap() {
+function AboutSnap({ catalogCount }: { catalogCount: number }) {
   return (
     <section className="mt-16">
-      <h2 className="mb-4 text-sm font-medium tracking-wider text-[#5C4633]">
-        AI 웨딩스냅이란?
-      </h2>
+      <SectionHeading eyebrow="WHAT IS IT" title="AI 웨딩스냅이란?" />
       <div className="flex flex-col gap-3 rounded-lg border border-[#E8DCC9] bg-white p-5 text-sm leading-relaxed text-[#5C4633]">
         <p>
           두 가지 입력 방식 — <strong>셀카로 만들기</strong> (신랑·신부 각자 셀카
@@ -96,15 +81,15 @@ function AboutSnap() {
           셀카 모드는{' '}
           <strong>앵커 단계 (4장 후보 中 1장 선택)</strong> 가 결제 후 첫 batch{' '}
           <span className="text-emerald-700">무료</span>로 제공되고, 이후{' '}
-          <strong>80가지 이상의 카탈로그 풀</strong>에서 원하는 컷을 1장당 스냅
-          크레딧 1개씩 차감해 만듭니다. 키·몸무게를 같이 입력하면 전신 비율도
-          자연스럽게 반영돼요.
+          <strong>{catalogCountLabel(catalogCount)}의 카탈로그 풀</strong>에서
+          원하는 컷을 1장당 스냅 크레딧 1개씩 차감해 만듭니다. 키·몸무게를 같이
+          입력하면 전신 비율도 자연스럽게 반영돼요.
         </p>
         <p>
           만든 결과는 마이페이지에 자동 저장되고,{' '}
           <strong>좋아요·재생성 피드백</strong> 도 가능합니다. 재생성은 패키지
-          결제 시 적립된 <strong>무료 quota</strong>(snap_5 → 1회 / snap_20 →
-          4회 / snap_40 → 8회) 안에서 무료, 이후엔 1 크레딧씩 차감.
+          결제 시 적립된 <strong>무료 quota</strong>({freeRegenSummary()}) 안에서
+          무료, 이후엔 1 크레딧씩 차감.
         </p>
       </div>
     </section>
@@ -114,12 +99,10 @@ function AboutSnap() {
 function PackageLineup() {
   return (
     <section className="mt-12">
-      <h2 className="mb-4 text-sm font-medium tracking-wider text-[#5C4633]">
-        패키지 라인업
-      </h2>
+      <SectionHeading eyebrow="PRICING" title="패키지 라인업" />
       <p className="mb-3 text-xs text-[#8B7355]">
-        실제 웨딩스튜디오 대비 1–3% 가격으로 80가지 이상의 컷을 우리 얼굴로 만들
-        수 있어요. 결제는 PortOne · 네이버 스마트스토어 양쪽 지원, 마이페이지의
+        실제 웨딩스튜디오 대비 1–3% 가격으로 우리 얼굴의 베스트샷을 만들 수 있어요.
+        결제는 PortOne · 네이버 스마트스토어 양쪽 지원, 마이페이지의
         &ldquo;주문&rdquo; 탭에서 스마트스토어 주문번호 등록 또는 네이버 로그인
         연동으로 진행됩니다.
       </p>
@@ -128,7 +111,7 @@ function PackageLineup() {
           <li
             key={p.code}
             className={`flex flex-col gap-1 rounded-md border p-3 text-xs ${
-              p.code === 'snap_20'
+              p.isPopular
                 ? 'border-[#3D2E1F] bg-[#FAF7F2]'
                 : 'border-[#E8DCC9] bg-white'
             }`}
@@ -136,22 +119,21 @@ function PackageLineup() {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-[#3D2E1F]">{p.name}</span>
-                {p.code === 'snap_20' && (
+                {p.isPopular && (
                   <span className="rounded-full bg-[#3D2E1F] px-2 py-0.5 text-[10px] font-medium text-white">
                     추천
                   </span>
                 )}
               </div>
               <span className="text-sm font-semibold text-[#3D2E1F]">
-                {p.price.toLocaleString()}원
+                {formatKRW(p.price)}
               </span>
             </div>
             <div className="flex items-center justify-between gap-2 text-[#5C4633]">
               <span>스냅 크레딧 {p.credits}개</span>
-              <span className="text-[10px] text-[#8B7355]">컷당 {p.perImage}원</span>
+              <span className="text-[10px] text-[#8B7355]">컷당 {formatKRW(p.perImage)}</span>
             </div>
             {p.highlight && <p className="text-[11px] text-[#8B7355]">{p.highlight}</p>}
-            {p.bonus && <p className="text-[11px] text-emerald-700">+ {p.bonus}</p>}
           </li>
         ))}
       </ul>
@@ -161,29 +143,34 @@ function PackageLineup() {
         앵커 재생성은 4 크레딧 차감.
         <br />
         패키지 결제 시 카탈로그 결과 <strong>재생성 무료 quota</strong> 도 함께
-        적립 — snap_5 → 1회 / snap_20 → 4회 / snap_40 → 8회. 그 이후 재생성은
-        1 크레딧 차감.
+        적립 — {freeRegenSummary()}. 그 이후 재생성은 1 크레딧 차감.
       </p>
     </section>
   );
 }
 
-function Hero() {
+function Hero({ catalogCount }: { catalogCount: number }) {
   return (
     <section className="text-center">
-      <p className="text-xs tracking-[0.4em] text-[#8B7355]">AI WEDDING SNAP</p>
-      <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
+      <p className="font-italiana text-xs tracking-[0.4em] text-[var(--wd-coral)]">
+        AI WEDDING SNAP
+      </p>
+      <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight text-[#3D2E1F] md:text-4xl">
         우리 둘 셀카 한 장이면
         <br />
-        80가지 웨딩 컷이 완성됩니다
+        {catalogCountLabel(catalogCount)} 웨딩 컷이 완성됩니다
       </h1>
       <p className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-[#5C4633] md:text-base">
-        스튜디오·한옥·도심 골든아워·바닷가·해외 풍경까지 — 80가지 이상의 베스트샷
-        중 마음에 드는 컷을 고르면 우리 얼굴로 자연스럽게 합성해드려요.
+        스튜디오·한옥·도심 골든아워·바닷가·해외 풍경까지 —{' '}
+        {catalogCountLabel(catalogCount)}의 베스트샷 중 마음에 드는 컷을 고르면
+        우리 얼굴로 자연스럽게 합성해드려요.
       </p>
       <p className="mt-4 text-sm font-medium text-[#3D2E1F]">
-        <span className="text-2xl font-semibold">13,900원</span>
-        <span className="ml-2 text-xs text-[#8B7355]">/ 20장 표준 패키지</span>
+        <span className="text-2xl font-semibold">{formatKRW(SNAP_STARTING_PRICE)}</span>
+        <span className="ml-2 text-xs text-[#8B7355]">
+          부터 · {SNAP_STANDARD_PACKAGE.name} {SNAP_STANDARD_PACKAGE.credits}장{' '}
+          {formatKRW(SNAP_STANDARD_PACKAGE.price)}
+        </span>
       </p>
     </section>
   );
@@ -198,26 +185,26 @@ function CatalogPreview({
 }) {
   return (
     <section className="mt-12">
-      <h2 className="mb-4 text-sm font-medium tracking-wider text-[#5C4633]">
-        카탈로그 미리보기
-      </h2>
+      <SectionHeading eyebrow="GALLERY" title="카탈로그 미리보기" />
       <CatalogPreviewClient items={items} catalogStats={catalogStats} />
     </section>
   );
 }
 
-function HowItWorks() {
+function HowItWorks({ catalogCount }: { catalogCount: number }) {
   const steps = [
     { n: 1, title: '신랑·신부 셀카 업로드', body: '정면 클로즈업 1장씩. 30초면 끝.' },
-    { n: 2, title: '카탈로그 컷 선택', body: '50가지 베스트샷 중 마음에 드는 20장.' },
+    {
+      n: 2,
+      title: '카탈로그 컷 선택',
+      body: `${catalogCountLabel(catalogCount)} 베스트샷 중 마음에 드는 만큼.`,
+    },
     { n: 3, title: 'AI 가 합성', body: '컷당 평균 60~120초, 자연스러운 결과물 생성.' },
     { n: 4, title: '다운로드 + 청첩장 메인', body: '갤러리에서 모두 다운로드. 청첩장 메인 사진으로도 사용.' },
   ];
   return (
     <section className="mt-16">
-      <h2 className="mb-4 text-sm font-medium tracking-wider text-[#5C4633]">
-        진행 방법
-      </h2>
+      <SectionHeading eyebrow="HOW IT WORKS" title="진행 방법" />
       <ol className="grid gap-3 sm:grid-cols-2">
         {steps.map((s) => (
           <li
@@ -243,9 +230,9 @@ function PrimaryCta() {
     <section className="mt-16 text-center">
       <Link
         href="/wedding-snap/create"
-        className="inline-block rounded-md bg-[#3D2E1F] px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-[#5C4633]"
+        className="inline-flex items-center rounded-full bg-[#3D2E1F] px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-[#5C4633] active:scale-[0.97]"
       >
-        지금 만들기
+        지금 만들기 →
       </Link>
       <p className="mt-3 text-[11px] text-[#8B7355]">
         평균 생성 시간 60~120초 · 결과는 마이페이지에서 확인할 수 있어요.

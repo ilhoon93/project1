@@ -25,6 +25,7 @@ import {
   type CatalogSortMode,
 } from '@/components/snap/CatalogFilterBar';
 import type { CatalogStatsMap } from '@/lib/snap/catalog-stats';
+import { computePageItems, CATALOG_PAGE_SIZE } from '@/lib/utils/pagination';
 import {
   evaluateCompatibility,
   isCatalogHidden,
@@ -42,9 +43,6 @@ import {
 // 폴링 — gpt-image-2 medium 은 보통 20–60초, high 는 30–90초.
 const POLL_INTERVAL_MS = 5_000;
 const MAX_POLL_ATTEMPTS = 60;
-
-// 카탈로그 그리드 한 페이지 갯수 — 랜딩(CatalogPreviewClient) 과 동일.
-const CATALOG_PAGE_SIZE = 24;
 
 type InputMode = 'selfies1' | 'selfies3' | 'couple';
 
@@ -2522,23 +2520,3 @@ function UploadGuideOverlay({
   );
 }
 
-/**
- * 페이지 번호 표시 항목 계산. 총 6 페이지 이하면 전체, 그 이상이면 현재 페이지를
- * 중심으로 윈도우 + 첫/마지막을 보여 주고 그 사이에 'ellipsis' 삽입.
- * (CatalogPreviewClient / mypage 의 동일 헬퍼와 같은 로직.)
- */
-function computePageItems(
-  current: number,
-  total: number,
-): Array<number | 'ellipsis'> {
-  if (total <= 6) return Array.from({ length: total }, (_, i) => i);
-  const items: Array<number | 'ellipsis'> = [];
-  const windowStart = Math.max(1, current - 1);
-  const windowEnd = Math.min(total - 2, current + 1);
-  items.push(0);
-  if (windowStart > 1) items.push('ellipsis');
-  for (let i = windowStart; i <= windowEnd; i++) items.push(i);
-  if (windowEnd < total - 2) items.push('ellipsis');
-  items.push(total - 1);
-  return items;
-}

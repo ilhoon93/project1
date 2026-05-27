@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { COLOR_THEME_LABELS, type ColorTheme } from '@/lib/theme';
 import { SNAP_CATALOG } from '@/lib/snap/catalog';
+import { computePageItems } from '@/lib/utils/pagination';
 
 // snap_jobs / snap_anchor_history 응답 타입 — API 가 돌려주는 raw shape.
 interface SnapJob {
@@ -857,27 +858,6 @@ function RegenerateModal({
   );
 }
 
-/**
- * 페이지 번호 표시 항목 계산. 총 6 페이지 이하면 전체, 그 이상이면 현재 페이지를
- * 중심으로 윈도우 + 첫/마지막을 보여 주고 그 사이에 'ellipsis' 삽입.
- *
- * 예시 (totalPages=12, current=5): [0, 'ellipsis', 4, 5, 6, 'ellipsis', 11]
- */
-function computePageItems(
-  current: number,
-  total: number,
-): Array<number | 'ellipsis'> {
-  if (total <= 6) return Array.from({ length: total }, (_, i) => i);
-  const items: Array<number | 'ellipsis'> = [];
-  const windowStart = Math.max(1, current - 1);
-  const windowEnd = Math.min(total - 2, current + 1);
-  items.push(0);
-  if (windowStart > 1) items.push('ellipsis');
-  for (let i = windowStart; i <= windowEnd; i++) items.push(i);
-  if (windowEnd < total - 2) items.push('ellipsis');
-  items.push(total - 1);
-  return items;
-}
 
 function SnapResultCard({
   job,
