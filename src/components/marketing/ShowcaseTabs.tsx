@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { SAMPLE_DESIGNS } from '@/lib/marketing/sample-invitations';
+import { InvitationPreview } from './InvitationPreview';
 
 type TabId = 'design' | 'quiz' | 'vote' | 'guestbook' | 'vow';
 
@@ -154,119 +156,26 @@ function TabIcon({ id, active }: { id: TabId; active: boolean }) {
 
 /* ─────────────────── mini mock 5 종 ─────────────────── */
 
+// 디자인 탭은 실제 알림장 렌더러로 만든 표지를 순환 (나머지 탭은 경량 mock 유지).
+const DESIGN_SAMPLES = SAMPLE_DESIGNS.slice(0, 4);
+
 function MockDesign({ active }: { active: boolean }) {
-  // 4 디자인이 폰 안에서 자동 순환
   const [d, setD] = useState(0);
   useEffect(() => {
     if (!active) return;
-    const i = setInterval(() => setD((v) => (v + 1) % 4), 2200);
+    const i = setInterval(() => setD((v) => (v + 1) % DESIGN_SAMPLES.length), 3200);
     return () => clearInterval(i);
   }, [active]);
 
-  return (
-    <div className={`absolute inset-0 transition-opacity duration-500 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
-      {[0, 1, 2, 3].map((idx) => (
-        <div
-          key={idx}
-          className={`absolute inset-0 transition-opacity duration-500 ${idx === d ? 'opacity-100' : 'opacity-0'}`}
-        >
-          {idx === 0 && <DesignSampleA />}
-          {idx === 1 && <DesignSampleB />}
-          {idx === 2 && <DesignSampleC />}
-          {idx === 3 && <DesignSampleD />}
-        </div>
-      ))}
-    </div>
-  );
-}
+  const cur = DESIGN_SAMPLES[d];
 
-function DesignSampleA() {
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[#FCF1EA] px-5 pb-7 pt-12 text-center">
-      {[0, 1.5, 3, 4.2].map((delay, i) => (
-        <span
-          key={i}
-          style={{
-            left: ['12%', '34%', '60%', '82%'][i],
-            animationDelay: `${delay}s`,
-            background: i % 2 === 0 ? '#E8A095' : '#D4837E',
-          }}
-          className="pointer-events-none absolute -top-2 h-[11px] w-[7px] animate-[petal-fall_7s_linear_infinite] rounded-[80%_0_80%_0]"
-        />
-      ))}
-      <div
-        className="mt-7 text-[19px] leading-[1.55] text-[#5C2820]"
-        style={{ fontFamily: 'var(--font-noto-serif-kr), serif' }}
-      >
-        민준
-        <br />
-        <span className="my-1 inline-block text-[24px] italic text-[var(--wd-coral)]">&amp;</span>
-        <br />
-        서연
+    <div
+      className={`absolute inset-0 transition-opacity duration-500 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+    >
+      <div key={cur.id} className="absolute inset-0" style={{ animation: 'wd-fade 0.6s ease' }}>
+        <InvitationPreview design={cur} cover />
       </div>
-      <div className="mt-5 text-[10.5px] tracking-[0.22em] text-[#8B5448]">
-        2025 · 06 · 15 · SAT
-      </div>
-      <div className="absolute inset-x-0 bottom-6 text-[10px] tracking-wider text-[#A57264]">
-        결혼했습니다
-      </div>
-    </div>
-  );
-}
-
-function DesignSampleB() {
-  return (
-    <div className="relative h-full w-full bg-[#15110E] px-5 pb-7 pt-12 text-[#F5F0E8]">
-      <div className="text-[9px] tracking-[0.32em] opacity-55">WEDDING ANNOUNCEMENT</div>
-      <div className="my-3 h-px w-full bg-white/30" />
-      <div className="my-5 text-[22px] font-medium leading-tight tracking-wider">
-        MINJUN
-        <br />
-        SEOYEON
-      </div>
-      <div className="my-3 h-px w-full bg-white/30" />
-      <div className="mt-4 text-[10.5px] leading-[1.9] tracking-wider opacity-70">
-        2025 . 06 . 15
-        <br />
-        SATURDAY · 14:00
-        <br />
-        —<br />
-        가족끼리 식사로
-        <br />
-        대신합니다
-      </div>
-    </div>
-  );
-}
-
-function DesignSampleC() {
-  return (
-    <div className="relative h-full w-full overflow-hidden bg-[#2C2520]">
-      <div
-        className="absolute inset-0 animate-[ken-burns_9s_ease-in-out_infinite_alternate]"
-        style={{
-          background:
-            'radial-gradient(circle at 30% 40%, #E8A095 0%, #8B5448 60%, #3D2017 100%)',
-        }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/75" />
-      <div className="absolute inset-x-0 bottom-7 px-4 text-center text-white">
-        <div className="text-[20px]" style={{ fontFamily: 'var(--font-noto-serif-kr), serif' }}>
-          민준 &amp; 서연
-        </div>
-        <div className="mt-2 text-[10.5px] tracking-[0.22em] opacity-90">15 · JUN · 2025</div>
-      </div>
-    </div>
-  );
-}
-
-function DesignSampleD() {
-  return (
-    <div className="relative flex h-full w-full flex-col justify-center bg-[#FAFAF8] px-6 text-center">
-      <div className="mx-auto h-px w-8 bg-[#1A1A1A]" />
-      <div className="mt-5 text-[21px] font-medium tracking-wide text-[#1A1A1A]">민준 · 서연</div>
-      <div className="mt-1 text-[11px] tracking-[0.18em] text-[#888]">결혼합니다</div>
-      <div className="mt-7 text-[10.5px] tracking-[0.22em] text-[#555]">2025 . 06 . 15</div>
     </div>
   );
 }
