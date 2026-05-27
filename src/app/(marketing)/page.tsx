@@ -118,7 +118,7 @@ function DesignAndValues({ designs }: { designs: SampleDesign[] }) {
             href="/designs"
             className="inline-flex items-center gap-1.5 rounded-full border border-[var(--wd-ink)]/25 px-5 py-2.5 text-[13px] font-medium text-[var(--wd-ink)] transition-colors hover:border-[var(--wd-ink)]/50"
           >
-            디자인 샘플 {designs.length}종 전체 보기 →
+            디자인 샘플 모아보기 →
           </Link>
         </div>
       </div>
