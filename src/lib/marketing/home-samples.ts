@@ -12,7 +12,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { findSnapCatalog } from '@/lib/snap/catalog';
 import { COLOR_THEMES, PETAL_TYPES, FONT_KEYS } from '@/lib/theme';
-import { MAIN_LAYOUTS } from '@/types/invitation';
+import { MainSectionSchema } from '@/types/invitation';
 import {
   DEFAULT_AI_SNAP_IDS,
   DEFAULT_HOME_SAMPLES_CONFIG,
@@ -37,12 +37,12 @@ const DesignConfigSchema = z.object({
   colorTheme: z.enum(COLOR_THEMES),
   petalType: z.enum(PETAL_TYPES),
   font: z.enum(FONT_KEYS),
-  layout: z.enum(MAIN_LAYOUTS),
   heroImageId: z.string(),
   groomName: z.string(),
   brideName: z.string(),
   weddingDate: z.string(),
-  greetingShort: z.string().default(''),
+  // 실제 메인 슬라이드 디자인 (heroImage 는 null 로 저장, build 시 heroImageId 주입).
+  main: MainSectionSchema,
 });
 
 const ConfigSchema = z.object({

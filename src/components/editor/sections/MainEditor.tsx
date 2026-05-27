@@ -247,7 +247,7 @@ interface DesignProps {
   onGreetingChange: (next: string) => void;
 }
 
-function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: DesignProps) {
+export function PosterDesignControls({ design, onChange, greeting, onGreetingChange }: DesignProps) {
   const handleReset = () => {
     onChange(PosterDesignSchema.parse(undefined));
   };
@@ -553,7 +553,7 @@ const ILLUST_VARIANT_LABELS: Record<IllustrationVariant, { name: string; hint: s
   car: { name: '웨딩 카', hint: 'MARRIED 사인 + 자동차에 탄 커플' },
 };
 
-function IllustrationDesignControls({ design, onChange, greeting, onGreetingChange }: IllustProps) {
+export function IllustrationDesignControls({ design, onChange, greeting, onGreetingChange }: IllustProps) {
   const handleReset = () => {
     // variant 는 "타입" 선택이라 보존, 디자인 항목만 기본값으로.
     const defaults = IllustrationDesignSchema.parse(undefined);
@@ -766,7 +766,7 @@ const TEXT_VARIANT_LABELS: Record<TextVariant, { name: string; hint: string }> =
   none: { name: '없음', hint: '데코 이미지 없이 텍스트만' },
 };
 
-function TextDesignControls({ design, onChange, greeting, onGreetingChange }: TextProps) {
+export function TextDesignControls({ design, onChange, greeting, onGreetingChange }: TextProps) {
   const handleReset = () => {
     // variant 는 "타입" 선택이라 보존, 디자인 항목만 기본값으로.
     const defaults = TextDesignSchema.parse(undefined);
@@ -1065,7 +1065,7 @@ const FRAME_VARIANT_LABELS: Record<FrameVariant, { name: string; hint: string }>
   classic: { name: '클래식', hint: '상하좌우 테두리 액자' },
 };
 
-function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: FrameProps) {
+export function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: FrameProps) {
   const handleReset = () => {
     // variant 는 "타입" 선택이라 보존, 디자인 항목만 기본값으로.
     const defaults = FrameDesignSchema.parse(undefined);

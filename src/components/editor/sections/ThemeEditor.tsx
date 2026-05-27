@@ -300,7 +300,7 @@ function Field({
   );
 }
 
-function ColorSwatch({
+export function ColorSwatch({
   value,
   selected,
   onClick,
@@ -340,7 +340,7 @@ function ColorSwatch({
  * glyph; texture types render the same SVG used by the falling animation so
  * the picker matches what guests will actually see.
  */
-function PetalIcon({ type, accent }: { type: PetalType; accent: string }) {
+export function PetalIcon({ type, accent }: { type: PetalType; accent: string }) {
   if (type === 'none') {
     return <span className="text-base text-muted-foreground">∅</span>;
   }
