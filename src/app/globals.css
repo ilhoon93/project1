@@ -183,6 +183,34 @@
   }
 }
 
+/* 메인 랜딩 배경의 소프트 글로우 블롭 — 아주 느리고 은은하게 떠다니는 드리프트.
+   회전 없이 위치/스케일만 미세 변화 (float-a~d 는 폴라로이드용이라 회전 포함). */
+@keyframes wd-drift-1 {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(3%, -4%, 0) scale(1.06);
+  }
+}
+@keyframes wd-drift-2 {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.04);
+  }
+  50% {
+    transform: translate3d(-4%, 3%, 0) scale(1);
+  }
+}
+
+/* 모션 민감 사용자 — 배경 드리프트/낙하 정지. */
+@media (prefers-reduced-motion: reduce) {
+  .wd-backdrop-blob {
+    animation: none !important;
+  }
+}
+
 /* Hero stage 폴라로이드 4 종 — radial gradient 만으로 인물/배경 실루엣 흉내.
    사용자 셀카 업로드 전 placeholder 역할. */
 .ph-hanbok {

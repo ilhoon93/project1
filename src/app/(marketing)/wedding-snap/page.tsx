@@ -71,25 +71,18 @@ function AboutSnap({ catalogCount }: { catalogCount: number }) {
       <SectionHeading eyebrow="WHAT IS IT" title="AI 웨딩스냅이란?" />
       <div className="flex flex-col gap-3 rounded-lg border border-[#E8DCC9] bg-white p-5 text-sm leading-relaxed text-[#5C4633]">
         <p>
-          두 가지 입력 방식 — <strong>셀카로 만들기</strong> (신랑·신부 각자 셀카
-          1장 또는 정면/좌/우 3장으로 앵커 생성) 또는{' '}
-          <strong>커플사진으로 만들기</strong> (두 사람이 함께 찍힌 사진 1장) —
-          중 편한 쪽을 고르면, 카탈로그 컷의 의상·배경·구도를 그대로 두고{' '}
-          <strong>얼굴/체형만 본인 얼굴로 교체</strong>해드립니다.
+          <strong>셀카</strong>(각자 1장 또는 정면·좌·우 3장) 또는{' '}
+          <strong>커플사진 1장</strong>만 올리면, 카탈로그 컷의 의상·배경·구도는
+          그대로 두고 <strong>얼굴·체형만 두 사람으로</strong> 바꿔드려요.
+          키·몸무게를 입력하면 전신 비율까지 자연스럽게 맞춥니다.
         </p>
         <p>
-          셀카 모드는{' '}
-          <strong>앵커 단계 (4장 후보 中 1장 선택)</strong> 가 결제 후 첫 batch{' '}
-          <span className="text-emerald-700">무료</span>로 제공되고, 이후{' '}
-          <strong>{catalogCountLabel(catalogCount)}의 카탈로그 풀</strong>에서
-          원하는 컷을 1장당 스냅 크레딧 1개씩 차감해 만듭니다. 키·몸무게를 같이
-          입력하면 전신 비율도 자연스럽게 반영돼요.
-        </p>
-        <p>
-          만든 결과는 마이페이지에 자동 저장되고,{' '}
-          <strong>좋아요·재생성 피드백</strong> 도 가능합니다. 재생성은 패키지
-          결제 시 적립된 <strong>무료 quota</strong>({freeRegenSummary()}) 안에서
-          무료, 이후엔 1 크레딧씩 차감.
+          셀카 모드는 결제 후 첫 앵커(후보 4장 中 1장 선택)가{' '}
+          <span className="text-emerald-700">무료</span>. 이후{' '}
+          {catalogCountLabel(catalogCount)} 카탈로그에서 원하는 컷을{' '}
+          <strong>1장당 크레딧 1개</strong>로 만들고, 결과는 마이페이지에 자동
+          저장돼요. 재생성은 패키지별 무료 횟수({freeRegenSummary()}) 안에서 무료,
+          이후 1크레딧.
         </p>
       </div>
     </section>
@@ -158,7 +151,7 @@ function Hero({ catalogCount }: { catalogCount: number }) {
       <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight text-[#3D2E1F] md:text-4xl">
         우리 둘 셀카 한 장이면
         <br />
-        {catalogCountLabel(catalogCount)} 웨딩 컷이 완성됩니다
+        웨딩 화보가 완성됩니다
       </h1>
       <p className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-[#5C4633] md:text-base">
         스튜디오·한옥·도심 골든아워·바닷가·해외 풍경까지 —{' '}
