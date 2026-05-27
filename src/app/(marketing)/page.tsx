@@ -67,7 +67,7 @@ function Hero() {
           href="/new"
           className="inline-flex items-center gap-1.5 rounded-full bg-[var(--wd-ink)] px-6 py-3 text-[13px] font-medium text-[var(--wd-cream)] transition-transform active:scale-[0.97]"
         >
-          3 분만에 만들기 →
+          무료로 알림장 만들기 →
         </Link>
         <Link
           href="/wedding-snap"
@@ -76,7 +76,7 @@ function Hero() {
           AI 화보 둘러보기
         </Link>
         <Link
-          href="#design-values"
+          href="/designs"
           className="inline-flex items-center rounded-full border border-[var(--wd-ink)]/25 bg-transparent px-6 py-3 text-[13px] font-medium text-[var(--wd-ink)]"
         >
           디자인 둘러보기
@@ -116,7 +116,7 @@ function DesignAndValues() {
             href="/designs"
             className="inline-flex items-center gap-1.5 rounded-full border border-[var(--wd-ink)]/25 px-5 py-2.5 text-[13px] font-medium text-[var(--wd-ink)] transition-colors hover:border-[var(--wd-ink)]/50"
           >
-            디자인 샘플 8종 전체 보기 →
+            디자인 샘플 9종 전체 보기 →
           </Link>
         </div>
       </div>

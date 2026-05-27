@@ -44,16 +44,16 @@ export function DesignCatalogClient() {
             }}
             className="group cursor-pointer text-left outline-none"
           >
-            <div
-              className="relative overflow-hidden rounded-[26px] border-[6px] border-[#15110E] bg-white shadow-[0_14px_34px_rgba(31,27,23,0.16)] transition-transform group-hover:-translate-y-1 group-focus-visible:-translate-y-1"
-              style={{ aspectRatio: '9 / 19' }}
-            >
-              <InvitationPreview design={d} cover />
-              {/* 클릭 캡처 — 표지 안 인터랙티브 요소 대신 카드 전체가 모달을 연다. */}
-              <div className="absolute inset-0 z-10" />
-              <span className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-center justify-center bg-gradient-to-t from-black/55 to-transparent pb-2.5 pt-7 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-                전체 미리보기 →
-              </span>
+            <div className="overflow-hidden rounded-[26px] border-[6px] border-[#15110E] bg-white shadow-[0_14px_34px_rgba(31,27,23,0.16)] transition-transform group-hover:-translate-y-1 group-focus-visible:-translate-y-1">
+              {/* 화면 = 정확히 9:18 → 표지 미리보기가 왜곡 없이 가득 채움 */}
+              <div className="relative aspect-[9/18] w-full overflow-hidden">
+                <InvitationPreview design={d} cover />
+                {/* 클릭 캡처 — 표지 안 인터랙티브 요소 대신 카드 전체가 모달을 연다. */}
+                <div className="absolute inset-0 z-10" />
+                <span className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-center justify-center bg-gradient-to-t from-black/55 to-transparent pb-2.5 pt-7 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                  전체 미리보기 →
+                </span>
+              </div>
             </div>
             <div className="mt-2.5 px-1">
               <div className="text-[13px] font-medium text-[var(--wd-ink)]">{d.name}</div>
@@ -84,11 +84,13 @@ function PreviewModal({ design, onClose }: { design: SampleDesign; onClose: () =
       </button>
 
       <div
-        className="relative overflow-hidden rounded-[2.2rem] border-[10px] border-[#15110E] bg-white shadow-2xl"
-        style={{ aspectRatio: '9 / 19', height: 'min(78vh, 760px)' }}
+        className="overflow-hidden rounded-[2.2rem] border-[10px] border-[#15110E] bg-white shadow-2xl"
+        style={{ height: 'min(82vh, 800px)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <InvitationPreview design={design} />
+        <div className="relative aspect-[9/18] h-full overflow-hidden">
+          <InvitationPreview design={design} />
+        </div>
       </div>
 
       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
