@@ -1,56 +1,25 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-
-type Style = 'hanbok' | 'classic' | 'outdoor' | 'vintage';
-
-const BEFORE_IMG = '/wedding-snap/mode-examples/couple-input-1.jpg';
-
-const STYLES: Array<{ id: Style; label: string; afterLabel: string; img: string }> = [
-  {
-    id: 'hanbok',
-    label: '전통 한복',
-    afterLabel: 'AI · 전통 한복',
-    img: '/wedding-snap/catalog/hanbok-couple-studio.jpg',
-  },
-  {
-    id: 'classic',
-    label: '블랙 클래식',
-    afterLabel: 'AI · 블랙 클래식',
-    img: '/wedding-snap/catalog/studio-couple-blackwhite.jpg',
-  },
-  {
-    id: 'outdoor',
-    label: '가든 야외',
-    afterLabel: 'AI · 가든 야외',
-    img: '/wedding-snap/catalog/garden-champagne-toast.jpg',
-  },
-  {
-    id: 'vintage',
-    label: '필름 빈티지',
-    afterLabel: 'AI · 필름 빈티지',
-    img: '/wedding-snap/catalog/vintage-90s-street-vsign.jpg',
-  },
-];
+import type { BeforeAfterConfig } from '@/lib/marketing/sample-invitations';
 
 /**
  * AI 웨딩스냅 Before/After 슬라이더 + 스타일 탭.
  *
- * 최초 마운트 시 1.5 초 후 슬라이더 핸들이 좌우로 70 회 휙휙 움직여
- * "드래그 가능" 어포던스를 시각적으로 알려준다. 그 후 50% 로 정지.
- * 사용자가 직접 드래그하면 즉시 데모 애니메이션 중단.
+ * 최초 마운트 시 1.5 초 후 슬라이더 핸들이 좌우로 70 회 움직여 "드래그 가능"
+ * 어포던스를 알려준다. 사용자가 직접 드래그하면 즉시 데모 중단.
  *
- * 키비주얼 HTML 의 aspect-ratio 4/3 에서 3/2 로 축소 — 모바일에서 화면을
- * 절반 이상 먹지 않도록.
+ * before 사진 + 스타일 목록(label/afterLabel/afterImage)은 운영자가
+ * /admin/home-samples 에서 편집한 BeforeAfterConfig 를 props 로 받아 렌더.
  */
-export function BeforeAfterSlider() {
-  const [style, setStyle] = useState<Style>('hanbok');
+export function BeforeAfterSlider({ config }: { config: BeforeAfterConfig }) {
+  const styles = config.styles;
+  const [styleId, setStyleId] = useState<string>(styles[0]?.id ?? '');
   const [pct, setPct] = useState(50);
   const sliderRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
   const userPickedRef = useRef(false);
 
-  // 데모 wobble — 사용자가 안 만지면 잠깐 흔들어서 "여기 드래그하세요" 신호
   useEffect(() => {
     if (userPickedRef.current) return;
     let p = 50;
@@ -84,7 +53,8 @@ export function BeforeAfterSlider() {
     setPct(next);
   }
 
-  const active = STYLES.find((s) => s.id === style)!;
+  const active = styles.find((s) => s.id === styleId) ?? styles[0];
+  if (!active) return null;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--wd-line)] bg-white">
@@ -114,7 +84,7 @@ export function BeforeAfterSlider() {
         <div className="absolute inset-0 bg-[#EFE6DC]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={BEFORE_IMG}
+            src={config.beforeImage}
             alt="평소 커플 사진 (변환 전)"
             draggable={false}
             className="absolute inset-0 h-full w-full object-cover"
@@ -127,7 +97,7 @@ export function BeforeAfterSlider() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={active.img}
+            src={active.afterImage}
             alt={`${active.label} AI 웨딩스냅 결과`}
             draggable={false}
             className="absolute inset-0 h-full w-full object-cover"
@@ -158,15 +128,15 @@ export function BeforeAfterSlider() {
       </div>
 
       <div className="flex gap-2 overflow-x-auto border-t border-[var(--wd-line)] p-4 [&::-webkit-scrollbar]:hidden">
-        {STYLES.map((s) => {
-          const on = s.id === style;
+        {styles.map((s) => {
+          const on = s.id === active.id;
           return (
             <button
               key={s.id}
               type="button"
               onClick={() => {
                 userPickedRef.current = true;
-                setStyle(s.id);
+                setStyleId(s.id);
                 setPct(50);
               }}
               className={`flex-shrink-0 whitespace-nowrap rounded-full border px-3.5 py-2 text-[12px] transition-colors ${

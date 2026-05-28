@@ -5,19 +5,23 @@ import {
 import type { ColorTheme, PetalType, FontKey } from '@/lib/theme';
 
 /**
- * 마케팅용 알림장 디자인 샘플 — 히어로 폰, 알림장 소개 섹션, /designs 카탈로그가
- * 공유하는 단일 소스. 운영자(/admin/home-samples)가 표지(메인 슬라이드)를 실제
- * 에디터 수준으로 편집할 수 있도록 "설정(DesignConfig)" → "렌더 가능한
- * SampleDesign" 으로 분리했다.
+ * 마케팅용 알림장 디자인 샘플 + 메인 Before/After 슬라이더 + 공유 본문 템플릿의
+ * 단일 소스. 운영자(/admin/home-samples) 가 모두 편집 가능하고, 값이 없으면
+ * 이 파일의 코드 기본값으로 폴백한다.
  *
- * DesignConfig.main 은 실제 InvitationContent['main'] 객체 그대로다 — 레이아웃별
- * 디자인(포스터/액자/일러스트/텍스트)의 variant·제목 텍스트/폰트/색/크기/위치,
- * 이름·날짜·인사말 박스의 토글/크기/위치까지 에디터와 동일하게 담는다.
- * 단, 표지 사진은 catalog id(heroImageId)로 따로 들고(스키마의 url 검증 우회)
- * buildDesign 시점에 `/wedding-snap/catalog/{id}.jpg` 로 주입한다.
+ *   DesignConfig.main   = 실제 InvitationContent['main'] (에디터 수준 표지 편집)
+ *   TemplateConfig      = 모든 샘플이 공유하는 본문(스토리/갤러리/퀴즈 등)
+ *   BeforeAfterConfig   = AI 스냅 Before/After 슬라이더의 before 사진 + 4 스타일
  *
- * 본문(스토리/갤러리/퀴즈/투표/계좌)은 모든 샘플이 공유하는 템플릿이다.
+ * 이미지 url 검증을 피하기 위해 스키마상 url 인 필드(heroImage, story.chapters.image,
+ * gallery.images)는 catalog id 로 저장하고 buildDesign 시점에 경로로 주입한다.
  */
+
+const CAT = '/wedding-snap/catalog';
+
+// ─────────────────────────────────────────────────────────────
+// 1. 타입
+// ─────────────────────────────────────────────────────────────
 
 export interface SampleDesign {
   id: string;
@@ -29,7 +33,6 @@ export interface SampleDesign {
   content: InvitationContent;
 }
 
-/** 운영자가 편집 가능한 설정 — DB(marketing_home_samples.designs)에 저장. */
 export interface DesignConfig {
   id: string;
   enabled: boolean;
@@ -41,58 +44,157 @@ export interface DesignConfig {
   colorTheme: ColorTheme;
   petalType: PetalType;
   font: FontKey;
-  /** 표지 배경 사진 catalog id. `/wedding-snap/catalog/{id}.jpg` */
   heroImageId: string;
-  /** 실제 메인 슬라이드 디자인 (heroImage 는 null 로 두고 build 시 heroImageId 로 주입). */
   main: InvitationContent['main'];
 }
 
-/** 메인 AI스냅(폴라로이드+스트립) 한 칸 — 카탈로그 id 를 라벨/경로로 풀어둔 형태. */
 export interface AiSnapItem {
   id: string;
   label: string;
   src: string;
 }
 
-/** marketing_home_samples 한 행에 대응하는 설정. */
+export interface BeforeAfterStyle {
+  id: string;
+  label: string;
+  afterLabel: string;
+  /** Catalog 또는 mode-examples 의 전체 경로. */
+  afterImage: string;
+}
+
+export interface BeforeAfterConfig {
+  beforeImage: string;
+  styles: BeforeAfterStyle[];
+}
+
+export interface TemplateChapter {
+  title: string;
+  text: string;
+  /** catalog id (resolve to `/wedding-snap/catalog/{id}.jpg` at build). */
+  imageId: string;
+}
+
+export interface TemplateConfig {
+  basicGreeting: string;
+  basicQuote: string;
+  storyChapters: TemplateChapter[];
+  galleryImageIds: string[];
+  quizQuestion: string;
+  quizOptions: string[]; // length 4
+  quizAnswer: number; // 0-3
+  voteQuestion: string;
+  voteOptions: string[]; // length 2
+  guestbookMessage: string;
+  accountGuide: string;
+  accountGroomBank: string;
+  accountGroomNumber: string;
+  accountBrideBank: string;
+  accountBrideNumber: string;
+  closing: string;
+}
+
 export interface HomeSamplesConfig {
   aiSnapCatalogIds: string[];
   designs: DesignConfig[];
+  beforeAfter: BeforeAfterConfig;
+  template: TemplateConfig;
 }
 
-const CAT = '/wedding-snap/catalog';
+// ─────────────────────────────────────────────────────────────
+// 2. 기본값 — DB 미설정 시 폴백
+// ─────────────────────────────────────────────────────────────
 
-// 스토리·갤러리 사진은 샘플이 공유 (디자인 차이를 테마/레이아웃/표지로 보여줌).
-const STORY_IMAGES = [
-  `${CAT}/studio-couple-puppy.jpg`,
-  `${CAT}/garden-champagne-toast.jpg`,
-  `${CAT}/jeju-stonewall-cheer.jpg`,
-];
-const GALLERY_IMAGES = [
-  `${CAT}/beach-classic-white.jpg`,
-  `${CAT}/paris-eiffel-walk.jpg`,
-  `${CAT}/hanbok-couple-studio.jpg`,
-  `${CAT}/cinema-popcorn-couple.jpg`,
-  `${CAT}/yacht-sunset-hug.jpg`,
-  `${CAT}/countryside-bicycle-sunset.jpg`,
-];
+export const DEFAULT_TEMPLATE: TemplateConfig = {
+  basicGreeting:
+    '서로의 가장 가까운 친구가 되기로 했습니다.\n저희 두 사람의 새로운 시작을 함께 축복해 주세요.',
+  basicQuote: '사랑은 함께 같은 곳을 바라보는 것.',
+  storyChapters: [
+    {
+      title: '첫 만남',
+      text: '우연히 같은 자리에 앉았던 그날, 서로를 알아본 순간부터 모든 게 시작됐어요.',
+      imageId: 'studio-couple-puppy',
+    },
+    {
+      title: '서로에게 물들다',
+      text: '평범한 하루도 함께라 특별해졌습니다. 사계절을 나란히 걸으며 닮아갔어요.',
+      imageId: 'garden-champagne-toast',
+    },
+    {
+      title: '프로포즈',
+      text: '오래 함께하고 싶다는 마음을 담아, 평생의 약속을 건넸습니다.',
+      imageId: 'jeju-stonewall-cheer',
+    },
+  ],
+  galleryImageIds: [
+    'beach-classic-white',
+    'paris-eiffel-walk',
+    'hanbok-couple-studio',
+    'cinema-popcorn-couple',
+    'yacht-sunset-hug',
+    'countryside-bicycle-sunset',
+  ],
+  quizQuestion: '두 사람이 처음 만난 곳은?',
+  quizOptions: ['대학교 동아리', '회사 워크샵', '소개팅 앱', '친구 소개'],
+  quizAnswer: 0,
+  voteQuestion: '신혼여행은 어디로 가면 좋을까요?',
+  voteOptions: ['발리', '제주'],
+  guestbookMessage: '축하 한마디와 서명을 남겨주세요!',
+  accountGuide: '축하의 마음을 담아 마음 전하실 분들을 위해 계좌번호를 안내드립니다.',
+  accountGroomBank: '우리은행',
+  accountGroomNumber: '1002-000-000000',
+  accountBrideBank: '국민은행',
+  accountBrideNumber: '123-00-000000',
+  closing: '와주셔서 진심으로 감사합니다',
+};
 
-/** DesignConfig(표지 설정) + 공유 본문 → 실제 렌더 가능한 SampleDesign. */
-export function buildDesign(c: DesignConfig): SampleDesign {
+export const DEFAULT_BEFORE_AFTER: BeforeAfterConfig = {
+  beforeImage: '/wedding-snap/mode-examples/couple-input-1.jpg',
+  styles: [
+    {
+      id: 'hanbok',
+      label: '전통 한복',
+      afterLabel: 'AI · 전통 한복',
+      afterImage: `${CAT}/hanbok-couple-studio.jpg`,
+    },
+    {
+      id: 'classic',
+      label: '블랙 클래식',
+      afterLabel: 'AI · 블랙 클래식',
+      afterImage: `${CAT}/studio-couple-blackwhite.jpg`,
+    },
+    {
+      id: 'outdoor',
+      label: '가든 야외',
+      afterLabel: 'AI · 가든 야외',
+      afterImage: `${CAT}/garden-champagne-toast.jpg`,
+    },
+    {
+      id: 'vintage',
+      label: '필름 빈티지',
+      afterLabel: 'AI · 필름 빈티지',
+      afterImage: `${CAT}/vintage-90s-street-vsign.jpg`,
+    },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────
+// 3. buildDesign — Config + Template → 실제 InvitationContent
+// ─────────────────────────────────────────────────────────────
+
+export function buildDesign(
+  c: DesignConfig,
+  t: TemplateConfig = DEFAULT_TEMPLATE,
+): SampleDesign {
   const content = defaultInvitationContent();
 
   content.theme.colorTheme = c.colorTheme;
   content.theme.petalType = c.petalType;
   content.theme.font = c.font;
 
-  // 운영자가 편집한 메인 슬라이드 디자인 그대로 + 표지 사진 주입.
   content.main = { ...c.main, heroImage: `${CAT}/${c.heroImageId}.jpg` };
 
-  content.basic.greeting = {
-    enabled: true,
-    text: '서로의 가장 가까운 친구가 되기로 했습니다.\n저희 두 사람의 새로운 시작을 함께 축복해 주세요.',
-  };
-  content.basic.quote = { enabled: true, text: '사랑은 함께 같은 곳을 바라보는 것.' };
+  content.basic.greeting = { enabled: true, text: t.basicGreeting };
+  content.basic.quote = { enabled: true, text: t.basicQuote };
   content.basic.family = {
     enabled: true,
     groomFather: { name: '김상현', deceased: false },
@@ -101,52 +203,47 @@ export function buildDesign(c: DesignConfig): SampleDesign {
     brideMother: { name: '최은영', deceased: false },
   };
 
-  content.story.chapters = [
-    {
-      title: '첫 만남',
-      text: '우연히 같은 자리에 앉았던 그날, 서로를 알아본 순간부터 모든 게 시작됐어요.',
-      image: STORY_IMAGES[0],
-    },
-    {
-      title: '서로에게 물들다',
-      text: '평범한 하루도 함께라 특별해졌습니다. 사계절을 나란히 걸으며 닮아갔어요.',
-      image: STORY_IMAGES[1],
-    },
-    {
-      title: '프로포즈',
-      text: '오래 함께하고 싶다는 마음을 담아, 평생의 약속을 건넸습니다.',
-      image: STORY_IMAGES[2],
-    },
-  ];
+  content.story.chapters = t.storyChapters.map((ch) => ({
+    title: ch.title,
+    text: ch.text,
+    image: ch.imageId ? `${CAT}/${ch.imageId}.jpg` : null,
+  }));
 
-  content.gallery = { enabled: true, layout: 'grid', images: GALLERY_IMAGES };
+  content.gallery = {
+    enabled: true,
+    layout: 'grid',
+    images: t.galleryImageIds.map((id) => `${CAT}/${id}.jpg`),
+  };
 
   content.quiz = {
     enabled: true,
     questions: [
       {
-        q: '두 사람이 처음 만난 곳은?',
-        options: ['대학교 동아리', '회사 워크샵', '소개팅 앱', '친구 소개'],
-        answer: 0,
+        q: t.quizQuestion,
+        options: [t.quizOptions[0] ?? '', t.quizOptions[1] ?? '', t.quizOptions[2] ?? '', t.quizOptions[3] ?? ''],
+        answer: Math.max(0, Math.min(3, t.quizAnswer)),
       },
     ],
   };
 
   content.vote = {
     enabled: true,
-    questions: [{ q: '신혼여행은 어디로 가면 좋을까요?', options: ['발리', '제주'] }],
+    questions: [
+      { q: t.voteQuestion, options: [t.voteOptions[0] ?? '', t.voteOptions[1] ?? ''] },
+    ],
   };
 
-  content.guestbook = { enabled: true, coupleMessage: '축하 한마디와 서명을 남겨주세요!' };
+  content.guestbook = { enabled: true, coupleMessage: t.guestbookMessage };
 
+  content.account.guide = t.accountGuide;
   content.account.groom = [
-    { bank: '우리은행', number: '1002-000-000000', holder: c.groomName },
+    { bank: t.accountGroomBank, number: t.accountGroomNumber, holder: c.groomName },
   ];
   content.account.bride = [
-    { bank: '국민은행', number: '123-00-000000', holder: c.brideName },
+    { bank: t.accountBrideBank, number: t.accountBrideNumber, holder: c.brideName },
   ];
 
-  content.closing = '와주셔서 진심으로 감사합니다';
+  content.closing = t.closing;
 
   return {
     id: c.id,
@@ -159,7 +256,10 @@ export function buildDesign(c: DesignConfig): SampleDesign {
   };
 }
 
-/** 코드 기본 디자인의 간결한 시드 (표지 레벨 핵심값). */
+// ─────────────────────────────────────────────────────────────
+// 4. 코드 기본 디자인 12종 (시드)
+// ─────────────────────────────────────────────────────────────
+
 interface Seed {
   id: string;
   name: string;
@@ -211,10 +311,8 @@ function seedToConfig(s: Seed): DesignConfig {
   };
 }
 
-/** 코드 기본 디자인 12종 — 운영자 설정이 없을 때 폴백. */
 export const DEFAULT_SAMPLE_CONFIGS: DesignConfig[] = SEEDS.map(seedToConfig);
 
-/** 메인 AI스냅 기본 카탈로그 id — 앞 4개=폴라로이드, 전체=썸네일 스트립. */
 export const DEFAULT_AI_SNAP_IDS: string[] = [
   'hanbok-couple-studio',
   'studio-couple-blackwhite',
@@ -231,14 +329,16 @@ export const DEFAULT_AI_SNAP_IDS: string[] = [
   'city-goldenhour-balcony',
 ];
 
-/** 기본 설정 (운영자 미설정 시). */
 export const DEFAULT_HOME_SAMPLES_CONFIG: HomeSamplesConfig = {
   aiSnapCatalogIds: DEFAULT_AI_SNAP_IDS,
   designs: DEFAULT_SAMPLE_CONFIGS,
+  beforeAfter: DEFAULT_BEFORE_AFTER,
+  template: DEFAULT_TEMPLATE,
 };
 
-/** 코드 기본 디자인을 렌더 가능한 형태로. (props 미전달 컴포넌트의 폴백) */
-export const SAMPLE_DESIGNS: SampleDesign[] = DEFAULT_SAMPLE_CONFIGS.map(buildDesign);
+export const SAMPLE_DESIGNS: SampleDesign[] = DEFAULT_SAMPLE_CONFIGS.map((c) =>
+  buildDesign(c, DEFAULT_TEMPLATE),
+);
 
 /** 표지(메인 슬라이드)만 렌더하도록 pageOrder 를 main 한 장으로 줄인 콘텐츠. */
 export function coverContent(content: InvitationContent): InvitationContent {
