@@ -8,7 +8,11 @@ import { getAvailableCatalog } from '@/lib/snap/catalog-availability';
 import { catalogCountStat } from '@/lib/snap/catalog-display';
 import { SNAP_STARTING_PRICE, formatKRW } from '@/lib/snap/packages';
 import { getHomeSamples } from '@/lib/marketing/home-samples';
-import type { AiSnapItem, SampleDesign } from '@/lib/marketing/sample-invitations';
+import type {
+  AiSnapItem,
+  BeforeAfterConfig,
+  SampleDesign,
+} from '@/lib/marketing/sample-invitations';
 
 export const metadata: Metadata = {
   title: '우리다운 — 우리 다운 결혼 알림장',
@@ -29,7 +33,11 @@ export default async function LandingPage() {
     <>
       <Hero aiSnaps={home.aiSnaps} designs={home.designs} />
       <DesignAndValues designs={home.designs} />
-      <AiSnapPreview catalogCount={catalogCount} aiSnaps={home.aiSnaps} />
+      <AiSnapPreview
+        catalogCount={catalogCount}
+        aiSnaps={home.aiSnaps}
+        beforeAfter={home.beforeAfter}
+      />
       <Pricing />
       <Footer />
     </>
@@ -108,7 +116,9 @@ function DesignAndValues({ designs }: { designs: SampleDesign[] }) {
         <p className="mb-7 mt-2 max-w-[540px] break-keep text-[14px] leading-[1.75] text-[var(--wd-mute)]">
           14가지 컬러 테마와 살아 움직이는 배경, 하객이 함께하는 퀴즈와 A/B 투표,
           손글씨 서명을 남기는 방명록, 발행 후 PDF로 간직하는 혼인서약서까지. 메인부터
-          엔딩까지 10개 섹션을 우리답게 구성하세요.
+          엔딩까지 10개 섹션을 우리답게 구성하세요. 발행 후엔 신랑·신부 전용 소장용
+          URL이 발급돼 하객 메시지·서명·퀴즈/투표 결과·축하 카운트를 한곳에 모아
+          평생 간직할 수 있어요.
         </p>
 
         <ShowcaseTabs designs={designs} />
@@ -131,9 +141,11 @@ function DesignAndValues({ designs }: { designs: SampleDesign[] }) {
 function AiSnapPreview({
   catalogCount,
   aiSnaps,
+  beforeAfter,
 }: {
   catalogCount: number;
   aiSnaps: AiSnapItem[];
+  beforeAfter: BeforeAfterConfig;
 }) {
   return (
     <section className="border-t border-[var(--wd-line)] bg-[var(--wd-paper)] px-6 py-14 sm:py-16">
@@ -154,7 +166,7 @@ function AiSnapPreview({
           신규 가입 후 첫 결제 시 5장 무료 체험
         </div>
 
-        <BeforeAfterSlider />
+        <BeforeAfterSlider config={beforeAfter} />
 
         <div className="mt-5 grid grid-cols-3 divide-x divide-[var(--wd-line)] rounded-2xl border border-[var(--wd-line)] bg-white py-4 text-center">
           <Stat number={catalogCountStat(catalogCount)} label="베스트샷 컷" />

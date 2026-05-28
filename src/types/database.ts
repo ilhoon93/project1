@@ -445,6 +445,8 @@ export type Database = {
           id: boolean;
           ai_snap_catalog_ids: string[];
           designs: unknown;
+          before_after: unknown | null;
+          template: unknown | null;
           updated_at: string;
           updated_by: string | null;
         };
@@ -452,6 +454,8 @@ export type Database = {
           id?: boolean;
           ai_snap_catalog_ids?: string[];
           designs?: unknown;
+          before_after?: unknown | null;
+          template?: unknown | null;
           updated_at?: string;
           updated_by?: string | null;
         };
