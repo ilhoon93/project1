@@ -5,6 +5,7 @@ import { HeroStage } from '@/components/marketing/HeroStage';
 import { ShowcaseTabs } from '@/components/marketing/ShowcaseTabs';
 import { BeforeAfterSlider } from '@/components/marketing/BeforeAfterSlider';
 import { FadeUp } from '@/components/marketing/Motion';
+import { HeroBackdrop } from '@/components/marketing/HeroBackdrop';
 import { SideCaption, SideSprig } from '@/components/marketing/SideMarginalia';
 import { getAvailableCatalog } from '@/lib/snap/catalog-availability';
 import { catalogCountStat } from '@/lib/snap/catalog-display';
@@ -53,10 +54,9 @@ function Hero({ aiSnaps, designs }: { aiSnaps: AiSnapItem[]; designs: SampleDesi
 
   return (
     <section className="relative overflow-hidden px-6 pb-12 pt-10 text-center sm:pb-16 sm:pt-14">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[55%] bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,253,248,0.55)_0%,transparent_70%)]"
-      />
+      {/* 추상 보케 백드롭 + ken-burns + 미세 꽃잎. 실제 보케 사진이 준비되면
+          imageUrl prop 에 경로(예: '/wedding-snap/hero/bokeh.jpg') 전달. */}
+      <HeroBackdrop />
 
       {/* 데스크톱 사이드 peek 폴라로이드 — 양옆 빈 공간을 콘텐츠로 채움. */}
       {leftPeek && (

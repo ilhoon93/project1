@@ -167,3 +167,38 @@
   }
 }
 
+/* Hero 추상 보케 backdrop — 천천히 줌+팬(ken-burns).
+   살아있는 느낌만 미세하게, 14s 사이클로 반복. */
+@keyframes kb-hero {
+  from {
+    transform: scale(1) translate(0, 0);
+  }
+  to {
+    transform: scale(1.08) translate(-1.5%, -1%);
+  }
+}
+
+/* Hero 위로 떨어지는 미세 꽃잎 오버레이 — 회전하며 천천히 흘러내림. */
+@keyframes petal-drift {
+  0% {
+    transform: translateY(-12px) rotate(0);
+    opacity: 0;
+  }
+  8%,
+  92% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateY(820px) rotate(540deg);
+    opacity: 0;
+  }
+}
+
+/* prefers-reduced-motion — Hero 보케/꽃잎 모션 정지. */
+@media (prefers-reduced-motion: reduce) {
+  [style*='kb-hero'],
+  [style*='petal-drift'] {
+    animation: none !important;
+  }
+}
+
