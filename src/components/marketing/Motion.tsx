@@ -16,8 +16,8 @@ import type { ReactNode } from 'react';
 export function FadeUp({
   children,
   delay = 0,
-  duration = 0.5,
-  y = 12,
+  duration = 0.65,
+  y = 22,
   scroll = false,
   className,
   as: As = 'div',
@@ -25,7 +25,7 @@ export function FadeUp({
   children: ReactNode;
   delay?: number;
   duration?: number;
-  /** 시작 시점의 y 오프셋(px). */
+  /** 시작 시점의 y 오프셋(px). 기본 22px — 평범한 desktop 에서도 확실히 인지 가능. */
   y?: number;
   /** true 면 스크롤 viewport 진입 시 트리거, false 면 마운트 시. */
   scroll?: boolean;

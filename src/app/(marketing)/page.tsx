@@ -85,21 +85,21 @@ function Hero({ aiSnaps, designs }: { aiSnaps: AiSnapItem[]; designs: SampleDesi
         </div>
       </FadeUp>
 
-      <FadeUp delay={0.12} className="relative">
+      <FadeUp delay={0.15} className="relative">
         <h1 className="mx-auto mt-6 max-w-[15ch] text-balance break-keep text-[32px] font-medium leading-[1.36] tracking-tight sm:text-[36px]">
           예식 없이도,{' '}
           <em className="not-italic text-[var(--wd-coral)]">우리의 소식을 전해요.</em>
         </h1>
       </FadeUp>
 
-      <FadeUp delay={0.24} className="relative">
+      <FadeUp delay={0.32} className="relative">
         <p className="mx-auto mt-5 max-w-[430px] break-keep text-[14.5px] leading-[1.75] text-[var(--wd-mute)]">
           노웨딩·스몰웨딩 커플을 위한 감성 모바일 알림장과 AI 웨딩스냅. 3분 만에
           만들어 카카오톡으로 소식을 전하세요.
         </p>
       </FadeUp>
 
-      <FadeUp delay={0.36} className="relative">
+      <FadeUp delay={0.5} className="relative">
         <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
           <Link
             href="/new"
@@ -213,11 +213,11 @@ function AiSnapPreview({
   beforeAfter: BeforeAfterConfig;
 }) {
   return (
-    <section className="relative overflow-hidden border-t border-[var(--wd-line)] bg-[var(--wd-paper)] py-14 sm:py-16">
+    <section className="relative border-t border-[var(--wd-line)] bg-[var(--wd-paper)] px-6 py-14 sm:py-16">
       <SideSprig side="left" topPct={48} />
       <SideCaption text="AI WEDDING SNAP" side="right" topPct={52} />
 
-      <div className="mx-auto max-w-3xl px-6">
+      <div className="mx-auto max-w-3xl">
         <FadeUp scroll>
           <div className="font-italiana text-[11px] font-medium tracking-[0.18em] text-[var(--wd-coral)]">
             AI WEDDING SNAP · BEFORE &amp; AFTER
@@ -247,28 +247,28 @@ function AiSnapPreview({
           <Stat number="5" label="스타일 라인업" />
           <Stat number="≈90s" label="컷 당 평균 생성" />
         </div>
-      </div>
 
-      {/* 풀블리드 카탈로그 스트립 — 데스크톱에서 화면 끝까지 사진이 흐름. */}
-      <FullBleedCatalogStrip catalogCount={catalogCount} aiSnaps={aiSnaps} />
+        <CatalogStrip catalogCount={catalogCount} aiSnaps={aiSnaps} />
 
-      <div className="mx-auto mt-6 max-w-3xl px-6">
-        <Link
-          href="/wedding-snap"
-          className="inline-flex items-center gap-1.5 rounded-full bg-[var(--wd-ink)] px-5 py-2.5 text-[13px] font-medium text-[var(--wd-cream)]"
-        >
-          AI 화보 둘러보기 · {formatKRW(SNAP_STARTING_PRICE)}부터 →
-        </Link>
+        <div className="mt-6">
+          <Link
+            href="/wedding-snap"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--wd-ink)] px-5 py-2.5 text-[13px] font-medium text-[var(--wd-cream)]"
+          >
+            AI 화보 둘러보기 · {formatKRW(SNAP_STARTING_PRICE)}부터 →
+          </Link>
+        </div>
       </div>
     </section>
   );
 }
 
 /**
- * 풀블리드 카탈로그 사진 스트립 — 헤더 텍스트는 좁은 max-w 안, 가로 스크롤 줄은
- * 섹션 끝까지 사용해 데스크톱 빈 공간을 사진으로 채운다. 양끝 페이드 마스크 유지.
+ * 실제 카탈로그 마스터 사진을 가로로 흘려보내는 스트립 — 단색 배경을 실사진
+ * 으로 채워 허전함을 없애고 스타일 다양성을 한눈에 보여준다. 가로 스크롤 +
+ * 양끝 페이드 마스크. 각 타일은 /wedding-snap 으로 진입.
  */
-function FullBleedCatalogStrip({
+function CatalogStrip({
   catalogCount,
   aiSnaps,
 }: {
@@ -277,22 +277,20 @@ function FullBleedCatalogStrip({
 }) {
   return (
     <div className="mt-6">
-      <div className="mx-auto max-w-3xl px-6">
-        <div className="mb-2.5 flex items-baseline justify-between">
-          <span className="text-[12.5px] font-medium text-[var(--wd-ink)]">
-            이런 스타일까지, 골라서 우리 얼굴로
-          </span>
-          <span className="text-[11px] text-[var(--wd-mute)]">
-            전체 {catalogCount}종 중 일부
-          </span>
-        </div>
+      <div className="mb-2.5 flex items-baseline justify-between">
+        <span className="text-[12.5px] font-medium text-[var(--wd-ink)]">
+          이런 스타일까지, 골라서 우리 얼굴로
+        </span>
+        <span className="text-[11px] text-[var(--wd-mute)]">
+          전체 {catalogCount}종 중 일부
+        </span>
       </div>
-      <div className="flex gap-2.5 overflow-x-auto px-6 pb-1 lg:px-10 [-webkit-mask-image:linear-gradient(90deg,transparent,#000_3%,#000_97%,transparent)] [&::-webkit-scrollbar]:hidden">
+      <div className="flex gap-2.5 overflow-x-auto pb-1 [-webkit-mask-image:linear-gradient(90deg,transparent,#000_4%,#000_96%,transparent)] [&::-webkit-scrollbar]:hidden">
         {aiSnaps.map((t) => (
           <Link
             key={t.id}
             href="/wedding-snap"
-            className="group relative block aspect-[3/4] w-[118px] flex-shrink-0 overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[#EFE6DC] sm:w-[132px]"
+            className="group relative block aspect-[3/4] w-[118px] flex-shrink-0 overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[#EFE6DC]"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
