@@ -58,17 +58,18 @@ export function HeroBackdrop({
       <div className="absolute inset-0" style={photoStyle} />
 
       {/* 2) 상단 중앙 cream 라디얼 베일 — 헤드라인 뒤 "halo".
-            사진 무드는 70~80% 살리고 코랄/잉크 텍스트 가독성만 확보. */}
+            사진 무드를 충분히 살리도록 강도 절제(0.42/0.15). */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            'radial-gradient(ellipse 62% 48% at 50% 28%, rgba(252,241,234,0.6) 0%, rgba(252,241,234,0.22) 50%, rgba(252,241,234,0) 78%)',
+            'radial-gradient(ellipse 52% 40% at 50% 24%, rgba(252,241,234,0.42) 0%, rgba(252,241,234,0.15) 55%, rgba(252,241,234,0) 78%)',
         }}
       />
 
-      {/* 3) 하단 cream 페이드 — 부제·CTA 가독성 + 다음 섹션과 매끄러운 연결. */}
-      <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-b from-transparent via-[var(--wd-cream)]/45 to-[var(--wd-cream)]" />
+      {/* 3) 하단 cream 페이드 — 부제·CTA 가독성 + 다음 섹션과 매끄러운 연결.
+            높이를 38% 로 줄여 사진이 더 많이 보이도록. */}
+      <div className="absolute inset-x-0 bottom-0 h-[38%] bg-gradient-to-b from-transparent via-[var(--wd-cream)]/30 to-[var(--wd-cream)]" />
 
       {/* 4) 미세 꽃잎 오버레이 — reduce 시 생략. */}
       {!reduce && <Petals dim={!!imageUrl} />}

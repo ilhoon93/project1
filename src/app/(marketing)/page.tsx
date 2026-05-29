@@ -53,9 +53,11 @@ function Hero({ aiSnaps, designs }: { aiSnaps: AiSnapItem[]; designs: SampleDesi
   const rightPeek = aiSnaps[5];
 
   return (
-    <section className="relative overflow-hidden px-6 pb-12 pt-10 text-center sm:pb-16 sm:pt-14">
+    <section className="relative isolate overflow-hidden px-6 pb-12 pt-10 text-center sm:pb-16 sm:pt-14">
       {/* 추상 보케 백드롭 + ken-burns + 미세 꽃잎. 실제 보케 사진이 준비되면
-          imageUrl prop 에 경로(예: '/wedding-snap/hero/bokeh.jpg') 전달. */}
+          imageUrl prop 에 경로(예: '/wedding-snap/hero/bokeh.jpg') 전달.
+          섹션의 `isolate` 가 stacking context 를 형성해 backdrop 의 -z-10 이
+          섹션 안에 안전히 갇히도록 한다 (없으면 layout 배경 뒤로 escape). */}
       <HeroBackdrop />
 
       {/* 데스크톱 사이드 peek 폴라로이드 — 양옆 빈 공간을 콘텐츠로 채움. */}
