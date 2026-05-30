@@ -203,6 +203,11 @@ const rockvilleSolid = localFont({
   variable: '--font-rockville-solid',
   display: 'swap',
 });
+const pacifico = localFont({
+  src: './fonts/english/Pacifico-Regular.woff2',
+  variable: '--font-pacifico',
+  display: 'swap',
+});
 
 /* ─────────────────────────────────────────────────────────────────────
  * LOCAL KOREAN FONTS (Gabia / G마켓 산스 / 나눔스퀘어 네오 / 김정철 /
@@ -329,6 +334,7 @@ const koreanFontVariables = [
   paintingWithChocolate.variable,
   qillseyEinstein.variable,
   rockvilleSolid.variable,
+  pacifico.variable,
 ];
 
 export const metadata: Metadata = {

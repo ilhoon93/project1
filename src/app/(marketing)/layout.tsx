@@ -15,11 +15,13 @@ export default async function MarketingLayout({ children }: { children: React.Re
           + 좁은 padding/gap. 360px 기준으로도 한 줄 안에 모든 항목이 들어간다.
           "AI 스냅" 메뉴는 비로그인/로그인 양쪽에서 동일 위치에 항상 노출 — 메인
           진입자가 헤더에서 바로 /wedding-snap 으로 갈 수 있도록. */}
-      {/* relative z-50 — 랜딩 Hero 가 헤더 높이만큼 위로 끌어올려져(-mt) 보케
-          배경이 헤더 뒤까지 이어진다. 헤더는 배경 없이 투명이라 상단바와 메인
-          배경이 한 덩어리로 보임. 다른 마케팅 페이지는 끌어올림이 없어 cream
-          배경 위 그대로 노출(기존과 동일). */}
-      <header className="relative z-50 mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-4 text-sm sm:px-6">
+      {/* sticky top-0 + frosted glass (cream/65 + backdrop-blur) — 스크롤해도
+          상단에 고정. 히어로의 보케 배경이 헤더 뒤로 끌어올려져 있어도 frosted
+          처리로 자연스럽게 비치고, cream 섹션 위에서는 동일 톤으로 흡수돼
+          분리감 없이 한 덩어리로 보임. 다른 마케팅 페이지(끌어올림 없음)에서도
+          cream 위 cream-tinted glass 가 어색하지 않음. */}
+      <header className="sticky top-0 z-50 bg-[var(--wd-cream)]/65 backdrop-blur-md">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-4 text-sm sm:px-6">
         <Link
           href="/"
           className="flex items-center gap-2 whitespace-nowrap font-medium tracking-tight"
@@ -59,6 +61,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
             </Link>
           )}
         </nav>
+        </div>
       </header>
       {children}
     </div>
