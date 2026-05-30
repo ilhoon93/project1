@@ -60,7 +60,7 @@ export function BeforeAfterSlider({ config }: { config: BeforeAfterConfig }) {
     <div className="overflow-hidden rounded-2xl border border-[var(--wd-line)] bg-white">
       <div
         ref={sliderRef}
-        className="relative aspect-[3/2] max-h-[380px] w-full cursor-ew-resize touch-none select-none overflow-hidden"
+        className="relative mx-auto aspect-[4/5] max-h-[560px] w-full cursor-ew-resize touch-none select-none overflow-hidden bg-[var(--wd-paper)]"
         onPointerDown={(e) => {
           draggingRef.current = true;
           userPickedRef.current = true;
@@ -81,18 +81,19 @@ export function BeforeAfterSlider({ config }: { config: BeforeAfterConfig }) {
           draggingRef.current = false;
         }}
       >
-        <div className="absolute inset-0 bg-[#EFE6DC]">
+        <div className="absolute inset-0 bg-[var(--wd-paper)]">
+          {/* object-contain — 사진 전체가 잘리지 않고 보이도록 (letterbox 는 paper 톤). */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={config.beforeImage}
             alt="평소 커플 사진 (변환 전)"
             draggable={false}
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-contain"
           />
-          <div className="absolute inset-0 bg-black/10" />
+          <div className="absolute inset-0 bg-black/5" />
         </div>
         <div
-          className="absolute inset-0 bg-[#EFE6DC]"
+          className="absolute inset-0 bg-[var(--wd-paper)]"
           style={{ clipPath: `inset(0 0 0 ${pct}%)` }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -100,7 +101,7 @@ export function BeforeAfterSlider({ config }: { config: BeforeAfterConfig }) {
             src={active.afterImage}
             alt={`${active.label} AI 웨딩스냅 결과`}
             draggable={false}
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-contain"
           />
         </div>
         <div className="absolute left-3.5 top-3.5 rounded-full bg-black/55 px-3 py-1.5 text-[10.5px] font-medium tracking-wider text-white">

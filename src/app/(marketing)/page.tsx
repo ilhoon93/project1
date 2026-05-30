@@ -4,9 +4,10 @@ import { BrandMark } from '@/components/shared/BrandMark';
 import { HeroStage } from '@/components/marketing/HeroStage';
 import { ShowcaseTabs } from '@/components/marketing/ShowcaseTabs';
 import { BeforeAfterSlider } from '@/components/marketing/BeforeAfterSlider';
+import { CatalogStrip } from '@/components/marketing/CatalogStrip';
 import { FadeUp } from '@/components/marketing/Motion';
 import { HeroBackdrop } from '@/components/marketing/HeroBackdrop';
-import { SideCaption, SideSprig } from '@/components/marketing/SideMarginalia';
+import { SideCaption } from '@/components/marketing/SideMarginalia';
 import { getAvailableCatalog } from '@/lib/snap/catalog-availability';
 import { catalogCountStat } from '@/lib/snap/catalog-display';
 import { SNAP_STARTING_PRICE, formatKRW } from '@/lib/snap/packages';
@@ -53,11 +54,13 @@ function Hero({ aiSnaps, designs }: { aiSnaps: AiSnapItem[]; designs: SampleDesi
   const rightPeek = aiSnaps[5];
 
   return (
-    <section className="relative isolate overflow-hidden px-6 pb-12 pt-10 text-center sm:pb-16 sm:pt-14">
+    <section className="relative isolate -mt-[72px] overflow-hidden px-6 pb-12 pt-[104px] text-center sm:pb-16 sm:pt-[120px]">
       {/* 추상 보케 백드롭 + ken-burns + 미세 꽃잎. 실제 보케 사진이 준비되면
           imageUrl prop 에 경로(예: '/wedding-snap/hero/bokeh.jpg') 전달.
           섹션의 `isolate` 가 stacking context 를 형성해 backdrop 의 -z-10 이
-          섹션 안에 안전히 갇히도록 한다 (없으면 layout 배경 뒤로 escape). */}
+          섹션 안에 안전히 갇히도록 한다 (없으면 layout 배경 뒤로 escape).
+          -mt-[72px] + pt-[104px] 로 헤더 높이만큼 위로 끌어올려 backdrop 이
+          상단바 뒤까지 이어지게 — 헤더(투명) 와 메인 배경이 한 덩어리로 보임. */}
       <HeroBackdrop />
 
       {/* 데스크톱 사이드 peek 폴라로이드 — 양옆 빈 공간을 콘텐츠로 채움. */}
@@ -165,7 +168,6 @@ function DesignAndValues({ designs }: { designs: SampleDesign[] }) {
       className="relative border-t border-[var(--wd-line)] px-6 py-14 sm:py-16"
     >
       <SideCaption text="DESIGN · MANY MOMENTS" side="left" topPct={42} />
-      <SideSprig side="right" topPct={56} />
 
       <div className="mx-auto max-w-3xl">
         <FadeUp scroll>
@@ -216,7 +218,6 @@ function AiSnapPreview({
 }) {
   return (
     <section className="relative border-t border-[var(--wd-line)] bg-[var(--wd-paper)] px-6 py-14 sm:py-16">
-      <SideSprig side="left" topPct={48} />
       <SideCaption text="AI WEDDING SNAP" side="right" topPct={52} />
 
       <div className="mx-auto max-w-3xl">
@@ -244,9 +245,8 @@ function AiSnapPreview({
 
         <BeforeAfterSlider config={beforeAfter} />
 
-        <div className="mt-5 grid grid-cols-3 divide-x divide-[var(--wd-line)] rounded-2xl border border-[var(--wd-line)] bg-white py-4 text-center">
-          <Stat number={catalogCountStat(catalogCount)} label="베스트샷 컷" />
-          <Stat number="5" label="스타일 라인업" />
+        <div className="mt-5 grid grid-cols-2 divide-x divide-[var(--wd-line)] rounded-2xl border border-[var(--wd-line)] bg-white py-4 text-center">
+          <Stat number={catalogCountStat(catalogCount)} label="스타일 라인업" />
           <Stat number="≈90s" label="컷 당 평균 생성" />
         </div>
 
@@ -262,54 +262,6 @@ function AiSnapPreview({
         </div>
       </div>
     </section>
-  );
-}
-
-/**
- * 실제 카탈로그 마스터 사진을 가로로 흘려보내는 스트립 — 단색 배경을 실사진
- * 으로 채워 허전함을 없애고 스타일 다양성을 한눈에 보여준다. 가로 스크롤 +
- * 양끝 페이드 마스크. 각 타일은 /wedding-snap 으로 진입.
- */
-function CatalogStrip({
-  catalogCount,
-  aiSnaps,
-}: {
-  catalogCount: number;
-  aiSnaps: AiSnapItem[];
-}) {
-  return (
-    <div className="mt-6">
-      <div className="mb-2.5 flex items-baseline justify-between">
-        <span className="text-[12.5px] font-medium text-[var(--wd-ink)]">
-          이런 스타일까지, 골라서 우리 얼굴로
-        </span>
-        <span className="text-[11px] text-[var(--wd-mute)]">
-          전체 {catalogCount}종 중 일부
-        </span>
-      </div>
-      <div className="flex gap-2.5 overflow-x-auto pb-1 [-webkit-mask-image:linear-gradient(90deg,transparent,#000_4%,#000_96%,transparent)] [&::-webkit-scrollbar]:hidden">
-        {aiSnaps.map((t) => (
-          <Link
-            key={t.id}
-            href="/wedding-snap"
-            className="group relative block aspect-[3/4] w-[118px] flex-shrink-0 overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[#EFE6DC]"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={t.src}
-              alt={`${t.label} AI 웨딩스냅 예시`}
-              loading="lazy"
-              draggable={false}
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60" />
-            <span className="absolute inset-x-2 bottom-1.5 text-[10.5px] font-medium leading-tight text-white">
-              {t.label}
-            </span>
-          </Link>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -330,7 +282,6 @@ function Pricing() {
   return (
     <section className="relative border-t border-[var(--wd-line)] px-6 py-14 sm:py-16">
       <SideCaption text="PRICE · ONE-TIME" side="left" />
-      <SideSprig side="right" />
 
       <div className="mx-auto max-w-md">
         <FadeUp scroll>
