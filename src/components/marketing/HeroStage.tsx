@@ -51,7 +51,10 @@ export function HeroStage({
       {/* 중앙 폰 mockup — 실제 알림장 표지(메인 슬라이드)를 9:18 비율로 순환 미리보기. */}
       <div className="absolute left-1/2 top-1/2 z-[5] w-[206px] -translate-x-1/2 -translate-y-1/2 -rotate-2 rounded-[34px] bg-[#15110E] p-[8px] shadow-[0_34px_74px_rgba(31,27,23,0.36)] sm:w-[250px]">
         <div className="absolute left-1/2 top-[15px] z-20 h-[5px] w-[56px] -translate-x-1/2 rounded-full bg-black/80" />
-        <div className="relative aspect-[9/18] w-full overflow-hidden rounded-[27px] bg-white">
+        {/* 스크린 배경을 베젤(#15110E)과 동일하게 — 어두운 테마 슬라이드와 베젤
+            사이 1px 흰색 seam(rounded-radius 안티에일리어싱)이 안 보이게.
+            라이트 테마는 InvitationPreview 가 렌더 직후 자기 palette.bg 로 덮음. */}
+        <div className="relative aspect-[9/18] w-full overflow-hidden rounded-[27px] bg-[#15110E]">
           {active && (
             <div
               key={active.id}
