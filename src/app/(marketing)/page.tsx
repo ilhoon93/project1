@@ -209,15 +209,16 @@ function DesignAndValues({ designs }: { designs: SampleDesign[] }) {
 
         <ShowcaseTabs designs={designs} />
 
-        <div className="mt-7 flex flex-wrap items-center gap-2">
+        {/* 알림장 소개 행동 유도 버튼 — 두 개 모두 같은 크기/형식(ink/25 border)
+            으로 통일하고 위/아래 순서대로 노출. 혼인서약서 PDF 탭(=ShowcaseTabs
+            맥락) 아래에 함께 묶임. */}
+        <div className="mt-7 flex flex-col items-start gap-2">
           <Link
             href="/designs"
             className="inline-flex items-center gap-1.5 rounded-full border border-[var(--wd-ink)]/25 px-5 py-2.5 text-[13px] font-medium text-[var(--wd-ink)] transition-colors hover:border-[var(--wd-ink)]/50"
           >
             디자인 샘플 모아보기 →
           </Link>
-          {/* 혼인서약서 PDF 와 같은 결의 "소장용 URL" 안내 버튼 — 클릭 시 예시
-              URL 팝업. 알림장 소개 맥락 안에서 어떤 게 평생 남는지 보여줌. */}
           <OwnerUrlButton />
         </div>
       </div>

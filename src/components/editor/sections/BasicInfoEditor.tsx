@@ -177,8 +177,11 @@ export function BasicInfoEditor() {
             <TextAreaField
               label=""
               value={basic.greeting.text}
-              maxLength={500}
-              rows={4}
+              maxLength={300}
+              rows={2}
+              // 메인 화면 인사말은 2줄만 노출 — 길어지면 textarea 내부 스크롤.
+              // min/max-h 강제(!) + resize-none 으로 textarea 자체 크기 고정.
+              className="!min-h-[52px] !max-h-[52px] !resize-none overflow-y-auto"
               onChange={(e) =>
                 set({ ...basic, greeting: { ...basic.greeting, text: e.target.value } })
               }

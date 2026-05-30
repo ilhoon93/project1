@@ -29,10 +29,9 @@ export function OwnerUrlButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--wd-coral)]/40 bg-[var(--wd-paper)] px-4 py-2 text-[12px] font-medium text-[var(--wd-coral)] transition-colors hover:border-[var(--wd-coral)] hover:bg-[var(--wd-coral)]/8"
+        className="inline-flex items-center gap-1.5 rounded-full border border-[var(--wd-ink)]/25 px-5 py-2.5 text-[13px] font-medium text-[var(--wd-ink)] transition-colors hover:border-[var(--wd-ink)]/50"
       >
-        <LockIcon />
-        소장용 URL 예시 보기
+        소장용 URL 예시 보기 →
       </button>
 
       {open && <OwnerUrlModal onClose={() => setOpen(false)} />}
@@ -144,24 +143,3 @@ function Dot() {
   );
 }
 
-function LockIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden>
-      <rect
-        x="2.5"
-        y="6"
-        width="8"
-        height="5.5"
-        rx="1.2"
-        stroke="currentColor"
-        strokeWidth="1.3"
-      />
-      <path
-        d="M4.5 6V4.4C4.5 3.3 5.4 2.4 6.5 2.4S8.5 3.3 8.5 4.4V6"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}

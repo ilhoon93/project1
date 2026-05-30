@@ -255,77 +255,82 @@ export function PosterDesignControls({ design, onChange, greeting, onGreetingCha
     <div className="flex flex-col gap-5 rounded-md border border-input bg-muted/20 p-3">
       <DesignPanelHeader title="포스터 디자인" onReset={handleReset} />
 
-      {/* 0. 이미지 위치 — 잘릴 수 있는 부분 안내 + 보일 영역 좌/우 상/하 선택. */}
-      {design.image.fit === 'cover' && (
-        <Group label="이미지 위치">
-          <p className="text-xs text-muted-foreground">
-            슬라이더로 사진에서 보일 영역의 중심을 선택하세요. 미리보기 좌우 회색 영역이 잘릴 수 있는 부분이에요.
-          </p>
-          <PositionSliders
-            position={design.image.position}
-            onChange={(position) =>
-              onChange({ ...design, image: { ...design.image, position } })
+      {/* 이미지 위치 + 이미지 효과 — 데스크톱(sm:) 에서 같은 행에 좌우 배치.
+          모바일에선 위/아래 stack. 두 박스가 너비를 절반씩 차지해 컨트롤이
+          오른쪽 공간 낭비 없이 효율적으로 배치된다. */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/* 0. 이미지 위치 — 잘릴 수 있는 부분 안내 + 보일 영역 좌/우 상/하 선택. */}
+        {design.image.fit === 'cover' && (
+          <Group label="이미지 위치">
+            <p className="text-xs text-muted-foreground">
+              슬라이더로 사진에서 보일 영역의 중심을 선택하세요.
+            </p>
+            <PositionSliders
+              position={design.image.position}
+              onChange={(position) =>
+                onChange({ ...design, image: { ...design.image, position } })
+              }
+            />
+          </Group>
+        )}
+
+        {/* 1. 이미지 표시 방법 — 일단 UI 숨김 (SHOW_IMAGE_FIT_OPTION 으로 다시 노출). */}
+        {SHOW_IMAGE_FIT_OPTION && (
+          <Group label="이미지 표시 방법">
+            <div className="grid grid-cols-2 gap-2">
+              <FitOptionButton
+                selected={design.image.fit === 'contain'}
+                onClick={() =>
+                  onChange({ ...design, image: { ...design.image, fit: 'contain' } })
+                }
+                title="전체 보기"
+                hint={'이미지 전체를 잘리지 않게\n나머지는 배경색'}
+              />
+              <FitOptionButton
+                selected={design.image.fit === 'cover'}
+                onClick={() =>
+                  onChange({ ...design, image: { ...design.image, fit: 'cover' } })
+                }
+                title="프레임에 맞게 자르기"
+                hint={'슬라이더로 보일 영역을\n선택해 프레임을 채움'}
+              />
+            </div>
+            {design.image.fit === 'cover' && (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-muted-foreground">
+                  슬라이더로 사진에서 보일 영역의 중심을 선택하세요.
+                </p>
+                <PositionSliders
+                  position={design.image.position}
+                  onChange={(position) =>
+                    onChange({ ...design, image: { ...design.image, position } })
+                  }
+                />
+              </div>
+            )}
+          </Group>
+        )}
+
+        {/* 2. 이미지 효과 */}
+        <Group label="이미지 효과">
+          <ToggleRow
+            label="하단 그라데이션"
+            hint="배경색 톤으로 자연스럽게 페이드"
+            checked={design.effects.gradient}
+            onChange={(v) =>
+              onChange({ ...design, effects: { ...design.effects, gradient: v } })
+            }
+          />
+          <ToggleRow
+            label="가장자리 테두리"
+            hint="이미지 가장자리에서 살짝 띄운 직각 테두리"
+            checked={design.effects.border}
+            onChange={(v) =>
+              onChange({ ...design, effects: { ...design.effects, border: v } })
             }
           />
         </Group>
-      )}
-
-      {/* 1. 이미지 표시 방법 — 일단 UI 숨김 (SHOW_IMAGE_FIT_OPTION 으로 다시 노출). */}
-      {SHOW_IMAGE_FIT_OPTION && (
-        <Group label="이미지 표시 방법">
-          <div className="grid grid-cols-2 gap-2">
-            <FitOptionButton
-              selected={design.image.fit === 'contain'}
-              onClick={() =>
-                onChange({ ...design, image: { ...design.image, fit: 'contain' } })
-              }
-              title="전체 보기"
-              hint={'이미지 전체를 잘리지 않게\n나머지는 배경색'}
-            />
-            <FitOptionButton
-              selected={design.image.fit === 'cover'}
-              onClick={() =>
-                onChange({ ...design, image: { ...design.image, fit: 'cover' } })
-              }
-              title="프레임에 맞게 자르기"
-              hint={'슬라이더로 보일 영역을\n선택해 프레임을 채움'}
-            />
-          </div>
-          {design.image.fit === 'cover' && (
-            <div className="flex flex-col gap-2">
-              <p className="text-xs text-muted-foreground">
-                슬라이더로 사진에서 보일 영역의 중심을 선택하세요.
-              </p>
-              <PositionSliders
-                position={design.image.position}
-                onChange={(position) =>
-                  onChange({ ...design, image: { ...design.image, position } })
-                }
-              />
-            </div>
-          )}
-        </Group>
-      )}
-
-      {/* 2. 이미지 효과 */}
-      <Group label="이미지 효과">
-        <ToggleRow
-          label="하단 그라데이션"
-          hint="배경색 톤으로 자연스럽게 페이드"
-          checked={design.effects.gradient}
-          onChange={(v) =>
-            onChange({ ...design, effects: { ...design.effects, gradient: v } })
-          }
-        />
-        <ToggleRow
-          label="가장자리 테두리"
-          hint="이미지 가장자리에서 살짝 띄운 직각 테두리"
-          checked={design.effects.border}
-          onChange={(v) =>
-            onChange({ ...design, effects: { ...design.effects, border: v } })
-          }
-        />
-      </Group>
+      </div>
 
       {/* 2. 제목 텍스트 */}
       <Group label="제목 텍스트">
@@ -406,6 +411,7 @@ export function PosterDesignControls({ design, onChange, greeting, onGreetingCha
               }
             />
             <PositionSliders
+              verticalOnly
               position={design.dateBox.position}
               onChange={(position) =>
                 onChange({ ...design, dateBox: { ...design.dateBox, position } })
@@ -440,6 +446,7 @@ export function PosterDesignControls({ design, onChange, greeting, onGreetingCha
               }
             />
             <PositionSliders
+              verticalOnly
               position={design.nameBox.position}
               onChange={(position) =>
                 onChange({ ...design, nameBox: { ...design.nameBox, position } })
@@ -474,6 +481,7 @@ export function PosterDesignControls({ design, onChange, greeting, onGreetingCha
               }
             />
             <PositionSliders
+              verticalOnly
               position={design.messageBox.position}
               onChange={(position) =>
                 onChange({ ...design, messageBox: { ...design.messageBox, position } })
@@ -658,6 +666,7 @@ export function IllustrationDesignControls({ design, onChange, greeting, onGreet
               }
             />
             <PositionSliders
+              verticalOnly
               position={design.dateBox.position}
               onChange={(position) =>
                 onChange({ ...design, dateBox: { ...design.dateBox, position } })
@@ -692,6 +701,7 @@ export function IllustrationDesignControls({ design, onChange, greeting, onGreet
               }
             />
             <PositionSliders
+              verticalOnly
               position={design.nameBox.position}
               onChange={(position) =>
                 onChange({ ...design, nameBox: { ...design.nameBox, position } })
@@ -726,6 +736,7 @@ export function IllustrationDesignControls({ design, onChange, greeting, onGreet
               }
             />
             <PositionSliders
+              verticalOnly
               position={design.messageBox.position}
               onChange={(position) =>
                 onChange({ ...design, messageBox: { ...design.messageBox, position } })
@@ -872,6 +883,7 @@ export function TextDesignControls({ design, onChange, greeting, onGreetingChang
               }
             />
             <PositionSliders
+              verticalOnly
               position={design.dateBox.position}
               onChange={(position) =>
                 onChange({ ...design, dateBox: { ...design.dateBox, position } })
@@ -955,6 +967,7 @@ export function TextDesignControls({ design, onChange, greeting, onGreetingChang
               }
             />
             <PositionSliders
+              verticalOnly
               position={design.nameBox.position}
               onChange={(position) =>
                 onChange({ ...design, nameBox: { ...design.nameBox, position } })
@@ -989,6 +1002,7 @@ export function TextDesignControls({ design, onChange, greeting, onGreetingChang
               }
             />
             <PositionSliders
+              verticalOnly
               position={design.messageBox.position}
               onChange={(position) =>
                 onChange({ ...design, messageBox: { ...design.messageBox, position } })
@@ -1197,6 +1211,7 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
               }
             />
             <PositionSliders
+              verticalOnly
               position={design.dateBox.position}
               onChange={(position) =>
                 onChange({ ...design, dateBox: { ...design.dateBox, position } })
@@ -1231,6 +1246,7 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
               }
             />
             <PositionSliders
+              verticalOnly
               position={design.nameBox.position}
               onChange={(position) =>
                 onChange({ ...design, nameBox: { ...design.nameBox, position } })
@@ -1265,6 +1281,7 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
               }
             />
             <PositionSliders
+              verticalOnly
               position={design.messageBox.position}
               onChange={(position) =>
                 onChange({ ...design, messageBox: { ...design.messageBox, position } })
@@ -1600,22 +1617,27 @@ function Switch({
 function PositionSliders({
   position,
   onChange,
+  verticalOnly = false,
 }: {
   position: { x: number; y: number };
   onChange: (next: { x: number; y: number }) => void;
+  /** true 면 상하(y) 슬라이더만 노출 — 날짜/이름/인사말 박스용. */
+  verticalOnly?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <SliderRow
-        label="좌우"
-        value={position.x}
-        min={0}
-        max={100}
-        leftHint="좌"
-        rightHint="우"
-        unit="%"
-        onChange={(x) => onChange({ ...position, x })}
-      />
+      {!verticalOnly && (
+        <SliderRow
+          label="좌우"
+          value={position.x}
+          min={0}
+          max={100}
+          leftHint="좌"
+          rightHint="우"
+          unit="%"
+          onChange={(x) => onChange({ ...position, x })}
+        />
+      )}
       <SliderRow
         label="상하"
         value={position.y}

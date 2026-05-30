@@ -20,6 +20,7 @@ export function HeaderNav({
 }: {
   loggedIn: boolean;
   name: string | null;
+  /** 트리거 label 폴백용 (이름 없을 때 앞부분). 드롭다운에 별도로 노출하지 않음. */
   email: string | null;
 }) {
   const [open, setOpen] = useState(false);
@@ -91,18 +92,9 @@ export function HeaderNav({
               role="menu"
               className="absolute right-0 top-full z-50 mt-1.5 min-w-[180px] overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-paper)] shadow-[0_18px_40px_rgba(31,27,23,0.18)]"
             >
-              {(name || email) && (
-                <div className="border-b border-[var(--wd-line)] px-3 py-2">
-                  {name && (
-                    <div className="text-[12.5px] font-medium text-[var(--wd-ink)]">
-                      {name}
-                    </div>
-                  )}
-                  {email && (
-                    <div className="truncate text-[11px] text-[var(--wd-mute)]">
-                      {email}
-                    </div>
-                  )}
+              {name && (
+                <div className="border-b border-[var(--wd-line)] px-3 py-2 text-[12.5px] font-medium text-[var(--wd-ink)]">
+                  {name}
                 </div>
               )}
               <Link
