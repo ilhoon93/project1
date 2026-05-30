@@ -52,57 +52,55 @@ export function ThemeEditor() {
   return (
     <SectionEditor title="디자인" description="색상, 효과, 폰트, 페이지 순서">
       <div className="flex flex-col gap-5">
-        {/* 색상 — 콤보박스: 트리거에 현재 스와치+이름, 드롭다운에 전체 목록. */}
-        <Field label="색상">
-          <Combobox
-            options={COLOR_THEMES}
-            value={theme.colorTheme}
-            onChange={(c) => setTheme({ ...theme, colorTheme: c })}
-            renderItem={(c) => (
-              <>
-                <ColorSwatchSm value={c} />
-                <span>{COLOR_THEME_LABELS[c]}</span>
-              </>
-            )}
-          />
-        </Field>
-
-        {/* 배경 효과 — 콤보박스: 트리거/드롭다운에 아이콘 + 이름.
-            picker 아이콘 색은 실제 알림장에서 보이는 색과 일치시키기 위해
-            테마 petals[0] 을 우선 쓰고, 그 외엔 accent 폴백. */}
-        <Field label="배경 효과" hint="2D 글리프 또는 질감(텍스처) 효과를 고르세요">
-          <Combobox
-            options={PETAL_TYPES}
-            value={theme.petalType}
-            onChange={(t) => setTheme({ ...theme, petalType: t })}
-            renderItem={(t) => {
-              const pal = THEME_PALETTES[theme.colorTheme];
-              const iconColor = pal.petals[0] ?? pal.accent;
-              return (
+        {/* 색상 / 배경 효과 / 폰트 — 한 줄(sm:grid-cols-3) 콤보박스. 모바일은 stack. */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Field label="색상">
+            <Combobox
+              options={COLOR_THEMES}
+              value={theme.colorTheme}
+              onChange={(c) => setTheme({ ...theme, colorTheme: c })}
+              renderItem={(c) => (
                 <>
-                  <span className="inline-flex h-5 w-5 items-center justify-center">
-                    <PetalIcon type={t} accent={iconColor} />
-                  </span>
-                  <span>{PETAL_LABELS[t]}</span>
+                  <ColorSwatchSm value={c} />
+                  <span>{COLOR_THEME_LABELS[c]}</span>
                 </>
-              );
-            }}
-          />
-        </Field>
+              )}
+            />
+          </Field>
 
-        {/* 폰트 — 콤보박스: 각 옵션을 그 폰트로 렌더해 실제 모양 확인. */}
-        <Field label="폰트">
-          <Combobox
-            options={AVAILABLE_FONT_KEYS}
-            value={theme.font}
-            onChange={(f) => setTheme({ ...theme, font: f })}
-            renderItem={(f) => (
-              <span style={{ fontFamily: FONT_OPTIONS[f].family }}>
-                {FONT_OPTIONS[f].label} · 우리 결혼해요
-              </span>
-            )}
-          />
-        </Field>
+          <Field label="배경 효과">
+            <Combobox
+              options={PETAL_TYPES}
+              value={theme.petalType}
+              onChange={(t) => setTheme({ ...theme, petalType: t })}
+              renderItem={(t) => {
+                const pal = THEME_PALETTES[theme.colorTheme];
+                const iconColor = pal.petals[0] ?? pal.accent;
+                return (
+                  <>
+                    <span className="inline-flex h-5 w-5 items-center justify-center">
+                      <PetalIcon type={t} accent={iconColor} />
+                    </span>
+                    <span>{PETAL_LABELS[t]}</span>
+                  </>
+                );
+              }}
+            />
+          </Field>
+
+          <Field label="폰트">
+            <Combobox
+              options={AVAILABLE_FONT_KEYS}
+              value={theme.font}
+              onChange={(f) => setTheme({ ...theme, font: f })}
+              renderItem={(f) => (
+                <span className="truncate" style={{ fontFamily: FONT_OPTIONS[f].family }}>
+                  {FONT_OPTIONS[f].label} · 우리 결혼해요
+                </span>
+              )}
+            />
+          </Field>
+        </div>
 
         {/* 페이지 순서 */}
         <Field label="페이지 순서" hint="↑ ↓ 버튼으로 순서를 바꿀 수 있어요">

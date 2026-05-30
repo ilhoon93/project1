@@ -334,6 +334,7 @@ export function PosterDesignControls({ design, onChange, greeting, onGreetingCha
 
       {/* 2. 제목 텍스트 */}
       <Group label="제목 텍스트">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <TitleTextCombobox
           value={design.title.text}
           onChange={(text) =>
@@ -341,13 +342,14 @@ export function PosterDesignControls({ design, onChange, greeting, onGreetingCha
           }
         />
 
-        <FontPicker
+ <FontPicker
           value={design.title.font}
           onChange={(font) =>
             onChange({ ...design, title: { ...design.title, font } })
           }
           previewText={design.title.text || 'Preview'}
         />
+        </div>
 
         <ColorPicker
           label="색상"
@@ -490,8 +492,9 @@ export function PosterDesignControls({ design, onChange, greeting, onGreetingCha
             <PresetTextArea
               label="인사말 내용"
               value={greeting}
-              maxLength={500}
-              rows={4}
+              maxLength={300}
+              rows={2}
+              className="[&_textarea]:!min-h-[52px] [&_textarea]:!max-h-[52px] [&_textarea]:!resize-none [&_textarea]:!overflow-y-auto"
               placeholder="저희 두 사람의 약속을 함께 축복해주세요"
               onChange={onGreetingChange}
               presets={MAIN_GREETING_PRESETS}
@@ -601,19 +604,22 @@ export function IllustrationDesignControls({ design, onChange, greeting, onGreet
 
       {/* 제목 텍스트 — 폰트 picker 노출 (포스터형과 동일). 초기화 시 Fraunces 가 기본 */}
       <Group label="제목 텍스트">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <TitleTextCombobox
           value={design.title.text}
           onChange={(text) =>
             onChange({ ...design, title: { ...design.title, text } })
           }
         />
-        <FontPicker
+
+ <FontPicker
           value={design.title.font}
           onChange={(font) =>
             onChange({ ...design, title: { ...design.title, font } })
           }
           previewText={design.title.text || 'Preview'}
         />
+        </div>
         <ColorPicker
           label="색상"
           value={design.title.color}
@@ -747,8 +753,9 @@ export function IllustrationDesignControls({ design, onChange, greeting, onGreet
         <PresetTextArea
           label="인사말 내용"
           value={greeting}
-          maxLength={500}
-          rows={4}
+          maxLength={300}
+              rows={2}
+              className="[&_textarea]:!min-h-[52px] [&_textarea]:!max-h-[52px] [&_textarea]:!resize-none [&_textarea]:!overflow-y-auto"
           placeholder="저희 두 사람의 약속을 함께 축복해주세요"
           onChange={onGreetingChange}
           presets={MAIN_GREETING_PRESETS}
@@ -817,19 +824,22 @@ export function TextDesignControls({ design, onChange, greeting, onGreetingChang
 
       {/* 제목 텍스트 — 폰트 picker 노출 (포스터형과 동일). 초기화 시 Playfair Display 가 기본 */}
       <Group label="제목 텍스트">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <TitleTextCombobox
           value={design.title.text}
           onChange={(text) =>
             onChange({ ...design, title: { ...design.title, text } })
           }
         />
-        <FontPicker
+
+ <FontPicker
           value={design.title.font}
           onChange={(font) =>
             onChange({ ...design, title: { ...design.title, font } })
           }
           previewText={design.title.text || 'Preview'}
         />
+        </div>
         <ColorPicker
           label="색상"
           value={design.title.color}
@@ -1013,8 +1023,9 @@ export function TextDesignControls({ design, onChange, greeting, onGreetingChang
         <PresetTextArea
           label="인사말 내용"
           value={greeting}
-          maxLength={500}
-          rows={4}
+          maxLength={300}
+              rows={2}
+              className="[&_textarea]:!min-h-[52px] [&_textarea]:!max-h-[52px] [&_textarea]:!resize-none [&_textarea]:!overflow-y-auto"
           placeholder="저희 두 사람의 약속을 함께 축복해주세요"
           onChange={onGreetingChange}
           presets={MAIN_GREETING_PRESETS}
@@ -1144,19 +1155,22 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
       >
         {design.title.enabled && (
           <>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <TitleTextCombobox
               value={design.title.text}
               onChange={(text) =>
                 onChange({ ...design, title: { ...design.title, text } })
               }
             />
-            <FontPicker
+
+ <FontPicker
               value={design.title.font}
               onChange={(font) =>
                 onChange({ ...design, title: { ...design.title, font } })
               }
               previewText={design.title.text || 'Preview'}
             />
+            </div>
             <ColorPicker
               label="색상"
               value={design.title.color}
@@ -1290,8 +1304,9 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
             <PresetTextArea
               label="인사말 내용"
               value={greeting}
-              maxLength={500}
-              rows={4}
+              maxLength={300}
+              rows={2}
+              className="[&_textarea]:!min-h-[52px] [&_textarea]:!max-h-[52px] [&_textarea]:!resize-none [&_textarea]:!overflow-y-auto"
               placeholder="저희 두 사람의 약속을 함께 축복해주세요"
               onChange={onGreetingChange}
               presets={MAIN_GREETING_PRESETS}

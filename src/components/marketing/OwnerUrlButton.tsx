@@ -39,7 +39,7 @@ export function OwnerUrlButton() {
   );
 }
 
-function OwnerUrlModal({ onClose }: { onClose: () => void }) {
+export function OwnerUrlModal({ onClose }: { onClose: () => void }) {
   const exampleUrl =
     'https://wooridaun.com/i/minjun-seoyeon-2026?own=8a4f2c91-d3e7-4b06-9c2f-7e1a8b5d6e4f';
   const [copied, setCopied] = useState(false);

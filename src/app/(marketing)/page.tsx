@@ -7,7 +7,6 @@ import { BeforeAfterSlider } from '@/components/marketing/BeforeAfterSlider';
 import { CatalogStrip } from '@/components/marketing/CatalogStrip';
 import { FadeUp } from '@/components/marketing/Motion';
 import { HeroBackdrop } from '@/components/marketing/HeroBackdrop';
-import { OwnerUrlButton } from '@/components/marketing/OwnerUrlButton';
 import { SideCaption } from '@/components/marketing/SideMarginalia';
 import { getAvailableCatalog } from '@/lib/snap/catalog-availability';
 import { catalogCountStat } from '@/lib/snap/catalog-display';
@@ -209,17 +208,13 @@ function DesignAndValues({ designs }: { designs: SampleDesign[] }) {
 
         <ShowcaseTabs designs={designs} />
 
-        {/* 알림장 소개 행동 유도 버튼 — 두 개 모두 같은 크기/형식(ink/25 border)
-            으로 통일하고 위/아래 순서대로 노출. 혼인서약서 PDF 탭(=ShowcaseTabs
-            맥락) 아래에 함께 묶임. */}
-        <div className="mt-7 flex flex-col items-start gap-2">
+        <div className="mt-7">
           <Link
             href="/designs"
             className="inline-flex items-center gap-1.5 rounded-full border border-[var(--wd-ink)]/25 px-5 py-2.5 text-[13px] font-medium text-[var(--wd-ink)] transition-colors hover:border-[var(--wd-ink)]/50"
           >
             디자인 샘플 모아보기 →
           </Link>
-          <OwnerUrlButton />
         </div>
       </div>
     </section>
