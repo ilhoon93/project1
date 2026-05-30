@@ -30,7 +30,7 @@ export function HeroStage({
   aiSnaps: AiSnapItem[];
   designs: SampleDesign[];
 }) {
-  const heroDesigns = designs.slice(0, 5);
+  const heroDesigns = designs.slice(0, 6);
   const polaroids = aiSnaps.slice(0, 4);
   const [idx, setIdx] = useState(0);
 
