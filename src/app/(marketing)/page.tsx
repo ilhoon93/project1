@@ -7,6 +7,7 @@ import { BeforeAfterSlider } from '@/components/marketing/BeforeAfterSlider';
 import { CatalogStrip } from '@/components/marketing/CatalogStrip';
 import { FadeUp } from '@/components/marketing/Motion';
 import { HeroBackdrop } from '@/components/marketing/HeroBackdrop';
+import { OwnerUrlButton } from '@/components/marketing/OwnerUrlButton';
 import { SideCaption } from '@/components/marketing/SideMarginalia';
 import { getAvailableCatalog } from '@/lib/snap/catalog-availability';
 import { catalogCountStat } from '@/lib/snap/catalog-display';
@@ -49,9 +50,10 @@ export default async function LandingPage() {
 /* ─────────────────────── 1. Hero ─────────────────────── */
 
 function Hero({ aiSnaps, designs }: { aiSnaps: AiSnapItem[]; designs: SampleDesign[] }) {
-  // 데스크톱 양옆 빈 공간을 채우는 peek 폴라로이드용 (HeroStage 의 메인 4장과 다른 사진).
-  const leftPeek = aiSnaps[4];
-  const rightPeek = aiSnaps[5];
+  // 데스크톱 양옆 빈 공간을 콘텐츠로 채우는 peek 폴라로이드 4장
+  // (HeroStage 메인 0..3 다음, aiSnaps 4..7).
+  // 화면 가장자리에 잘리지 않도록 안쪽(lg:left/right 2~5%) 으로 모음.
+  const peeks = aiSnaps.slice(4, 8);
 
   return (
     <section className="relative isolate -mt-[72px] overflow-hidden px-6 pb-12 pt-[104px] text-center sm:pb-16 sm:pt-[120px]">
@@ -63,19 +65,34 @@ function Hero({ aiSnaps, designs }: { aiSnaps: AiSnapItem[]; designs: SampleDesi
           상단바 뒤까지 이어지게 — 헤더(투명) 와 메인 배경이 한 덩어리로 보임. */}
       <HeroBackdrop />
 
-      {/* 데스크톱 사이드 peek 폴라로이드 — 양옆 빈 공간을 콘텐츠로 채움. */}
-      {leftPeek && (
+      {/* 데스크톱 사이드 peek 폴라로이드 — 좌 2장 + 우 2장. lg 이상 only,
+          잘림 방지 위해 안쪽으로 모음. */}
+      {peeks[0] && (
         <PeekPolaroid
-          img={leftPeek.src}
-          label={leftPeek.label}
-          className="-left-12 top-[34%] -rotate-[14deg] xl:-left-6"
+          img={peeks[0].src}
+          label={peeks[0].label}
+          className="left-[2%] top-[18%] -rotate-[12deg] xl:left-[5%]"
         />
       )}
-      {rightPeek && (
+      {peeks[1] && (
         <PeekPolaroid
-          img={rightPeek.src}
-          label={rightPeek.label}
-          className="-right-12 top-[42%] rotate-[10deg] xl:-right-6"
+          img={peeks[1].src}
+          label={peeks[1].label}
+          className="left-[3%] top-[58%] -rotate-[6deg] xl:left-[6%]"
+        />
+      )}
+      {peeks[2] && (
+        <PeekPolaroid
+          img={peeks[2].src}
+          label={peeks[2].label}
+          className="right-[2%] top-[18%] rotate-[10deg] xl:right-[5%]"
+        />
+      )}
+      {peeks[3] && (
+        <PeekPolaroid
+          img={peeks[3].src}
+          label={peeks[3].label}
+          className="right-[3%] top-[58%] rotate-[6deg] xl:right-[6%]"
         />
       )}
 
@@ -120,7 +137,7 @@ function Hero({ aiSnaps, designs }: { aiSnaps: AiSnapItem[]; designs: SampleDesi
           </Link>
           <Link
             href="/designs"
-            className="inline-flex items-center rounded-full border border-[var(--wd-ink)]/25 bg-transparent px-6 py-3 text-[13px] font-medium text-[var(--wd-ink)]"
+            className="inline-flex items-center rounded-full border border-[var(--wd-coral)]/40 bg-[var(--wd-paper)]/80 px-6 py-3 text-[13px] font-medium text-[var(--wd-coral)] backdrop-blur transition-colors hover:border-[var(--wd-coral)] hover:bg-[var(--wd-paper)]"
           >
             디자인 둘러보기
           </Link>
@@ -297,6 +314,8 @@ function Pricing() {
               <li>· 발행 후 30일간 공개</li>
               <li>· 혼인서약서·방명록·사진 PDF·이미지 영구 소장</li>
             </ul>
+
+            <OwnerUrlButton />
 
             <Link
               href="/new"
