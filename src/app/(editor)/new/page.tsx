@@ -1,10 +1,11 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { defaultInvitationContent } from '@/types/invitation';
+import { defaultInvitationContent, type InvitationContent } from '@/types/invitation';
 import { generateSlug } from '@/lib/utils/nanoid';
 import { PG_UNIQUE_VIOLATION } from '@/lib/utils/validation';
 import { MAX_INVITATIONS_PER_USER } from '@/lib/limits';
+import { DEFAULT_SAMPLE_CONFIGS } from '@/lib/marketing/sample-invitations';
 
 /**
  * 신랑·신부 이름과 날짜는 더 이상 별도의 사전 입력 페이지에서 받지 않는다.
@@ -16,7 +17,11 @@ import { MAX_INVITATIONS_PER_USER } from '@/lib/limits';
  * 끝나도 자동으로 알림장이 만들어지지 않고 홈으로 돌아오게 해, 사용자가
  * 한번 더 "무료로 만들어보기" 를 눌렀을 때만 빈 알림장이 생성되도록 한다.
  */
-export default async function NewInvitationPage() {
+interface PageProps {
+  searchParams: { preset?: string };
+}
+
+export default async function NewInvitationPage({ searchParams }: PageProps) {
   const supabase = createClient();
   const {
     data: { user },
@@ -48,7 +53,7 @@ export default async function NewInvitationPage() {
     );
   }
 
-  const content = defaultInvitationContent();
+  const content = buildInitialContent(searchParams.preset);
 
   for (let attempt = 0; attempt < 3; attempt++) {
     const slug = generateSlug();
@@ -73,4 +78,24 @@ export default async function NewInvitationPage() {
     }
   }
   throw new Error('Failed to allocate slug');
+}
+
+/**
+ * `?preset=<design-id>` 가 있으면 마케팅 디자인 카탈로그의 해당 디자인에서
+ * 레이아웃·색·폰트·배경효과·표지 디자인 옵션만 복사해 빈 알림장의 시작값으로
+ * 쓴다. 사진(heroImage, gallery, story image)과 본문 텍스트는 사용자가 자기 것으로
+ * 채워야 하므로 빈 기본값 유지 — 카탈로그 샘플 사진 경로(/wedding-snap/catalog/*)
+ * 는 InvitationContent 의 z.string().url() 검증을 통과하지 못해 어차피 저장 불가.
+ */
+function buildInitialContent(presetId: string | undefined): InvitationContent {
+  const content = defaultInvitationContent();
+  if (!presetId) return content;
+  const preset = DEFAULT_SAMPLE_CONFIGS.find((c) => c.id === presetId);
+  if (!preset) return content;
+
+  content.theme.colorTheme = preset.colorTheme;
+  content.theme.petalType = preset.petalType;
+  content.theme.font = preset.font;
+  content.main = { ...preset.main, heroImage: null };
+  return content;
 }

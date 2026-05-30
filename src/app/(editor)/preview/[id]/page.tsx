@@ -43,8 +43,11 @@ export default async function PreviewPage({ params }: PageProps) {
   const activePub =
     pubs?.find((p) => !p.revoked_at && new Date(p.expires_at) > new Date()) ?? null;
 
+  // 마케팅/에디터 sticky 헤더(z-50) 위에 풀스크린으로 띄워서
+  //   1) 미리보기 banner(까만 버튼) 가 헤더 뒤로 가려지지 않게 하고
+  //   2) 모바일에서 헤더 높이 + 100dvh 합산으로 상하 스크롤이 생기지 않게 한다.
   return (
-    <div className="relative">
+    <div className="fixed inset-0 z-[60] overflow-hidden">
       <PreviewBanner
         invitationId={data.id}
         publishedSlug={activePub?.slug ?? null}
