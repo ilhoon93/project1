@@ -497,6 +497,7 @@ export const TITLE_FONT_KEYS_EN = [
   'paintingWithChocolate',
   'qillseyEinstein',
   'rockvilleSolid',
+  'pacifico',
 ] as const;
 export type TitleFontKeyEn = (typeof TITLE_FONT_KEYS_EN)[number];
 
@@ -579,6 +580,10 @@ export const TITLE_FONT_OPTIONS: Record<TitleFontKey, FontOption> = {
   rockvilleSolid: {
     label: 'Rockville Solid',
     family: "var(--font-rockville-solid), serif",
+  },
+  pacifico: {
+    label: 'Pacifico',
+    family: "var(--font-pacifico), cursive",
   },
   // 한글 — FONT_OPTIONS 의 family 와 동일한 변수를 그대로 사용한다.
   koSerif: { label: '명조', family: "var(--font-noto-serif-kr), serif" },

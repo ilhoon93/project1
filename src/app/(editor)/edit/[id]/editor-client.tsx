@@ -113,7 +113,7 @@ export function EditorClient({
   }, [status]);
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-[var(--wd-cream)] text-[var(--wd-ink)]">
       <EditorToolbar invitationId={invitationId} />
 
       {/* lg 이상에서는 좌측 실시간 미리보기 + 우측 컨트롤 2단 분할.
@@ -126,7 +126,7 @@ export function EditorClient({
 
         {/* ── 우측 (mobile: 단일 컬럼): 탭 + 에디터 컨트롤 ─────── */}
         <div className="flex min-w-0 flex-col">
-          <div className="sticky top-[57px] z-10 -mx-0 border-b bg-background/80 backdrop-blur lg:top-0 lg:rounded-md lg:border lg:bg-background">
+          <div className="sticky top-[57px] z-10 -mx-0 border-b border-[var(--wd-line)] bg-[var(--wd-paper)]/85 backdrop-blur lg:top-0 lg:rounded-md lg:border lg:border-[var(--wd-line)] lg:bg-[var(--wd-paper)]">
             <div className="mx-auto flex max-w-2xl items-center gap-1 px-4 lg:max-w-none lg:px-3">
               <TabButton selected={tab === 'edit'} onClick={() => setTab('edit')}>
                 기본 편집
@@ -214,13 +214,13 @@ function TabButton({
       onClick={onClick}
       className={`relative px-3 py-2.5 text-sm transition-colors ${
         selected
-          ? 'font-medium text-foreground'
-          : 'text-muted-foreground hover:text-foreground'
+          ? 'font-medium text-[var(--wd-ink)]'
+          : 'text-[var(--wd-mute)] hover:text-[var(--wd-ink)]'
       }`}
     >
       {children}
       {selected && (
-        <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-foreground" />
+        <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-[var(--wd-coral)]" />
       )}
     </button>
   );

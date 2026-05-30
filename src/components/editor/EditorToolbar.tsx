@@ -70,12 +70,12 @@ export function EditorToolbar({ invitationId }: { invitationId: string }) {
   };
 
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b bg-background/80 px-4 py-3 backdrop-blur">
+    <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-[var(--wd-line)] bg-[var(--wd-paper)]/85 px-4 py-3 backdrop-blur">
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={() => void handleGoMypage()}
-          className="text-sm text-muted-foreground hover:text-foreground"
+          className="text-sm text-[var(--wd-mute)] transition-colors hover:text-[var(--wd-ink)]"
           aria-label="저장내역으로"
         >
           ←

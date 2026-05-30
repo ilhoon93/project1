@@ -100,7 +100,8 @@ export function CatalogStrip({
         ))}
       </div>
 
-      {/* 하단 드래그 슬라이드바 */}
+      {/* 하단 드래그 슬라이드바 — hover 없이도 트랙/thumb 가 또렷이 보이도록
+          track 콘트라스트(ink/15), thumb 풀 코랄 + 살짝 더 두꺼운 두께(3px → 3.5px). */}
       <div
         ref={trackRef}
         role="scrollbar"
@@ -114,7 +115,7 @@ export function CatalogStrip({
             ? 0
             : Math.round((thumb.left / (100 - thumb.width)) * 100)
         }
-        className="relative mt-3 h-2.5 cursor-pointer touch-none select-none rounded-full bg-[var(--wd-ink)]/8"
+        className="relative mt-3 h-3 cursor-pointer touch-none select-none rounded-full bg-[var(--wd-ink)]/15 ring-1 ring-inset ring-[var(--wd-ink)]/5"
         onPointerDown={(e) => {
           draggingRef.current = true;
           try {
@@ -135,7 +136,7 @@ export function CatalogStrip({
         }}
       >
         <div
-          className="absolute top-1/2 h-2.5 -translate-y-1/2 rounded-full bg-[var(--wd-coral)]/70 transition-[background-color] hover:bg-[var(--wd-coral)]"
+          className="absolute top-1/2 h-3 -translate-y-1/2 rounded-full bg-[var(--wd-coral)] shadow-sm transition-[background-color] hover:brightness-95"
           style={{ width: `${thumb.width}%`, left: `${thumb.left}%` }}
         />
       </div>
