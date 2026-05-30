@@ -436,6 +436,10 @@ export const ParentSchema = z.object({
 export const BASIC_SUB_KEYS = ['family', 'date', 'greeting', 'quote'] as const;
 export type BasicSubKey = (typeof BASIC_SUB_KEYS)[number];
 
+/** 결혼식 날짜 표시 형식 4종. ISO 저장(YYYY-MM-DD)은 그대로, 렌더 시점에 적용. */
+export const DATE_FORMATS = ['YYYY.MM.DD', 'YYYY년MM월DD일', 'YYYY-MM-DD', 'YYYY/MM/DD'] as const;
+export type DateFormat = (typeof DATE_FORMATS)[number];
+
 export const BasicInfoSectionSchema = z
   .object({
     enabled: z.boolean().default(true),
@@ -467,6 +471,8 @@ export const BasicInfoSectionSchema = z
         brideMother: { name: '', deceased: false },
       }),
     showDate: z.boolean().default(true),
+    /** 출력 형식 — 슬라이드 렌더 시 적용. 저장은 ISO 그대로 유지. */
+    dateFormat: z.enum(DATE_FORMATS).default('YYYY.MM.DD'),
     // 하위 영역 표시 순서. 저장 시 일부가 빠져도 reconcileBasicSubOrder 가 채워줌.
     subOrder: z.array(z.string()).default([...BASIC_SUB_KEYS]),
   })
@@ -482,6 +488,7 @@ export const BasicInfoSectionSchema = z
       brideMother: { name: '', deceased: false },
     },
     showDate: true,
+    dateFormat: 'YYYY.MM.DD',
     subOrder: [...BASIC_SUB_KEYS],
   });
 

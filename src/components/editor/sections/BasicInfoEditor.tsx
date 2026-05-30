@@ -2,14 +2,17 @@
 
 import { useEditorStore } from '@/stores/editor';
 import { SectionEditor } from '../SectionEditor';
-import { TextField, TextAreaField } from '../form-fields';
+import { TextAreaField } from '../form-fields';
 import { PresetPickerButton } from '../PresetTextArea';
 import { BASIC_GREETING_PRESETS, QUOTE_PRESETS } from '@/lib/presets';
 import {
+  DATE_FORMATS,
   reconcileBasicSubOrder,
   type BasicSubKey,
+  type DateFormat,
   type InvitationContent,
 } from '@/types/invitation';
+import { formatWeddingDate, normalizeDateInput } from '@/lib/utils/format-date';
 
 type BasicInfo = InvitationContent['basic'];
 type Parent = BasicInfo['family']['groomFather'];
@@ -133,12 +136,36 @@ export function BasicInfoEditor() {
       return (
         <SubBox key={key} header={header}>
           {basic.showDate && (
-            <TextField
-              label="결혼식 날짜"
-              type="date"
-              value={meta.weddingDate ?? ''}
-              onChange={(e) => setMeta({ weddingDate: e.target.value || null })}
-            />
+            <div className="flex flex-col gap-2">
+              <DateInput
+                value={meta.weddingDate}
+                onChange={(iso) => setMeta({ weddingDate: iso })}
+              />
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="min-w-[60px]">출력 형식</span>
+                <select
+                  className="flex-1 rounded border border-input bg-background px-2 py-1.5 text-sm"
+                  value={basic.dateFormat}
+                  onChange={(e) =>
+                    set({ ...basic, dateFormat: e.target.value as DateFormat })
+                  }
+                >
+                  {DATE_FORMATS.map((f) => (
+                    <option key={f} value={f}>
+                      {f}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {meta.weddingDate && (
+                <p className="text-[11px] text-muted-foreground">
+                  미리보기:{' '}
+                  <span className="font-medium text-foreground">
+                    {formatWeddingDate(meta.weddingDate, basic.dateFormat)}
+                  </span>
+                </p>
+              )}
+            </div>
           )}
         </SubBox>
       );
@@ -396,5 +423,54 @@ function ParentField({
         故
       </label>
     </div>
+  );
+}
+
+/**
+ * 날짜 입력 — type="date" 대신 숫자 자유 입력 + 즉시 정규화.
+ * 사용자가 "20260523" 처럼 8자리 숫자만 쳐도 자동으로 "2026-05-23" ISO 로 저장.
+ * blur 시 검증, 잘못된 입력은 null 로(=날짜 미설정).
+ */
+function DateInput({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (iso: string | null) => void;
+}) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-xs text-muted-foreground">
+        결혼식 날짜{' '}
+        <span className="text-[10px]">(YYYYMMDD · 숫자만 입력해도 됨)</span>
+      </span>
+      <input
+        type="text"
+        inputMode="numeric"
+        placeholder="20260523"
+        defaultValue={value ?? ''}
+        onBlur={(e) => {
+          const raw = e.target.value.trim();
+          if (!raw) {
+            onChange(null);
+            return;
+          }
+          // 이미 ISO 면 그대로, 8자리 숫자면 정규화.
+          if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+            onChange(raw);
+            return;
+          }
+          const normalized = normalizeDateInput(raw);
+          if (normalized) {
+            onChange(normalized);
+            e.target.value = normalized;
+          } else {
+            // 잘못된 입력 → 이전 값 복원.
+            e.target.value = value ?? '';
+          }
+        }}
+        className="rounded border border-input bg-background px-2 py-1.5 text-sm"
+      />
+    </label>
   );
 }

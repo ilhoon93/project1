@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { InvitationContent } from '@/types/invitation';
 import { reconcilePageOrder, type SectionKey } from '@/lib/theme';
+import { formatWeddingDate } from '@/lib/utils/format-date';
 import { SlideContainer } from './SlideContainer';
 import { VisitTracker } from './VisitTracker';
 import { MainSlide } from './slides/MainSlide';
@@ -57,6 +58,12 @@ export function InvitationSlides({
   mode = 'guest',
   ownerData,
 }: Props) {
+  // 운영자가 고른 출력 형식으로 사전 포맷팅 — 자식 슬라이드들은 받은 문자열을
+  // 그대로 표시(슬라이드별로 다른 변환을 거치지 않게 단일 출처).
+  const formattedWeddingDate = weddingDate
+    ? formatWeddingDate(weddingDate, content.basic.dateFormat)
+    : null;
+
   const storyHasContent = content.story.chapters.some(
     (c) => c.title.trim() || c.text.trim() || c.image,
   );
@@ -73,7 +80,7 @@ export function InvitationSlides({
         invitationId={invitationId}
         groomName={groomName}
         brideName={brideName}
-        weddingDate={weddingDate}
+        weddingDate={formattedWeddingDate}
         main={content.main}
         isPreview={isPreview}
         scoped={scoped}
@@ -86,7 +93,7 @@ export function InvitationSlides({
         basic={content.basic}
         groomName={groomName}
         brideName={brideName}
-        weddingDate={weddingDate}
+        weddingDate={formattedWeddingDate}
       />
     ) : null,
     story:

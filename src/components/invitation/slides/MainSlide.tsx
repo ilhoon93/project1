@@ -991,11 +991,9 @@ function IllustrationImage({
   );
 }
 
-// 날짜만 표시 — 요일/시간은 사용자 요청으로 제거. YYYY. MM. DD 형식.
-function formatDateForIllust(iso: string) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return `${d.getFullYear()}. ${String(d.getMonth() + 1).padStart(2, '0')}. ${String(d.getDate()).padStart(2, '0')}`;
+// 사전 포맷팅된 string 그대로 표시 (formatDate 와 동일 — 일관성 위해 유지).
+function formatDateForIllust(s: string) {
+  return s;
 }
 
 function LegacyMainSlide({
@@ -1127,10 +1125,11 @@ function CoupleIllustration() {
   );
 }
 
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return `${d.getFullYear()}. ${String(d.getMonth() + 1).padStart(2, '0')}. ${String(d.getDate()).padStart(2, '0')}`;
+// InvitationSlides 가 basic.dateFormat 으로 사전 포맷팅한 string 을 받아 그대로 표시.
+// (예전엔 ISO 를 받아 '. ' 로 분리했으나, 운영자가 고른 형식을 일관 적용하기 위해
+// 외부 포맷팅으로 통일.)
+function formatDate(s: string) {
+  return s;
 }
 
 // ─────────────────────────────────────────────────────────────

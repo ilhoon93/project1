@@ -8,11 +8,20 @@ import { createClient } from '@/lib/supabase/client';
  * 마케팅 헤더의 우측 메뉴.
  *
  * 비로그인: AI 스냅 / 알림장 / 로그인 pill.
- * 로그인:  AI 스냅 / 알림장 / [프로필 콤보박스 — 마이페이지 / 로그아웃].
+ * 로그인:  AI 스냅 / 알림장 / [사용자 이름 콤보박스 — 마이페이지 / 로그아웃].
  *
- * 콤보박스는 클릭 토글, 바깥 클릭·Escape 시 닫힘.
+ * 콤보박스 트리거는 사용자 이름(없으면 이메일 앞부분), 드롭다운 헤더에는
+ * 네이버 이메일 형식 그대로 노출. 바깥 클릭·Escape 시 닫힘.
  */
-export function HeaderNav({ loggedIn, email }: { loggedIn: boolean; email: string | null }) {
+export function HeaderNav({
+  loggedIn,
+  name,
+  email,
+}: {
+  loggedIn: boolean;
+  name: string | null;
+  email: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -57,7 +66,9 @@ export function HeaderNav({ loggedIn, email }: { loggedIn: boolean; email: strin
             className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--wd-ink)]/15 bg-[var(--wd-paper)]/70 px-3 py-1.5 text-[12px] font-medium text-[var(--wd-ink)] backdrop-blur transition-colors hover:border-[var(--wd-ink)]/35"
           >
             <ProfileIcon />
-            <span>프로필</span>
+            <span className="max-w-[14ch] truncate">
+              {name ?? (email ? email.split('@')[0] : '프로필')}
+            </span>
             <svg
               width="10"
               height="6"
@@ -80,9 +91,18 @@ export function HeaderNav({ loggedIn, email }: { loggedIn: boolean; email: strin
               role="menu"
               className="absolute right-0 top-full z-50 mt-1.5 min-w-[180px] overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-paper)] shadow-[0_18px_40px_rgba(31,27,23,0.18)]"
             >
-              {email && (
-                <div className="border-b border-[var(--wd-line)] px-3 py-2 text-[11px] text-[var(--wd-mute)]">
-                  {email}
+              {(name || email) && (
+                <div className="border-b border-[var(--wd-line)] px-3 py-2">
+                  {name && (
+                    <div className="text-[12.5px] font-medium text-[var(--wd-ink)]">
+                      {name}
+                    </div>
+                  )}
+                  {email && (
+                    <div className="truncate text-[11px] text-[var(--wd-mute)]">
+                      {email}
+                    </div>
+                  )}
                 </div>
               )}
               <Link
@@ -92,14 +112,6 @@ export function HeaderNav({ loggedIn, email }: { loggedIn: boolean; email: strin
                 className="block px-3 py-2.5 text-[13px] text-[var(--wd-ink)] transition-colors hover:bg-[var(--wd-cream)]"
               >
                 마이페이지
-              </Link>
-              <Link
-                href="/new"
-                onClick={() => setOpen(false)}
-                role="menuitem"
-                className="block border-t border-[var(--wd-line)] px-3 py-2.5 text-[13px] text-[var(--wd-ink)] transition-colors hover:bg-[var(--wd-cream)]"
-              >
-                새 알림장
               </Link>
               <LogoutMenuItem />
             </div>
