@@ -137,7 +137,7 @@ function Hero({ aiSnaps, designs }: { aiSnaps: AiSnapItem[]; designs: SampleDesi
           </Link>
           <Link
             href="/designs"
-            className="inline-flex items-center rounded-full border border-[var(--wd-coral)]/40 bg-[var(--wd-paper)]/80 px-6 py-3 text-[13px] font-medium text-[var(--wd-coral)] backdrop-blur transition-colors hover:border-[var(--wd-coral)] hover:bg-[var(--wd-paper)]"
+            className="inline-flex items-center rounded-full border border-[var(--wd-coral)] bg-[var(--wd-paper)] px-6 py-3 text-[13px] font-medium text-[var(--wd-coral)] backdrop-blur transition-transform active:scale-[0.97] hover:bg-[var(--wd-coral)]/8"
           >
             디자인 둘러보기
           </Link>
