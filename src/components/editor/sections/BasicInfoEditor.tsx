@@ -85,48 +85,52 @@ export function BasicInfoEditor() {
               <p className="text-xs text-muted-foreground">
                 ※ 故 표시는 이름 앞에 자동으로 붙습니다.
               </p>
-              <SideBlock title="신랑측">
-                <CompactNameField
-                  label="신랑"
-                  value={meta.groomName}
-                  onChange={(v) => setMeta({ groomName: v })}
-                />
-                <ParentField
-                  label="아버지"
-                  value={basic.family.groomFather}
-                  onChange={(p) =>
-                    set({ ...basic, family: { ...basic.family, groomFather: p } })
-                  }
-                />
-                <ParentField
-                  label="어머니"
-                  value={basic.family.groomMother}
-                  onChange={(p) =>
-                    set({ ...basic, family: { ...basic.family, groomMother: p } })
-                  }
-                />
-              </SideBlock>
-              <SideBlock title="신부측">
-                <CompactNameField
-                  label="신부"
-                  value={meta.brideName}
-                  onChange={(v) => setMeta({ brideName: v })}
-                />
-                <ParentField
-                  label="아버지"
-                  value={basic.family.brideFather}
-                  onChange={(p) =>
-                    set({ ...basic, family: { ...basic.family, brideFather: p } })
-                  }
-                />
-                <ParentField
-                  label="어머니"
-                  value={basic.family.brideMother}
-                  onChange={(p) =>
-                    set({ ...basic, family: { ...basic.family, brideMother: p } })
-                  }
-                />
-              </SideBlock>
+              {/* 신랑측 / 신부측 — sm 이상에서 좌우 나란히. 입력 폭은 SideBlock
+                  내부에서 자동으로 컬럼 폭에 맞춰져 짧아진다. */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <SideBlock title="신랑측">
+                  <CompactNameField
+                    label="신랑"
+                    value={meta.groomName}
+                    onChange={(v) => setMeta({ groomName: v })}
+                  />
+                  <ParentField
+                    label="아버지"
+                    value={basic.family.groomFather}
+                    onChange={(p) =>
+                      set({ ...basic, family: { ...basic.family, groomFather: p } })
+                    }
+                  />
+                  <ParentField
+                    label="어머니"
+                    value={basic.family.groomMother}
+                    onChange={(p) =>
+                      set({ ...basic, family: { ...basic.family, groomMother: p } })
+                    }
+                  />
+                </SideBlock>
+                <SideBlock title="신부측">
+                  <CompactNameField
+                    label="신부"
+                    value={meta.brideName}
+                    onChange={(v) => setMeta({ brideName: v })}
+                  />
+                  <ParentField
+                    label="아버지"
+                    value={basic.family.brideFather}
+                    onChange={(p) =>
+                      set({ ...basic, family: { ...basic.family, brideFather: p } })
+                    }
+                  />
+                  <ParentField
+                    label="어머니"
+                    value={basic.family.brideMother}
+                    onChange={(p) =>
+                      set({ ...basic, family: { ...basic.family, brideMother: p } })
+                    }
+                  />
+                </SideBlock>
+              </div>
             </>
           )}
         </SubBox>
@@ -137,26 +141,29 @@ export function BasicInfoEditor() {
         <SubBox key={key} header={header}>
           {basic.showDate && (
             <div className="flex flex-col gap-2">
-              <DateInput
-                value={meta.weddingDate}
-                onChange={(iso) => setMeta({ weddingDate: iso })}
-              />
-              <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="min-w-[60px]">출력 형식</span>
-                <select
-                  className="flex-1 rounded border border-input bg-background px-2 py-1.5 text-sm"
-                  value={basic.dateFormat}
-                  onChange={(e) =>
-                    set({ ...basic, dateFormat: e.target.value as DateFormat })
-                  }
-                >
-                  {DATE_FORMATS.map((f) => (
-                    <option key={f} value={f}>
-                      {f}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {/* 날짜 입력 + 출력 형식 — sm 이상 같은 줄, 모바일은 stack. */}
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:items-end">
+                <DateInput
+                  value={meta.weddingDate}
+                  onChange={(iso) => setMeta({ weddingDate: iso })}
+                />
+                <label className="flex flex-col gap-1.5 text-sm">
+                  <span className="text-xs text-muted-foreground">출력 형식</span>
+                  <select
+                    className="rounded border border-input bg-background px-2 py-1.5 text-sm"
+                    value={basic.dateFormat}
+                    onChange={(e) =>
+                      set({ ...basic, dateFormat: e.target.value as DateFormat })
+                    }
+                  >
+                    {DATE_FORMATS.map((f) => (
+                      <option key={f} value={f}>
+                        {f}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
               {meta.weddingDate && (
                 <p className="text-[11px] text-muted-foreground">
                   미리보기:{' '}
@@ -177,11 +184,8 @@ export function BasicInfoEditor() {
             <TextAreaField
               label=""
               value={basic.greeting.text}
-              maxLength={300}
-              rows={2}
-              // 메인 화면 인사말은 2줄만 노출 — 길어지면 textarea 내부 스크롤.
-              // min/max-h 강제(!) + resize-none 으로 textarea 자체 크기 고정.
-              className="!min-h-[52px] !max-h-[52px] !resize-none overflow-y-auto"
+              maxLength={500}
+              rows={4}
               onChange={(e) =>
                 set({ ...basic, greeting: { ...basic.greeting, text: e.target.value } })
               }

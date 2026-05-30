@@ -3,8 +3,12 @@
 import { useEffect, useState } from 'react';
 import type { SampleDesign } from '@/lib/marketing/sample-invitations';
 import { InvitationPreview } from './InvitationPreview';
+import { OwnerUrlModal } from './OwnerUrlButton';
 
-type TabId = 'design' | 'quiz' | 'vote' | 'guestbook' | 'vow';
+/** mock 으로 phone 안에서 보여지는 탭들. */
+type MockTabId = 'design' | 'quiz' | 'vote' | 'guestbook' | 'vow';
+/** mock 탭 + 모달만 띄우는 'ownerUrl' 통합 — 같은 list UI 에서 한 줄로 나열. */
+type TabId = MockTabId | 'ownerUrl';
 
 const TABS: Array<{ id: TabId; name: string; tag: string }> = [
   { id: 'design', name: '움직이는 디자인', tag: '14가지 컬러 테마 × 배경 효과' },
@@ -12,7 +16,11 @@ const TABS: Array<{ id: TabId; name: string; tag: string }> = [
   { id: 'vote', name: 'A/B 투표', tag: '신혼여행지·드레스 색깔 투표' },
   { id: 'guestbook', name: '소장용 방명록', tag: '축하 메시지 + 손글씨 서명' },
   { id: 'vow', name: '혼인서약서 PDF', tag: '발행 후 마이페이지에서 소장' },
+  { id: 'ownerUrl', name: '소장용 URL', tag: '신랑·신부 전용 URL 평생 소장' },
 ];
+
+/** 자동 순환 대상 — 'ownerUrl' 은 모달이라 제외. */
+const MOCK_TAB_IDS: MockTabId[] = ['design', 'quiz', 'vote', 'guestbook', 'vow'];
 
 /**
  * "디자인 + 차별화 가치" 통합 쇼케이스.
@@ -25,63 +33,73 @@ const TABS: Array<{ id: TabId; name: string; tag: string }> = [
  * invitationId·서버 API·축하 카운트 등 부수효과가 있어 메인 임베드 부적합.)
  */
 export function ShowcaseTabs({ designs }: { designs: SampleDesign[] }) {
-  const [active, setActive] = useState<TabId>('design');
+  const [active, setActive] = useState<MockTabId>('design');
   const [userPicked, setUserPicked] = useState(false);
+  const [ownerOpen, setOwnerOpen] = useState(false);
   const designSamples = designs.slice(0, 4);
 
   useEffect(() => {
     if (userPicked) return;
     const i = setInterval(() => {
       setActive((prev) => {
-        const idx = TABS.findIndex((t) => t.id === prev);
-        return TABS[(idx + 1) % TABS.length].id;
+        const idx = MOCK_TAB_IDS.indexOf(prev);
+        return MOCK_TAB_IDS[(idx + 1) % MOCK_TAB_IDS.length];
       });
     }, 5000);
     return () => clearInterval(i);
   }, [userPicked]);
 
   return (
-    <div className="grid grid-cols-1 items-start gap-7 sm:grid-cols-[auto_1fr]">
-      <div className="flex justify-center py-2">
-        <PhoneFrame>
-          <MockDesign active={active === 'design'} samples={designSamples} />
-          <MockQuiz active={active === 'quiz'} />
-          <MockVote active={active === 'vote'} />
-          <MockGuestbook active={active === 'guestbook'} />
-          <MockVowPdf active={active === 'vow'} />
-        </PhoneFrame>
+    <>
+      <div className="grid grid-cols-1 items-start gap-7 sm:grid-cols-[auto_1fr]">
+        <div className="flex justify-center py-2">
+          <PhoneFrame>
+            <MockDesign active={active === 'design'} samples={designSamples} />
+            <MockQuiz active={active === 'quiz'} />
+            <MockVote active={active === 'vote'} />
+            <MockGuestbook active={active === 'guestbook'} />
+            <MockVowPdf active={active === 'vow'} />
+          </PhoneFrame>
+        </div>
+
+        <ul className="flex flex-row flex-wrap gap-2 sm:flex-col">
+          {TABS.map((t) => {
+            const on = t.id !== 'ownerUrl' && t.id === active;
+            return (
+              <li key={t.id} className="min-w-[150px] flex-1 sm:flex-initial">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUserPicked(true);
+                    if (t.id === 'ownerUrl') {
+                      // 왼쪽 mock 에 보이지 않고 클릭 즉시 모달 표시.
+                      setOwnerOpen(true);
+                    } else {
+                      setActive(t.id);
+                    }
+                  }}
+                  className={`flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors ${
+                    on
+                      ? 'border-[1.5px] border-[var(--wd-coral)] bg-[var(--wd-cream)]'
+                      : 'border-[var(--wd-line)] bg-[var(--wd-paper)] hover:border-[var(--wd-ink)]/30'
+                  }`}
+                >
+                  <TabIcon id={t.id} active={on} />
+                  <span className="flex flex-col">
+                    <span className="text-[12.5px] font-medium leading-tight text-[var(--wd-ink)]">
+                      {t.name}
+                    </span>
+                    <span className="mt-0.5 text-[10.5px] text-[var(--wd-mute)]">{t.tag}</span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </div>
 
-      <ul className="flex flex-row flex-wrap gap-2 sm:flex-col">
-        {TABS.map((t) => {
-          const on = t.id === active;
-          return (
-            <li key={t.id} className="min-w-[150px] flex-1 sm:flex-initial">
-              <button
-                type="button"
-                onClick={() => {
-                  setActive(t.id);
-                  setUserPicked(true);
-                }}
-                className={`flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors ${
-                  on
-                    ? 'border-[1.5px] border-[var(--wd-coral)] bg-[var(--wd-cream)]'
-                    : 'border-[var(--wd-line)] bg-[var(--wd-paper)] hover:border-[var(--wd-ink)]/30'
-                }`}
-              >
-                <TabIcon id={t.id} active={on} />
-                <span className="flex flex-col">
-                  <span className="text-[12.5px] font-medium leading-tight text-[var(--wd-ink)]">
-                    {t.name}
-                  </span>
-                  <span className="mt-0.5 text-[10.5px] text-[var(--wd-mute)]">{t.tag}</span>
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+      {ownerOpen && <OwnerUrlModal onClose={() => setOwnerOpen(false)} />}
+    </>
   );
 }
 
@@ -150,6 +168,19 @@ function TabIcon({ id, active }: { id: TabId; active: boolean }) {
           <line x1="6" y1="10" x2="12" y2="10" stroke={fill} strokeWidth="1.2" />
           <line x1="6" y1="13" x2="12" y2="13" stroke={fill} strokeWidth="1.2" />
           <line x1="6" y1="16" x2="10" y2="16" stroke={fill} strokeWidth="1.2" />
+        </svg>
+      )}
+      {id === 'ownerUrl' && (
+        // 자물쇠(소장 = 두 사람만의 잠긴 URL) 아이콘
+        <svg width="18" height="22" viewBox="0 0 18 22" fill="none">
+          <rect x="3" y="9" width="12" height="9" rx="1.4" stroke={fill} strokeWidth="1.2" />
+          <path
+            d="M6 9V6.5a3 3 0 0 1 6 0V9"
+            stroke={fill}
+            strokeWidth="1.2"
+            strokeLinecap="round"
+          />
+          <circle cx="9" cy="13" r="1.1" fill={fill} />
         </svg>
       )}
     </span>
