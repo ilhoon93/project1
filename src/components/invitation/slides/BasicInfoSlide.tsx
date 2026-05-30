@@ -77,7 +77,8 @@ export function BasicInfoSlide({ basic, groomName, brideName, weddingDate }: Pro
       return (
         <div key={key} className="flex flex-col items-center gap-1">
           <p className="text-xs tracking-[0.3em] opacity-70">WEDDING DAY</p>
-          <p className="text-base tracking-widest">{formatDate(weddingDate)}</p>
+          {/* weddingDate 는 InvitationSlides 가 basic.dateFormat 으로 사전 포맷팅한 string. */}
+          <p className="text-base tracking-widest">{weddingDate}</p>
         </div>
       );
     }
@@ -180,12 +181,6 @@ function familyLine(father: { name: string; deceased: boolean }, mother: { name:
   if (father.name.trim()) parts.push(`${father.deceased ? '故 ' : ''}${father.name.trim()}`);
   if (mother.name.trim()) parts.push(`${mother.deceased ? '故 ' : ''}${mother.name.trim()}`);
   return parts.join(' · ');
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return `${d.getFullYear()}. ${String(d.getMonth() + 1).padStart(2, '0')}. ${String(d.getDate()).padStart(2, '0')}`;
 }
 
 /**

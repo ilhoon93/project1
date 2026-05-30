@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useEditorStore } from '@/stores/editor';
 import { InvitationContentSchema, type InvitationContent } from '@/types/invitation';
-import { EditorToolbar } from '@/components/editor/EditorToolbar';
+import { Button } from '@/components/ui/button';
 import { AIPanel } from '@/components/editor/AIPanel';
 import { MainEditor } from '@/components/editor/sections/MainEditor';
 import { StoryEditor } from '@/components/editor/sections/StoryEditor';
@@ -113,11 +114,10 @@ export function EditorClient({
   }, [status]);
 
   return (
-    <div className="min-h-screen bg-[var(--wd-cream)] text-[var(--wd-ink)]">
-      <EditorToolbar invitationId={invitationId} />
-
+    <div className="text-[var(--wd-ink)]">
       {/* lg 이상에서는 좌측 실시간 미리보기 + 우측 컨트롤 2단 분할.
-          미만은 기존 단일 컬럼 그대로. */}
+          미만은 기존 단일 컬럼 그대로. 상단바는 (editor)/layout 의 sticky 헤더가
+          마케팅과 동일한 톤으로 처리. */}
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)] lg:gap-6 lg:px-6 lg:py-6">
         {/* ── 좌측: 실시간 미리보기 (lg+ 전용) ───────────────────── */}
         <aside className="hidden lg:flex lg:sticky lg:top-[calc(57px+1.5rem)] lg:h-[calc(100vh-57px-3rem)] lg:items-center lg:justify-center">
@@ -127,24 +127,30 @@ export function EditorClient({
         {/* ── 우측 (mobile: 단일 컬럼): 탭 + 에디터 컨트롤 ─────── */}
         <div className="flex min-w-0 flex-col">
           <div className="sticky top-[57px] z-10 -mx-0 border-b border-[var(--wd-line)] bg-[var(--wd-paper)]/85 backdrop-blur lg:top-0 lg:rounded-md lg:border lg:border-[var(--wd-line)] lg:bg-[var(--wd-paper)]">
-            <div className="mx-auto flex max-w-2xl items-center gap-1 px-4 lg:max-w-none lg:px-3">
-              <TabButton selected={tab === 'edit'} onClick={() => setTab('edit')}>
-                기본 편집
-              </TabButton>
-              <TabButton selected={tab === 'ai'} onClick={() => setTab('ai')}>
-                AI 이미지
-                {entitlements?.aiSnap && <PackageBadge>스냅 ✓</PackageBadge>}
-              </TabButton>
-              {entitlements?.aiVideo && (
-                <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-200">
-                  AI 영상 잠금해제
-                </span>
-              )}
-              {entitlements?.familyPack && (
-                <span className="ml-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-200">
-                  가족 패키지
-                </span>
-              )}
+            <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-3 lg:max-w-none">
+              {/* 좌측: 탭 + (entitlement 배지) */}
+              <div className="flex min-w-0 items-center gap-1">
+                <TabButton selected={tab === 'edit'} onClick={() => setTab('edit')}>
+                  기본 편집
+                </TabButton>
+                <TabButton selected={tab === 'ai'} onClick={() => setTab('ai')}>
+                  AI 이미지
+                  {entitlements?.aiSnap && <PackageBadge>스냅 ✓</PackageBadge>}
+                </TabButton>
+                {entitlements?.aiVideo && (
+                  <span className="ml-2 hidden rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-200 sm:inline-block">
+                    AI 영상 잠금해제
+                  </span>
+                )}
+                {entitlements?.familyPack && (
+                  <span className="ml-1 hidden rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-200 sm:inline-block">
+                    가족 패키지
+                  </span>
+                )}
+              </div>
+
+              {/* 우측: 저장 상태 + 저장 / 미리보기 액션 */}
+              <EditorActions invitationId={invitationId} />
             </div>
           </div>
 
@@ -194,6 +200,83 @@ function PackageBadge({ children }: { children: React.ReactNode }) {
     <span className="ml-1.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-medium text-emerald-700 ring-1 ring-emerald-200">
       {children}
     </span>
+  );
+}
+
+const STATUS_LABEL = {
+  idle: '',
+  dirty: '저장 안 됨',
+  saving: '저장 중...',
+  saved: '저장됨',
+  error: '저장 실패',
+} as const;
+
+const STATUS_COLOR = {
+  idle: 'text-[var(--wd-mute)]',
+  dirty: 'text-amber-600',
+  saving: 'text-[var(--wd-mute)]',
+  saved: 'text-emerald-600',
+  error: 'text-red-600',
+} as const;
+
+/**
+ * 탭 strip 우측에 정렬되는 에디터 액션 — 상태 / 저장 / 미리보기.
+ * 기존 EditorToolbar 의 로직(저장 race, preview 캐시 무효화) 그대로 이식.
+ */
+function EditorActions({ invitationId }: { invitationId: string }) {
+  const status = useEditorStore((s) => s.status);
+  const save = useEditorStore((s) => s.save);
+  const lastError = useEditorStore((s) => s.lastError);
+  const router = useRouter();
+  const [navigating, setNavigating] = useState(false);
+
+  const handlePreview = async () => {
+    if (navigating) return;
+    if (status === 'dirty') {
+      const ok = window.confirm(
+        '저장하지 않은 변경사항이 있어요. 미리보기에는 저장된 내용만 반영됩니다. 그래도 미리보기로 이동할까요?',
+      );
+      if (!ok) return;
+    }
+    setNavigating(true);
+    while (useEditorStore.getState().status === 'saving') {
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    router.refresh();
+    router.push(`/preview/${invitationId}?t=${Date.now()}`);
+  };
+
+  return (
+    <div className="flex flex-shrink-0 items-center gap-2">
+      <span
+        className={`hidden text-[11px] sm:inline-block ${STATUS_COLOR[status]}`}
+        title={lastError ?? undefined}
+      >
+        {STATUS_LABEL[status]}
+      </span>
+      <Button
+        variant="default"
+        size="sm"
+        onClick={async () => {
+          await save();
+          if (useEditorStore.getState().status === 'saved') {
+            router.refresh();
+          }
+        }}
+        disabled={status === 'saving' || status === 'idle' || status === 'saved'}
+      >
+        저장
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => void handlePreview()}
+        disabled={navigating || status === 'saving'}
+        className="lg:hidden"
+      >
+        {navigating ? '이동 중...' : '미리보기'}
+      </Button>
+    </div>
   );
 }
 

@@ -137,7 +137,7 @@ function Hero({ aiSnaps, designs }: { aiSnaps: AiSnapItem[]; designs: SampleDesi
           </Link>
           <Link
             href="/designs"
-            className="inline-flex items-center rounded-full border border-[var(--wd-coral)]/40 bg-[var(--wd-paper)]/80 px-6 py-3 text-[13px] font-medium text-[var(--wd-coral)] backdrop-blur transition-colors hover:border-[var(--wd-coral)] hover:bg-[var(--wd-paper)]"
+            className="inline-flex items-center rounded-full border border-[var(--wd-coral)] bg-[var(--wd-paper)] px-6 py-3 text-[13px] font-medium text-[var(--wd-coral)] backdrop-blur transition-transform active:scale-[0.97] hover:bg-[var(--wd-coral)]/8"
           >
             디자인 둘러보기
           </Link>
@@ -209,13 +209,16 @@ function DesignAndValues({ designs }: { designs: SampleDesign[] }) {
 
         <ShowcaseTabs designs={designs} />
 
-        <div className="mt-7">
+        <div className="mt-7 flex flex-wrap items-center gap-2">
           <Link
             href="/designs"
             className="inline-flex items-center gap-1.5 rounded-full border border-[var(--wd-ink)]/25 px-5 py-2.5 text-[13px] font-medium text-[var(--wd-ink)] transition-colors hover:border-[var(--wd-ink)]/50"
           >
             디자인 샘플 모아보기 →
           </Link>
+          {/* 혼인서약서 PDF 와 같은 결의 "소장용 URL" 안내 버튼 — 클릭 시 예시
+              URL 팝업. 알림장 소개 맥락 안에서 어떤 게 평생 남는지 보여줌. */}
+          <OwnerUrlButton />
         </div>
       </div>
     </section>
@@ -314,8 +317,6 @@ function Pricing() {
               <li>· 발행 후 30일간 공개</li>
               <li>· 혼인서약서·방명록·사진 PDF·이미지 영구 소장</li>
             </ul>
-
-            <OwnerUrlButton />
 
             <Link
               href="/new"
