@@ -128,7 +128,13 @@
       "Bash(mkdir -p C:/project1/src/app/api/snap/jobs/'[id]'/like)",
       "Bash(git -C C:/project1 checkout -b claude/snap-mypage-feedback-regenerate)",
       "Bash(git -C C:/project1 add supabase/migrations/031_snap_feedback_columns_and_stats_view.sql src/types/database.ts src/app/api/snap/jobs/ src/app/'\\(marketing\\)'/mypage/mypage-client.tsx)",
-      "Bash(git -C C:/project1 push -u origin claude/snap-mypage-feedback-regenerate)"
+      "Bash(git -C C:/project1 push -u origin claude/snap-mypage-feedback-regenerate)",
+      "Bash(gh run *)",
+      "Bash(grep -n \"^| \\\\`\\\\|^### \\\\|^\\\\*\\\\*\" public/wedding-snap/catalog/README.md)",
+      "Bash(git reset *)",
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(git branch *)"
     ]
   }
 }
