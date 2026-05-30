@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { useEditorStore } from '@/stores/editor';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from '@/lib/utils/nanoid';
@@ -51,58 +52,56 @@ export function ThemeEditor() {
   return (
     <SectionEditor title="디자인" description="색상, 효과, 폰트, 페이지 순서">
       <div className="flex flex-col gap-5">
-        {/* 색상 */}
+        {/* 색상 — 콤보박스: 트리거에 현재 스와치+이름, 드롭다운에 전체 목록. */}
         <Field label="색상">
-          <div className="flex flex-wrap gap-2">
-            {COLOR_THEMES.map((c) => (
-              <ColorSwatch
-                key={c}
-                value={c}
-                selected={theme.colorTheme === c}
-                onClick={() => setTheme({ ...theme, colorTheme: c })}
-              />
-            ))}
-          </div>
+          <Combobox
+            options={COLOR_THEMES}
+            value={theme.colorTheme}
+            onChange={(c) => setTheme({ ...theme, colorTheme: c })}
+            renderItem={(c) => (
+              <>
+                <ColorSwatchSm value={c} />
+                <span>{COLOR_THEME_LABELS[c]}</span>
+              </>
+            )}
+          />
         </Field>
 
-        {/* 떨어지는 효과.
-            picker 아이콘 색은 *실제 알림장에서 보이는 색* 과 일치시키기 위해
-            테마 petals[0] 을 우선 쓰고, 그 외엔 accent 폴백. 편지지 테마는
-            글자/액센트가 검정이지만 실제 효과는 분홍(petals[0]=#FFD1D9) 으로
-            깔리기 때문에, accent 만 쓰면 picker 와 실제가 어긋남. */}
+        {/* 배경 효과 — 콤보박스: 트리거/드롭다운에 아이콘 + 이름.
+            picker 아이콘 색은 실제 알림장에서 보이는 색과 일치시키기 위해
+            테마 petals[0] 을 우선 쓰고, 그 외엔 accent 폴백. */}
         <Field label="배경 효과" hint="2D 글리프 또는 질감(텍스처) 효과를 고르세요">
-          <div className="flex flex-wrap gap-2">
-            {PETAL_TYPES.map((t) => {
+          <Combobox
+            options={PETAL_TYPES}
+            value={theme.petalType}
+            onChange={(t) => setTheme({ ...theme, petalType: t })}
+            renderItem={(t) => {
               const pal = THEME_PALETTES[theme.colorTheme];
               const iconColor = pal.petals[0] ?? pal.accent;
               return (
-                <Choice
-                  key={t}
-                  selected={theme.petalType === t}
-                  onClick={() => setTheme({ ...theme, petalType: t })}
-                >
-                  <PetalIcon type={t} accent={iconColor} />
+                <>
+                  <span className="inline-flex h-5 w-5 items-center justify-center">
+                    <PetalIcon type={t} accent={iconColor} />
+                  </span>
                   <span>{PETAL_LABELS[t]}</span>
-                </Choice>
+                </>
               );
-            })}
-          </div>
+            }}
+          />
         </Field>
 
-        {/* 폰트 — 안정적으로 로드되는 폰트만 picker 에 노출 */}
+        {/* 폰트 — 콤보박스: 각 옵션을 그 폰트로 렌더해 실제 모양 확인. */}
         <Field label="폰트">
-          <div className="flex flex-wrap gap-2">
-            {AVAILABLE_FONT_KEYS.map((f) => (
-              <Choice
-                key={f}
-                selected={theme.font === f}
-                onClick={() => setTheme({ ...theme, font: f })}
-                style={{ fontFamily: FONT_OPTIONS[f].family }}
-              >
-                {FONT_OPTIONS[f].label}
-              </Choice>
-            ))}
-          </div>
+          <Combobox
+            options={AVAILABLE_FONT_KEYS}
+            value={theme.font}
+            onChange={(f) => setTheme({ ...theme, font: f })}
+            renderItem={(f) => (
+              <span style={{ fontFamily: FONT_OPTIONS[f].family }}>
+                {FONT_OPTIONS[f].label} · 우리 결혼해요
+              </span>
+            )}
+          />
         </Field>
 
         {/* 페이지 순서 */}
@@ -300,6 +299,111 @@ function Field({
   );
 }
 
+/**
+ * 콤보박스 — 트리거 + 드롭다운 옵션 리스트.
+ * 트리거에 선택된 옵션의 renderItem 결과를 그대로 표시, 드롭다운에는
+ * 전체 옵션을 같은 renderItem 으로 표시. 바깥 클릭/Escape 시 닫힘.
+ */
+function Combobox<T extends string>({
+  options,
+  value,
+  onChange,
+  renderItem,
+}: {
+  options: readonly T[];
+  value: T;
+  onChange: (next: T) => void;
+  renderItem: (v: T) => React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative w-full">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:bg-muted"
+      >
+        <span className="flex min-w-0 items-center gap-2 truncate">
+          {renderItem(value)}
+        </span>
+        <ChevronDown
+          size={14}
+          className={`flex-shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && (
+        <div
+          role="listbox"
+          className="absolute left-0 right-0 top-full z-40 mt-1 max-h-[280px] overflow-y-auto rounded-md border border-input bg-background shadow-lg"
+        >
+          {options.map((opt) => {
+            const selected = opt === value;
+            return (
+              <button
+                key={opt}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => {
+                  onChange(opt);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                  selected ? 'bg-muted font-medium' : 'hover:bg-muted/50'
+                }`}
+              >
+                {renderItem(opt)}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** 콤보박스 트리거/옵션 안에 들어가는 작은 색 스와치. */
+function ColorSwatchSm({ value }: { value: ColorTheme }) {
+  const palette = THEME_PALETTES[value];
+  const hasPattern = !!palette.bgPattern;
+  return (
+    <span
+      aria-hidden
+      className="relative inline-block h-5 w-5 flex-shrink-0 overflow-hidden rounded-full border border-input"
+      style={{
+        backgroundColor: palette.bg,
+        backgroundImage: palette.bgPattern,
+        backgroundRepeat: hasPattern ? 'repeat' : undefined,
+      }}
+    >
+      <span
+        className="absolute bottom-0 left-0 h-1/2 w-full"
+        style={{ backgroundColor: palette.accent, opacity: hasPattern ? 0.85 : 1 }}
+      />
+    </span>
+  );
+}
+
 export function ColorSwatch({
   value,
   selected,
@@ -375,33 +479,6 @@ export function PetalIcon({ type, accent }: { type: PetalType; accent: string })
   return <span className="text-base">{PETAL_GLYPHS[type]}</span>;
 }
 
-function Choice({
-  selected,
-  onClick,
-  children,
-  style,
-}: {
-  selected: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={selected}
-      className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors ${
-        selected
-          ? 'border-foreground bg-foreground text-background'
-          : 'border-input bg-background text-foreground hover:bg-muted'
-      }`}
-      style={style}
-    >
-      {children}
-    </button>
-  );
-}
 
 function ArrowButton({
   label,

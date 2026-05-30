@@ -117,8 +117,10 @@ export function EditorClient({
     <div className="text-[var(--wd-ink)]">
       {/* lg 이상에서는 좌측 실시간 미리보기 + 우측 컨트롤 2단 분할.
           미만은 기존 단일 컬럼 그대로. 상단바는 (editor)/layout 의 sticky 헤더가
-          마케팅과 동일한 톤으로 처리. */}
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)] lg:gap-6 lg:px-6 lg:py-6">
+          마케팅과 동일한 톤으로 처리.
+          우측 컨트롤 컬럼 폭을 560 → 720px 로 확대 (xl 이상은 800px) — 콤보박스/
+          토글 행이 더 여유 있게 들어가고 좌측 미리보기와의 비율도 자연스럽다. */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,720px)] lg:gap-8 lg:px-8 lg:py-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,800px)] xl:gap-10 xl:px-12">
         {/* ── 좌측: 실시간 미리보기 (lg+ 전용) ───────────────────── */}
         <aside className="hidden lg:flex lg:sticky lg:top-[calc(57px+1.5rem)] lg:h-[calc(100vh-57px-3rem)] lg:items-center lg:justify-center">
           <EditorLivePreview invitationId={invitationId} />
