@@ -44,28 +44,37 @@ export function EditorLivePreview({ invitationId }: Props) {
   }
 
   return (
-    // 헤더(실시간 미리보기/Live 배지) 제거 — 폰 프레임이 가용 공간을 모두 차지.
-    // aspect 9 : 19.5 (= 최신 스마트폰 19.5:9 세로 비율) 로 통일.
-    <div className="flex h-full max-h-[920px] w-full max-w-[380px] flex-col">
-      <div
-        className="relative mx-auto flex w-full overflow-hidden rounded-[2.25rem] border-[10px] border-foreground/85 bg-background shadow-xl"
-        style={{ aspectRatio: '9 / 19.5', maxHeight: '100%' }}
-      >
-        {ready ? (
-          <InvitationSlides
-            invitationId={invitationId}
-            groomName={groomName}
-            brideName={brideName}
-            weddingDate={weddingDate}
-            content={content}
-            isPreview
-            scoped
-          />
-        ) : (
-          <div className="grid h-full w-full place-items-center text-xs text-muted-foreground">
-            로딩 중...
-          </div>
-        )}
+    // 베젤 얇게 + 19.5:9 를 "스크린(inner)" 기준으로 정확히 — 실제 스마트폰처럼
+    // 베젤은 화면 둘레의 얇은 테두리에 그치고, 안쪽 SCREEN 이 19.5:9 비율을 가짐.
+    // 베젤 두께가 두꺼우면 스크린 실측 비율이 더 길쭉해져 "세로로 길어 보이는"
+    // 문제가 생겼었음 → border-[3px] 로 줄여 시각/실측 일치.
+    <div className="flex h-full max-h-[920px] w-full max-w-[380px] items-center justify-center">
+      <div className="relative overflow-hidden rounded-[2rem] border-[3px] border-foreground/85 bg-background shadow-xl">
+        <div
+          className="relative w-full"
+          style={{
+            // SCREEN 자체가 19.5:9. 부모 너비(<=374px = 380-6) 를 따라가되 가용
+            // 세로 높이를 넘지 않도록 width 를 viewport 기반으로 캡.
+            width: 'min(374px, calc((100vh - 120px) * 9 / 19.5))',
+            aspectRatio: '9 / 19.5',
+          }}
+        >
+          {ready ? (
+            <InvitationSlides
+              invitationId={invitationId}
+              groomName={groomName}
+              brideName={brideName}
+              weddingDate={weddingDate}
+              content={content}
+              isPreview
+              scoped
+            />
+          ) : (
+            <div className="grid h-full w-full place-items-center text-xs text-muted-foreground">
+              로딩 중...
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -415,7 +415,24 @@ function layoutText(
 
   const viewBoxWidth = Math.max(1, ...lineWidths.map((w) => w || 0));
   const viewBoxHeight = (line + 1) * lineHeight;
-  return { paths, viewBoxWidth, viewBoxHeight, lineWidths };
+
+  // 4) 라인별 가운데 정렬 — 각 path 의 cursorX 를 (viewBoxWidth - lineWidth)/2 만큼
+  //    시프트해 SVG 안에서 각 줄이 가운데로 모이게 한다. (h1 의 text-center 는
+  //    SVG 외곽만 가운데로 보내지 SVG 내부의 줄별 정렬에는 영향 없음 — 직접 계산.)
+  const lineOffsets = lineWidths.map((w) => Math.max(0, (viewBoxWidth - (w || 0)) / 2));
+  const centeredPaths: CharPath[] = paths.map((p) => {
+    const dx = lineOffsets[p.line] ?? 0;
+    if (dx === 0) return p;
+    // 기존 transform: `translate(X Y) scale(...)`. 앞에 추가 translate 를 prepend.
+    return { ...p, transform: `translate(${dx.toFixed(2)} 0) ${p.transform}` };
+  });
+
+  return {
+    paths: centeredPaths,
+    viewBoxWidth,
+    viewBoxHeight,
+    lineWidths,
+  };
 }
 
 /**

@@ -47,7 +47,7 @@ export function DesignCatalogClient({ designs }: { designs: SampleDesign[] }) {
             {/* 카드 bg 를 베젤(#15110E) 과 동일하게 — 다크 테마 표지일 때
                 베젤/스크린 경계의 흰색 seam(rounded radius 안티에일리어싱) 제거.
                 라이트 테마는 InvitationPreview 가 자기 palette.bg 로 가득 덮음. */}
-            <div className="overflow-hidden rounded-[26px] border-[6px] border-[#15110E] bg-[#15110E] shadow-[0_14px_34px_rgba(31,27,23,0.16)] transition-transform group-hover:-translate-y-1 group-focus-visible:-translate-y-1">
+            <div className="overflow-hidden rounded-[20px] border-[2px] border-[#15110E] bg-[#15110E] shadow-[0_14px_34px_rgba(31,27,23,0.16)] transition-transform group-hover:-translate-y-1 group-focus-visible:-translate-y-1">
               {/* 화면 = 정확히 9:18 → 표지 미리보기가 왜곡 없이 가득 채움 */}
               <div className="relative aspect-[6/13] w-full overflow-hidden">
                 <InvitationPreview design={d} cover />
@@ -87,7 +87,7 @@ function PreviewModal({ design, onClose }: { design: SampleDesign; onClose: () =
       </button>
 
       <div
-        className="overflow-hidden rounded-[2.2rem] border-[10px] border-[#15110E] bg-[#15110E] shadow-2xl"
+        className="overflow-hidden rounded-[1.6rem] border-[3px] border-[#15110E] bg-[#15110E] shadow-2xl"
         style={{ height: 'min(82vh, 800px)' }}
         onClick={(e) => e.stopPropagation()}
       >

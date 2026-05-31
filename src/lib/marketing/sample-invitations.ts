@@ -2,7 +2,13 @@ import {
   defaultInvitationContent,
   type InvitationContent,
 } from '@/types/invitation';
-import type { ColorTheme, PetalType, FontKey } from '@/lib/theme';
+import {
+  COLOR_THEME_LABELS,
+  PETAL_LABELS,
+  type ColorTheme,
+  type PetalType,
+  type FontKey,
+} from '@/lib/theme';
 
 /**
  * 마케팅용 알림장 디자인 샘플 + 메인 Before/After 슬라이더 + 공유 본문 템플릿의
@@ -266,15 +272,58 @@ export function buildDesign(
 
   content.closing = t.closing;
 
+  // name/layoutLabel 은 항상 현재 데이터(컬러/레이아웃/배경효과) 기준 자동 생성.
+  // 관리자에서 자동 생성된 값으로 저장하지만, 그 사이 코드 SEED 가 갱신되거나
+  // 어떤 이유로 stale 값이 들어 있어도 렌더 시점에 한 번 더 보정해 일관성 보장.
   return {
     id: c.id,
-    name: c.name,
-    layoutLabel: c.layoutLabel,
+    name: deriveSampleName(c),
+    layoutLabel: deriveSampleLayoutLabel(c),
     groomName: c.groomName,
     brideName: c.brideName,
     weddingDate: c.weddingDate,
     content,
   };
+}
+
+const SAMPLE_LAYOUT_NAMES: Record<InvitationContent['main']['layout'], string> = {
+  poster: '포스터',
+  frame: '액자',
+  polaroid: '액자',
+  illustration: '일러스트',
+  text: '텍스트',
+};
+
+const SAMPLE_PETAL_TAG: Partial<Record<PetalType, string>> = {
+  none: '무효과',
+  sakura: '벚꽃',
+  flower: '꽃잎',
+  leaf: '잎',
+  heart: '하트',
+  star: '별',
+  starlight: '별빛',
+  whitePetal: '흰 꽃잎',
+  snow: '눈송이',
+  bokeh: '보케',
+};
+
+function sampleLayoutName(layout: InvitationContent['main']['layout']): string {
+  // 'polaroid' 레거시 → frame.
+  const key = layout === 'polaroid' ? 'frame' : layout;
+  return SAMPLE_LAYOUT_NAMES[key] ?? layout;
+}
+
+/** "크림 포스터" 같은 카드 이름 — 컬러 테마 + 레이아웃 기반 자동 생성. */
+export function deriveSampleName(c: DesignConfig): string {
+  const theme = COLOR_THEME_LABELS[c.colorTheme] ?? c.colorTheme;
+  return `${theme} ${sampleLayoutName(c.main.layout)}`;
+}
+
+/** "포스터 · 벚꽃" 같은 태그 — 레이아웃 + 배경 효과 기반 자동 생성. */
+export function deriveSampleLayoutLabel(c: DesignConfig): string {
+  const layoutName = sampleLayoutName(c.main.layout);
+  const petalName = SAMPLE_PETAL_TAG[c.petalType] ?? PETAL_LABELS[c.petalType] ?? '';
+  return petalName ? `${layoutName} · ${petalName}` : layoutName;
 }
 
 // ─────────────────────────────────────────────────────────────
