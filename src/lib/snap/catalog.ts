@@ -203,26 +203,6 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     ],
   },
   {
-    id: 'meadow-casual-shades',
-    label: '잔디밭 캐주얼 선글라스',
-    hint: '데님 셔츠 + 튤 드레스 + 부케 + 선글라스',
-    category: 'outdoor',
-    personality: 'together',
-    intensity: 'medium',
-    framing: 'closeup',
-    image: '/wedding-snap/catalog/meadow-casual-shades.jpg',
-    promptHint:
-      'Outdoor scene seated on a lush green lawn (uniform short grass filling the entire background, no trees or sky visible — just grass), warm late-afternoon natural sunlight from camera-left creating soft rim on hair and shoulders. Shot on 50–85mm portrait lens, three-quarter / waist-up framing, slight low-angle from ground level, shallow depth of field on the couple. Bride: spaghetti-strap white tulle wedding dress with layered ruffle skirt cascading over crossed legs, sheer cathedral veil softly draped behind her hair, hair in a clean middle-parted low style, sleek black cat-eye sunglasses, tan suede ankle boots, one hand propping up her chin with elbow on knee — relaxed cool posture. Groom: dark indigo denim button-up shirt (slightly faded), dark navy trousers, white tube socks, navy canvas sneakers, short neat dark hair, large black square sunglasses, seated with knees up and back relaxed, both hands cradling a wild bouquet of pink hyacinth, yellow craspedia, purple statice and trailing red amaranthus between his knees. Pose: bride seated on the grass to the left, groom seated to her right slightly higher, both facing camera straight on with calm cool neutral expressions, no smiles, gen-Z 90s editorial vibe. Color grade: muted natural greens with warm cream skin midtones, slight film softness, contrasted vintage prewedding mood — must read as warm bright daytime, NOT studio, NOT golden hour.',
-    manualKelvin: 5000,
-    manualMoodHint:
-      'warm late-afternoon natural sunlight on uniform green lawn, retro 90s gen-Z editorial mood, both wearing sunglasses, film softness',
-    // 신부(왼쪽, 더 아래·바닥쪽), 신랑(오른쪽, 약간 위) — 풀신 앉은 자세 기준 추정치.
-    faceMaskRegions: [
-      [0.22, 0.22, 0.18, 0.18],
-      [0.56, 0.16, 0.18, 0.20],
-    ],
-  },
-  {
     id: 'bridge-night-noir',
     label: '브릿지 야경 누아르',
     hint: '검정 슈트·드레스 + 가로등 + 야경 보케',
@@ -1750,6 +1730,161 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
       'warm soft natural sunlight on warm sandstone wall with classic ivory tuxedo groom portrait, refined romantic classic K-prewedding magazine portrait mood',
     // solo 풀신 / 반신: 얼굴이 프레임 상단 1/4 부근.
     faceMaskRegions: [[0.42, 0.08, 0.20, 0.20]],
+  },
+  // ── 신규 추가 (2026-05, 2차) ──
+  {
+    id: 'london-bigben-bridge-walk',
+    label: '런던 빅벤 다리 워킹',
+    hint: '빅벤 + 웨스트민스터 다리 + 정장 + 레이스 드레스',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'medium',
+    framing: 'full',
+    image: '/wedding-snap/catalog/london-bigben-bridge-walk.jpg',
+    promptHint:
+      'Outdoor London Westminster Bridge scene at warm dusk with the iconic Big Ben clock tower glowing amber and clearly visible rising tall to camera-center-left in the soft-focus background, the historic gothic Westminster Palace softly lit behind, ornate green-and-gold Victorian street lamp glowing warm to camera-left, a vibrant red London double-decker bus and black cabs softly visible with subtle motion on the road to camera-right, pale stone bridge balustrade lining the walkway, calm lavender-and-pink dusk sky above, wet pavement reflecting warm lamp light. Shot on 35–50mm lens for environmental travel feel, full-body framing in landscape aspect, eye-level camera, shallow depth of field with creamy London cityscape bokeh behind. Groom: sharp black three-piece formal suit (jacket + waistcoat) with crisp light-blue dress shirt and pale-blue silk necktie, polished black derby shoes, short neat dark side-swept hair, calm warm soft smile looking toward bride, walking hand-in-hand to camera-left. Bride: elegant ivory long-sleeve lace midi wedding dress with delicate floral lace texture and modest high neckline, long dark-brown softly waved hair flowing past her shoulders, soft natural rosy makeup with warm bright closed-mouth smile looking toward groom, ivory pointed-toe heels, walking hand-in-hand to camera-right. Pose: bride and groom walking slowly hand-in-hand toward camera across the bridge, both turned slightly toward each other with warm gentle smiles, refined romantic European travel London dusk K-prewedding moment. Color grade: warm amber dusk city lighting with iconic glowing Big Ben backdrop, lavender-pink sky and warm cream skin midtones, refined romantic K-prewedding international travel editorial atmosphere — must clearly read as warm London dusk, NOT noon, NOT studio.',
+    manualKelvin: 3400,
+    manualMoodHint:
+      'warm amber London dusk at Westminster Bridge with glowing Big Ben backdrop and lavender-pink sky, refined romantic European travel K-prewedding mood',
+    faceMaskRegions: [
+      [0.40, 0.34, 0.13, 0.15],
+      [0.56, 0.32, 0.13, 0.15],
+    ],
+  },
+  {
+    id: 'jeju-forest-road-walk',
+    label: '제주 숲길 도로 워킹',
+    hint: '제주 삼나무 숲길 + 볼가운 드레스 + 브라운 슈트',
+    category: 'outdoor',
+    personality: 'together',
+    intensity: 'medium',
+    framing: 'full',
+    image: '/wedding-snap/catalog/jeju-forest-road-walk.jpg',
+    promptHint:
+      'Outdoor Jeju-island forest road scene — a long empty paved two-lane country road with a single yellow center line receding straight into the soft-focus distance, dense lush green cedar and pine forest walls lining both sides of the road, soft overcast diffused natural daylight giving even soft shadows, calm misty atmosphere. Shot on 50–85mm portrait lens, full-body framing in landscape aspect, eye-level camera slightly low, shallow depth of field with the forest road creamy-bokeh behind. Bride: clean ivory champagne strapless A-line satin ball-gown wedding dress with structured straight neckline and full pleated skirt gathered slightly in one hand as she walks, a single large white flower hair accessory above one ear, dark hair pulled back in a neat low updo, soft natural rosy makeup with warm gentle smile toward groom, ivory heels. Groom: warm dark-brown two-piece formal suit with light-blue dress shirt, slim navy necktie and a small white floral boutonniere, polished dark shoes, short neat dark hair, calm warm soft smile toward bride, holding a small round bouquet of white chrysanthemums with trailing ivory ribbon in his outer hand. Pose: bride and groom walking slowly hand-in-hand down the middle of the empty forest road toward camera, both turned slightly toward each other with calm warm gentle smiles, refined natural Jeju K-prewedding editorial mood. Color grade: soft muted natural greens with warm cream skin midtones and gentle overcast softness, refined natural outdoor K-prewedding atmosphere — must clearly read as soft overcast daytime forest road, NOT golden hour, NOT studio.',
+    manualKelvin: 5600,
+    manualMoodHint:
+      'soft overcast natural daylight on a lush Jeju cedar-forest road, refined natural K-prewedding editorial mood with muted greens',
+    faceMaskRegions: [
+      [0.40, 0.26, 0.13, 0.15],
+      [0.57, 0.22, 0.13, 0.15],
+    ],
+  },
+  {
+    id: 'flowershop-vespa-couple',
+    label: '플라워샵 베스파',
+    hint: '유럽 플라워샵 + 빈티지 스쿠터 + 아이보리 슈트',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'medium',
+    framing: 'full',
+    isSeated: true, // seated on a vintage scooter
+    image: '/wedding-snap/catalog/flowershop-vespa-couple.jpg',
+    promptHint:
+      'Outdoor charming old European (Italian) cobblestone alley scene in front of a rustic flower shop with weathered blue-painted wooden double doors and arched window, lush green climbing ivy draping over the doorway, a small hand-painted "Flower shop" sign hanging to camera-right, abundant potted hydrangeas and colorful flowers in terracotta pots lining the stone wall on both sides, warm soft daylight. Couple seated together on a silver vintage Vespa scooter parked at center on the cobblestones. Shot on 35–50mm lens for environmental feel, full-body framing in landscape aspect, eye-level camera, shallow depth of field with the flower-shop facade softly behind. Groom: refined ivory / cream three-piece formal suit (jacket + waistcoat) with brown patterned necktie, brown leather shoes, short neat dark hair, calm composed warm soft expression, seated forward on the scooter with both hands on the handlebars, facing camera. Bride: clean ivory sleeveless satin knee-length wedding dress with simple elegant neckline, dark hair in a soft low style, soft natural rosy makeup with warm gentle smile, holding a small round bouquet of soft pastel garden flowers, seated side-saddle behind groom leaning her head gently against his shoulder, facing camera. Pose: couple seated close together on the vintage scooter both facing camera with calm warm gentle smiles, refined romantic European travel K-prewedding editorial moment. Color grade: warm soft European daylight with lush green ivy and pastel-flower accents and warm cream skin midtones, refined romantic K-prewedding travel atmosphere — must clearly read as warm soft daytime European alley, NOT golden hour, NOT studio.',
+    manualKelvin: 5200,
+    manualMoodHint:
+      'warm soft European daylight at a rustic flower-shop alley with vintage scooter and lush ivy, refined romantic travel K-prewedding mood',
+    faceMaskRegions: [
+      [0.42, 0.34, 0.12, 0.14],
+      [0.58, 0.34, 0.12, 0.14],
+    ],
+  },
+  {
+    id: 'rome-colosseum-sunset',
+    label: '로마 콜로세움 노을',
+    hint: '콜로세움 + 골든아워 + 레이스 드레스 + 캐주얼 셔츠',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'high',
+    framing: 'full',
+    isSeated: true, // seated on a low stone wall
+    image: '/wedding-snap/catalog/rome-colosseum-sunset.jpg',
+    promptHint:
+      'Outdoor Rome scene at warm golden-hour sunset with the iconic ancient Colosseum clearly visible glowing amber in the soft-focus background, scattered Mediterranean pine and olive trees framing both sides, warm orange-and-pink sunset sky with soft sun-flare behind, ancient stone ruins and a low pale-stone wall in the foreground. Couple seated together on the low stone wall. Shot on 35–50mm lens for environmental travel feel, three-quarter (waist-up to knee-up) framing in landscape aspect, eye-level camera, shallow depth of field with the Colosseum creamy-bokeh behind. Bride: ivory lace V-neck wedding dress with delicate floral lace texture, a fitted black blazer draped over her shoulders, long dark hair flowing softly, soft natural rosy makeup with warm bright genuine smile, holding a small round bouquet of soft garden roses in her lap, seated to camera-left. Groom: relaxed white linen dress shirt with sleeves casually rolled to the forearm, dark navy trousers, a watch on the wrist, short neat dark hair, calm warm genuine bright smile, seated close to camera-right with one hand resting near bride. Pose: bride and groom seated close shoulder-to-shoulder on the stone wall both facing camera with warm bright genuine smiles, relaxed refined European travel sunset K-prewedding moment. Color grade: warm golden-hour amber-and-pink sunset glow with the glowing Colosseum backdrop and warm cream skin midtones, refined romantic K-prewedding international travel editorial atmosphere — must clearly read as warm Rome golden-hour sunset, NOT noon, NOT studio.',
+    manualKelvin: 3000,
+    manualMoodHint:
+      'warm golden-hour sunset at the Rome Colosseum with amber-pink sky and soft sun-flare, refined romantic European travel K-prewedding mood',
+    faceMaskRegions: [
+      [0.38, 0.34, 0.13, 0.16],
+      [0.56, 0.34, 0.13, 0.16],
+    ],
+  },
+  {
+    id: 'tuscany-villa-arch-couple',
+    label: '토스카나 빌라 아치문',
+    hint: '토스카나 빌라 + 아치 나무문 + 풀튤 볼가운 + 턱시도',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'medium',
+    framing: 'full',
+    isSeated: true, // bride seated on the stone steps
+    image: '/wedding-snap/catalog/tuscany-villa-arch-couple.jpg',
+    promptHint:
+      'Outdoor Tuscan-villa entrance scene at warm dusk — a rustic warm sand-toned plaster wall with an arched wooden double door, a vintage wrought-iron lantern glowing warm amber above the doorway, two potted lemon trees with yellow lemons flanking the doorway, weathered pale-stone steps and flagstone ground, calm warm twilight atmosphere. Shot on 35–50mm portrait lens, full-body framing in landscape aspect, eye-level camera, shallow depth of field. Groom: sharp black peak-lapel formal tuxedo with crisp white dress shirt and neat solid-black silk bow tie, polished black shoes, short neat dark hair, calm composed confident soft expression, standing tall and leaning one shoulder casually against the open wooden door with one hand in trouser pocket. Bride: dramatic clean ivory strapless full-volume satin ball-gown wedding dress with structured sweetheart bodice and a voluminous skirt cascading lushly down the stone steps, long dark hair softly styled, soft natural rosy makeup with calm composed gentle expression, seated gracefully on the stone steps in the doorway with the gown spread elegantly around her, both hands resting softly in her lap, facing camera. Pose: groom standing in the doorway, bride seated on the steps before him, both facing camera with calm composed refined expressions, elegant luxury European villa K-prewedding editorial moment. Color grade: warm amber lantern glow on warm sand-plaster wall with rich wood door tones and warm cream skin midtones, refined elegant K-prewedding luxury travel atmosphere — must clearly read as warm villa twilight, NOT noon, NOT studio.',
+    manualKelvin: 3200,
+    manualMoodHint:
+      'warm amber lantern dusk at a rustic Tuscan villa arched doorway with lemon trees, refined elegant luxury K-prewedding travel mood',
+    faceMaskRegions: [
+      [0.34, 0.28, 0.12, 0.15],
+      [0.52, 0.52, 0.12, 0.14],
+    ],
+  },
+  {
+    id: 'snowforest-blackwhite-couple',
+    label: '설경 숲 흑백',
+    hint: '눈 내리는 숲 + 흑백 + 머메이드 드레스 + 턱시도',
+    category: 'outdoor',
+    personality: 'together',
+    intensity: 'high',
+    framing: 'full',
+    image: '/wedding-snap/catalog/snowforest-blackwhite-couple.jpg',
+    promptHint:
+      'Outdoor wintry snow-covered forest scene at night rendered in elegant black-and-white monochrome, tall bare and snow-laden trees lining a snowy forest path receding into the dark background, soft falling snowflakes drifting through the air, a faint warm light glowing deep in the forest behind, soft moody low-key lighting. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, eye-level camera slightly low, shallow depth of field with snowy forest softly behind. Couple shown from behind turning back over their shoulders toward camera. Bride: elegant white strapless fitted mermaid wedding gown with subtle floral applique and a slight train trailing on the snow, long dark hair flowing down her back, soft natural makeup with warm gentle smile glancing back over her shoulder toward camera, holding a round white bouquet in her outer hand. Groom: sharp black formal tuxedo with crisp white shirt and black bow tie, short neat dark hair, calm warm soft smile glancing back over his shoulder toward camera, holding bride\'s hand. Pose: bride and groom standing close, walking away down the snowy path hand-in-hand but both turning their heads and upper bodies back over their shoulders to face camera with warm gentle smiles, cinematic intimate winter K-prewedding moment. Monochrome black-and-white grade: rich deep blacks in the formalwear, soft luminous whites in the gown and snow, gentle silver midtones with soft film grain, refined cinematic winter K-prewedding editorial atmosphere — must clearly read as elegant black-and-white snowy night forest, NOT color, NOT studio.',
+    manualKelvin: 5500,
+    manualMoodHint:
+      'elegant black-and-white snowy night forest with falling snow, cinematic intimate winter K-prewedding mood, soft film grain',
+    faceMaskRegions: [
+      [0.30, 0.30, 0.12, 0.14],
+      [0.54, 0.28, 0.12, 0.14],
+    ],
+  },
+  {
+    id: 'rooftop-bluesky-couple',
+    label: '루프탑 파란하늘',
+    hint: '맑은 파란하늘 + 루프탑 난간 + 튤 볼가운 + 캐주얼 셔츠',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'low',
+    framing: 'full',
+    isSeated: true, // seated on a wooden rooftop railing
+    image: '/wedding-snap/catalog/rooftop-bluesky-couple.jpg',
+    promptHint:
+      'Outdoor rooftop scene under a clean clear vivid blue sky filling most of the frame, a weathered wooden rooftop railing/fence at the bottom that the couple sits on, a low-rise cityscape softly visible far below in the soft-focus distance, bright warm natural midday sunlight. Shot on 35–50mm lens, full-body framing in tall vertical aspect, low-angle camera looking slightly up at the couple against the open sky, shallow depth of field. Groom: relaxed crisp white long-sleeve linen shirt with sleeves slightly rolled, dark charcoal trousers, short neat dark hair gently tousled by the breeze, calm warm content soft smile looking up toward the sky, seated on the wooden railing to camera-left with one hand resting near bride. Bride: romantic ivory off-shoulder tulle ball-gown wedding dress with delicate beaded floral bodice and voluminous airy tulle skirt, dark hair in a soft low updo, soft natural rosy makeup with bright genuine joyful smile looking up toward the sky, both hands resting softly in her lap, seated on the railing to camera-right. Pose: bride and groom seated close together on the rooftop railing against the open blue sky, both gazing warmly upward and outward with bright content smiles, airy hopeful refined K-prewedding editorial moment. Color grade: clean bright midday daylight with vivid clear-blue sky and warm cream skin midtones, fresh airy refined K-prewedding atmosphere — must clearly read as bright clear-blue-sky daytime rooftop, NOT golden hour, NOT studio.',
+    manualKelvin: 5800,
+    manualMoodHint:
+      'bright clear-blue-sky midday daylight on an open rooftop railing, fresh airy hopeful refined K-prewedding mood',
+    faceMaskRegions: [
+      [0.30, 0.40, 0.13, 0.15],
+      [0.56, 0.42, 0.13, 0.15],
+    ],
+  },
+  {
+    id: 'groom-library-navy-tux',
+    label: '신랑 서재 네이비 턱시도 단독',
+    hint: '클래식 서재 + 가죽 의자 + 네이비 턱시도 + 보타이',
+    category: 'studio',
+    personality: 'groom-solo',
+    framing: 'closeup',
+    isSeated: true, // seated in a leather lounge chair
+    image: '/wedding-snap/catalog/groom-library-navy-tux.jpg',
+    promptHint:
+      'Solo groom portrait — only the groom is in the frame, no bride, no other people. Indoor classic warm wood-paneled private library / study scene with floor-to-ceiling dark wooden bookshelves filled with leather-bound books filling the background, a warm brass floor lamp glowing soft amber to camera-right, a rich brown mid-century leather lounge chair and ottoman, warm tungsten ambient lighting. Shot on 50–85mm portrait lens, three-quarter (waist-up to knee-up) framing, eye-level camera, shallow depth of field with the bookshelves softly bokeh-blurred behind. Groom: sharp deep-navy peak-lapel tuxedo with satin-faced black lapels, crisp white pleated tuxedo dress shirt with small black studs, neat solid-black silk bow tie, white pocket square, short neatly combed dark side-parted hair, calm composed confident soft expression, seated relaxed in the leather lounge chair with one elbow resting and one hand raised near his temple in a thoughtful refined pose. Pose: seated composed and confident facing camera, refined sophisticated classic K-prewedding magazine groom portrait atmosphere. Color grade: warm tungsten library glow with rich wood and leather brown tones and warm cream skin midtones, refined sophisticated classic K-prewedding editorial atmosphere — must clearly read as warm indoor classic library, NOT studio gray backdrop, NOT outdoor.',
+    manualKelvin: 3000,
+    manualMoodHint:
+      'warm tungsten classic wood-paneled library with leather lounge chair, refined sophisticated classic K-prewedding magazine groom portrait mood',
+    // solo 클로즈업 / 반신: 얼굴이 프레임 상단 중앙.
+    faceMaskRegions: [[0.40, 0.14, 0.24, 0.26]],
   },
 ];
 

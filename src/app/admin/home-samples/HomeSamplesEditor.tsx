@@ -63,39 +63,64 @@ const inputCls =
   'w-full rounded border border-[#E8DCC9] bg-white px-2 py-1.5 text-[12px] text-[#3D2E1F] focus:border-[#8B7355] focus:outline-none';
 const labelCls = 'block text-[10px] font-medium uppercase tracking-wide text-[#8B7355]';
 
-export function HomeSamplesEditor({
+/** config 저장 공통 훅 — 두 에디터(알림장/AI스냅)가 같은 전체 config 를 저장하되
+ *  각자 자기 슬라이스만 편집한다. 저장 시 편집 안 한 슬라이스는 로드된 값 그대로 보존. */
+function useHomeSamplesSaver(initialConfig: HomeSamplesConfig) {
+  const [config, setConfig] = useState<HomeSamplesConfig>(initialConfig);
+  const [pending, startTransition] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
+  const save = (next: HomeSamplesConfig) => {
+    setMsg(null);
+    startTransition(async () => {
+      const res = await saveHomeSamplesAction(next);
+      if (res.ok) setConfig(next);
+      setMsg(res.ok ? '저장됐습니다.' : `저장 실패: ${res.error ?? '알 수 없음'}`);
+    });
+  };
+  return { config, setConfig, pending, msg, save };
+}
+
+function SaveBar({
+  pending,
+  msg,
+  onSave,
+}: {
+  pending: boolean;
+  msg: string | null;
+  onSave: () => void;
+}) {
+  return (
+    <div className="sticky bottom-0 flex items-center gap-3 border-t border-[#E8DCC9] bg-[#FAF7F2]/95 py-3 backdrop-blur">
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={pending}
+        className="rounded-full bg-[#3D2E1F] px-5 py-2 text-[13px] font-medium text-white disabled:opacity-50"
+      >
+        {pending ? '저장 중…' : '저장'}
+      </button>
+      {msg && <span className="text-[12px] text-[#5C4633]">{msg}</span>}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 알림장 디자인 샘플 에디터 — 디자인 카드 + 공유 본문 템플릿
+// ─────────────────────────────────────────────────────────────
+
+export function InvitationSamplesEditor({
   initialConfig,
   catalog,
 }: {
   initialConfig: HomeSamplesConfig;
   catalog: CatalogItem[];
 }) {
-  const [config, setConfig] = useState<HomeSamplesConfig>(initialConfig);
+  const { config, setConfig, pending, msg, save } = useHomeSamplesSaver(initialConfig);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-  const [msg, setMsg] = useState<string | null>(null);
 
   const byId = useMemo(() => new Map(catalog.map((c) => [c.id, c])), [catalog]);
   const srcOf = (id: string) => byId.get(id)?.src ?? `/wedding-snap/catalog/${id}.jpg`;
 
-  // ── AI 스냅 ──────────────────────────────────────────────
-  const snaps = config.aiSnapCatalogIds;
-  const setSnaps = (next: string[]) =>
-    setConfig((c) => ({ ...c, aiSnapCatalogIds: next }));
-  const addSnap = (id: string) => {
-    if (!id || snaps.includes(id)) return;
-    setSnaps([...snaps, id]);
-  };
-  const removeSnap = (i: number) => setSnaps(snaps.filter((_, k) => k !== i));
-  const moveSnap = (i: number, dir: -1 | 1) => {
-    const j = i + dir;
-    if (j < 0 || j >= snaps.length) return;
-    const next = [...snaps];
-    [next[i], next[j]] = [next[j], next[i]];
-    setSnaps(next);
-  };
-
-  // ── 디자인 ──────────────────────────────────────────────
   const setDesigns = (next: DesignConfig[]) =>
     setConfig((c) => ({ ...c, designs: next }));
   const patchDesign = (i: number, patch: Partial<DesignConfig>) =>
@@ -112,18 +137,6 @@ export function HomeSamplesEditor({
     setDesigns(next);
   };
 
-  // ── Before/After ─────────────────────────────────────────
-  const setBA = (next: BeforeAfterConfig) =>
-    setConfig((c) => ({ ...c, beforeAfter: next }));
-  const patchStyle = (i: number, patch: Partial<BeforeAfterStyle>) =>
-    setBA({
-      ...config.beforeAfter,
-      styles: config.beforeAfter.styles.map((s, k) =>
-        k === i ? { ...s, ...patch } : s,
-      ),
-    });
-
-  // ── Template ─────────────────────────────────────────────
   const setTpl = (next: TemplateConfig) =>
     setConfig((c) => ({ ...c, template: next }));
   const patchTpl = (patch: Partial<TemplateConfig>) =>
@@ -153,113 +166,16 @@ export function HomeSamplesEditor({
       voteOptions: config.template.voteOptions.map((o, k) => (k === i ? v : o)),
     });
 
-  const save = () => {
-    setMsg(null);
-    // 저장 시점에 layoutLabel 을 현재 데이터 기준으로 자동 재계산 — 운영자가
-    // 따로 입력란을 두지 않고도 카드에 일관된 태그가 들어가게.
-    const stamped: HomeSamplesConfig = {
+  const handleSave = () => {
+    // 저장 시점에 layoutLabel 을 현재 데이터 기준으로 자동 재계산.
+    save({
       ...config,
       designs: config.designs.map((d) => ({ ...d, layoutLabel: computeLayoutLabel(d) })),
-    };
-    startTransition(async () => {
-      const res = await saveHomeSamplesAction(stamped);
-      if (res.ok) setConfig(stamped);
-      setMsg(res.ok ? '저장됐습니다.' : `저장 실패: ${res.error ?? '알 수 없음'}`);
     });
   };
 
-  const unusedCatalog = catalog.filter((c) => !snaps.includes(c.id));
-
   return (
     <div className="space-y-8">
-      {/* ───────────── AI 스냅 샘플 ───────────── */}
-      <section className="rounded-lg border border-[#E8DCC9] bg-white p-4">
-        <h2 className="text-sm font-semibold text-[#3D2E1F]">샘플 AI스냅</h2>
-        <p className="mt-0.5 text-[11px] text-[#8B7355]">
-          앞 4개 = 메인 폴라로이드, 전체 = AI 스냅 썸네일 스트립. 순서대로 노출됩니다.
-        </p>
-
-        <div className="mt-3 flex flex-wrap gap-2">
-          {snaps.map((id, i) => (
-            <div key={id} className="relative w-[88px] overflow-hidden rounded border border-[#E8DCC9]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={srcOf(id)} alt={id} className="h-[118px] w-full object-cover" />
-              {i < 4 && (
-                <span className="absolute left-1 top-1 rounded bg-[#3D2E1F]/80 px-1 text-[8px] text-white">폴라로이드</span>
-              )}
-              <div className="flex items-center justify-between gap-0.5 bg-[#FAF7F2] px-1 py-1">
-                <button type="button" onClick={() => moveSnap(i, -1)} className="px-1 text-[12px] text-[#8B7355] disabled:opacity-30" disabled={i === 0}>←</button>
-                <span className="text-[9px] text-[#8B7355]">{i + 1}</span>
-                <button type="button" onClick={() => moveSnap(i, 1)} className="px-1 text-[12px] text-[#8B7355] disabled:opacity-30" disabled={i === snaps.length - 1}>→</button>
-                <button type="button" onClick={() => removeSnap(i)} className="px-1 text-[12px] text-[#B5614F]" aria-label="제거">✕</button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-3">
-          <label className={labelCls}>카탈로그에서 추가</label>
-          <select
-            className={`${inputCls} mt-1 max-w-md`}
-            value=""
-            onChange={(e) => {
-              addSnap(e.target.value);
-              e.currentTarget.selectedIndex = 0;
-            }}
-          >
-            <option value="">+ 추가할 카탈로그 선택…</option>
-            {unusedCatalog.map((c) => (
-              <option key={c.id} value={c.id}>{c.label} ({c.id})</option>
-            ))}
-          </select>
-        </div>
-      </section>
-
-      {/* ───────────── Before/After ───────────── */}
-      <section className="rounded-lg border border-[#E8DCC9] bg-white p-4">
-        <h2 className="text-sm font-semibold text-[#3D2E1F]">메인 AI스냅 Before/After</h2>
-        <p className="mt-0.5 text-[11px] text-[#8B7355]">
-          왼쪽 슬라이더의 Before 사진(입력 샘플)과, 각 스타일 탭의 After 사진을
-          설정합니다. 스타일은 카탈로그에서 고르면 탭 라벨/After 라벨이 자동
-          채워지고, After 사진은 그 입력에 카탈로그를 적용한 실제 결과물을
-          업로드합니다.
-        </p>
-
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <Field label="Before 사진">
-            <select
-              className={inputCls}
-              value={config.beforeAfter.beforeImage}
-              onChange={(e) => setBA({ ...config.beforeAfter, beforeImage: e.target.value })}
-            >
-              <optgroup label="mode-examples (입력 샘플)">
-                {MODE_EXAMPLE_OPTIONS.map((o) => (
-                  <option key={o.path} value={o.path}>{o.label}</option>
-                ))}
-              </optgroup>
-              <optgroup label="catalog">
-                {catalog.map((c) => (
-                  <option key={c.id} value={c.src}>{c.label}</option>
-                ))}
-              </optgroup>
-            </select>
-          </Field>
-        </div>
-
-        <div className="mt-3 grid gap-3 lg:grid-cols-2">
-          {config.beforeAfter.styles.map((s, i) => (
-            <BeforeAfterStyleEditor
-              key={`${s.id}-${i}`}
-              style={s}
-              index={i}
-              catalog={catalog}
-              byId={byId}
-              onPatch={(patch) => patchStyle(i, patch)}
-            />
-          ))}
-        </div>
-      </section>
-
       {/* ───────────── 알림장 디자인 ───────────── */}
       <section className="rounded-lg border border-[#E8DCC9] bg-white p-4">
         <h2 className="text-sm font-semibold text-[#3D2E1F]">알림장 디자인 샘플</h2>
@@ -455,7 +371,7 @@ export function HomeSamplesEditor({
       <section className="rounded-lg border border-[#E8DCC9] bg-white p-4">
         <h2 className="text-sm font-semibold text-[#3D2E1F]">공유 본문 템플릿</h2>
         <p className="mt-0.5 text-[11px] text-[#8B7355]">
-          12개 디자인 샘플이 모두 공유하는 본문(스토리·갤러리·퀴즈·투표·계좌·엔딩 등).
+          모든 디자인 샘플이 공유하는 본문(스토리·갤러리·퀴즈·투표·계좌·엔딩 등).
           여기서 바꾸면 모든 샘플에 즉시 반영됩니다.
         </p>
 
@@ -592,18 +508,146 @@ export function HomeSamplesEditor({
         </div>
       </section>
 
-      {/* ───────────── 저장 ───────────── */}
-      <div className="sticky bottom-0 flex items-center gap-3 border-t border-[#E8DCC9] bg-[#FAF7F2]/95 py-3 backdrop-blur">
-        <button
-          type="button"
-          onClick={save}
-          disabled={pending}
-          className="rounded-full bg-[#3D2E1F] px-5 py-2 text-[13px] font-medium text-white disabled:opacity-50"
-        >
-          {pending ? '저장 중…' : '저장'}
-        </button>
-        {msg && <span className="text-[12px] text-[#5C4633]">{msg}</span>}
-      </div>
+      <SaveBar pending={pending} msg={msg} onSave={handleSave} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// AI 스냅 샘플 에디터 — 폴라로이드/스트립 + Before/After
+// ─────────────────────────────────────────────────────────────
+
+export function SnapSamplesEditor({
+  initialConfig,
+  catalog,
+}: {
+  initialConfig: HomeSamplesConfig;
+  catalog: CatalogItem[];
+}) {
+  const { config, setConfig, pending, msg, save } = useHomeSamplesSaver(initialConfig);
+
+  const byId = useMemo(() => new Map(catalog.map((c) => [c.id, c])), [catalog]);
+  const srcOf = (id: string) => byId.get(id)?.src ?? `/wedding-snap/catalog/${id}.jpg`;
+
+  const snaps = config.aiSnapCatalogIds;
+  const setSnaps = (next: string[]) =>
+    setConfig((c) => ({ ...c, aiSnapCatalogIds: next }));
+  const addSnap = (id: string) => {
+    if (!id || snaps.includes(id)) return;
+    setSnaps([...snaps, id]);
+  };
+  const removeSnap = (i: number) => setSnaps(snaps.filter((_, k) => k !== i));
+  const moveSnap = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= snaps.length) return;
+    const next = [...snaps];
+    [next[i], next[j]] = [next[j], next[i]];
+    setSnaps(next);
+  };
+
+  const setBA = (next: BeforeAfterConfig) =>
+    setConfig((c) => ({ ...c, beforeAfter: next }));
+  const patchStyle = (i: number, patch: Partial<BeforeAfterStyle>) =>
+    setBA({
+      ...config.beforeAfter,
+      styles: config.beforeAfter.styles.map((s, k) =>
+        k === i ? { ...s, ...patch } : s,
+      ),
+    });
+
+  const unusedCatalog = catalog.filter((c) => !snaps.includes(c.id));
+
+  return (
+    <div className="space-y-8">
+      {/* ───────────── AI 스냅 샘플 ───────────── */}
+      <section className="rounded-lg border border-[#E8DCC9] bg-white p-4">
+        <h2 className="text-sm font-semibold text-[#3D2E1F]">샘플 AI스냅</h2>
+        <p className="mt-0.5 text-[11px] text-[#8B7355]">
+          앞 4개 = 메인 폴라로이드, 전체 = AI 스냅 썸네일 스트립. 순서대로 노출됩니다.
+        </p>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {snaps.map((id, i) => (
+            <div key={id} className="relative w-[88px] overflow-hidden rounded border border-[#E8DCC9]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={srcOf(id)} alt={id} className="h-[118px] w-full object-cover" />
+              {i < 4 && (
+                <span className="absolute left-1 top-1 rounded bg-[#3D2E1F]/80 px-1 text-[8px] text-white">폴라로이드</span>
+              )}
+              <div className="flex items-center justify-between gap-0.5 bg-[#FAF7F2] px-1 py-1">
+                <button type="button" onClick={() => moveSnap(i, -1)} className="px-1 text-[12px] text-[#8B7355] disabled:opacity-30" disabled={i === 0}>←</button>
+                <span className="text-[9px] text-[#8B7355]">{i + 1}</span>
+                <button type="button" onClick={() => moveSnap(i, 1)} className="px-1 text-[12px] text-[#8B7355] disabled:opacity-30" disabled={i === snaps.length - 1}>→</button>
+                <button type="button" onClick={() => removeSnap(i)} className="px-1 text-[12px] text-[#B5614F]" aria-label="제거">✕</button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-3">
+          <label className={labelCls}>카탈로그에서 추가</label>
+          <select
+            className={`${inputCls} mt-1 max-w-md`}
+            value=""
+            onChange={(e) => {
+              addSnap(e.target.value);
+              e.currentTarget.selectedIndex = 0;
+            }}
+          >
+            <option value="">+ 추가할 카탈로그 선택…</option>
+            {unusedCatalog.map((c) => (
+              <option key={c.id} value={c.id}>{c.label} ({c.id})</option>
+            ))}
+          </select>
+        </div>
+      </section>
+
+      {/* ───────────── Before/After ───────────── */}
+      <section className="rounded-lg border border-[#E8DCC9] bg-white p-4">
+        <h2 className="text-sm font-semibold text-[#3D2E1F]">메인 AI스냅 Before/After</h2>
+        <p className="mt-0.5 text-[11px] text-[#8B7355]">
+          왼쪽 슬라이더의 Before 사진(입력 샘플)과, 각 스타일 탭의 After 사진을
+          설정합니다. 스타일은 카탈로그에서 고르면 탭 라벨/After 라벨이 자동
+          채워지고, After 사진은 그 입력에 카탈로그를 적용한 실제 결과물을
+          업로드합니다.
+        </p>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <Field label="Before 사진">
+            <select
+              className={inputCls}
+              value={config.beforeAfter.beforeImage}
+              onChange={(e) => setBA({ ...config.beforeAfter, beforeImage: e.target.value })}
+            >
+              <optgroup label="mode-examples (입력 샘플)">
+                {MODE_EXAMPLE_OPTIONS.map((o) => (
+                  <option key={o.path} value={o.path}>{o.label}</option>
+                ))}
+              </optgroup>
+              <optgroup label="catalog">
+                {catalog.map((c) => (
+                  <option key={c.id} value={c.src}>{c.label}</option>
+                ))}
+              </optgroup>
+            </select>
+          </Field>
+        </div>
+
+        <div className="mt-3 grid gap-3 lg:grid-cols-2">
+          {config.beforeAfter.styles.map((s, i) => (
+            <BeforeAfterStyleEditor
+              key={`${s.id}-${i}`}
+              style={s}
+              index={i}
+              catalog={catalog}
+              byId={byId}
+              onPatch={(patch) => patchStyle(i, patch)}
+            />
+          ))}
+        </div>
+      </section>
+
+      <SaveBar pending={pending} msg={msg} onSave={() => save(config)} />
     </div>
   );
 }

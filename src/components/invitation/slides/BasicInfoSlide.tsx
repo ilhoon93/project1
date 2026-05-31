@@ -86,17 +86,13 @@ export function BasicInfoSlide({ basic, groomName, brideName, weddingDate }: Pro
   };
 
   return (
-    // 전체 슬라이드 세로 가운데 정렬 — 요소를 빼도 남은 것들이 항상 화면 중앙
-    // 부근에 모이도록 justify-center. SAVE THE DATE 영문 줄 제거, 제목 톤을
-    // 테마 강조색 (--mw-accent) 으로 변경해 가독성/디자인 일관성 ↑.
-    <section className="flex min-h-full flex-col items-stretch justify-center gap-8 px-6 py-12 text-center">
-      <header className="flex flex-col items-center">
-        <h2
-          className="text-2xl font-medium tracking-wide"
-          style={{ color: 'var(--mw-accent)' }}
-        >
-          우리 결혼합니다
-        </h2>
+    // 다른 슬라이드(스토리·갤러리 등)와 동일하게 헤더를 상단에 두고 본문을 아래로.
+    // 이전엔 justify-center 로 전체를 세로 가운데 정렬해 제목이 화면 중앙에 떠
+    // 다른 슬라이드 제목들과 위치·형식이 어긋났음.
+    <section className="flex min-h-full flex-col gap-8 px-6 py-16 text-center">
+      <header className="text-center">
+        <p className="text-xs tracking-[0.3em] opacity-70">INVITATION</p>
+        <h2 className="mt-2 text-xl font-light">우리 결혼합니다</h2>
       </header>
 
       {order.map((k) => renderSub(k))}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import {
   FrameDesignSchema,
   IllustrationDesignSchema,
@@ -365,56 +365,8 @@ function PosterFullImageSlide({
       </div>
 
       <Confetti trigger={confettiTrigger} scoped={scoped} />
-
-      <style jsx>{`
-        /* HandwritingStroke 폴백 — 텍스트 전체가 한 번에 fade-in.
-           위에서 살짝 떨어지며 blur 가 풀리는 느낌으로 부드럽게 등장.
-           글자 분리(inline-block per char) 가 없어 어떤 폰트의 합자·kerning·
-           세로위치도 본연 그대로 유지된다. */
-        :global(.mw-title-fade) {
-          opacity: 0;
-          transform: translateY(-0.12em) scale(0.97);
-          filter: blur(2px);
-          animation: mw-title-fade 0.7s cubic-bezier(0.22, 0.68, 0.32, 1.04) forwards;
-          will-change: opacity, transform, filter;
-        }
-        @keyframes mw-title-fade {
-          0% {
-            opacity: 0;
-            transform: translateY(-0.14em) scale(0.95);
-            filter: blur(2.5px);
-          }
-          60% {
-            opacity: 1;
-            transform: translateY(0.01em) scale(1.005);
-            filter: blur(0);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-            filter: blur(0);
-          }
-        }
-
-        /* 메인 슬라이드의 모든 텍스트 박스(제목 외 이름·날짜·인사말) — 마케팅
-           Hero 의 FadeUp 과 같은 결의 자연스러운 위→아래 fade-in.
-           각 박스의 animation-delay 로 자연스러운 스태거(0/0.15/0.3/0.45s). */
-        :global(.mw-pos-fade) {
-          opacity: 0;
-          animation: mw-pos-fade 0.65s cubic-bezier(0.22, 0.68, 0.32, 1.04) forwards;
-          will-change: opacity, transform;
-        }
-        @keyframes mw-pos-fade {
-          0% {
-            opacity: 0;
-            transform: translate(-50%, calc(-50% + 8px));
-          }
-          100% {
-            opacity: 1;
-            transform: translate(-50%, -50%);
-          }
-        }
-      `}</style>
+      {/* mw-title-word / mw-pos-fade 키프레임은 globals.css 에 글로벌로 정의 —
+          모든 레이아웃(poster/frame/illustration/text)에서 동일하게 동작. */}
     </section>
   );
 }
@@ -485,23 +437,52 @@ function AnimatedTitleInner({
 }
 
 /**
- * HandwritingStroke (SVG path stroke) 가 폰트 URL 을 못 찾거나 fontkit 파싱에
- * 실패했을 때 쓰는 폴백 — 전체 텍스트를 한 번에 fade-in.
+ * 제목 등장 애니메이션 — "단어 단위" stagger fade-up.
  *
- * 이전 구현은 글자마다 `<span style="display:inline-block">` 로 감싸 stagger
- * 효과를 줬는데, 한글/세리프 폰트에서 글자별로 box 가 만들어지면서:
- *   1) kerning(붙어야 할 글자 사이 간격) 이 살아남아 글자 사이가 어색하게 벌어짐
- *   2) Playfair Display·Fraunces 같은 폰트의 합자(fi/fl/ff 리거처) 가 깨짐
- *   3) 일부 한글 손글씨 폰트에서 자모 위치가 어긋남
- * 결과적으로 "폰트가 깨진" 것처럼 보이는 케이스가 많아 폐기.
+ * 폰트 안전성: 단어 1개는 통째로 한 텍스트 노드라 그 안의 합자(fi/fl/ff)·자간
+ * (kerning)·자모 위치가 폰트 본연 그대로 유지된다. 단어 분리는 공백 경계에서만
+ * 일어나는데, 공백을 사이에 둔 두 단어 사이에는 합자/커닝이 존재하지 않으므로
+ * inline-block 으로 감싸도 폰트가 깨지지 않는다.
+ *   (이전의 "글자(char) 단위" 분리는 글자마다 box 가 생겨 합자/커닝이 깨졌던
+ *    문제가 있었고, 반대로 "전체 한 덩어리 fade" 는 움직임이 약해 애니메이션이
+ *    적용 안 된 것처럼 보였다 — 그 중간 지점인 단어 단위가 안전 + 또렷함.)
  *
- * 새 구현은 텍스트를 자르지 않고 한 덩어리로 fade-in 시키므로 어떤 폰트가
- * 와도 본연의 합자/kerning/세로위치가 유지된다.
+ * - 줄바꿈(\n) → <br/>
+ * - 공백 → 일반 텍스트로 보존해 자연스러운 줄바꿈 허용
+ * - 각 단어에 stagger delay (0.14s 간격) 를 흘려 좌→우 순차 등장.
  */
 function HandwritingText({ text }: { text: string }) {
+  const lines = text.split('\n');
+  let wordIndex = 0;
   return (
-    <span aria-hidden className="mw-title-fade" style={{ display: 'inline-block' }}>
-      {text}
+    <span aria-hidden>
+      {lines.map((line, li) => {
+        // 공백을 보존하며 단어/공백 토큰으로 분리.
+        const tokens = line.split(/(\s+)/);
+        return (
+          <Fragment key={li}>
+            {li > 0 && <br />}
+            {tokens.map((tok, ti) => {
+              if (tok === '' ) return null;
+              if (tok.trim() === '') {
+                // 공백 토큰 — 그대로 출력해 줄바꿈/간격 유지.
+                return <Fragment key={ti}>{tok}</Fragment>;
+              }
+              const delay = (wordIndex * 0.14).toFixed(3);
+              wordIndex += 1;
+              return (
+                <span
+                  key={ti}
+                  className="mw-title-word"
+                  style={{ animationDelay: `${delay}s` }}
+                >
+                  {tok}
+                </span>
+              );
+            })}
+          </Fragment>
+        );
+      })}
     </span>
   );
 }
