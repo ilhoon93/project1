@@ -98,8 +98,15 @@ export interface TemplateConfig {
   quizQuestion: string;
   quizOptions: string[]; // length 4
   quizAnswer: number; // 0-3
+  /** 두 번째 퀴즈 (있을 때만). q 비우면 미노출. */
+  quiz2Question: string;
+  quiz2Options: string[];
+  quiz2Answer: number;
   voteQuestion: string;
   voteOptions: string[]; // length 2
+  /** 두 번째 투표 (있을 때만). q 비우면 미노출. */
+  vote2Question: string;
+  vote2Options: string[];
   /** 영상 슬라이드 — 제목 + URL(YouTube/Vimeo 등). url 비면 영상 슬라이드 미노출. */
   videoTitle: string;
   videoUrl: string;
@@ -109,6 +116,15 @@ export interface TemplateConfig {
   accountGroomNumber: string;
   accountBrideBank: string;
   accountBrideNumber: string;
+  // 신랑·신부 부모 계좌 — 비우면(bank/number 둘 다 빈 문자열) 해당 항목 미노출.
+  accountGroomFatherBank: string;
+  accountGroomFatherNumber: string;
+  accountGroomMotherBank: string;
+  accountGroomMotherNumber: string;
+  accountBrideFatherBank: string;
+  accountBrideFatherNumber: string;
+  accountBrideMotherBank: string;
+  accountBrideMotherNumber: string;
   closing: string;
 }
 
@@ -155,8 +171,13 @@ export const DEFAULT_TEMPLATE: TemplateConfig = {
   quizQuestion: '두 사람이 처음 만난 곳은?',
   quizOptions: ['대학교 동아리', '회사 워크샵', '소개팅 앱', '친구 소개'],
   quizAnswer: 0,
+  quiz2Question: '두 사람의 첫 데이트 장소는?',
+  quiz2Options: ['한강 공원', '경복궁', '코엑스 별마당', '제주도'],
+  quiz2Answer: 0,
   voteQuestion: '신혼여행은 어디로 가면 좋을까요?',
   voteOptions: ['발리', '제주'],
+  vote2Question: '신부의 부케 꽃은?',
+  vote2Options: ['하얀 작약', '핑크 장미'],
   videoTitle: '우리의 프러포즈 영상',
   videoUrl: 'https://www.youtube.com/watch?v=ScMzIvxBSi4',
   guestbookMessage: '축하 한마디와 서명을 남겨주세요!',
@@ -165,6 +186,14 @@ export const DEFAULT_TEMPLATE: TemplateConfig = {
   accountGroomNumber: '1002-000-000000',
   accountBrideBank: '국민은행',
   accountBrideNumber: '123-00-000000',
+  accountGroomFatherBank: '신한은행',
+  accountGroomFatherNumber: '110-000-000000',
+  accountGroomMotherBank: 'KB국민은행',
+  accountGroomMotherNumber: '111-00-0000000',
+  accountBrideFatherBank: '하나은행',
+  accountBrideFatherNumber: '222-000000-00000',
+  accountBrideMotherBank: 'NH농협',
+  accountBrideMotherNumber: '333-0000-0000-00',
   closing: '와주셔서 진심으로 감사합니다',
 };
 
@@ -236,23 +265,32 @@ export function buildDesign(
     images: t.galleryImageIds.map((id) => `${CAT}/${id}.jpg`),
   };
 
-  content.quiz = {
-    enabled: true,
-    questions: [
-      {
-        q: t.quizQuestion,
-        options: [t.quizOptions[0] ?? '', t.quizOptions[1] ?? '', t.quizOptions[2] ?? '', t.quizOptions[3] ?? ''],
-        answer: Math.max(0, Math.min(3, t.quizAnswer)),
-      },
-    ],
-  };
+  const quizQs = [
+    {
+      q: t.quizQuestion,
+      options: [t.quizOptions[0] ?? '', t.quizOptions[1] ?? '', t.quizOptions[2] ?? '', t.quizOptions[3] ?? ''],
+      answer: Math.max(0, Math.min(3, t.quizAnswer)),
+    },
+  ];
+  if (t.quiz2Question?.trim()) {
+    quizQs.push({
+      q: t.quiz2Question,
+      options: [t.quiz2Options[0] ?? '', t.quiz2Options[1] ?? '', t.quiz2Options[2] ?? '', t.quiz2Options[3] ?? ''],
+      answer: Math.max(0, Math.min(3, t.quiz2Answer ?? 0)),
+    });
+  }
+  content.quiz = { enabled: true, questions: quizQs };
 
-  content.vote = {
-    enabled: true,
-    questions: [
-      { q: t.voteQuestion, options: [t.voteOptions[0] ?? '', t.voteOptions[1] ?? ''] },
-    ],
-  };
+  const voteQs = [
+    { q: t.voteQuestion, options: [t.voteOptions[0] ?? '', t.voteOptions[1] ?? ''] },
+  ];
+  if (t.vote2Question?.trim()) {
+    voteQs.push({
+      q: t.vote2Question,
+      options: [t.vote2Options[0] ?? '', t.vote2Options[1] ?? ''],
+    });
+  }
+  content.vote = { enabled: true, questions: voteQs };
 
   content.video = {
     enabled: !!t.videoUrl,
@@ -263,12 +301,16 @@ export function buildDesign(
   content.guestbook = { enabled: true, coupleMessage: t.guestbookMessage };
 
   content.account.guide = t.accountGuide;
-  content.account.groom = [
-    { bank: t.accountGroomBank, number: t.accountGroomNumber, holder: c.groomName },
-  ];
-  content.account.bride = [
-    { bank: t.accountBrideBank, number: t.accountBrideNumber, holder: c.brideName },
-  ];
+  // 6 측(신랑/신부/양가 부모) 각각 — bank·number 가 모두 비어 있으면 빈 배열로
+  // 두어 슬라이드에서 해당 측이 자동 숨김.
+  const acct = (bank: string, number: string, holder: string) =>
+    bank.trim() || number.trim() ? [{ bank, number, holder }] : [];
+  content.account.groom = acct(t.accountGroomBank, t.accountGroomNumber, c.groomName);
+  content.account.bride = acct(t.accountBrideBank, t.accountBrideNumber, c.brideName);
+  content.account.groomFather = acct(t.accountGroomFatherBank, t.accountGroomFatherNumber, '신랑 아버지');
+  content.account.groomMother = acct(t.accountGroomMotherBank, t.accountGroomMotherNumber, '신랑 어머니');
+  content.account.brideFather = acct(t.accountBrideFatherBank, t.accountBrideFatherNumber, '신부 아버지');
+  content.account.brideMother = acct(t.accountBrideMotherBank, t.accountBrideMotherNumber, '신부 어머니');
 
   content.closing = t.closing;
 
