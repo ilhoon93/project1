@@ -51,6 +51,7 @@ const DesignConfigSchema = z.object({
 
 const BeforeAfterStyleSchema = z.object({
   id: z.string(),
+  styleCatalogId: z.string().optional(),
   label: z.string(),
   afterLabel: z.string(),
   afterImage: z.string(),
@@ -129,15 +130,27 @@ async function readRow(): Promise<HomeSamplesConfig | null> {
   }
 }
 
-/** 운영자 편집용 raw 설정 (없으면 코드 기본값 그대로). */
+/**
+ * 운영자 편집용 raw 설정. DB 에 저장된 행이 있으면 그 행을 쓰되, 코드에서
+ * 신규로 추가된 SEEDS(예: PR #194 의 sage/dusk/handwritten) 가 DB 행에 없으면
+ * 뒤에 자동 머지한다 — admin 이 매번 신규 SEED 까지 편집할 수 있게.
+ * 사용자가 admin 에서 의도적으로 삭제한 디자인은 다시 살아나지 않도록 DB 행에
+ * 별도로 deletedDesignIds 같은 마커가 도입되기 전엔 "코드에 있는 모든 SEED 가
+ * 항상 노출" 정책을 유지.
+ */
 export async function getHomeSamplesConfig(): Promise<HomeSamplesConfig> {
   const row = await readRow();
   if (!row || row.designs.length === 0) return DEFAULT_HOME_SAMPLES_CONFIG;
+
+  const rowIds = new Set(row.designs.map((d) => d.id));
+  const missingDefaults = DEFAULT_SAMPLE_CONFIGS.filter((d) => !rowIds.has(d.id));
+  const mergedDesigns = [...row.designs, ...missingDefaults];
+
   return {
     aiSnapCatalogIds: row.aiSnapCatalogIds.length
       ? row.aiSnapCatalogIds
       : DEFAULT_AI_SNAP_IDS,
-    designs: row.designs,
+    designs: mergedDesigns,
     beforeAfter: row.beforeAfter,
     template: row.template,
   };

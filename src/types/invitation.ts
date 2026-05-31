@@ -178,6 +178,8 @@ export const IllustrationDesignSchema = z
         color: z.string().max(32).default('currentColor'),
         // 슬라이더 22–100. 일부 장식 폰트는 TITLE_FONT_SIZE_SCALE 로 보정.
         fontSize: z.number().min(22).max(100).default(34),
+        // 손글씨 풍 글자별 fade-in 애니메이션 — Poster 와 동일 컴포넌트(AnimatedTitleH1).
+        animate: z.boolean().default(true),
         position: PositionSchema.default({ x: 50, y: 12 }),
       })
       .default({
@@ -185,6 +187,7 @@ export const IllustrationDesignSchema = z
         font: 'fraunces',
         color: 'currentColor',
         fontSize: 34,
+        animate: true,
         position: { x: 50, y: 12 },
       }),
     dateBox: z
@@ -211,7 +214,7 @@ export const IllustrationDesignSchema = z
   })
   .default({
     variant: 'arch',
-    title: { text: TITLE_TEXT_PRESETS[4], font: 'fraunces', color: 'currentColor', fontSize: 34, position: { x: 50, y: 12 } },
+    title: { text: TITLE_TEXT_PRESETS[4], font: 'fraunces', color: 'currentColor', fontSize: 34, animate: true, position: { x: 50, y: 12 } },
     dateBox: { enabled: true, fontSize: 15, position: { x: 50, y: 78 } },
     nameBox: { enabled: true, fontSize: 16, position: { x: 50, y: 70 } },
     messageBox: { enabled: true, fontSize: 13, position: { x: 50, y: 22 } },
@@ -251,6 +254,7 @@ export const TextDesignSchema = z
         font: z.enum(TITLE_FONT_KEYS).default('playfairDisplay'),
         color: z.string().max(32).default('currentColor'),
         fontSize: z.number().min(22).max(100).default(34),
+        animate: z.boolean().default(true),
         position: PositionSchema.default({ x: 50, y: 12 }),
       })
       .default({
@@ -258,6 +262,7 @@ export const TextDesignSchema = z
         font: 'playfairDisplay',
         color: 'currentColor',
         fontSize: 34,
+        animate: true,
         position: { x: 50, y: 12 },
       }),
     dateBox: z
@@ -288,7 +293,7 @@ export const TextDesignSchema = z
   })
   .default({
     variant: 'flower',
-    title: { text: TITLE_TEXT_PRESETS[0], font: 'playfairDisplay', color: 'currentColor', fontSize: 34, position: { x: 50, y: 12 } },
+    title: { text: TITLE_TEXT_PRESETS[0], font: 'playfairDisplay', color: 'currentColor', fontSize: 34, animate: true, position: { x: 50, y: 12 } },
     dateBox: { enabled: true, fontSize: 15, position: { x: 50, y: 80 } },
     nameBox: {
       enabled: true,
@@ -327,6 +332,7 @@ export const FrameDesignSchema = z
         font: z.enum(TITLE_FONT_KEYS).default('playfairDisplay'),
         color: z.string().max(32).default('currentColor'),
         fontSize: z.number().min(18).max(100).default(26),
+        animate: z.boolean().default(true),
         position: PositionSchema.default({ x: 50, y: 12 }),
       })
       .default({
@@ -335,6 +341,7 @@ export const FrameDesignSchema = z
         font: 'playfairDisplay',
         color: 'currentColor',
         fontSize: 26,
+        animate: true,
         position: { x: 50, y: 12 },
       }),
     nameBox: z
@@ -368,6 +375,7 @@ export const FrameDesignSchema = z
       font: 'playfairDisplay',
       color: 'currentColor',
       fontSize: 26,
+      animate: true,
       position: { x: 50, y: 12 },
     },
     nameBox: { enabled: true, fontSize: 20, position: { x: 50, y: 78 } },

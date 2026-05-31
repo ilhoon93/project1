@@ -600,16 +600,13 @@ function IllustrationSlide({
 
       {/* 제목 텍스트 — PositionedBox 로 절대 위치 */}
       <PositionedBox position={design.title.position}>
-        <h1
-          className="font-bold leading-tight"
-          style={{
-            fontFamily: titleFontFamily,
-            color: titleColor,
-            fontSize: `${getDisplayFontSize(design.title.fontSize, design.title.font as TitleFontKey)}px`,
-          }}
-        >
-          {design.title.text}
-        </h1>
+        <AnimatedTitleH1
+          text={design.title.text}
+          animate={design.title.animate}
+          fontFamily={titleFontFamily}
+          color={titleColor}
+          fontSize={getDisplayFontSize(design.title.fontSize, design.title.font as TitleFontKey)}
+        />
       </PositionedBox>
 
       {/* 인사말 */}
@@ -733,16 +730,13 @@ function TextLayoutSlide({
 
       {/* 제목 */}
       <PositionedBox position={design.title.position}>
-        <h1
-          className="font-bold leading-tight"
-          style={{
-            fontFamily: titleFontFamily,
-            color: titleColor,
-            fontSize: `${getDisplayFontSize(design.title.fontSize, design.title.font as TitleFontKey)}px`,
-          }}
-        >
-          {design.title.text}
-        </h1>
+        <AnimatedTitleH1
+          text={design.title.text}
+          animate={design.title.animate}
+          fontFamily={titleFontFamily}
+          color={titleColor}
+          fontSize={getDisplayFontSize(design.title.fontSize, design.title.font as TitleFontKey)}
+        />
       </PositionedBox>
 
       {/* 인사말 */}
@@ -1208,16 +1202,13 @@ function FrameSlide({
       {/* 제목 */}
       {design.title.enabled && design.title.text && (
         <PositionedBox position={design.title.position}>
-          <h1
-            className="font-bold leading-tight"
-            style={{
-              fontFamily: titleFont,
-              color: titleColor,
-              fontSize: `${getDisplayFontSize(design.title.fontSize, design.title.font as TitleFontKey)}px`,
-            }}
-          >
-            {design.title.text}
-          </h1>
+          <AnimatedTitleH1
+            text={design.title.text}
+            animate={design.title.animate}
+            fontFamily={titleFont}
+            color={titleColor}
+            fontSize={getDisplayFontSize(design.title.fontSize, design.title.font as TitleFontKey)}
+          />
         </PositionedBox>
       )}
 

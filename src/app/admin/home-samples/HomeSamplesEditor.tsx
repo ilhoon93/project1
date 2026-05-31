@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useRef, useState, useTransition } from 'react';
 import {
   COLOR_THEMES,
   PETAL_TYPES,
@@ -28,7 +28,7 @@ import {
   type TemplateConfig,
 } from '@/lib/marketing/sample-invitations';
 import { InvitationPreview } from '@/components/marketing/InvitationPreview';
-import { saveHomeSamplesAction } from './actions';
+import { saveHomeSamplesAction, uploadBeforeAfterAfterImage } from './actions';
 
 type MainSection = InvitationContent['main'];
 type MainLayout = MainSection['layout'];
@@ -205,7 +205,10 @@ export function HomeSamplesEditor({
       <section className="rounded-lg border border-[#E8DCC9] bg-white p-4">
         <h2 className="text-sm font-semibold text-[#3D2E1F]">메인 AI스냅 Before/After</h2>
         <p className="mt-0.5 text-[11px] text-[#8B7355]">
-          왼쪽 슬라이드의 입력(Before) 사진과, 4개 스타일 탭(after)을 설정합니다.
+          왼쪽 슬라이더의 Before 사진(입력 샘플)과, 각 스타일 탭의 After 사진을
+          설정합니다. 스타일은 카탈로그에서 고르면 탭 라벨/After 라벨이 자동
+          채워지고, After 사진은 그 입력에 카탈로그를 적용한 실제 결과물을
+          업로드합니다.
         </p>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -231,38 +234,14 @@ export function HomeSamplesEditor({
 
         <div className="mt-3 grid gap-3 lg:grid-cols-2">
           {config.beforeAfter.styles.map((s, i) => (
-            <div key={`${s.id}-${i}`} className="rounded-md border border-[#E8DCC9] bg-[#FCFAF6] p-3">
-              <div className="mb-2 flex items-center gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={s.afterImage} alt={s.label} className="h-[48px] w-[72px] flex-shrink-0 rounded object-cover" />
-                <span className="text-[10px] uppercase tracking-wide text-[#8B7355]">스타일 {i + 1}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Field label="id (영문)">
-                  <input className={inputCls} value={s.id} onChange={(e) => patchStyle(i, { id: e.target.value })} />
-                </Field>
-                <Field label="탭 라벨">
-                  <input className={inputCls} value={s.label} onChange={(e) => patchStyle(i, { label: e.target.value })} />
-                </Field>
-                <Field label="After 라벨(슬라이더 우측)">
-                  <input className={inputCls} value={s.afterLabel} onChange={(e) => patchStyle(i, { afterLabel: e.target.value })} />
-                </Field>
-                <Field label="After 사진 (catalog)">
-                  <select
-                    className={inputCls}
-                    value={s.afterImage}
-                    onChange={(e) => patchStyle(i, { afterImage: e.target.value })}
-                  >
-                    {!catalog.some((c) => c.src === s.afterImage) && (
-                      <option value={s.afterImage}>(현재) {s.afterImage}</option>
-                    )}
-                    {catalog.map((c) => (
-                      <option key={c.id} value={c.src}>{c.label}</option>
-                    ))}
-                  </select>
-                </Field>
-              </div>
-            </div>
+            <BeforeAfterStyleEditor
+              key={`${s.id}-${i}`}
+              style={s}
+              index={i}
+              catalog={catalog}
+              byId={byId}
+              onPatch={(patch) => patchStyle(i, patch)}
+            />
           ))}
         </div>
       </section>
@@ -654,5 +633,140 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className={labelCls}>{label}</span>
       <div className="mt-1">{children}</div>
     </label>
+  );
+}
+
+/**
+ * Before/After 스타일 한 칸 — 카탈로그 스타일 선택(라벨 자동 채움) + 결과 사진
+ * 파일 업로드. id 는 영문 식별자(사용자 변경 자유), styleCatalogId 는 카탈로그
+ * 컷의 식별자(label 자동 도출).
+ */
+function BeforeAfterStyleEditor({
+  style,
+  index,
+  catalog,
+  byId,
+  onPatch,
+}: {
+  style: BeforeAfterStyle;
+  index: number;
+  catalog: CatalogItem[];
+  byId: Map<string, CatalogItem>;
+  onPatch: (patch: Partial<BeforeAfterStyle>) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const styleCatalogId = style.styleCatalogId ?? style.id;
+  const catalogItem = byId.get(styleCatalogId);
+
+  const handleCatalogPick = (id: string) => {
+    const item = byId.get(id);
+    onPatch({
+      styleCatalogId: id,
+      // 라벨/After 라벨 자동 채움 — 운영자가 추가 수정 가능.
+      label: item?.label ?? id,
+      afterLabel: item ? `AI · ${item.label}` : style.afterLabel,
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadErr(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('styleId', style.id || styleCatalogId);
+      const res = await uploadBeforeAfterAfterImage(fd);
+      if (!res.ok) {
+        setUploadErr(res.error);
+        return;
+      }
+      onPatch({ afterImage: res.url });
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  return (
+    <div className="rounded-md border border-[#E8DCC9] bg-[#FCFAF6] p-3">
+      <div className="mb-2 flex items-center gap-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={style.afterImage || '/wedding-snap/mode-examples/couple-input-1.jpg'}
+          alt={style.label}
+          className="h-[48px] w-[72px] flex-shrink-0 rounded bg-[#EFE6DC] object-cover"
+        />
+        <span className="text-[10px] uppercase tracking-wide text-[#8B7355]">
+          스타일 {index + 1}
+        </span>
+      </div>
+
+      <Field label="카탈로그 스타일 (탭/After 라벨 자동)">
+        <select
+          className={inputCls}
+          value={styleCatalogId}
+          onChange={(e) => handleCatalogPick(e.target.value)}
+        >
+          {!catalogItem && styleCatalogId && (
+            <option value={styleCatalogId}>(현재) {styleCatalogId}</option>
+          )}
+          {catalog.map((c) => (
+            <option key={c.id} value={c.id}>{c.label}</option>
+          ))}
+        </select>
+      </Field>
+
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <Field label="id (영문)">
+          <input
+            className={inputCls}
+            value={style.id}
+            onChange={(e) => onPatch({ id: e.target.value })}
+          />
+        </Field>
+        <Field label="탭 라벨 (자동 — 수정 가능)">
+          <input
+            className={inputCls}
+            value={style.label}
+            onChange={(e) => onPatch({ label: e.target.value })}
+          />
+        </Field>
+        <Field label="After 라벨 (자동 — 수정 가능)">
+          <input
+            className={inputCls}
+            value={style.afterLabel}
+            onChange={(e) => onPatch({ afterLabel: e.target.value })}
+          />
+        </Field>
+        <Field label="After 사진 (업로드)">
+          <div className="flex flex-col gap-1">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => void handleFileChange(e)}
+              disabled={uploading}
+              className="block w-full text-[11px] file:mr-2 file:rounded file:border-0 file:bg-[#3D2E1F] file:px-2 file:py-1 file:text-[11px] file:text-white file:hover:bg-[#5C4633]"
+            />
+            {uploading && <span className="text-[10px] text-[#8B7355]">업로드 중…</span>}
+            {uploadErr && <span className="text-[10px] text-[#B5614F]">{uploadErr}</span>}
+            {style.afterImage && !uploading && (
+              <span className="truncate text-[10px] text-[#8B7355]" title={style.afterImage}>
+                {style.afterImage.split('/').pop()}
+              </span>
+            )}
+          </div>
+        </Field>
+      </div>
+      <p className="mt-2 text-[10px] leading-relaxed text-[#8B7355]">
+        Before 입력 사진에 위 카탈로그 스타일을 적용한{' '}
+        <strong className="text-[#3D2E1F]">실제 생성 결과물</strong>을 업로드하세요.
+        JPG/PNG/WEBP · 최대 8MB.
+      </p>
+    </div>
   );
 }
