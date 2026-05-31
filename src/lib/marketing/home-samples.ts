@@ -78,6 +78,9 @@ const TemplateSchema = z.object({
   quizAnswer: z.number().int().min(0).max(3),
   voteQuestion: z.string(),
   voteOptions: z.array(z.string()),
+  // 영상 — 구버전 저장본 호환 위해 optional + 기본값.
+  videoTitle: z.string().default('우리의 영상'),
+  videoUrl: z.string().default(''),
   guestbookMessage: z.string(),
   accountGuide: z.string(),
   accountGroomBank: z.string(),

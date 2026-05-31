@@ -49,7 +49,7 @@ export function DesignCatalogClient({ designs }: { designs: SampleDesign[] }) {
                 라이트 테마는 InvitationPreview 가 자기 palette.bg 로 가득 덮음. */}
             <div className="overflow-hidden rounded-[26px] border-[6px] border-[#15110E] bg-[#15110E] shadow-[0_14px_34px_rgba(31,27,23,0.16)] transition-transform group-hover:-translate-y-1 group-focus-visible:-translate-y-1">
               {/* 화면 = 정확히 9:18 → 표지 미리보기가 왜곡 없이 가득 채움 */}
-              <div className="relative aspect-[9/18] w-full overflow-hidden">
+              <div className="relative aspect-[6/13] w-full overflow-hidden">
                 <InvitationPreview design={d} cover />
                 {/* 클릭 캡처 — 표지 안 인터랙티브 요소 대신 카드 전체가 모달을 연다. */}
                 <div className="absolute inset-0 z-10" />
@@ -91,7 +91,7 @@ function PreviewModal({ design, onClose }: { design: SampleDesign; onClose: () =
         style={{ height: 'min(82vh, 800px)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative aspect-[9/18] h-full overflow-hidden">
+        <div className="relative aspect-[6/13] h-full overflow-hidden">
           <InvitationPreview design={design} />
         </div>
       </div>

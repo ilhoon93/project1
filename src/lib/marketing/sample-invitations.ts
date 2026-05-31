@@ -94,6 +94,9 @@ export interface TemplateConfig {
   quizAnswer: number; // 0-3
   voteQuestion: string;
   voteOptions: string[]; // length 2
+  /** 영상 슬라이드 — 제목 + URL(YouTube/Vimeo 등). url 비면 영상 슬라이드 미노출. */
+  videoTitle: string;
+  videoUrl: string;
   guestbookMessage: string;
   accountGuide: string;
   accountGroomBank: string;
@@ -148,6 +151,8 @@ export const DEFAULT_TEMPLATE: TemplateConfig = {
   quizAnswer: 0,
   voteQuestion: '신혼여행은 어디로 가면 좋을까요?',
   voteOptions: ['발리', '제주'],
+  videoTitle: '우리의 프러포즈 영상',
+  videoUrl: 'https://www.youtube.com/watch?v=ScMzIvxBSi4',
   guestbookMessage: '축하 한마디와 서명을 남겨주세요!',
   accountGuide: '축하의 마음을 담아 마음 전하실 분들을 위해 계좌번호를 안내드립니다.',
   accountGroomBank: '우리은행',
@@ -241,6 +246,12 @@ export function buildDesign(
     questions: [
       { q: t.voteQuestion, options: [t.voteOptions[0] ?? '', t.voteOptions[1] ?? ''] },
     ],
+  };
+
+  content.video = {
+    enabled: !!t.videoUrl,
+    title: t.videoTitle,
+    url: t.videoUrl || null,
   };
 
   content.guestbook = { enabled: true, coupleMessage: t.guestbookMessage };
