@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   FrameDesignSchema,
   IllustrationDesignSchema,
@@ -368,32 +368,31 @@ function PosterFullImageSlide({
       <Confetti trigger={confettiTrigger} scoped={scoped} />
 
       <style jsx>{`
-        /* 손글씨 느낌의 글자 단위 등장 —
-           각 글자가 살짝 위에서 떨어지면서 blur 가 풀리는 짧은 stroke.
-           HandwritingText 가 글자마다 animation-delay 를 흘려 stagger 를 만든다.
-           기존의 좌→우 한 줄 wipe 는 "한 획씩 쓴다" 는 느낌과 거리가 멀어 제거. */
-        :global(.mw-title-char) {
-          display: inline-block;
+        /* HandwritingStroke 폴백 — 텍스트 전체가 한 번에 fade-in.
+           위에서 살짝 떨어지며 blur 가 풀리는 느낌으로 부드럽게 등장.
+           글자 분리(inline-block per char) 가 없어 어떤 폰트의 합자·kerning·
+           세로위치도 본연 그대로 유지된다. */
+        :global(.mw-title-fade) {
           opacity: 0;
-          transform: translateY(-0.18em) scale(0.7);
-          filter: blur(2.5px);
-          animation: mw-title-char 0.55s cubic-bezier(0.18, 0.78, 0.32, 1.08) forwards;
+          transform: translateY(-0.12em) scale(0.97);
+          filter: blur(2px);
+          animation: mw-title-fade 0.7s cubic-bezier(0.22, 0.68, 0.32, 1.04) forwards;
           will-change: opacity, transform, filter;
         }
-        @keyframes mw-title-char {
+        @keyframes mw-title-fade {
           0% {
             opacity: 0;
-            transform: translateY(-0.2em) scale(0.65) rotate(-3deg);
-            filter: blur(3px);
+            transform: translateY(-0.14em) scale(0.95);
+            filter: blur(2.5px);
           }
-          55% {
+          60% {
             opacity: 1;
-            transform: translateY(0.02em) scale(1.05) rotate(0.5deg);
+            transform: translateY(0.01em) scale(1.005);
             filter: blur(0);
           }
           100% {
             opacity: 1;
-            transform: translateY(0) scale(1) rotate(0);
+            transform: translateY(0) scale(1);
             filter: blur(0);
           }
         }
@@ -477,44 +476,23 @@ function AnimatedTitleInner({
 }
 
 /**
- * 손글씨 느낌의 글자 단위 등장 컴포넌트.
- * - 글자마다 짧은 fade-in + slight overshoot 으로 "한 글자 한 글자 쓴다" 는 인상.
- * - 공백은 일반 텍스트로 둬 word-wrap 이 자연스럽게 일어나게 한다 (글자마다
- *   inline-block 으로 감싸면 NBSP 처럼 동작해 긴 문구가 한 줄을 벗어나지 못함).
- * - 줄바꿈은 <br /> 로 처리.
- * - 시각 효과는 모두 aria-hidden 으로 숨기고, 부모 h1 의 aria-label 이 본문을 노출.
+ * HandwritingStroke (SVG path stroke) 가 폰트 URL 을 못 찾거나 fontkit 파싱에
+ * 실패했을 때 쓰는 폴백 — 전체 텍스트를 한 번에 fade-in.
  *
- * stagger 간격은 글자 길이에 따라 약간 조정 — 너무 긴 문구에서 마지막 글자까지
- * 시간이 과하게 늘어지지 않도록 길수록 짧게.
+ * 이전 구현은 글자마다 `<span style="display:inline-block">` 로 감싸 stagger
+ * 효과를 줬는데, 한글/세리프 폰트에서 글자별로 box 가 만들어지면서:
+ *   1) kerning(붙어야 할 글자 사이 간격) 이 살아남아 글자 사이가 어색하게 벌어짐
+ *   2) Playfair Display·Fraunces 같은 폰트의 합자(fi/fl/ff 리거처) 가 깨짐
+ *   3) 일부 한글 손글씨 폰트에서 자모 위치가 어긋남
+ * 결과적으로 "폰트가 깨진" 것처럼 보이는 케이스가 많아 폐기.
+ *
+ * 새 구현은 텍스트를 자르지 않고 한 덩어리로 fade-in 시키므로 어떤 폰트가
+ * 와도 본연의 합자/kerning/세로위치가 유지된다.
  */
 function HandwritingText({ text }: { text: string }) {
-  const chars = Array.from(text);
-  // 6글자 이하: 0.11s, 7~14: 0.085s, 15+: 0.06s — 짧은 문구일수록 또렷한 stagger.
-  const perChar = chars.length <= 6 ? 0.11 : chars.length <= 14 ? 0.085 : 0.06;
-  let visibleIndex = 0;
   return (
-    <span aria-hidden>
-      {chars.map((ch, i) => {
-        if (ch === '\n') {
-          return <br key={i} />;
-        }
-        if (ch === ' ') {
-          // 일반 공백 그대로 — inline-block span 으로 감싸면 NBSP 처럼 동작해
-          // 긴 문구가 한 줄을 벗어나지 못함. word-wrap 자연스럽게 허용.
-          return <Fragment key={i}> </Fragment>;
-        }
-        const delay = (visibleIndex * perChar).toFixed(3);
-        visibleIndex += 1;
-        return (
-          <span
-            key={i}
-            className="mw-title-char"
-            style={{ animationDelay: `${delay}s` }}
-          >
-            {ch}
-          </span>
-        );
-      })}
+    <span aria-hidden className="mw-title-fade" style={{ display: 'inline-block' }}>
+      {text}
     </span>
   );
 }

@@ -36,9 +36,41 @@ const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffec
 // 모듈 캐시 — 같은 폰트 URL 에 대해 한 번만 fetch + parse.
 const fontCache = new Map<string, Promise<Fontkit.Font>>();
 
+/**
+ * 외부 폰트 CDN 의 호스트 — 여기서 폰트를 가져오면 CORS·캐시·서비스 가용성에
+ * 의존하므로 안정성이 떨어진다. 콘솔 경고로 "로컬 다운로드 권장" 안내를 띄움.
+ * (예: Jeju Myeongjo 는 layout.tsx 의 @import 로 가져오는데 fonts.gstatic.com
+ *  서버 응답 + CORS 헤더가 항상 보장되지 않아 stroke 애니메이션이 자주 폴백된다.)
+ */
+const EXTERNAL_FONT_HOSTS = [
+  'fonts.gstatic.com',
+  'fonts.googleapis.com',
+  'cdn.jsdelivr.net',
+  'use.typekit.net',
+];
+
+function isExternalFontUrl(url: string): boolean {
+  try {
+    const u = new URL(url, typeof location !== 'undefined' ? location.href : 'http://localhost');
+    return EXTERNAL_FONT_HOSTS.includes(u.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function loadFont(url: string): Promise<Fontkit.Font> {
   const cached = fontCache.get(url);
   if (cached) return cached;
+  if (isExternalFontUrl(url) && typeof console !== 'undefined') {
+    console.warn(
+      [
+        '[HandwritingStroke] 외부 CDN 폰트 사용 감지 — stroke 애니메이션이 불안정할 수 있습니다.',
+        '안정적인 손글씨 stroke 효과를 위해 폰트 파일(.woff2) 을 다운로드해',
+        'src/app/fonts/ 아래에 두고 layout.tsx 에서 next/font/local 로 등록하길 권장합니다.',
+        `(현재 URL: ${url})`,
+      ].join(' '),
+    );
+  }
   const p = (async () => {
     // fontkit 을 dynamic import — 메인 슬라이드에 들어와 stroke 모드가 켜진
     // 사용자에게만 받게 한다. browser 빌드는 brotli/woff/woff2 모두 처리.
