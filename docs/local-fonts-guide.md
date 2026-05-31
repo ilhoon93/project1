@@ -6,6 +6,26 @@ Font 로 폴백된다. 이 문서를 따라 폰트 파일을 직접 받아 프�
 9 종 모두 picker 에 다시 노출되며, `next/font/local` 이 빌드 타임에
 `/_next/static/` 으로 자체 호스팅하므로 외부 URL 변경에 영향받지 않는다.
 
+> ## 💡 메인 슬라이드 제목 애니메이션과 외부 CDN 폰트
+>
+> 메인 슬라이드의 **제목 텍스트 애니메이션 효과(toggle ON)** 는
+> `HandwritingStroke` 가 `@font-face` 규칙의 `.woff2` 파일을 직접 받아
+> `fontkit` 으로 글리프 outline 을 추출해 SVG path 로 그리는 방식이다.
+> 따라서 폰트가 **외부 CDN (fonts.gstatic.com / fonts.googleapis.com 등)**
+> 으로 로드되면 다음 이유로 stroke 애니메이션이 불안정해진다:
+>
+> - 일부 환경에서 CDN 응답에 CORS 헤더가 누락 → `fetch` 차단
+> - 폰트 파일이 unicode-range 별로 잘게 쪼개진 서브셋이라 한 글자가
+>   여러 파일에 흩어져 있는 경우 (next/font 가 아닌 단순 `@import` 로딩에서
+>   특히 발생) — 한국어 syllable 이 들어 있는 서브셋을 못 찾을 수 있음
+> - 그 결과 폴백 fade 애니메이션으로 떨어져 "기대했던 stroke 효과"가
+>   안 보이는 케이스
+>
+> 콘솔에 `[HandwritingStroke] 외부 CDN 폰트 사용 감지` 경고가 보이면
+> 그 폰트는 이 가이드를 따라 다운로드해서 `next/font/local` 로 등록하길
+> 권장한다. 한 번 로컬 등록하면 빌드 시점에 woff2 가 `/_next/static/` 으로
+> 자체 호스팅되어 안정적으로 stroke 애니메이션이 작동한다.
+
 ---
 
 ## 1. 다운로드
