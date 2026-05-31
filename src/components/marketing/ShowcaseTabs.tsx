@@ -106,10 +106,10 @@ export function ShowcaseTabs({ designs }: { designs: SampleDesign[] }) {
 function PhoneFrame({ children }: { children: React.ReactNode }) {
   return (
     <div className="rounded-[34px] bg-[#15110E] p-[8px] shadow-[0_14px_40px_rgba(31,27,23,0.18)]">
-      {/* 화면 = 정확히 9:18 → InvitationPreview 가 왜곡 없이 가득 채움.
+      {/* 화면 = 정확히 9:19.5 → InvitationPreview 가 왜곡 없이 가득 채움.
           bg 는 베젤(#15110E) 과 동일하게 — 다크 테마 디자인 표지에서 베젤/스크린
           경계에 흰색 seam(rounded radius 안티에일리어싱) 이 안 보이게. */}
-      <div className="relative aspect-[9/18] w-[228px] overflow-hidden rounded-[27px] bg-[#15110E]">
+      <div className="relative aspect-[6/13] w-[228px] overflow-hidden rounded-[27px] bg-[#15110E]">
         <div className="absolute left-1/2 top-3 z-30 h-[6px] w-[64px] -translate-x-1/2 rounded-full bg-black/80" />
         {children}
       </div>

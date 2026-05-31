@@ -102,20 +102,49 @@ export function MainEditor() {
   return (
     <SectionEditor title="메인 화면" description="첫 슬라이드의 레이아웃과 인사말">
       <div className="flex flex-col gap-4">
-        {/* 레이아웃 선택 + 메인 사진 미리보기 — 같은 행에 좌(레이아웃 버튼) + 우(미리보기) 배치.
-            미리보기 컨테이너는 레이아웃에 상관없이 동일 사이즈를 유지 (w-32 + aspect-[9/16]). */}
+        {/* 레이아웃 선택 + 메인 사진 미리보기 — 좌(콤보박스 컴팩트 + 안내) / 우(미리보기).
+            좌측 콤보박스는 max-w 로 좁게 두고, 그 아래 안내 박스로 빈 공간을 채워
+            우측 미리보기와 높이를 맞춘다(빈 여백 최소화). */}
         <div className="flex flex-col gap-2 text-sm sm:flex-row sm:items-start sm:gap-4">
-          <div className="min-w-0 flex-1">
-            <OptionCombobox<LayoutPickerKey>
-              label="레이아웃"
-              value={isFrameLayout(layout) ? 'frame' : (layout as LayoutPickerKey)}
-              options={LAYOUT_PICKER_KEYS.map((key) => ({
-                value: key,
-                name: LAYOUT_LABELS[key].name,
-                hint: LAYOUT_LABELS[key].hint,
-              }))}
-              onChange={(next) => patch('main', { ...main, layout: next })}
-            />
+          <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+            <div className="sm:max-w-[260px]">
+              <OptionCombobox<LayoutPickerKey>
+                label="레이아웃"
+                value={isFrameLayout(layout) ? 'frame' : (layout as LayoutPickerKey)}
+                options={LAYOUT_PICKER_KEYS.map((key) => ({
+                  value: key,
+                  name: LAYOUT_LABELS[key].name,
+                  hint: LAYOUT_LABELS[key].hint,
+                }))}
+                onChange={(next) => patch('main', { ...main, layout: next })}
+              />
+            </div>
+
+            {/* 좌측 빈 공간 활용 — 레이아웃별 안내. 포스터: 권장 규격 / 액자: 프레임 팁. */}
+            {showImagePicker && isPoster && (
+              <div className="rounded-md border border-dashed border-input bg-muted/30 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                <p className="mb-1 font-medium text-foreground">권장 이미지 규격</p>
+                <ul className="list-disc space-y-0.5 pl-4">
+                  <li>해상도: <strong>1080 × 1920 px</strong> (9:16 세로형)</li>
+                  <li>형식: JPG · PNG · WEBP (최대 25MB)</li>
+                  <li>중요한 인물·소품은 화면 중앙에 — 상하 약 15%는 그라데이션·텍스트가 덮을 수 있어요.</li>
+                  <li>
+                    스마트폰 기종(19.5:9 등 길쭉한 화면)에서는 좌우가 약간 잘릴 수 있어요. 미리보기 좌우의{' '}
+                    <span className="rounded bg-foreground/15 px-1 py-0.5 font-medium text-foreground">회색 영역</span>
+                    이 잘릴 수 있는 부분이에요.
+                  </li>
+                </ul>
+              </div>
+            )}
+            {showImagePicker && isFrame && (
+              <div className="rounded-md border border-dashed border-input bg-muted/30 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                <p className="mb-1 font-medium text-foreground">액자 프레임 팁</p>
+                <ul className="list-disc space-y-0.5 pl-4">
+                  <li>폴라로이드·하트·아치·클래식은 사진을 프레임에 맞춰 자릅니다 — 이미지 위치로 보일 영역을 고르세요.</li>
+                  <li>스크린(레터박스)은 사진을 자르지 않고 전체를 보여줘 가로/세로 사진 모두 잘림 없이 들어가요.</li>
+                </ul>
+              </div>
+            )}
           </div>
 
           {showImagePicker && (
@@ -162,22 +191,6 @@ export function MainEditor() {
             </div>
           )}
         </div>
-
-        {showImagePicker && isPoster && (
-          <div className="rounded-md border border-dashed border-input bg-muted/30 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-            <p className="mb-1 font-medium text-foreground">권장 이미지 규격</p>
-            <ul className="list-disc space-y-0.5 pl-4">
-              <li>해상도: <strong>1080 × 1920 px</strong> (9:16 세로형)</li>
-              <li>형식: JPG · PNG · WEBP (최대 25MB)</li>
-              <li>중요한 인물·소품은 화면 중앙에 — 상하 약 15%는 그라데이션·텍스트가 덮을 수 있어요.</li>
-              <li>
-                스마트폰 기종(9:20 비율 등 길쭉한 화면)에서는 좌우가 약 7% 정도 잘릴 수 있어요. 미리보기 좌우의{' '}
-                <span className="rounded bg-foreground/15 px-1 py-0.5 font-medium text-foreground">회색 영역</span>
-                이 잘릴 수 있는 부분이에요.
-              </li>
-            </ul>
-          </div>
-        )}
 
         {isPoster && design && (
           <PosterDesignControls

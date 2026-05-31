@@ -130,29 +130,24 @@ function parseUnicodeRangeToken(token: string): [number, number] | null {
   return [v, v];
 }
 
-function countCovered(rangeStr: string, codePoints: number[]): number {
-  if (!rangeStr || rangeStr.trim() === '') return codePoints.length;
-  const ranges = rangeStr.split(',').map((t) => parseUnicodeRangeToken(t)).filter(Boolean) as [number, number][];
-  if (ranges.length === 0) return codePoints.length;
-  let n = 0;
-  for (const cp of codePoints) {
-    if (ranges.some(([s, e]) => cp >= s && cp <= e)) n += 1;
-  }
-  return n;
+
+interface FontSubset {
+  url: string;
+  /** 빈 배열 = unicode-range 없음(전체 커버). */
+  ranges: [number, number][];
 }
 
 /**
- * document.styleSheets 의 @font-face 규칙에서 주어진 family 의 woff2 URL 추출.
- * next/font/google 은 폰트를 unicode-range 별 여러 서브셋(.woff2) 로 분할하므로,
- * 텍스트의 코드포인트를 가장 많이 커버하는 서브셋을 선택해야 한다.
+ * document.styleSheets 의 @font-face 규칙에서 주어진 family 의 모든 서브셋
+ * (url + unicode-range)을 수집한다. next/font·Google Fonts 는 한글을 수십 개의
+ * unicode-range 서브셋으로 쪼개므로, 하나만 고르면 제목의 일부 음절이 빠져
+ * .notdef(□/X)로 그려진다. 따라서 전체 후보를 모아 텍스트의 각 코드포인트를
+ * 커버하는 서브셋들을 모두 로드해야 한다.
  */
-function findFontFileUrl(families: string[], text: string): string | null {
-  if (typeof document === 'undefined') return null;
+function findFontSubsets(families: string[]): FontSubset[] {
+  if (typeof document === 'undefined') return [];
   const familySet = new Set(families.map((f) => f.toLowerCase()));
-  // 한 번에 같은 코드포인트 중복 제거.
-  const codePoints = Array.from(new Set(Array.from(text).map((c) => c.codePointAt(0)!).filter((n): n is number => typeof n === 'number')));
-
-  const candidates: { url: string; coverage: number }[] = [];
+  const subsets: FontSubset[] = [];
   for (const sheet of Array.from(document.styleSheets)) {
     let rules: CSSRuleList | null = null;
     try {
@@ -168,39 +163,71 @@ function findFontFileUrl(families: string[], text: string): string | null {
       if (!familySet.has(family.toLowerCase())) continue;
       const src = r.style.getPropertyValue('src');
       const unicodeRange = r.style.getPropertyValue('unicode-range');
-      // 텍스트의 코드포인트 중 이 서브셋에 들어가는 개수를 점수로.
-      const coverage = countCovered(unicodeRange, codePoints);
-      if (coverage === 0 && unicodeRange) continue;
       const woff2 = src.match(/url\(\s*([^)]*?)\s*\)\s*format\(\s*['"]?woff2['"]?\s*\)/i);
       const woff = src.match(/url\(\s*([^)]*?)\s*\)\s*format\(\s*['"]?woff['"]?\s*\)/i);
       const any = src.match(/url\(\s*([^)]*?)\s*\)/);
-      const url = woff2?.[1] ?? woff?.[1] ?? any?.[1];
+      const url = (woff2?.[1] ?? woff?.[1] ?? any?.[1])?.replace(/['"]/g, '').trim();
       if (!url) continue;
-      candidates.push({ url: url.replace(/['"]/g, '').trim(), coverage });
+      const ranges = (unicodeRange ? unicodeRange.split(',') : [])
+        .map((t) => parseUnicodeRangeToken(t))
+        .filter(Boolean) as [number, number][];
+      subsets.push({ url, ranges });
     }
   }
-  if (candidates.length === 0) return null;
-  // 코드포인트 커버리지가 가장 높은 서브셋을 선택. 동률이면 처음 발견된 것.
-  candidates.sort((a, b) => b.coverage - a.coverage);
-  return candidates[0].url;
+  return subsets;
+}
+
+function subsetCovers(s: FontSubset, cp: number): boolean {
+  // unicode-range 없음 = 전체 커버.
+  if (s.ranges.length === 0) return true;
+  return s.ranges.some(([a, b]) => cp >= a && cp <= b);
 }
 
 /**
- * 폰트 URL 을 즉시 찾되, 못 찾으면 짧은 대기 후 몇 차례 재시도.
+ * 텍스트의 모든 (공백 제외) 코드포인트를 커버하는 데 필요한 서브셋 URL 들을 고른다.
+ * 각 코드포인트마다 그를 커버하는 첫 서브셋을 선택 → 중복 제거. 어떤 서브셋도
+ * 커버하지 못하는 코드포인트가 있어도 일단 URL 목록은 반환하고, 실제 글리프
+ * 존재 여부는 폰트 로드 후 layoutText 에서 확인한다.
+ */
+function pickSubsetUrlsForText(subsets: FontSubset[], text: string): string[] {
+  const codePoints = Array.from(
+    new Set(
+      Array.from(text)
+        .filter((c) => c !== ' ' && c !== '\n')
+        .map((c) => c.codePointAt(0)!)
+        .filter((n): n is number => typeof n === 'number'),
+    ),
+  );
+  const urls = new Set<string>();
+  for (const cp of codePoints) {
+    const s = subsets.find((ss) => subsetCovers(ss, cp));
+    if (s) urls.add(s.url);
+  }
+  // 커버되는 서브셋을 못 찾았지만 후보가 있으면(예: unicode-range 파싱 실패)
+  // 커버리지 높은 순으로 최대 몇 개라도 시도.
+  if (urls.size === 0 && subsets.length > 0) {
+    subsets.slice(0, 4).forEach((s) => urls.add(s.url));
+  }
+  return Array.from(urls);
+}
+
+/**
+ * 텍스트를 커버하는 서브셋 URL 들을 즉시 찾되, 못 찾으면 짧은 대기 후 재시도.
  * next/font 가 비동기로 @font-face 를 주입하는 케이스(특히 dev/preview)에서
  * 첫 시도 시 stylesheet 에 규칙이 아직 없을 수 있어 재시도가 필요하다.
  */
-async function findFontUrlWithRetry(hostEl: HTMLElement, text: string): Promise<string | null> {
+async function findSubsetUrlsWithRetry(hostEl: HTMLElement, text: string): Promise<string[]> {
   const attempts = [0, 80, 160, 320, 640]; // ms — 첫 시도는 즉시.
   for (let i = 0; i < attempts.length; i++) {
     if (attempts[i] > 0) {
       await new Promise((r) => setTimeout(r, attempts[i]));
     }
     const families = readResolvedFontFamilies(hostEl);
-    const url = findFontFileUrl(families, text);
-    if (url) return url;
+    const subsets = findFontSubsets(families);
+    const urls = pickSubsetUrlsForText(subsets, text);
+    if (urls.length > 0) return urls;
   }
-  return null;
+  return [];
 }
 
 interface CharPath {
@@ -219,69 +246,189 @@ interface Layout {
   lineWidths: number[];
 }
 
+/** 글자 단위 측정 결과 — 어느 서브셋 폰트로 그릴지 + advance(px). */
+interface Cell {
+  ch: string;
+  font: Fontkit.Font;
+  glyph: Fontkit.Glyph;
+  advance: number; // px
+  /** 이 글자 앞에서 줄바꿈이 허용되는가 (공백 뒤 또는 CJK 글자). */
+  breakBefore: boolean;
+  isSpace: boolean;
+}
+
+/** 한글/한자/가나 등 — 글자 단위로 어디서든 줄바꿈 허용. */
+function isCJK(cp: number): boolean {
+  return (
+    (cp >= 0x1100 && cp <= 0x11ff) || // Hangul Jamo
+    (cp >= 0x3040 && cp <= 0x30ff) || // Hiragana/Katakana
+    (cp >= 0x3130 && cp <= 0x318f) || // Hangul Compatibility Jamo
+    (cp >= 0x3400 && cp <= 0x4dbf) || // CJK Ext A
+    (cp >= 0x4e00 && cp <= 0x9fff) || // CJK Unified
+    (cp >= 0xa960 && cp <= 0xa97f) || // Hangul Jamo Extended-A
+    (cp >= 0xac00 && cp <= 0xd7a3) || // Hangul Syllables
+    (cp >= 0xf900 && cp <= 0xfaff) // CJK Compatibility Ideographs
+  );
+}
+
+/**
+ * 여러 서브셋 폰트 중 주어진 코드포인트의 실제 글리프를 가진 폰트를 찾는다.
+ * .notdef(glyph.id === 0) 는 "없음" 으로 취급. 못 찾으면 null.
+ */
+function fontForCodePoint(fonts: Fontkit.Font[], cp: number): Fontkit.Font | null {
+  for (const f of fonts) {
+    try {
+      // hasGlyphForCodePoint 가 있으면 우선 사용, 없으면 glyphForCodePoint 로 판정.
+      const has =
+        typeof (f as { hasGlyphForCodePoint?: (n: number) => boolean }).hasGlyphForCodePoint ===
+        'function'
+          ? (f as { hasGlyphForCodePoint: (n: number) => boolean }).hasGlyphForCodePoint(cp)
+          : f.glyphForCodePoint(cp)?.id !== 0;
+      if (has) return f;
+    } catch {
+      // 이 폰트는 패스.
+    }
+  }
+  return null;
+}
+
 /**
  * 텍스트를 글자 단위 path 데이터로 변환 + viewBox 정보 계산.
- * 줄바꿈은 \n 으로 처리. 공백은 advance 만 진행하고 path 는 생성하지 않음.
+ *   - fonts: 텍스트를 커버하는 서브셋 폰트들(코드포인트별로 해당 폰트 선택).
+ *   - maxWidthPx: > 0 이면 그 폭에서 단어/CJK 단위로 줄바꿈(네이티브 텍스트와
+ *     동일하게 wrap → SVG 가 컨테이너보다 넓어 축소되는 일이 없어 크기 일치).
+ *   - 한 글자라도 어떤 서브셋에도 글리프가 없으면 null 반환 → 호출측이 폴백.
  *
- * fontkit 의 path 좌표는 font units (unitsPerEm 기준) + Y-up 타이포그래픽
- * 컨벤션이라, SVG 의 Y-down 으로 옮기려면 fontSize/unitsPerEm 으로 스케일하고
- * Y 를 음수로 뒤집어야 한다. 그래서 각 글자마다 transform 으로 처리.
+ * fontkit 의 path 좌표는 font units(unitsPerEm) + Y-up 이라, SVG Y-down 으로
+ * 옮기려면 fontSize/unitsPerEm 로 스케일 + Y 반전한다(글자별 transform).
  */
 function layoutText(
-  font: Fontkit.Font,
+  fonts: Fontkit.Font[],
   text: string,
   fontSize: number,
-): Layout {
-  const unitsPerEm = font.unitsPerEm;
-  const scale = fontSize / unitsPerEm;
+  maxWidthPx: number,
+): Layout | null {
   const lineHeight = fontSize * 1.25;
-  // baseline 위치 — fontSize 대비 0.82 정도가 ascender 끝에서 적절히 떨어진 baseline.
   const baselineOffsetInLine = fontSize * 0.82;
 
-  let cursorX = 0;
-  let line = 0;
-  let charIndex = 0;
-  const paths: CharPath[] = [];
-  const lineWidths: number[] = [0];
-
-  const chars = Array.from(text);
-  for (const ch of chars) {
-    if (ch === '\n') {
-      line += 1;
-      cursorX = 0;
-      lineWidths.push(0);
-      continue;
-    }
-    const codePoint = ch.codePointAt(0);
-    if (codePoint == null) {
-      charIndex += 1;
-      continue;
-    }
-    let glyph: Fontkit.Glyph;
-    try {
-      glyph = font.glyphForCodePoint(codePoint);
-    } catch {
-      charIndex += 1;
-      continue;
-    }
-    const advance = glyph.advanceWidth * scale;
-    if (ch !== ' ' && glyph.advanceWidth > 0) {
-      const d = glyph.path.toSVG();
-      if (d && d.length > 0) {
-        const baselineY = line * lineHeight + baselineOffsetInLine;
-        // 글자별 transform — 위치 이동 + 스케일 + Y flip 한 번에.
-        const transform = `translate(${cursorX.toFixed(2)} ${baselineY.toFixed(2)}) scale(${scale.toFixed(5)} ${(-scale).toFixed(5)})`;
-        paths.push({ d, transform, line, index: charIndex });
+  // 1) 측정 — 글자별 advance + 줄바꿈 가능 위치. 글리프 누락 시 즉시 null.
+  const paragraphs = text.split('\n');
+  const lineCells: Cell[][] = [];
+  for (const para of paragraphs) {
+    const cells: Cell[] = [];
+    const chars = Array.from(para);
+    let prevWasSpaceOrCJK = true; // 줄 시작은 break 가능
+    for (const ch of chars) {
+      const cp = ch.codePointAt(0);
+      if (cp == null) continue;
+      if (ch === ' ') {
+        cells.push({ ch, font: fonts[0], glyph: null as unknown as Fontkit.Glyph, advance: 0, breakBefore: false, isSpace: true });
+        prevWasSpaceOrCJK = true;
+        continue;
       }
+      const font = fontForCodePoint(fonts, cp);
+      if (!font) return null; // 어떤 서브셋에도 글리프 없음 → 폴백
+      let glyph: Fontkit.Glyph;
+      try {
+        glyph = font.glyphForCodePoint(cp);
+      } catch {
+        return null;
+      }
+      const scale = fontSize / font.unitsPerEm;
+      const advance = glyph.advanceWidth * scale;
+      const cjk = isCJK(cp);
+      cells.push({
+        ch,
+        font,
+        glyph,
+        advance,
+        breakBefore: prevWasSpaceOrCJK || cjk,
+        isSpace: false,
+      });
+      prevWasSpaceOrCJK = cjk;
     }
-    cursorX += advance;
-    lineWidths[line] = cursorX;
-    charIndex += 1;
+    lineCells.push(cells);
   }
 
-  const viewBoxWidth = Math.max(1, ...lineWidths);
+  // 2) 공백 advance 채우기 (space glyph advance).
+  for (const cells of lineCells) {
+    for (const c of cells) {
+      if (c.isSpace) {
+        const sf = fonts[0];
+        try {
+          const g = sf.glyphForCodePoint(0x20);
+          c.advance = g.advanceWidth * (fontSize / sf.unitsPerEm);
+        } catch {
+          c.advance = fontSize * 0.28;
+        }
+      }
+    }
+  }
+
+  // 3) 배치 — maxWidth 기준 greedy wrap (단어/CJK 단위). path 생성.
+  const paths: CharPath[] = [];
+  const lineWidths: number[] = [];
+  let line = 0;
+  let cursorX = 0;
+  let charIndex = 0;
+  const pushLineWidth = (w: number) => {
+    lineWidths[line] = w;
+  };
+  pushLineWidth(0);
+
+  const newLine = () => {
+    line += 1;
+    cursorX = 0;
+    pushLineWidth(0);
+  };
+
+  for (let p = 0; p < lineCells.length; p++) {
+    if (p > 0) newLine(); // 명시적 \n
+    const cells = lineCells[p];
+    for (let i = 0; i < cells.length; i++) {
+      const c = cells[i];
+      // wrap 판정: 줄바꿈 허용 위치 + 줄에 내용 있음 + 폭 초과.
+      if (
+        maxWidthPx > 0 &&
+        c.breakBefore &&
+        cursorX > 0 &&
+        cursorX + nextChunkWidth(cells, i) > maxWidthPx
+      ) {
+        // 줄 끝 공백은 버리고 줄바꿈.
+        newLine();
+        if (c.isSpace) continue;
+      }
+      if (!c.isSpace) {
+        const d = c.glyph.path?.toSVG?.() ?? '';
+        if (d && d.length > 0) {
+          const scale = fontSize / c.font.unitsPerEm;
+          const baselineY = line * lineHeight + baselineOffsetInLine;
+          const transform = `translate(${cursorX.toFixed(2)} ${baselineY.toFixed(2)}) scale(${scale.toFixed(5)} ${(-scale).toFixed(5)})`;
+          paths.push({ d, transform, line, index: charIndex });
+        }
+      }
+      cursorX += c.advance;
+      pushLineWidth(cursorX);
+      charIndex += 1;
+    }
+  }
+
+  const viewBoxWidth = Math.max(1, ...lineWidths.map((w) => w || 0));
   const viewBoxHeight = (line + 1) * lineHeight;
   return { paths, viewBoxWidth, viewBoxHeight, lineWidths };
+}
+
+/**
+ * 위치 i 에서 다음 줄바꿈 가능 지점까지의 폭(단어 단위 wrap 용 lookahead).
+ * CJK 는 글자 단위라 자기 advance 만, Latin 단어는 단어 끝까지 합산.
+ */
+function nextChunkWidth(cells: Cell[], i: number): number {
+  let w = 0;
+  for (let j = i; j < cells.length; j++) {
+    if (j > i && (cells[j].breakBefore || cells[j].isSpace)) break;
+    w += cells[j].advance;
+  }
+  return w;
 }
 
 interface Props {
@@ -315,8 +462,9 @@ export function HandwritingStroke({
   // fill 이 채워지는 시간 — outline 이 거의 다 그려진 직후 자연스럽게 차오름.
   fillSec = 0.22,
 }: Props) {
-  const [font, setFont] = useState<Fontkit.Font | null>(null);
+  const [fonts, setFonts] = useState<Fontkit.Font[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [maxWidth, setMaxWidth] = useState(0);
   const containerRef = useRef<HTMLSpanElement | null>(null);
   // onUnsupported 가 인라인 콜백으로 들어와도 매 렌더마다 재호출되지 않게
   // ref 로 잡아둔다 (effect deps 에 포함 시 무한 fetch 루프 위험).
@@ -325,24 +473,36 @@ export function HandwritingStroke({
     onUnsupportedRef.current = onUnsupported;
   }, [onUnsupported]);
 
-  // 1) 폰트 URL 탐색 + 파싱 — fontFamily 가 바뀌면 다시 시도.
-  //    containerRef 가 마운트된 뒤 실제 DOM 컨텍스트의 computed fontFamily 를
-  //    읽어 변수가 정상 resolve 된 family 이름으로 @font-face 를 찾는다.
+  // 0) 사용 가능한 폭 측정 — 부모(h1) 내용 폭. 네이티브 텍스트와 동일한 폭에서
+  //    줄바꿈해 SVG 가 축소되지 않게(크기 일치) 한다. ResizeObserver 로 추적.
+  useIsomorphicLayoutEffect(() => {
+    const el = containerRef.current?.parentElement;
+    if (!el) return;
+    const update = () => setMaxWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // 1) 텍스트를 커버하는 서브셋 폰트들 탐색 + 파싱 — fontFamily/text 가 바뀌면 재시도.
+  //    한글은 여러 unicode-range 서브셋으로 쪼개져 있어, 텍스트의 모든 음절을
+  //    커버하도록 필요한 서브셋을 모두 로드한다(누락 시 □/X 방지).
   useEffect(() => {
     let canceled = false;
-    setFont(null);
+    setFonts(null);
     setFailed(false);
 
     const start = async () => {
       try {
         if (!containerRef.current) return;
-        const url = await findFontUrlWithRetry(containerRef.current, text);
+        const urls = await findSubsetUrlsWithRetry(containerRef.current, text);
         if (canceled) return;
-        if (!url) {
+        if (urls.length === 0) {
           if (typeof console !== 'undefined' && containerRef.current) {
             const families = readResolvedFontFamilies(containerRef.current);
             console.warn(
-              '[HandwritingStroke] font URL not found in @font-face rules. Falling back to fade animation.',
+              '[HandwritingStroke] font URL not found in @font-face rules. Falling back to reveal animation.',
               { requestedFontFamily: fontFamily, resolvedFamilies: families },
             );
           }
@@ -350,11 +510,40 @@ export function HandwritingStroke({
           onUnsupportedRef.current?.();
           return;
         }
-        const f = await loadFont(url);
-        if (!canceled) setFont(f);
+        // 필요한 서브셋을 모두 로드(일부 실패는 무시하고 성공분만 사용).
+        const loaded = await Promise.all(
+          urls.map((u) => loadFont(u).then((f) => f).catch(() => null)),
+        );
+        const ok = loaded.filter((f): f is Fontkit.Font => !!f);
+        if (canceled) return;
+        if (ok.length === 0) {
+          setFailed(true);
+          onUnsupportedRef.current?.();
+          return;
+        }
+        // 커버리지 검사 — 텍스트의 모든 (공백 제외) 코드포인트가 실제 글리프를
+        // 가지는지 확인. 하나라도 빠지면(서브셋 누락 등) stroke 를 포기하고
+        // 폴백(부모의 reveal). □/X 깨짐을 원천 차단.
+        const cps = Array.from(text).filter((c) => c !== ' ' && c !== '\n');
+        const allCovered = cps.every((c) => {
+          const cp = c.codePointAt(0);
+          return cp != null && fontForCodePoint(ok, cp) != null;
+        });
+        if (!allCovered) {
+          if (typeof console !== 'undefined') {
+            console.warn(
+              '[HandwritingStroke] 일부 글리프가 서브셋에 없어 stroke 폴백. (한글 멀티 서브셋 미커버)',
+              { requestedFontFamily: fontFamily },
+            );
+          }
+          setFailed(true);
+          onUnsupportedRef.current?.();
+          return;
+        }
+        setFonts(ok);
       } catch (err) {
         if (typeof console !== 'undefined') {
-          console.warn('[HandwritingStroke] font load/parse failed, falling back to fade.', err);
+          console.warn('[HandwritingStroke] font load/parse failed, falling back to reveal.', err);
         }
         if (!canceled) {
           setFailed(true);
@@ -371,7 +560,7 @@ export function HandwritingStroke({
 
   // 2) 폰트가 준비되면 path 별 stroke-dashoffset (totalLength → 0) → fill 채우기 시퀀스.
   useIsomorphicLayoutEffect(() => {
-    if (!font || !containerRef.current) return;
+    if (!fonts || !containerRef.current) return;
     const paths = Array.from(containerRef.current.querySelectorAll('path')) as SVGPathElement[];
     if (paths.length === 0) return;
     const auto =
@@ -437,7 +626,7 @@ export function HandwritingStroke({
     return () => {
       animations.forEach((a) => a.cancel());
     };
-  }, [font, color, staggerSec, drawSec, fillSec, text, fontSize]);
+  }, [fonts, color, staggerSec, drawSec, fillSec, text, fontSize, maxWidth]);
 
   // 어떤 상태든 wrapper <span> 은 항상 같은 위치/스타일로 렌더한다. ref 가
   // 마운트 직후부터 valid 해서, useEffect 의 첫 폰트 URL 탐색이 컴포넌트 자신의
@@ -450,14 +639,16 @@ export function HandwritingStroke({
   };
 
   if (failed) {
+    // 폴백은 부모(AnimatedTitleInner)가 onUnsupported 로 받아 HandwritingWipe 로
+    // 교체 — 그 교체 전 잠깐을 위해 plain 텍스트(보이게)를 둔다(안 보임 방지).
     return (
-      <span ref={containerRef} style={wrapperStyle}>
+      <span ref={containerRef} style={{ ...wrapperStyle, lineHeight: undefined }}>
         {text}
       </span>
     );
   }
 
-  if (!font) {
+  if (!fonts) {
     return (
       <span ref={containerRef} style={{ ...wrapperStyle, visibility: 'hidden', lineHeight: undefined }}>
         {text}
@@ -465,7 +656,16 @@ export function HandwritingStroke({
     );
   }
 
-  const layout = layoutText(font, text, fontSize);
+  // 커버리지는 로딩 effect 에서 이미 검증됨 — 만약을 위한 null 가드는 plain
+  // 텍스트로 폴백(렌더 중 setState 호출 회피).
+  const layout = layoutText(fonts, text, fontSize, maxWidth);
+  if (!layout) {
+    return (
+      <span ref={containerRef} style={wrapperStyle}>
+        {text}
+      </span>
+    );
+  }
 
   return (
     <span ref={containerRef} style={wrapperStyle}>
@@ -475,6 +675,8 @@ export function HandwritingStroke({
         height={layout.viewBoxHeight}
         style={{
           display: 'inline-block',
+          // maxWidth 로 wrap 하므로 viewBoxWidth 는 컨테이너를 넘지 않음 → 축소
+          // (크기 차이) 없음. 안전망으로 maxWidth:100% 만 유지.
           maxWidth: '100%',
           height: 'auto',
           overflow: 'visible',

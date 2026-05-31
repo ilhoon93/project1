@@ -35,6 +35,14 @@ import {
   type TemplateConfig,
 } from '@/lib/marketing/sample-invitations';
 import { InvitationPreview } from '@/components/marketing/InvitationPreview';
+import { PresetTextArea } from '@/components/editor/PresetTextArea';
+import {
+  BASIC_GREETING_PRESETS,
+  QUOTE_PRESETS,
+  GUESTBOOK_GREETING_PRESETS,
+  ACCOUNT_GUIDE_PRESETS,
+  CLOSING_PRESETS,
+} from '@/lib/presets';
 import { saveHomeSamplesAction, uploadBeforeAfterAfterImage } from './actions';
 
 type MainSection = InvitationContent['main'];
@@ -206,7 +214,7 @@ export function InvitationSamplesEditor({
                 {/* 헤더 — 작은 라이브 표지 썸네일 + 메타 */}
                 <div className="flex flex-wrap items-center gap-3 p-3">
                   <div className="h-[64px] w-[34px] flex-shrink-0 overflow-hidden rounded border border-[#15110E]/80">
-                    <div className="relative aspect-[9/18] w-full">
+                    <div className="relative aspect-[6/13] w-full">
                       <InvitationPreview design={buildDesign(d, config.template)} cover />
                     </div>
                   </div>
@@ -242,7 +250,7 @@ export function InvitationSamplesEditor({
                     {/* 좌: 큰 표지 미리보기 + (하단) 이름/날짜/표지사진 */}
                     <div className="mx-auto w-full max-w-[260px]">
                       <div className="overflow-hidden rounded-[24px] border-[8px] border-[#15110E] bg-[#15110E]">
-                        <div className="relative aspect-[9/18] w-full overflow-hidden">
+                        <div className="relative aspect-[6/13] w-full overflow-hidden">
                           <InvitationPreview design={buildDesign(d, config.template)} cover />
                         </div>
                       </div>
@@ -376,23 +384,28 @@ export function InvitationSamplesEditor({
         </p>
 
         <div className="mt-4 space-y-5">
-          {/* 인사말 / 글귀 */}
-          <div className="grid gap-3 lg:grid-cols-2">
-            <Field label="기본 인사말(서약 톤)">
-              <textarea
-                rows={3}
-                className={`${inputCls} font-normal`}
-                value={config.template.basicGreeting}
-                onChange={(e) => patchTpl({ basicGreeting: e.target.value })}
-              />
-            </Field>
-            <Field label="기본 글귀(인용)">
-              <input
-                className={inputCls}
-                value={config.template.basicQuote}
-                onChange={(e) => patchTpl({ basicQuote: e.target.value })}
-              />
-            </Field>
+          {/* 인사말 / 글귀 — 실제 에디터와 동일한 길이·줄바꿈·추천문구. */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <PresetTextArea
+              label="기본 인사말(서약 톤)"
+              value={config.template.basicGreeting}
+              onChange={(v) => patchTpl({ basicGreeting: v })}
+              presets={BASIC_GREETING_PRESETS}
+              presetLabel="추천 인사말"
+              maxLength={500}
+              rows={4}
+              placeholder="저희 두 사람의 새로운 시작을 함께 축복해 주세요"
+            />
+            <PresetTextArea
+              label="기본 글귀(인용)"
+              value={config.template.basicQuote}
+              onChange={(v) => patchTpl({ basicQuote: v })}
+              presets={QUOTE_PRESETS}
+              presetLabel="추천 글귀"
+              maxLength={200}
+              rows={2}
+              placeholder="사랑은 함께 같은 곳을 바라보는 것"
+            />
           </div>
 
           {/* 스토리 */}
@@ -479,17 +492,62 @@ export function InvitationSamplesEditor({
             </div>
           </div>
 
-          {/* 방명록 / 계좌 / 엔딩 */}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="방명록 안내 메시지">
-              <input className={inputCls} value={config.template.guestbookMessage} onChange={(e) => patchTpl({ guestbookMessage: e.target.value })} />
-            </Field>
-            <Field label="엔딩 메시지">
-              <input className={inputCls} value={config.template.closing} onChange={(e) => patchTpl({ closing: e.target.value })} />
-            </Field>
-            <Field label="계좌 안내 문구">
-              <input className={inputCls} value={config.template.accountGuide} onChange={(e) => patchTpl({ accountGuide: e.target.value })} />
-            </Field>
+          {/* 영상 — 제목 + URL. URL 비우면 영상 슬라이드 미노출. */}
+          <div className="grid gap-2 rounded border border-[#E8DCC9] p-3">
+            <span className={labelCls}>영상 슬라이드</span>
+            <div className="grid gap-2 sm:grid-cols-[1fr_2fr]">
+              <input
+                className={inputCls}
+                placeholder="영상 제목 (예: 우리의 프러포즈 영상)"
+                maxLength={50}
+                value={config.template.videoTitle}
+                onChange={(e) => patchTpl({ videoTitle: e.target.value })}
+              />
+              <input
+                className={inputCls}
+                placeholder="YouTube/Vimeo URL (비우면 영상 슬라이드 숨김)"
+                value={config.template.videoUrl}
+                onChange={(e) => patchTpl({ videoUrl: e.target.value })}
+              />
+            </div>
+            <p className="text-[10px] text-[#8B7355]">
+              YouTube · Vimeo · Shorts 링크 또는 자체 호스팅 mp4 URL. 비우면 모든 샘플에서 영상 슬라이드가 숨겨집니다.
+            </p>
+          </div>
+
+          {/* 방명록 / 계좌 / 엔딩 — 실제 에디터와 동일한 길이·줄바꿈·추천문구. */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <PresetTextArea
+              label="방명록 안내 메시지"
+              value={config.template.guestbookMessage}
+              onChange={(v) => patchTpl({ guestbookMessage: v })}
+              presets={GUESTBOOK_GREETING_PRESETS}
+              presetLabel="추천 인사말"
+              maxLength={300}
+              rows={3}
+              placeholder="축하 한마디와 서명을 남겨주세요!"
+            />
+            <PresetTextArea
+              label="엔딩 메시지"
+              value={config.template.closing}
+              onChange={(v) => patchTpl({ closing: v })}
+              presets={CLOSING_PRESETS}
+              presetLabel="추천 인사말"
+              maxLength={300}
+              rows={3}
+              placeholder="와주셔서 진심으로 감사합니다"
+            />
+            <PresetTextArea
+              className="sm:col-span-2"
+              label="계좌 안내 문구"
+              value={config.template.accountGuide}
+              onChange={(v) => patchTpl({ accountGuide: v })}
+              presets={ACCOUNT_GUIDE_PRESETS}
+              presetLabel="추천 안내문구"
+              maxLength={500}
+              rows={3}
+              placeholder="축하의 마음을 담아 마음 전하실 분들을 위해 계좌번호를 안내드립니다."
+            />
             <div className="grid grid-cols-2 gap-2">
               <Field label="신랑 은행">
                 <input className={inputCls} value={config.template.accountGroomBank} onChange={(e) => patchTpl({ accountGroomBank: e.target.value })} />
