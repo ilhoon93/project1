@@ -42,18 +42,23 @@ select code, name, price, publish_credits_grant, sort_order
  order by sort_order;
 ```
 
-**기대 결과** (008 까지 적용 시):
+**기대 결과** (035_pricing_2026_05 적용 후):
 
 | code | name | price | grant |
 | --- | --- | --- | --- |
-| basic | 기본 발행권 패키지 | 9900 | 2 |
-| archive_basic | 영구소장 패키지 | 14900 | 0 |
-| ai_snap | AI 웨딩 스냅 패키지 | 19900 | 0 |
-| ai_video | AI 웨딩 영상 패키지 | 29900 | 0 |
-| family_pack | 가족 패키지 | 9900 | 0 |
+| basic | 알림장 | 9900 | 2 |
+| archive_basic | 영구소장 | 3000 | 0 |
+| snap_5 | AI 웨딩스냅 체험팩 | 7900 | 0 |
+| snap_10 | AI 웨딩스냅 소형 패키지 | 12900 | 0 |
+| snap_20 | AI 웨딩스냅 표준 패키지 | 19900 | 0 |
+| snap_40 | AI 웨딩스냅 헤비 패키지 | 29900 | 0 |
+| snap_10_bundle | AI 웨딩스냅 알림장 번들 10장 | 9900 | 0 |
 
-비어 있거나 4개 이하면 마이그레이션을 다시 적용하자 (`supabase db push` 또는
-`supabase/migrations/008_archive_and_packages.sql` 직접 실행).
+스냅 크레딧 적립 수는 별도 `snap_credits_ledger` 행에서 확인 (기대 값: snap_5 → +5,
+snap_10/snap_10_bundle → +10, snap_20 → +20, snap_40 → +40).
+
+비어 있거나 가격이 다르면 가장 최근 가격 마이그(`035_pricing_2026_05.sql`) 부터 재적용하자
+(`supabase db push` 또는 해당 SQL 파일 직접 실행).
 
 ---
 
@@ -193,7 +198,7 @@ select public.grant_purchase_credits(
   p_user_id          := '<USER_ID>'::uuid,
   p_source           := 'naver_smartstore',
   p_package_code     := 'archive_basic',
-  p_amount           := 14900,
+  p_amount           := 3000,
   p_naver_order_no   := 'TEST-ARCH-001',
   p_naver_product_no := '22222222'
 );

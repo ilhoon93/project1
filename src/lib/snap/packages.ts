@@ -1,16 +1,25 @@
 /**
  * AI 웨딩스냅 크레딧 패키지 — 단일 소스.
  *
- * 가격·크레딧·무료 재생성 quota 를 한 곳에서 정의해 랜딩(/wedding-snap) 의
- * 패키지 라인업, Hero 가격, 메타 description, 에디터 AIPanel 안내 문구가
- * 모두 같은 값을 쓰도록 한다. (이전엔 페이지마다 13,900 / 19,900 / "80가지"
- * 같은 숫자가 따로 하드코딩돼 서로 어긋났음.)
+ * 가격·크레딧·무료 재생성 quota 를 한 곳에서 정의해 랜딩(/) 의 Pricing 카드,
+ * 메인 페이지 메타 description, /wedding-snap 설명 문구가 모두 같은 값을
+ * 쓰도록 한다.
  *
- * 결제/크레딧 적립 로직은 code(snap_5 / snap_20 / snap_40) 만 사용하므로
- * 여기 가격/문구를 바꿔도 회계 로직과 무관 — 표시용 단일 소스.
+ * 결제/크레딧 적립 로직은 code 만 사용하므로 여기 가격/문구를 바꾸면 동시에
+ * supabase/migrations 의 가격 update + grant_purchase_credits 분기도 함께
+ * 맞춰야 한다 (035_pricing_2026_05.sql 참고).
  */
 
-export type SnapPackageCode = 'snap_5' | 'snap_20' | 'snap_40';
+export type SnapPackageCode =
+  | 'snap_5'
+  | 'snap_10'
+  | 'snap_20'
+  | 'snap_40'
+  /**
+   * 알림장(`basic` 패키지) 결제와 함께 묶음으로만 구매 가능한 10장 번들 SKU.
+   * 단독 10장(snap_10, 12,900원) 대비 3,000원 할인 = 9,900원.
+   */
+  | 'snap_10_bundle';
 
 export interface SnapPackageTier {
   code: SnapPackageCode;
@@ -30,22 +39,35 @@ export interface SnapPackageTier {
   highlight?: string;
 }
 
+/**
+ * 단독으로 구매 가능한 4종 (Pricing 카드 메인 라인업).
+ * 번들 SKU(snap_10_bundle) 는 알림장 결제 화면에서만 노출되므로 여기 미포함.
+ */
 export const SNAP_PACKAGES: SnapPackageTier[] = [
   {
     code: 'snap_5',
     name: '체험팩',
     credits: 5,
-    price: 3900,
-    perImage: 780,
+    price: 7900,
+    perImage: 1580,
     freeRegen: 1,
     highlight: '부담 없이 한 번 만들어 보고 싶을 때',
+  },
+  {
+    code: 'snap_10',
+    name: '소형',
+    credits: 10,
+    price: 12900,
+    perImage: 1290,
+    freeRegen: 2,
+    highlight: '청첩장 메인 + 베스트샷 몇 장',
   },
   {
     code: 'snap_20',
     name: '표준',
     credits: 20,
-    price: 13900,
-    perImage: 695,
+    price: 19900,
+    perImage: 995,
     freeRegen: 4,
     isPopular: true,
     highlight: '청첩장 메인 + 베스트샷 다양하게',
@@ -54,14 +76,28 @@ export const SNAP_PACKAGES: SnapPackageTier[] = [
     code: 'snap_40',
     name: '헤비',
     credits: 40,
-    price: 24900,
-    perImage: 622,
+    price: 29900,
+    perImage: 748,
     freeRegen: 8,
     highlight: '카탈로그 풀 활용 · 가성비 최고',
   },
 ];
 
-/** 가장 저렴한 패키지 가격 — "N원부터" 표기에 사용. */
+/**
+ * 알림장 결제 시 함께 묶을 수 있는 번들 SKU. 단독 10장(snap_10, 12,900원)
+ * 대비 3,000원 할인. 알림장 결제 화면에서만 추가 옵션으로 노출.
+ */
+export const SNAP_BUNDLE_PACKAGE: SnapPackageTier = {
+  code: 'snap_10_bundle',
+  name: '알림장 번들 · AI 스냅 10장',
+  credits: 10,
+  price: 9900,
+  perImage: 990,
+  freeRegen: 2,
+  highlight: '알림장과 함께 결제하면 3,000원 할인',
+};
+
+/** 가장 저렴한 단독 패키지 가격 — "N원부터" 표기에 사용. 번들은 제외. */
 export const SNAP_STARTING_PRICE = Math.min(...SNAP_PACKAGES.map((p) => p.price));
 
 /** 가장 인기(추천) 패키지 — Hero 기본 노출가에 사용. */
@@ -74,9 +110,22 @@ export function formatKRW(won: number): string {
 }
 
 /**
- * 패키지별 무료 재생성 quota 를 "체험팩 1회 / 표준 4회 / 헤비 8회" 형태로 묶어
- * 한 문장에 넣을 때 사용. (AboutSnap · PackageLineup 양쪽 footer 가 공유.)
+ * 패키지별 무료 재생성 quota 를 "체험팩 1회 / 소형 2회 / 표준 4회 / 헤비 8회"
+ * 형태로 묶어 한 문장에 넣을 때 사용. (Pricing 카드 footnote + /wedding-snap 안내.)
  */
 export function freeRegenSummary(): string {
   return SNAP_PACKAGES.map((p) => `${p.name} ${p.freeRegen}회`).join(' / ');
 }
+
+// ─────────────────────────────────────────────────────────────
+// 알림장 / 영구소장 — 메인 Pricing 카드 표시용 단일 소스.
+// ─────────────────────────────────────────────────────────────
+
+/** 알림장 1건 결제 가격 (basic 패키지). */
+export const INVITATION_PRICE = 9900;
+
+/**
+ * 발행 후 공개 링크 30일 만료를 영구로 전환하는 "영구소장" 추가 결제.
+ * (DB code: archive_basic — 016 이전 14,900 → 035 에서 3,000 으로 인하.)
+ */
+export const ARCHIVE_PRICE = 3000;

@@ -709,24 +709,24 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     ],
   },
   {
-    id: 'cinema-popcorn-couple',
-    label: '영화관 팝콘 데이트',
-    hint: '영화관 + 빨간 시트 + 팝콘 + 풀턱 + 보타이',
+    id: 'cinema-redseat-couple',
+    label: '영화관 레드시트 데이트',
+    hint: '영화관 + 빨간 시트 + 정장 + 풀튤 드레스',
     category: 'urban',
     personality: 'together',
     intensity: 'low',
     framing: 'closeup',
-    isSeated: true, // seated in cinema seats sharing popcorn
-    image: '/wedding-snap/catalog/cinema-popcorn-couple.jpg',
+    isSeated: true, // seated together in cinema seats
+    image: '/wedding-snap/catalog/cinema-redseat-couple.jpg',
     promptHint:
-      'Indoor empty modern movie cinema theater scene with rows of plush vibrant red cinema seats stretching diagonally back into the dark background on both sides, dim warm cinematic lighting with a single bright cool-blue projector light beam glowing from the back-center wall above casting subtle volumetric light into the dark room. Couple seated together in the center seat of the front-center row, soft cool ambient glow on the couple from the projector beam mixed with warm soft fill from camera-front. Shot on 35–50mm lens for environmental cinema feel, three-quarter (waist-up) framing, eye-level camera, shallow depth of field on the couple with the red seats softly bokeh-blurred behind. Bride: soft champagne / pale-blush layered tulle ball-gown wedding dress with delicate beaded sweetheart bodice and voluminous skirt cascading lushly across the cinema seat, long honey-brown softly waved hair flowing freely past her shoulders, dainty drop earrings, soft natural rosy makeup with warm bright closed-mouth smile, seated to camera-left with both hands softly clasped together in her lap. Groom: sharp black peak-lapel two-piece formal tuxedo with crisp white dress shirt and neat solid-black silk bow tie tied at the collar, short neat dark side-swept hair, calm warm genuine bright closed-mouth smile, seated to camera-right with one leg casually crossed over the other, holding a large white-and-black vertical-striped classic cinema-style popcorn bucket overflowing with warm golden popcorn in both hands resting at his lap, sharing the popcorn warmly between them. Pose: bride and groom seated very close shoulder-to-shoulder both warmly facing camera with bright genuine smiles, popcorn bucket centered between them as the focal joyful element, intimate playful cinema date wedding moment. Color grade: rich saturated red seat tones with subtle cool-blue projector glow accent and warm cream skin midtones, refined cinematic playful K-prewedding magazine atmosphere — must clearly read as warm cinematic indoor cinema room with subtle cool projector glow, NOT outdoor, NOT golden hour, NOT studio gray backdrop.',
-    manualKelvin: 4000,
+      'Indoor empty modern movie cinema theater scene with rows of plush vibrant red cinema seats stretching diagonally back into the dark background on both sides, dim warm cinematic lighting with two small warm wall sconces softly glowing on the back wall behind the couple, soft warm ambient fill on the couple from camera-front. Shot on 35–50mm lens for environmental cinema feel, three-quarter (waist-up) framing, slight high-angle camera looking gently down at the couple from a row behind, shallow depth of field on the couple with the red seats softly bokeh-blurred behind and in the foreground. Bride: soft ivory champagne off-shoulder layered tulle ball-gown wedding dress with delicate beaded sweetheart bodice and voluminous skirt cascading lushly across the cinema seat, hair in a soft swept-back short style with subtle volume, dainty drop earrings, soft natural rosy makeup with warm gentle closed-mouth smile, leaning her chin and arm tenderly on the back of the seat in front of her facing camera. Groom: sharp black peak-lapel two-piece formal tuxedo with crisp white dress shirt and neat solid-black silk bow tie tied at the collar, short neat dark side-swept hair, round thin-framed glasses, calm warm soft closed-mouth smile, seated to camera-left right beside bride with one arm wrapped warmly around her shoulder. Pose: bride and groom seated very close shoulder-to-shoulder both facing camera with calm warm gentle smiles, intimate refined cinema date wedding moment, no popcorn, no other props. Color grade: rich saturated red seat tones with warm cream skin midtones and subtle warm-tungsten ambient glow, refined cinematic intimate K-prewedding magazine atmosphere — must clearly read as warm intimate indoor cinema room, NOT outdoor, NOT golden hour, NOT studio gray backdrop.',
+    manualKelvin: 3200,
     manualMoodHint:
-      'cinematic indoor movie theater scene with saturated red cinema seats and subtle cool-blue projector glow, joyful intimate cinema date K-prewedding mood, popcorn as warm focal accent',
-    // 신부(왼쪽), 신랑(오른쪽) — 앉은 자세 투샷, 얼굴은 프레임 상단.
+      'warm intimate indoor movie theater scene with saturated red cinema seats and soft warm-tungsten ambient glow, refined cinematic intimate K-prewedding mood',
+    // 신랑(왼쪽, 약간 위), 신부(오른쪽, 앞 좌석 등받이에 기댐).
     faceMaskRegions: [
-      [0.30, 0.20, 0.18, 0.22],
-      [0.54, 0.22, 0.18, 0.22],
+      [0.32, 0.30, 0.18, 0.22],
+      [0.52, 0.36, 0.18, 0.22],
     ],
   },
   {
@@ -1695,6 +1695,61 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
       [0.30, 0.18, 0.14, 0.18],
       [0.56, 0.20, 0.14, 0.18],
     ],
+  },
+  // ── 신규 추가 (2026-05) ──
+  {
+    id: 'hotel-corridor-couple-walk',
+    label: '호텔 복도 워킹샷',
+    hint: '클래식 호텔 카펫 복도 + 정장 + 머메이드 드레스',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'medium',
+    framing: 'full',
+    image: '/wedding-snap/catalog/hotel-corridor-couple-walk.jpg',
+    promptHint:
+      'Indoor classic European-style luxury hotel corridor scene with rich warm wood-paneled walls and tall paneled doors on both sides, ornate gold-framed paintings hung along the walls at eye-level, brass-and-glass dome ceiling sconces softly glowing warm tungsten light from above, plush deep-red-and-gold patterned carpet runner stretching down the center of the corridor receding into the softly bokeh-blurred distance, warm mixed tungsten ambient lighting from camera-back-top. Shot on 35–50mm portrait lens for environmental feel, full-body framing in vertical aspect, eye-level camera, shallow depth of field with the corridor softly bokeh-blurred behind the couple. Groom: sharp black two-piece formal tuxedo with crisp white dress shirt and neat solid-black silk bow tie tied at the collar, polished black derby shoes, short neat dark side-swept hair, calm composed warm closed-mouth smile, walking close beside bride to camera-left with bride lightly holding his right arm. Bride: clean ivory champagne fitted off-shoulder mermaid wedding dress with delicate beaded sweetheart bodice and softly trailing tulle skirt, sheer cathedral veil softly draped behind her hair, long dark-brown softly waved hair flowing past her shoulders, dainty drop earrings, soft natural rosy makeup with warm gentle bright closed-mouth smile, holding a small fresh round bouquet of white spray roses and trailing fresh green eucalyptus in her right hand at her hip, walking close beside groom to camera-right. Pose: bride and groom walking slowly arm-in-arm down the corridor toward camera with calm warm composed soft bright smiles, intimate refined European hotel wedding moment. Color grade: warm tungsten interior glow on rich wood-and-carpet hotel corridor with warm cream skin midtones and saturated red-gold carpet focal accent, refined classic K-prewedding luxury hotel atmosphere — must clearly read as warm indoor luxury hotel corridor, NOT outdoor, NOT studio.',
+    manualKelvin: 3200,
+    manualMoodHint:
+      'warm tungsten luxury European hotel corridor walking shot with rich wood-paneled walls and red-gold patterned carpet runner, refined classic K-prewedding luxury hotel mood',
+    faceMaskRegions: [
+      [0.32, 0.20, 0.16, 0.18],
+      [0.52, 0.22, 0.16, 0.18],
+    ],
+  },
+  {
+    id: 'london-night-doubledecker',
+    label: '런던 야경 이층버스',
+    hint: '런던 야경 + 빨간 이층버스 + 정장 + 풀신',
+    category: 'urban',
+    personality: 'together',
+    intensity: 'high',
+    framing: 'full',
+    image: '/wedding-snap/catalog/london-night-doubledecker.jpg',
+    promptHint:
+      'Outdoor London nighttime urban street scene with iconic vibrant red London double-decker bus visibly streaking with subtle motion blur behind the couple, historic golden-lit classical European hotel facade glowing warm tungsten in the soft-focus background, vintage tall slim black London street lamp post visible to camera-right, polished wet pavement reflecting warm city lights at the couple\'s feet, calm clear deep-navy night sky above. Shot on 50–85mm portrait lens, full-body framing in tall vertical aspect, slight low-angle camera, shallow depth of field with creamy London nightscape bokeh and subtle motion-blurred bus behind. Groom: relaxed dark navy single-breasted two-piece formal suit (no tie) over a soft cream / off-white plain crew-neck t-shirt, polished black derby shoes, short neat dark side-swept hair, calm composed warm soft closed-mouth smile, standing tall to camera-left with one hand casually in trouser pocket and one hand gently holding bride\'s hand. Bride: clean ivory champagne short-puff-sleeve square-neckline classic A-line wedding gown with refined understated bodice and softly flowing skirt brushing the pavement, long sheer cathedral veil softly draped behind her hair and trailing on the wet pavement, long dark-brown softly waved hair flowing past her shoulders, dainty drop earrings, soft natural rosy makeup with warm gentle closed-mouth smile, holding a small fresh round bouquet of warm-orange roses, dahlias and trailing fresh green eucalyptus in her left hand at her hip, standing close beside groom to camera-right facing camera. Pose: bride and groom standing close together hand-in-hand facing camera with calm warm composed gentle bright smiles, refined romantic European travel London nighttime K-prewedding moment with iconic red double-decker bus passing behind. Color grade: rich warm-tungsten city night lighting with vibrant saturated red double-decker bus focal accent and warm cream skin midtones, refined romantic K-prewedding international travel nighttime editorial atmosphere — must clearly read as warm London city nighttime, NOT golden hour, NOT studio.',
+    manualKelvin: 2800,
+    manualMoodHint:
+      'warm tungsten London city nighttime street with iconic red double-decker bus motion-blur backdrop, refined romantic European travel K-prewedding mood',
+    faceMaskRegions: [
+      [0.32, 0.30, 0.14, 0.16],
+      [0.54, 0.30, 0.14, 0.16],
+    ],
+  },
+  {
+    id: 'groom-ivory-tux-warmwall',
+    label: '신랑 아이보리 턱시도 단독',
+    hint: '아이보리 턱시도 + 따뜻한 벽 + 단독 풀신',
+    category: 'studio',
+    personality: 'groom-solo',
+    framing: 'full',
+    image: '/wedding-snap/catalog/groom-ivory-tux-warmwall.jpg',
+    promptHint:
+      'Solo groom portrait — only the groom is in the frame, no bride, no other people. Indoor warm sandstone-textured wall scene with subtle vintage brass wall sconce softly glowing camera-left, classic warm rich wooden paneled door visible to camera-right edge, warm soft natural sunlight from camera-front-left casting subtle rim on hair and shoulders. Shot on 50–85mm portrait lens, three-quarter (knee-up to waist-up) framing, eye-level camera, shallow depth of field. Groom: sharp clean ivory champagne shawl-lapel single-breasted formal tuxedo jacket with crisp white tuxedo dress shirt with subtle pleated front and small black studs, neat solid-black silk bow tie tied at the collar, wide black silk cummerbund at waist, dark navy formal trousers, short neat dark side-swept hair, calm composed warm soft confident closed-mouth expression, standing tall facing camera straight on with one hand casually in trouser pocket. Pose: standing relaxed and composed facing camera, refined classic K-prewedding magazine groom portrait atmosphere. Color grade: warm sandstone wall and rich wood door tones with soft warm natural sunlight and warm cream skin midtones, refined romantic classic K-prewedding portrait editorial atmosphere — must clearly read as warm indoor portrait scene with sandstone wall, NOT studio gray backdrop, NOT outdoor.',
+    manualKelvin: 3400,
+    manualMoodHint:
+      'warm soft natural sunlight on warm sandstone wall with classic ivory tuxedo groom portrait, refined romantic classic K-prewedding magazine portrait mood',
+    // solo 풀신 / 반신: 얼굴이 프레임 상단 1/4 부근.
+    faceMaskRegions: [[0.42, 0.08, 0.20, 0.20]],
   },
 ];
 
