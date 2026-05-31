@@ -201,7 +201,7 @@ export function ExampleFlowModal({
               <>
                 {/* 커플 모드 row 1 — input 1 + 2 카탈로그 (각각 기본 / 얼굴 강화). */}
                 <ExampleFlowRow
-                  title="예시 1 — 같은 입력으로 카탈로그 2종"
+                  title="예시 1 — 반신 이상 클로즈업 커플 사진으로 카탈로그 2종"
                   steps={[
                     {
                       srcs: [`${MODE_BASE}/couple-input-1.jpg`],
@@ -229,7 +229,7 @@ export function ExampleFlowModal({
                   onPick={setLightboxSrc}
                 />
                 <ExampleFlowRow
-                  title="예시 2 — 같은 입력으로 카탈로그 2종"
+                  title="예시 2 — 전신 커플 사진으로 카탈로그 2종"
                   steps={[
                     {
                       srcs: [`${MODE_BASE}/couple-input-2.jpg`],

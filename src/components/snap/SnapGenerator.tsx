@@ -926,7 +926,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
             description={
               <>
                 두 사람이 함께 찍힌 <strong>커플 사진 1장</strong>으로 만듭니다.
-                포즈·체형·상호작용을 그대로 유지하며 의상/배경만 바꿔요. <strong>함께
+                <strong>포즈·체형·상호작용을 그대로 유지</strong>하며 의상/배경만 바꿔요. <strong>함께
                 컷만</strong> 가능 (단독 카탈로그는 숨겨짐).
               </>
             }
@@ -1037,7 +1037,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
                 머플러·모자·선글라스는 피해주세요.
               </li>
               <li>
-                <strong>반신 ~ 무릎 위</strong> 컷이 가장 안정적이에요. 풍경 위주 풀샷은
+                <strong>셀카 ~ 무릎 위</strong> 컷이 가장 안정적이에요. 풍경 위주 풀샷은
                 얼굴이 작아져서 카탈로그 선택시 주의가 필요해요.
               </li>
               <li>
@@ -2204,7 +2204,7 @@ function CatalogSelectionGuide() {
       <ul className="flex flex-1 flex-col divide-y divide-[#F0E8D8] text-[12px] leading-relaxed text-[#5C4633]">
         <li className="px-3 py-2">
           <strong className="text-[#3D2E1F]">셀카로 만들기</strong>
-          <span className="text-[#8B7355]"> →</span> 신랑 솔로 · 신부 솔로 ·
+          <span className="text-[#8B7355]"> →</span> 솔로 컷 ·
           커플 클로즈업 컷에 어울려요
         </li>
         <li className="px-3 py-2">

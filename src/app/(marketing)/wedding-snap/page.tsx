@@ -132,10 +132,10 @@ function PackageLineup() {
       </ul>
       <p className="mt-2 text-[10px] leading-relaxed text-[#8B7355]">
         ⓘ 결제 후 크레딧은 자동 적립됩니다. 만료 없음. 환불은 결제 채널 정책을
-        따릅니다. 결제 사용자에 한해 첫 앵커 batch (4종 후보) 는 무료, 추가
-        앵커 재생성은 4 크레딧 차감.
+        따릅니다. <strong>결제 사용자에 한해 첫 앵커는 무료</strong>, 추가
+        앵커 재생성은 크레딧 차감.
         <br />
-        패키지 결제 시 카탈로그 결과 <strong>재생성 무료 quota</strong> 도 함께
+        패키지 결제 시 카탈로그 결과 <strong>재생성 무료 크레딧</strong> 도 함께
         적립 — {freeRegenSummary()}. 그 이후 재생성은 1 크레딧 차감.
       </p>
     </section>
@@ -157,13 +157,6 @@ function Hero({ catalogCount }: { catalogCount: number }) {
         스튜디오·한옥·도심 골든아워·바닷가·해외 풍경까지 —{' '}
         {catalogCountLabel(catalogCount)}의 베스트샷 중 마음에 드는 컷을 고르면
         우리 얼굴로 자연스럽게 합성해드려요.
-      </p>
-      <p className="mt-4 text-sm font-medium text-[#3D2E1F]">
-        <span className="text-2xl font-semibold">{formatKRW(SNAP_STARTING_PRICE)}</span>
-        <span className="ml-2 text-xs text-[#8B7355]">
-          부터 · {SNAP_STANDARD_PACKAGE.name} {SNAP_STANDARD_PACKAGE.credits}장{' '}
-          {formatKRW(SNAP_STANDARD_PACKAGE.price)}
-        </span>
       </p>
     </section>
   );

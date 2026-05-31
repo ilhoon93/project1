@@ -108,15 +108,15 @@ function Hero({ aiSnaps, designs }: { aiSnaps: AiSnapItem[]; designs: SampleDesi
 
       <FadeUp delay={0.15} className="relative">
         <h1 className="mx-auto mt-6 max-w-[15ch] text-balance break-keep text-[32px] font-medium leading-[1.36] tracking-tight sm:text-[36px]">
-          예식 없이도,{' '}
+          예식 없이도,<br />
           <em className="not-italic text-[var(--wd-coral)]">우리의 소식을 전해요.</em>
         </h1>
       </FadeUp>
 
       <FadeUp delay={0.32} className="relative">
         <p className="mx-auto mt-5 max-w-[430px] break-keep text-[14.5px] leading-[1.75] text-[var(--wd-mute)]">
-          노웨딩·스몰웨딩 커플을 위한 감성 모바일 알림장과 AI 웨딩스냅. 3분 만에
-          만들어 카카오톡으로 소식을 전하세요.
+          노웨딩·스몰웨딩 커플을 위한 감성 모바일 알림장과 AI 웨딩스냅. 
+          3분 만에 만들어 카카오톡으로 소식을 전하세요.
         </p>
       </FadeUp>
 
