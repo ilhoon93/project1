@@ -56,9 +56,19 @@ export interface AiSnapItem {
 
 export interface BeforeAfterStyle {
   id: string;
+  /**
+   * 어떤 카탈로그 스타일을 적용한 결과인지. label/afterLabel 자동 채움 + Pricing
+   * 카드에서 "이 스타일을 쓰면 N장 무료 체험" 같은 안내에 사용. 비어 있으면 id
+   * 가 카탈로그 id 로 가정 (구버전 호환).
+   */
+  styleCatalogId?: string;
   label: string;
   afterLabel: string;
-  /** Catalog 또는 mode-examples 의 전체 경로. */
+  /**
+   * 결과(After) 이미지 경로. 운영자가 입력사진을 그 카탈로그 스타일로 생성한
+   * 실제 결과물을 storage 에 업로드해 그 url 을 저장. 카탈로그 마스터 자체가
+   * 아니라 "사용자 입력 + 카탈로그 = 합성 결과" 의 데모.
+   */
   afterImage: string;
 }
 

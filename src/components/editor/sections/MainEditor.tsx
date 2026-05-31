@@ -105,31 +105,16 @@ export function MainEditor() {
             미리보기 컨테이너는 레이아웃에 상관없이 동일 사이즈를 유지 (w-32 + aspect-[9/16]). */}
         <div className="flex flex-col gap-2 text-sm sm:flex-row sm:items-start sm:gap-4">
           <div className="min-w-0 flex-1">
-            <span className="font-medium text-foreground">레이아웃</span>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {LAYOUT_PICKER_KEYS.map((key) => {
-                const selected = key === 'frame' ? isFrameLayout(layout) : layout === key;
-                const meta = LAYOUT_LABELS[key];
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => patch('main', { ...main, layout: key })}
-                    aria-pressed={selected}
-                    className={`flex flex-col items-center gap-0.5 rounded-md border px-1.5 py-1.5 text-[11px] leading-tight transition-colors ${
-                      selected
-                        ? 'border-foreground bg-foreground text-background'
-                        : 'border-input bg-background text-foreground hover:bg-muted'
-                    }`}
-                  >
-                    <span className="font-medium">{meta.name}</span>
-                    <span className={`text-[10px] ${selected ? 'opacity-80' : 'text-muted-foreground'}`}>
-                      {meta.hint}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <OptionCombobox<LayoutPickerKey>
+              label="레이아웃"
+              value={isFrameLayout(layout) ? 'frame' : (layout as LayoutPickerKey)}
+              options={LAYOUT_PICKER_KEYS.map((key) => ({
+                value: key,
+                name: LAYOUT_LABELS[key].name,
+                hint: LAYOUT_LABELS[key].hint,
+              }))}
+              onChange={(next) => patch('main', { ...main, layout: next })}
+            />
           </div>
 
           {showImagePicker && (
@@ -351,6 +336,15 @@ export function PosterDesignControls({ design, onChange, greeting, onGreetingCha
         />
         </div>
 
+        <ToggleRow
+          label="애니메이션 효과"
+          hint="왼쪽에서 오른쪽으로 천천히 써지는 느낌"
+          checked={design.title.animate}
+          onChange={(v) =>
+            onChange({ ...design, title: { ...design.title, animate: v } })
+          }
+        />
+
         <ColorPicker
           label="색상"
           value={design.title.color}
@@ -371,16 +365,8 @@ export function PosterDesignControls({ design, onChange, greeting, onGreetingCha
           }
         />
 
-        <ToggleRow
-          label="애니메이션 효과"
-          hint="왼쪽에서 오른쪽으로 천천히 써지는 느낌"
-          checked={design.title.animate}
-          onChange={(v) =>
-            onChange({ ...design, title: { ...design.title, animate: v } })
-          }
-        />
-
         <PositionSliders
+          verticalOnly
           position={design.title.position}
           onChange={(position) =>
             onChange({ ...design, title: { ...design.title, position } })
@@ -576,30 +562,15 @@ export function IllustrationDesignControls({ design, onChange, greeting, onGreet
 
       {/* 베리언트 선택 */}
       <Group label="일러스트 스타일">
-        <div className="grid grid-cols-2 gap-2">
-          {ILLUSTRATION_VARIANTS.map((key) => {
-            const selected = design.variant === key;
-            const meta = ILLUST_VARIANT_LABELS[key];
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => onChange({ ...design, variant: key })}
-                aria-pressed={selected}
-                className={`flex flex-col items-center gap-1 rounded-md border px-2 py-3 text-xs transition-colors ${
-                  selected
-                    ? 'border-foreground bg-foreground text-background'
-                    : 'border-input bg-background text-foreground hover:bg-muted'
-                }`}
-              >
-                <span className="font-medium">{meta.name}</span>
-                <span className={selected ? 'opacity-80' : 'text-muted-foreground'}>
-                  {meta.hint}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <OptionCombobox<IllustrationVariant>
+          value={design.variant}
+          options={ILLUSTRATION_VARIANTS.map((key) => ({
+            value: key,
+            name: ILLUST_VARIANT_LABELS[key].name,
+            hint: ILLUST_VARIANT_LABELS[key].hint,
+          }))}
+          onChange={(variant) => onChange({ ...design, variant })}
+        />
       </Group>
 
       {/* 제목 텍스트 — 폰트 picker 노출 (포스터형과 동일). 초기화 시 Fraunces 가 기본 */}
@@ -620,6 +591,14 @@ export function IllustrationDesignControls({ design, onChange, greeting, onGreet
           previewText={design.title.text || 'Preview'}
         />
         </div>
+        <ToggleRow
+          label="애니메이션 효과"
+          hint="왼쪽에서 오른쪽으로 천천히 써지는 느낌"
+          checked={design.title.animate}
+          onChange={(v) =>
+            onChange({ ...design, title: { ...design.title, animate: v } })
+          }
+        />
         <ColorPicker
           label="색상"
           value={design.title.color}
@@ -640,6 +619,7 @@ export function IllustrationDesignControls({ design, onChange, greeting, onGreet
           }
         />
         <PositionSliders
+          verticalOnly
           position={design.title.position}
           onChange={(position) =>
             onChange({ ...design, title: { ...design.title, position } })
@@ -796,30 +776,15 @@ export function TextDesignControls({ design, onChange, greeting, onGreetingChang
 
       {/* 데코 변형 선택 — 꽃 / 편지 / 없음 3종 */}
       <Group label="데코 일러스트">
-        <div className="grid grid-cols-3 gap-2">
-          {TEXT_VARIANTS.map((key) => {
-            const selected = design.variant === key;
-            const meta = TEXT_VARIANT_LABELS[key];
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => onChange({ ...design, variant: key })}
-                aria-pressed={selected}
-                className={`flex flex-col items-center gap-1 rounded-md border px-2 py-3 text-xs transition-colors ${
-                  selected
-                    ? 'border-foreground bg-foreground text-background'
-                    : 'border-input bg-background text-foreground hover:bg-muted'
-                }`}
-              >
-                <span className="font-medium">{meta.name}</span>
-                <span className={selected ? 'opacity-80' : 'text-muted-foreground'}>
-                  {meta.hint}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <OptionCombobox<TextVariant>
+          value={design.variant}
+          options={TEXT_VARIANTS.map((key) => ({
+            value: key,
+            name: TEXT_VARIANT_LABELS[key].name,
+            hint: TEXT_VARIANT_LABELS[key].hint,
+          }))}
+          onChange={(variant) => onChange({ ...design, variant })}
+        />
       </Group>
 
       {/* 제목 텍스트 — 폰트 picker 노출 (포스터형과 동일). 초기화 시 Playfair Display 가 기본 */}
@@ -840,6 +805,14 @@ export function TextDesignControls({ design, onChange, greeting, onGreetingChang
           previewText={design.title.text || 'Preview'}
         />
         </div>
+        <ToggleRow
+          label="애니메이션 효과"
+          hint="왼쪽에서 오른쪽으로 천천히 써지는 느낌"
+          checked={design.title.animate}
+          onChange={(v) =>
+            onChange({ ...design, title: { ...design.title, animate: v } })
+          }
+        />
         <ColorPicker
           label="색상"
           value={design.title.color}
@@ -860,6 +833,7 @@ export function TextDesignControls({ design, onChange, greeting, onGreetingChang
           }
         />
         <PositionSliders
+          verticalOnly
           position={design.title.position}
           onChange={(position) =>
             onChange({ ...design, title: { ...design.title, position } })
@@ -918,44 +892,20 @@ export function TextDesignControls({ design, onChange, greeting, onGreetingChang
         </p>
         {design.nameBox.enabled && (
           <>
-            {/* 정렬 — 4종: 한 줄(점) / 위·아래(✦) / 위·아래(— ♥ —) / 한 줄+세로선(♥) */}
-            <div className="flex flex-col gap-1.5 text-xs">
-              <span className="text-muted-foreground">정렬</span>
-              <div className="grid grid-cols-2 gap-2">
-                <NameLayoutButton
-                  selected={design.nameBox.layout === 'inline'}
-                  onClick={() =>
-                    onChange({ ...design, nameBox: { ...design.nameBox, layout: 'inline' } })
-                  }
-                  title="한 줄"
-                  hint="신랑 · 신부"
-                />
-                <NameLayoutButton
-                  selected={design.nameBox.layout === 'stack'}
-                  onClick={() =>
-                    onChange({ ...design, nameBox: { ...design.nameBox, layout: 'stack' } })
-                  }
-                  title="위·아래"
-                  hint={'신랑\n✦\n신부'}
-                />
-                <NameLayoutButton
-                  selected={design.nameBox.layout === 'stackHeart'}
-                  onClick={() =>
-                    onChange({ ...design, nameBox: { ...design.nameBox, layout: 'stackHeart' } })
-                  }
-                  title="위·아래 + 하트"
-                  hint={'신랑\n─ ♥ ─\n신부'}
-                />
-                <NameLayoutButton
-                  selected={design.nameBox.layout === 'inlineCross'}
-                  onClick={() =>
-                    onChange({ ...design, nameBox: { ...design.nameBox, layout: 'inlineCross' } })
-                  }
-                  title="한 줄 + 십자"
-                  hint={'│\n신랑 ♥ 신부\n│'}
-                />
-              </div>
-            </div>
+            {/* 정렬 — 한 줄(점) / 위·아래(✦) / 위·아래(— ♥ —) / 한 줄+세로선(♥) */}
+            <OptionCombobox<'inline' | 'stack' | 'stackHeart' | 'inlineCross'>
+              label="정렬"
+              value={design.nameBox.layout}
+              options={[
+                { value: 'inline', name: '한 줄', hint: '신랑 · 신부' },
+                { value: 'stack', name: '위·아래', hint: '신랑 / ✦ / 신부' },
+                { value: 'stackHeart', name: '위·아래 + 하트', hint: '신랑 / ─ ♥ ─ / 신부' },
+                { value: 'inlineCross', name: '한 줄 + 십자', hint: '│ / 신랑 ♥ 신부 / │' },
+              ]}
+              onChange={(layout) =>
+                onChange({ ...design, nameBox: { ...design.nameBox, layout } })
+              }
+            />
 
             <ToggleRow
               label="신부 이름 먼저"
@@ -1037,40 +987,6 @@ export function TextDesignControls({ design, onChange, greeting, onGreetingChang
 }
 
 // 텍스트형 이름 정렬 옵션 버튼 — "한 줄" / "위·아래" 두 가지 중 선택.
-function NameLayoutButton({
-  selected,
-  onClick,
-  title,
-  hint,
-}: {
-  selected: boolean;
-  onClick: () => void;
-  title: string;
-  hint: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={selected}
-      className={`flex flex-col items-center gap-0.5 rounded-md border px-2 py-2 text-[11px] transition-colors ${
-        selected
-          ? 'border-foreground bg-foreground text-background'
-          : 'border-input bg-background text-foreground hover:bg-muted'
-      }`}
-    >
-      <span className="font-medium">{title}</span>
-      <span
-        className={`whitespace-pre-line text-center text-[10px] leading-snug ${
-          selected ? 'opacity-80' : 'text-muted-foreground'
-        }`}
-      >
-        {hint}
-      </span>
-    </button>
-  );
-}
-
 // ─────────────────────────────────────────────────────────────
 // 액자프레임 디자인 컨트롤 — 폴라로이드 / 하트 / 스크린 공용
 // ─────────────────────────────────────────────────────────────
@@ -1102,33 +1018,17 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
     <div className="flex flex-col gap-5 rounded-md border border-input bg-muted/20 p-3">
       <DesignPanelHeader title="액자프레임 디자인" onReset={handleReset} />
 
-      {/* 프레임 스타일 — 폴라로이드 / 하트 / 스크린 / 아치 / 클래식 변형 선택.
-          5종이라 한 줄(3) + 두 번째 줄(2) 로 자연 줄바꿈. */}
+      {/* 프레임 스타일 — 폴라로이드 / 하트 / 스크린 / 아치 / 클래식. */}
       <Group label="프레임 스타일">
-        <div className="grid grid-cols-3 gap-2">
-          {FRAME_VARIANTS.map((key) => {
-            const selected = design.variant === key;
-            const meta = FRAME_VARIANT_LABELS[key];
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => onChange({ ...design, variant: key })}
-                aria-pressed={selected}
-                className={`flex flex-col items-center gap-0.5 rounded-md border px-2 py-2.5 text-[11px] transition-colors ${
-                  selected
-                    ? 'border-foreground bg-foreground text-background'
-                    : 'border-input bg-background text-foreground hover:bg-muted'
-                }`}
-              >
-                <span className="font-medium">{meta.name}</span>
-                <span className={`text-[10px] leading-snug ${selected ? 'opacity-80' : 'text-muted-foreground'}`}>
-                  {meta.hint}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <OptionCombobox<FrameVariant>
+          value={design.variant}
+          options={FRAME_VARIANTS.map((key) => ({
+            value: key,
+            name: FRAME_VARIANT_LABELS[key].name,
+            hint: FRAME_VARIANT_LABELS[key].hint,
+          }))}
+          onChange={(variant) => onChange({ ...design, variant })}
+        />
       </Group>
 
       {/* 이미지 위치 — screen 외 변형에서만 노출. 프레임에 보일 영역의 중심을 0–100% 로 선택. */}
@@ -1171,6 +1071,14 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
               previewText={design.title.text || 'Preview'}
             />
             </div>
+            <ToggleRow
+              label="애니메이션 효과"
+              hint="왼쪽에서 오른쪽으로 천천히 써지는 느낌"
+              checked={design.title.animate}
+              onChange={(v) =>
+                onChange({ ...design, title: { ...design.title, animate: v } })
+              }
+            />
             <ColorPicker
               label="색상"
               value={design.title.color}
@@ -1191,6 +1099,7 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
               }
             />
             <PositionSliders
+              verticalOnly
               position={design.title.position}
               onChange={(position) =>
                 onChange({ ...design, title: { ...design.title, position } })
@@ -1502,13 +1411,6 @@ function FontPicker({
           </ul>
         )}
       </div>
-      {/* 콤보박스 아래 큰 폰트 미리보기 — 그대로 유지. */}
-      <span
-        className="mt-1 truncate rounded bg-background px-2 py-2 text-base"
-        style={{ fontFamily: current.family }}
-      >
-        {previewText || 'Preview'}
-      </span>
     </div>
   );
 }
@@ -1531,6 +1433,93 @@ function useClickOutside(
       document.removeEventListener('touchstart', onDown);
     };
   }, [ref, handler]);
+}
+
+/**
+ * 메인 화면 레이아웃 + 액자/일러스트/텍스트 세부 변형 + 텍스트형 이름 정렬 등
+ * "옵션 카드 그리드" 형태로 보여주던 picker 들을 콤보박스 한 줄로 통합.
+ * 모바일에서 세로 공간을 많이 차지하던 버튼 그리드 대신 한 줄로 표시.
+ */
+function OptionCombobox<V extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label?: string;
+  value: V;
+  options: ReadonlyArray<{ value: V; name: string; hint?: string }>;
+  onChange: (next: V) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  useClickOutside(wrapRef, () => setOpen(false));
+  const current = options.find((o) => o.value === value) ?? options[0];
+
+  return (
+    <div className="flex flex-col gap-1.5 text-sm">
+      {label && <span className="font-medium text-foreground">{label}</span>}
+      <div ref={wrapRef} className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          className="flex h-10 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 text-sm transition-colors hover:bg-muted focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30"
+        >
+          <span className="flex min-w-0 flex-col items-start text-left">
+            <span className="truncate font-medium">{current.name}</span>
+            {current.hint && (
+              <span className="truncate text-[11px] text-muted-foreground">
+                {current.hint}
+              </span>
+            )}
+          </span>
+          <ChevronDown
+            size={16}
+            className={`shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
+          />
+        </button>
+        {open && (
+          <ul
+            role="listbox"
+            className="absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-md border border-input bg-background shadow-lg"
+          >
+            {options.map((opt) => {
+              const selected = opt.value === value;
+              return (
+                <li key={opt.value}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    onClick={() => {
+                      onChange(opt.value);
+                      setOpen(false);
+                    }}
+                    className={`flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left transition-colors ${
+                      selected ? 'bg-foreground text-background' : 'text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <span className="font-medium">{opt.name}</span>
+                    {opt.hint && (
+                      <span
+                        className={`text-[11px] ${
+                          selected ? 'text-background/70' : 'text-muted-foreground'
+                        }`}
+                      >
+                        {opt.hint}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
