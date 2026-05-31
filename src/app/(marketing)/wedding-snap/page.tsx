@@ -94,8 +94,7 @@ function AboutSnap({ catalogCount }: { catalogCount: number }) {
       <SectionHeading eyebrow="WHAT IS IT" title="AI 웨딩스냅이란?" />
       <div className="flex flex-col gap-3 rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)] p-5 text-[14px] leading-[1.75] text-[var(--wd-mute)]">
         <p>
-          <strong className="text-[var(--wd-ink)]">셀카</strong>(각자 1장 또는
-          정면·좌·우 3장) 또는{' '}
+          <strong className="text-[var(--wd-ink)]">셀카</strong> 또는{' '}
           <strong className="text-[var(--wd-ink)]">커플사진 1장</strong>만 올리면,
           카탈로그 컷의 의상·배경·구도는 그대로 두고{' '}
           <strong className="text-[var(--wd-ink)]">얼굴·체형만 두 사람으로</strong>{' '}
@@ -103,11 +102,9 @@ function AboutSnap({ catalogCount }: { catalogCount: number }) {
         </p>
         <p>
           셀카 모드는 결제 후 첫 앵커(후보 4장 中 1장 선택)가{' '}
-          <span className="text-emerald-700">무료</span>. 이후{' '}
-          {catalogCountLabel(catalogCount)} 카탈로그에서 원하는 컷을{' '}
+          <span className="text-emerald-700">무료</span>. 이후 카탈로그에서 원하는 컷을{' '}
           <strong className="text-[var(--wd-ink)]">1장당 크레딧 1개</strong>로
-          만들고, 결과는 마이페이지에 자동 저장돼요. 재생성은 패키지별 무료 횟수(
-          {freeRegenSummary()}) 안에서 무료, 이후 1크레딧.
+          만들고, 결과는 마이페이지에 자동 저장돼요. 재생성은 패키지별 무료 횟수 안에서 무료, 이후 1크레딧.
         </p>
         <p className="text-[12.5px] text-[var(--wd-mute)]">
           ※ 패키지 가격·크레딧 비교는{' '}
@@ -123,7 +120,7 @@ function AboutSnap({ catalogCount }: { catalogCount: number }) {
 
 function HowItWorks({ catalogCount }: { catalogCount: number }) {
   const steps = [
-    { n: 1, title: '신랑·신부 셀카 업로드', body: '정면 클로즈업 1장씩. 30초면 끝.' },
+    { n: 1, title: '신랑·신부 셀카 업로드', body: '정면 클로즈업 1장씩.(각자 1장 또는 정면·좌·우 3장) 30초면 끝.' },
     {
       n: 2,
       title: '카탈로그 컷 선택',
