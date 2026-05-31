@@ -10,7 +10,12 @@ import { HeroBackdrop } from '@/components/marketing/HeroBackdrop';
 import { SideCaption } from '@/components/marketing/SideMarginalia';
 import { getAvailableCatalog } from '@/lib/snap/catalog-availability';
 import { catalogCountStat } from '@/lib/snap/catalog-display';
-import { SNAP_STARTING_PRICE, formatKRW } from '@/lib/snap/packages';
+import {
+  SNAP_PACKAGES,
+  SNAP_STARTING_PRICE,
+  formatKRW,
+  freeRegenSummary,
+} from '@/lib/snap/packages';
 import { getHomeSamples } from '@/lib/marketing/home-samples';
 import type {
   AiSnapItem,
@@ -296,40 +301,113 @@ function Stat({ number, label }: { number: string; label: string }) {
 
 function Pricing() {
   return (
-    <section className="relative border-t border-[var(--wd-line)] px-6 py-14 sm:py-16">
+    <section id="pricing" className="relative border-t border-[var(--wd-line)] px-6 py-14 sm:py-16">
       <SideCaption text="PRICE · ONE-TIME" side="left" />
 
-      <div className="mx-auto max-w-md">
+      {/* 좌: 알림장 가격 카드 / 우: AI 웨딩스냅 패키지 3종 — lg 이상에서 2열,
+          이하에선 위·아래로 자연스럽게 스택. 두 상품 가격을 한 화면에서 비교하게. */}
+      <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-2">
         <FadeUp scroll>
-          <div className="rounded-2xl bg-[var(--wd-paper)] p-8 text-center shadow-sm ring-1 ring-[var(--wd-line)]">
-            <p className="font-italiana text-xs tracking-[0.3em] text-[var(--wd-coral)]">PRICE</p>
-            <p className="mt-3 text-4xl font-semibold tracking-tight">9,900원</p>
-            <p className="mt-1 text-sm text-[var(--wd-mute)]">알림장 1건 · 일시불</p>
-
-            <ul className="mt-6 flex flex-col gap-1.5 text-left text-sm text-[var(--wd-mute)] [&>li]:break-keep">
-              <li>· 메인·스토리·갤러리 등 10개 섹션 구성</li>
-              <li>· AI 메인 사진 1장 포함</li>
-              <li>· 하객 서명·퀴즈·투표·방명록 수집</li>
-              <li>· 발행 후 30일간 공개</li>
-              <li>· 혼인서약서·방명록·사진 PDF·이미지 영구 소장</li>
-            </ul>
-
-            <Link
-              href="/new"
-              className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-full bg-[var(--wd-ink)] text-sm font-medium text-[var(--wd-cream)]"
-            >
-              시작하기
-            </Link>
-            <p className="mt-3 text-[11px] text-[var(--wd-mute)]">
-              AI 웨딩스냅 패키지는{' '}
-              <Link href="/wedding-snap" className="underline hover:text-[var(--wd-ink)]">
-                별도 안내
-              </Link>
-            </p>
-          </div>
+          <InvitationPricingCard />
+        </FadeUp>
+        <FadeUp scroll delay={0.08}>
+          <SnapPricingCard />
         </FadeUp>
       </div>
     </section>
+  );
+}
+
+function InvitationPricingCard() {
+  return (
+    <div className="flex h-full flex-col rounded-2xl bg-[var(--wd-paper)] p-7 text-center shadow-sm ring-1 ring-[var(--wd-line)]">
+      <p className="font-italiana text-xs tracking-[0.3em] text-[var(--wd-coral)]">
+        INVITATION
+      </p>
+      <p className="mt-3 text-4xl font-semibold tracking-tight">9,900원</p>
+      <p className="mt-1 text-sm text-[var(--wd-mute)]">알림장 1건 · 일시불</p>
+
+      <ul className="mt-5 flex flex-col gap-1.5 text-left text-sm text-[var(--wd-mute)] [&>li]:break-keep">
+        <li>· 메인·스토리·갤러리 등 10개 섹션 구성</li>
+        <li>· AI 메인 사진 1장 포함</li>
+        <li>· 하객 서명·퀴즈·투표·방명록 수집</li>
+        <li>· 발행 후 30일간 공개</li>
+        <li>· 혼인서약서·방명록·사진 PDF·이미지 영구 소장</li>
+      </ul>
+
+      <Link
+        href="/new"
+        className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-full bg-[var(--wd-ink)] text-sm font-medium text-[var(--wd-cream)]"
+      >
+        알림장 시작하기
+      </Link>
+    </div>
+  );
+}
+
+function SnapPricingCard() {
+  return (
+    <div className="flex h-full flex-col rounded-2xl bg-[var(--wd-paper)] p-7 shadow-sm ring-1 ring-[var(--wd-line)]">
+      <div className="text-center">
+        <p className="font-italiana text-xs tracking-[0.3em] text-[var(--wd-coral)]">
+          AI WEDDING SNAP
+        </p>
+        <p className="mt-3 text-4xl font-semibold tracking-tight">
+          {formatKRW(SNAP_STARTING_PRICE)}
+          <span className="ml-1 text-base font-medium text-[var(--wd-mute)]">부터</span>
+        </p>
+        <p className="mt-1 text-sm text-[var(--wd-mute)]">패키지 3종 · 크레딧 충전</p>
+      </div>
+
+      <ul className="mt-5 flex flex-col gap-2">
+        {SNAP_PACKAGES.map((p) => (
+          <li
+            key={p.code}
+            className={`flex items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 ${
+              p.isPopular
+                ? 'border-[var(--wd-coral)] bg-[var(--wd-cream)]'
+                : 'border-[var(--wd-line)] bg-[var(--wd-paper)]'
+            }`}
+          >
+            <div className="flex min-w-0 flex-col text-left">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[13px] font-medium text-[var(--wd-ink)]">
+                  {p.name}
+                </span>
+                {p.isPopular && (
+                  <span className="rounded-full bg-[var(--wd-coral)] px-1.5 py-0.5 text-[9.5px] font-medium text-white">
+                    추천
+                  </span>
+                )}
+              </div>
+              <span className="text-[11px] text-[var(--wd-mute)]">
+                크레딧 {p.credits}개 · 컷당 {formatKRW(p.perImage)}
+              </span>
+            </div>
+            <span className="flex-shrink-0 text-[13px] font-semibold text-[var(--wd-ink)]">
+              {formatKRW(p.price)}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-2 text-[10.5px] leading-relaxed text-[var(--wd-mute)]">
+        패키지 결제 시 카탈로그 결과 <strong className="text-[var(--wd-ink)]">재생성
+        무료 크레딧</strong> 함께 적립 — {freeRegenSummary()}.
+      </p>
+
+      <Link
+        href="/wedding-snap/create"
+        className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-full bg-[var(--wd-coral)] text-sm font-medium text-white"
+      >
+        AI 스냅 만들기
+      </Link>
+      <p className="mt-2 text-center text-[11px] text-[var(--wd-mute)]">
+        <Link href="/wedding-snap" className="underline hover:text-[var(--wd-ink)]">
+          웨딩스냅 상세 보기 →
+        </Link>
+      </p>
+    </div>
   );
 }
 
