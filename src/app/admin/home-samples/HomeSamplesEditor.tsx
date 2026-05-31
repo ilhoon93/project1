@@ -222,7 +222,7 @@ export function InvitationSamplesEditor({
                 {/* 헤더 — 작은 라이브 표지 썸네일 + 메타 */}
                 <div className="flex flex-wrap items-center gap-3 p-3">
                   <div className="h-[64px] w-[34px] flex-shrink-0 overflow-hidden rounded border border-[#15110E]/80">
-                    <div className="relative aspect-[6/13] w-full">
+                    <div className="relative aspect-[1/2] w-full">
                       <InvitationPreview design={buildDesign(d, config.template)} cover />
                     </div>
                   </div>
@@ -260,7 +260,7 @@ export function InvitationSamplesEditor({
                     {/* 좌: 큰 표지 미리보기 + (하단) 이름/날짜/표지사진 */}
                     <div className="mx-auto w-full max-w-[260px]">
                       <div className="overflow-hidden rounded-[18px] border-[2px] border-[#15110E] bg-[#15110E]">
-                        <div className="relative aspect-[6/13] w-full overflow-hidden">
+                        <div className="relative aspect-[1/2] w-full overflow-hidden">
                           <InvitationPreview design={buildDesign(d, config.template)} cover />
                         </div>
                       </div>

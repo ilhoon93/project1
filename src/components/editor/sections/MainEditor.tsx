@@ -129,7 +129,7 @@ export function MainEditor() {
                   <li>형식: JPG · PNG · WEBP (최대 25MB)</li>
                   <li>중요한 인물·소품은 화면 중앙에 — 상하 약 15%는 그라데이션·텍스트가 덮을 수 있어요.</li>
                   <li>
-                    스마트폰 기종(19.5:9 등 길쭉한 화면)에서는 좌우가 약간 잘릴 수 있어요. 미리보기 좌우의{' '}
+                    스마트폰 기종(18:9 등 길쭉한 화면)에서는 좌우가 약간 잘릴 수 있어요. 미리보기 좌우의{' '}
                     <span className="rounded bg-foreground/15 px-1 py-0.5 font-medium text-foreground">회색 영역</span>
                     이 잘릴 수 있는 부분이에요.
                   </li>

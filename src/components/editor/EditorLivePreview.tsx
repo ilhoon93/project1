@@ -44,19 +44,17 @@ export function EditorLivePreview({ invitationId }: Props) {
   }
 
   return (
-    // 베젤 얇게 + 19.5:9 를 "스크린(inner)" 기준으로 정확히 — 실제 스마트폰처럼
-    // 베젤은 화면 둘레의 얇은 테두리에 그치고, 안쪽 SCREEN 이 19.5:9 비율을 가짐.
-    // 베젤 두께가 두꺼우면 스크린 실측 비율이 더 길쭉해져 "세로로 길어 보이는"
-    // 문제가 생겼었음 → border-[3px] 로 줄여 시각/실측 일치.
+    // 베젤 얇게 + 18:9(= 9:18) 를 "스크린(inner)" 기준으로 정확히 — 실제 스마트폰처럼
+    // 베젤은 화면 둘레의 얇은 테두리에 그치고, 안쪽 SCREEN 이 9:18 비율을 가짐.
     <div className="flex h-full max-h-[920px] w-full max-w-[380px] items-center justify-center">
       <div className="relative overflow-hidden rounded-[2rem] border-[3px] border-foreground/85 bg-background shadow-xl">
         <div
           className="relative w-full"
           style={{
-            // SCREEN 자체가 19.5:9. 부모 너비(<=374px = 380-6) 를 따라가되 가용
-            // 세로 높이를 넘지 않도록 width 를 viewport 기반으로 캡.
-            width: 'min(374px, calc((100vh - 120px) * 9 / 19.5))',
-            aspectRatio: '9 / 19.5',
+            // SCREEN 자체가 9:18. 부모 너비(<=374px) 를 따라가되 가용 세로 높이를
+            // 넘지 않도록 width 를 viewport 기반으로 캡.
+            width: 'min(374px, calc((100vh - 120px) * 9 / 18))',
+            aspectRatio: '9 / 18',
           }}
         >
           {ready ? (
