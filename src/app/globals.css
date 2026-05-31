@@ -194,11 +194,72 @@
   }
 }
 
-/* prefers-reduced-motion — Hero 보케/꽃잎 모션 정지. */
+/* ── 알림장 메인 슬라이드 텍스트 등장 애니메이션 ──────────────
+ * 모든 레이아웃(poster/frame/illustration/text)에서 동일하게 쓰이므로 글로벌에
+ * 둔다. (이전엔 PosterFullImageSlide 의 styled-jsx 안에만 있어, frame 등 다른
+ * 레이아웃에서는 keyframe 이 주입되지 않아 제목/텍스트가 안 나타나는 버그가 있었음.)
+ *   .mw-title-word : 제목의 단어 단위 stagger fade-up (animation-delay 는 인라인)
+ *   .mw-pos-fade   : 이름·날짜·인사말 박스의 위→아래 fade-in (delay 는 인라인) */
+.mw-title-word {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(0.3em);
+  filter: blur(3px);
+  animation: mw-title-word 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+  will-change: opacity, transform, filter;
+}
+@keyframes mw-title-word {
+  0% {
+    opacity: 0;
+    transform: translateY(0.3em);
+    filter: blur(3px);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-0.03em);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.mw-pos-fade {
+  opacity: 0;
+  animation: mw-pos-fade 0.65s cubic-bezier(0.22, 0.68, 0.32, 1.04) forwards;
+  will-change: opacity, transform;
+}
+@keyframes mw-pos-fade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 8px));
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* prefers-reduced-motion — Hero 보케/꽃잎 모션 정지 + 제목/박스 즉시 표시. */
 @media (prefers-reduced-motion: reduce) {
   [style*='kb-hero'],
   [style*='petal-drift'] {
     animation: none !important;
+  }
+  .mw-title-word {
+    animation: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+  }
+  /* mw-pos-fade 는 translate(-50%,-50%) 로 앵커 중앙 정렬을 유지해야 하므로
+     transform 을 건드리지 않고 애니메이션만 끄고 즉시 표시. */
+  .mw-pos-fade {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: translate(-50%, -50%) !important;
   }
 }
 

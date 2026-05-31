@@ -131,26 +131,27 @@ async function readRow(): Promise<HomeSamplesConfig | null> {
 }
 
 /**
- * 운영자 편집용 raw 설정. DB 에 저장된 행이 있으면 그 행을 쓰되, 코드에서
- * 신규로 추가된 SEEDS(예: PR #194 의 sage/dusk/handwritten) 가 DB 행에 없으면
- * 뒤에 자동 머지한다 — admin 이 매번 신규 SEED 까지 편집할 수 있게.
- * 사용자가 admin 에서 의도적으로 삭제한 디자인은 다시 살아나지 않도록 DB 행에
- * 별도로 deletedDesignIds 같은 마커가 도입되기 전엔 "코드에 있는 모든 SEED 가
- * 항상 노출" 정책을 유지.
+ * 운영자 편집용 raw 설정. 노출 디자인 집합을 코드의 SEEDS(DEFAULT_SAMPLE_CONFIGS)
+ * 에 고정한다:
+ *   - DB 에 같은 id 의 편집본이 있으면 그 편집 내용을 우선 사용
+ *   - 코드 SEEDS 에 없는 DB 전용 디자인(예: 단종된 sage/dusk/handwritten)은 제외
+ *   - DB 에 아직 없는 신규 SEED 는 뒤에 자동 추가
+ * 결과적으로 항상 코드 SEEDS 와 동일한 개수·순서(12개)가 노출돼, 코드에서 샘플을
+ * 늘리거나 줄이면 admin/랜딩에 그대로 반영된다.
  */
 export async function getHomeSamplesConfig(): Promise<HomeSamplesConfig> {
   const row = await readRow();
   if (!row || row.designs.length === 0) return DEFAULT_HOME_SAMPLES_CONFIG;
 
-  const rowIds = new Set(row.designs.map((d) => d.id));
-  const missingDefaults = DEFAULT_SAMPLE_CONFIGS.filter((d) => !rowIds.has(d.id));
-  const mergedDesigns = [...row.designs, ...missingDefaults];
+  const byId = new Map(row.designs.map((d) => [d.id, d]));
+  // 코드 SEEDS 순서를 기준으로 — DB 편집본이 있으면 그것, 없으면 코드 기본값.
+  const designs = DEFAULT_SAMPLE_CONFIGS.map((seed) => byId.get(seed.id) ?? seed);
 
   return {
     aiSnapCatalogIds: row.aiSnapCatalogIds.length
       ? row.aiSnapCatalogIds
       : DEFAULT_AI_SNAP_IDS,
-    designs: mergedDesigns,
+    designs,
     beforeAfter: row.beforeAfter,
     template: row.template,
   };

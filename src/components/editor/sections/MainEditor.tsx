@@ -1018,31 +1018,33 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
     <div className="flex flex-col gap-5 rounded-md border border-input bg-muted/20 p-3">
       <DesignPanelHeader title="액자프레임 디자인" onReset={handleReset} />
 
-      {/* 프레임 스타일 — 폴라로이드 / 하트 / 스크린 / 아치 / 클래식. */}
-      <Group label="프레임 스타일">
-        <OptionCombobox<FrameVariant>
-          value={design.variant}
-          options={FRAME_VARIANTS.map((key) => ({
-            value: key,
-            name: FRAME_VARIANT_LABELS[key].name,
-            hint: FRAME_VARIANT_LABELS[key].hint,
-          }))}
-          onChange={(variant) => onChange({ ...design, variant })}
-        />
-      </Group>
-
-      {/* 이미지 위치 — screen 외 변형에서만 노출. 프레임에 보일 영역의 중심을 0–100% 로 선택. */}
-      {showImagePosition && (
-        <Group label="이미지 위치">
-          <p className="text-xs text-muted-foreground">
-            슬라이더로 사진에서 보일 영역의 중심을 선택하세요.
-          </p>
-          <PositionSliders
-            position={design.imagePosition}
-            onChange={(position) => onChange({ ...design, imagePosition: position })}
+      {/* 프레임 스타일 + 이미지 위치 — 같은 행에 나란히 (sm+). */}
+      <div className="grid items-start gap-3 sm:grid-cols-2">
+        <Group label="프레임 스타일">
+          <OptionCombobox<FrameVariant>
+            value={design.variant}
+            options={FRAME_VARIANTS.map((key) => ({
+              value: key,
+              name: FRAME_VARIANT_LABELS[key].name,
+              hint: FRAME_VARIANT_LABELS[key].hint,
+            }))}
+            onChange={(variant) => onChange({ ...design, variant })}
           />
         </Group>
-      )}
+
+        {/* 이미지 위치 — screen 외 변형에서만 노출. 프레임에 보일 영역의 중심을 0–100% 로 선택. */}
+        {showImagePosition && (
+          <Group label="이미지 위치">
+            <p className="text-xs text-muted-foreground">
+              슬라이더로 사진에서 보일 영역의 중심을 선택하세요.
+            </p>
+            <PositionSliders
+              position={design.imagePosition}
+              onChange={(position) => onChange({ ...design, imagePosition: position })}
+            />
+          </Group>
+        )}
+      </div>
 
       {/* 제목 텍스트 — 토글 + 문구 + 폰트 + 색 + 크기 + 상하 위치 */}
       <Group
@@ -1109,75 +1111,76 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
         )}
       </Group>
 
-      {/* 날짜 — 토글 + 글자 크기 + 상하 위치 */}
-      <Group
-        label="날짜"
-        toggle={{
-          checked: design.dateBox.enabled,
-          onChange: (v) =>
-            onChange({ ...design, dateBox: { ...design.dateBox, enabled: v } }),
-        }}
-      >
-        <p className="text-xs text-muted-foreground">
-          폰트와 색상은 전체 디자인을 따릅니다.
-        </p>
-        {design.dateBox.enabled && (
-          <>
-            <SliderRow
-              label="글자 크기"
-              value={design.dateBox.fontSize}
-              min={11}
-              max={22}
-              unit="px"
-              onChange={(fontSize) =>
-                onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
-              }
-            />
-            <PositionSliders
-              verticalOnly
-              position={design.dateBox.position}
-              onChange={(position) =>
-                onChange({ ...design, dateBox: { ...design.dateBox, position } })
-              }
-            />
-          </>
-        )}
-      </Group>
+      {/* 날짜 + 이름 — 같은 행에 나란히 (sm+). */}
+      <div className="grid items-start gap-3 sm:grid-cols-2">
+        <Group
+          label="날짜"
+          toggle={{
+            checked: design.dateBox.enabled,
+            onChange: (v) =>
+              onChange({ ...design, dateBox: { ...design.dateBox, enabled: v } }),
+          }}
+        >
+          <p className="text-xs text-muted-foreground">
+            폰트와 색상은 전체 디자인을 따릅니다.
+          </p>
+          {design.dateBox.enabled && (
+            <>
+              <SliderRow
+                label="글자 크기"
+                value={design.dateBox.fontSize}
+                min={11}
+                max={22}
+                unit="px"
+                onChange={(fontSize) =>
+                  onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
+                }
+              />
+              <PositionSliders
+                verticalOnly
+                position={design.dateBox.position}
+                onChange={(position) =>
+                  onChange({ ...design, dateBox: { ...design.dateBox, position } })
+                }
+              />
+            </>
+          )}
+        </Group>
 
-      {/* 이름 — 토글 + 글자 크기 + 상하 위치 */}
-      <Group
-        label="이름"
-        toggle={{
-          checked: design.nameBox.enabled,
-          onChange: (v) =>
-            onChange({ ...design, nameBox: { ...design.nameBox, enabled: v } }),
-        }}
-      >
-        <p className="text-xs text-muted-foreground">
-          신랑·신부 이름이 표시됩니다.
-        </p>
-        {design.nameBox.enabled && (
-          <>
-            <SliderRow
-              label="글자 크기"
-              value={design.nameBox.fontSize}
-              min={12}
-              max={28}
-              unit="px"
-              onChange={(fontSize) =>
-                onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
-              }
-            />
-            <PositionSliders
-              verticalOnly
-              position={design.nameBox.position}
-              onChange={(position) =>
-                onChange({ ...design, nameBox: { ...design.nameBox, position } })
-              }
-            />
-          </>
-        )}
-      </Group>
+        <Group
+          label="이름"
+          toggle={{
+            checked: design.nameBox.enabled,
+            onChange: (v) =>
+              onChange({ ...design, nameBox: { ...design.nameBox, enabled: v } }),
+          }}
+        >
+          <p className="text-xs text-muted-foreground">
+            신랑·신부 이름이 표시됩니다.
+          </p>
+          {design.nameBox.enabled && (
+            <>
+              <SliderRow
+                label="글자 크기"
+                value={design.nameBox.fontSize}
+                min={12}
+                max={28}
+                unit="px"
+                onChange={(fontSize) =>
+                  onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
+                }
+              />
+              <PositionSliders
+                verticalOnly
+                position={design.nameBox.position}
+                onChange={(position) =>
+                  onChange({ ...design, nameBox: { ...design.nameBox, position } })
+                }
+              />
+            </>
+          )}
+        </Group>
+      </div>
 
       {/* 인사말 — 토글 + 글자 크기 + 상하 위치 + 본문 입력 */}
       <Group
@@ -1675,10 +1678,10 @@ function SliderRow({
   unit?: string;
   onChange: (v: number) => void;
 }) {
-  // input 에 min-w-0 을 줘야 flex-row 안에서 우측 값 칸이 박스 밖으로 밀려나지 않음.
-  // 라벨 폭을 살짝 줄이고(g-3→g-2), 우측 값 폭을 단위 길이까지 안전하게 수용 (w-14).
+  // 슬라이더 + 우측에 직접 입력 가능한 숫자 칸. 입력값은 min/max 로 clamp.
+  const clamp = (v: number) => Math.min(max, Math.max(min, v));
   return (
-    <label className="flex items-center gap-2 text-xs">
+    <div className="flex items-center gap-2 text-xs">
       <span className="w-14 shrink-0 text-muted-foreground">{label}</span>
       {leftHint && <span className="shrink-0 text-muted-foreground">{leftHint}</span>}
       <input
@@ -1689,13 +1692,30 @@ function SliderRow({
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="min-w-0 flex-1 accent-foreground"
+        aria-label={label}
       />
       {rightHint && <span className="shrink-0 text-muted-foreground">{rightHint}</span>}
-      <span className="w-14 shrink-0 text-right tabular-nums text-muted-foreground">
-        {Math.round(value)}
-        {unit ?? ''}
+      {/* 직접 입력 — 값 칸을 number input 으로. 비우면 무시, 범위를 벗어나면 clamp. */}
+      <span className="flex shrink-0 items-center gap-0.5">
+        <input
+          type="number"
+          min={min}
+          max={max}
+          step={1}
+          value={Math.round(value)}
+          onChange={(e) => {
+            const raw = e.target.value;
+            if (raw === '') return;
+            const n = Number(raw);
+            if (Number.isNaN(n)) return;
+            onChange(clamp(n));
+          }}
+          aria-label={`${label} 값 직접 입력`}
+          className="w-11 rounded border border-input bg-background px-1 py-0.5 text-right tabular-nums text-muted-foreground [appearance:textfield] focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring/30 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+        {unit && <span className="text-muted-foreground">{unit}</span>}
       </span>
-    </label>
+    </div>
   );
 }
 
