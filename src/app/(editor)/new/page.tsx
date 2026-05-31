@@ -53,7 +53,7 @@ export default async function NewInvitationPage({ searchParams }: PageProps) {
     );
   }
 
-  const content = buildInitialContent(searchParams.preset);
+  const initial = buildInitialState(searchParams.preset);
 
   for (let attempt = 0; attempt < 3; attempt++) {
     const slug = generateSlug();
@@ -62,10 +62,10 @@ export default async function NewInvitationPage({ searchParams }: PageProps) {
       .insert({
         user_id: user.id,
         slug,
-        groom_name: '',
-        bride_name: '',
-        wedding_date: null,
-        content,
+        groom_name: initial.groomName,
+        bride_name: initial.brideName,
+        wedding_date: initial.weddingDate,
+        content: initial.content,
       })
       .select('id')
       .single();
@@ -80,22 +80,39 @@ export default async function NewInvitationPage({ searchParams }: PageProps) {
   throw new Error('Failed to allocate slug');
 }
 
+interface InitialState {
+  groomName: string;
+  brideName: string;
+  weddingDate: string | null;
+  content: InvitationContent;
+}
+
 /**
  * `?preset=<design-id>` 가 있으면 마케팅 디자인 카탈로그의 해당 디자인에서
- * 레이아웃·색·폰트·배경효과·표지 디자인 옵션만 복사해 빈 알림장의 시작값으로
- * 쓴다. 사진(heroImage, gallery, story image)과 본문 텍스트는 사용자가 자기 것으로
- * 채워야 하므로 빈 기본값 유지 — 카탈로그 샘플 사진 경로(/wedding-snap/catalog/*)
- * 는 InvitationContent 의 z.string().url() 검증을 통과하지 못해 어차피 저장 불가.
+ * 레이아웃·색·폰트·배경효과·표지 디자인 옵션 + 신랑·신부 이름·날짜·인사말을
+ * 시작값으로 가져온다. 사용자는 자기 이름·사진으로 덮어쓰면 됨.
+ * 사진(heroImage, gallery, story image) 은 사용자 업로드 자리로 비워둠 —
+ * 카탈로그 샘플 사진 경로(/wedding-snap/catalog/*) 는 InvitationContent 의
+ * z.string().url() 검증을 통과하지 못해 어차피 저장 불가.
  */
-function buildInitialContent(presetId: string | undefined): InvitationContent {
+function buildInitialState(presetId: string | undefined): InitialState {
   const content = defaultInvitationContent();
-  if (!presetId) return content;
-  const preset = DEFAULT_SAMPLE_CONFIGS.find((c) => c.id === presetId);
-  if (!preset) return content;
+  const preset = presetId
+    ? DEFAULT_SAMPLE_CONFIGS.find((c) => c.id === presetId)
+    : null;
+  if (!preset) {
+    return { groomName: '', brideName: '', weddingDate: null, content };
+  }
 
   content.theme.colorTheme = preset.colorTheme;
   content.theme.petalType = preset.petalType;
   content.theme.font = preset.font;
   content.main = { ...preset.main, heroImage: null };
-  return content;
+
+  return {
+    groomName: preset.groomName,
+    brideName: preset.brideName,
+    weddingDate: preset.weddingDate,
+    content,
+  };
 }
