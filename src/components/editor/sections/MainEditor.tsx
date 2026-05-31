@@ -24,6 +24,7 @@ import {
   TITLE_FONT_KEYS_KO,
   TITLE_FONT_OPTIONS,
   TITLE_TEXT_PRESETS,
+  HIDDEN_TITLE_FONT_KEYS,
   DEFAULT_TITLE_FONT_KO,
   DEFAULT_TITLE_FONT_EN,
   isKoreanTitleText,
@@ -374,75 +375,76 @@ export function PosterDesignControls({ design, onChange, greeting, onGreetingCha
         />
       </Group>
 
-      {/* 3. 날짜 */}
-      <Group
-        label="날짜"
-        toggle={{
-          checked: design.dateBox.enabled,
-          onChange: (v) =>
-            onChange({ ...design, dateBox: { ...design.dateBox, enabled: v } }),
-        }}
-      >
-        <p className="text-xs text-muted-foreground">
-          전체 디자인의 폰트와 색상을 그대로 사용합니다.
-        </p>
-        {design.dateBox.enabled && (
-          <>
-            <SliderRow
-              label="글자 크기"
-              value={design.dateBox.fontSize}
-              min={12}
-              max={28}
-              unit="px"
-              onChange={(fontSize) =>
-                onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
-              }
-            />
-            <PositionSliders
-              verticalOnly
-              position={design.dateBox.position}
-              onChange={(position) =>
-                onChange({ ...design, dateBox: { ...design.dateBox, position } })
-              }
-            />
-          </>
-        )}
-      </Group>
+      {/* 3 + 4. 날짜 + 이름 — 같은 행에 나란히 (sm+). */}
+      <div className="grid items-start gap-3 sm:grid-cols-2">
+        <Group
+          label="날짜"
+          toggle={{
+            checked: design.dateBox.enabled,
+            onChange: (v) =>
+              onChange({ ...design, dateBox: { ...design.dateBox, enabled: v } }),
+          }}
+        >
+          <p className="text-xs text-muted-foreground">
+            전체 디자인의 폰트와 색상을 그대로 사용합니다.
+          </p>
+          {design.dateBox.enabled && (
+            <>
+              <SliderRow
+                label="글자 크기"
+                value={design.dateBox.fontSize}
+                min={12}
+                max={28}
+                unit="px"
+                onChange={(fontSize) =>
+                  onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
+                }
+              />
+              <PositionSliders
+                verticalOnly
+                position={design.dateBox.position}
+                onChange={(position) =>
+                  onChange({ ...design, dateBox: { ...design.dateBox, position } })
+                }
+              />
+            </>
+          )}
+        </Group>
 
-      {/* 4. 이름 */}
-      <Group
-        label="이름"
-        toggle={{
-          checked: design.nameBox.enabled,
-          onChange: (v) =>
-            onChange({ ...design, nameBox: { ...design.nameBox, enabled: v } }),
-        }}
-      >
-        <p className="text-xs text-muted-foreground">
-          신랑·신부 이름만 표시됩니다. 폰트와 색상은 전체 디자인을 따릅니다.
-        </p>
-        {design.nameBox.enabled && (
-          <>
-            <SliderRow
-              label="글자 크기"
-              value={design.nameBox.fontSize}
-              min={14}
-              max={32}
-              unit="px"
-              onChange={(fontSize) =>
-                onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
-              }
-            />
-            <PositionSliders
-              verticalOnly
-              position={design.nameBox.position}
-              onChange={(position) =>
-                onChange({ ...design, nameBox: { ...design.nameBox, position } })
-              }
-            />
-          </>
-        )}
-      </Group>
+        <Group
+          label="이름"
+          toggle={{
+            checked: design.nameBox.enabled,
+            onChange: (v) =>
+              onChange({ ...design, nameBox: { ...design.nameBox, enabled: v } }),
+          }}
+        >
+          <p className="text-xs text-muted-foreground">
+            신랑·신부 이름만 표시됩니다. 폰트와 색상은 전체 디자인을 따릅니다.
+          </p>
+          {design.nameBox.enabled && (
+            <>
+              <SliderRow
+                label="글자 크기"
+                value={design.nameBox.fontSize}
+                min={14}
+                max={32}
+                unit="px"
+                onChange={(fontSize) =>
+                  onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
+                }
+              />
+              <PositionSliders
+                verticalOnly
+                position={design.nameBox.position}
+                onChange={(position) =>
+                  onChange({ ...design, nameBox: { ...design.nameBox, position } })
+                }
+              />
+            </>
+          )}
+        </Group>
+      </div>
 
       {/* 5. 인사말 — 토글 + 위치/크기 슬라이더 + 본문 입력. 토글 OFF 시 본문은 보존되지만 표시 안 됨. */}
       <Group
@@ -627,75 +629,76 @@ export function IllustrationDesignControls({ design, onChange, greeting, onGreet
         />
       </Group>
 
-      {/* 날짜 — 토글 + 글자 크기/상하 위치 조정 */}
-      <Group
-        label="날짜"
-        toggle={{
-          checked: design.dateBox.enabled,
-          onChange: (v) =>
-            onChange({ ...design, dateBox: { ...design.dateBox, enabled: v } }),
-        }}
-      >
-        <p className="text-xs text-muted-foreground">
-          일러스트 아래 표시됩니다. 폰트·색상은 전체 디자인을 따릅니다.
-        </p>
-        {design.dateBox.enabled && (
-          <>
-            <SliderRow
-              label="글자 크기"
-              value={design.dateBox.fontSize}
-              min={11}
-              max={22}
-              unit="px"
-              onChange={(fontSize) =>
-                onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
-              }
-            />
-            <PositionSliders
-              verticalOnly
-              position={design.dateBox.position}
-              onChange={(position) =>
-                onChange({ ...design, dateBox: { ...design.dateBox, position } })
-              }
-            />
-          </>
-        )}
-      </Group>
+      {/* 날짜 + 이름 — 같은 행에 나란히 (sm+). */}
+      <div className="grid items-start gap-3 sm:grid-cols-2">
+        <Group
+          label="날짜"
+          toggle={{
+            checked: design.dateBox.enabled,
+            onChange: (v) =>
+              onChange({ ...design, dateBox: { ...design.dateBox, enabled: v } }),
+          }}
+        >
+          <p className="text-xs text-muted-foreground">
+            일러스트 아래 표시됩니다. 폰트·색상은 전체 디자인을 따릅니다.
+          </p>
+          {design.dateBox.enabled && (
+            <>
+              <SliderRow
+                label="글자 크기"
+                value={design.dateBox.fontSize}
+                min={11}
+                max={22}
+                unit="px"
+                onChange={(fontSize) =>
+                  onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
+                }
+              />
+              <PositionSliders
+                verticalOnly
+                position={design.dateBox.position}
+                onChange={(position) =>
+                  onChange({ ...design, dateBox: { ...design.dateBox, position } })
+                }
+              />
+            </>
+          )}
+        </Group>
 
-      {/* 이름 — 토글 + 글자 크기/상하 위치 조정 */}
-      <Group
-        label="이름"
-        toggle={{
-          checked: design.nameBox.enabled,
-          onChange: (v) =>
-            onChange({ ...design, nameBox: { ...design.nameBox, enabled: v } }),
-        }}
-      >
-        <p className="text-xs text-muted-foreground">
-          신랑·신부 이름이 일러스트 아래 표시됩니다.
-        </p>
-        {design.nameBox.enabled && (
-          <>
-            <SliderRow
-              label="글자 크기"
-              value={design.nameBox.fontSize}
-              min={12}
-              max={24}
-              unit="px"
-              onChange={(fontSize) =>
-                onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
-              }
-            />
-            <PositionSliders
-              verticalOnly
-              position={design.nameBox.position}
-              onChange={(position) =>
-                onChange({ ...design, nameBox: { ...design.nameBox, position } })
-              }
-            />
-          </>
-        )}
-      </Group>
+        <Group
+          label="이름"
+          toggle={{
+            checked: design.nameBox.enabled,
+            onChange: (v) =>
+              onChange({ ...design, nameBox: { ...design.nameBox, enabled: v } }),
+          }}
+        >
+          <p className="text-xs text-muted-foreground">
+            신랑·신부 이름이 일러스트 아래 표시됩니다.
+          </p>
+          {design.nameBox.enabled && (
+            <>
+              <SliderRow
+                label="글자 크기"
+                value={design.nameBox.fontSize}
+                min={12}
+                max={24}
+                unit="px"
+                onChange={(fontSize) =>
+                  onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
+                }
+              />
+              <PositionSliders
+                verticalOnly
+                position={design.nameBox.position}
+                onChange={(position) =>
+                  onChange({ ...design, nameBox: { ...design.nameBox, position } })
+                }
+              />
+            </>
+          )}
+        </Group>
+      </div>
 
       {/* 인사말 — 토글 + 글자 크기/상하 위치 + 본문 입력 */}
       <Group
@@ -841,101 +844,102 @@ export function TextDesignControls({ design, onChange, greeting, onGreetingChang
         />
       </Group>
 
-      {/* 날짜 — 토글 + 글자 크기/상하 위치. 풀너비 데코 위로 올릴 수 있도록
-          상하 위치 범위를 ±50cqh 로 확장. */}
-      <Group
-        label="날짜"
-        toggle={{
-          checked: design.dateBox.enabled,
-          onChange: (v) =>
-            onChange({ ...design, dateBox: { ...design.dateBox, enabled: v } }),
-        }}
-      >
-        <p className="text-xs text-muted-foreground">
-          데코 아래에 기본 위치. 상하 위치 슬라이더로 데코 위까지 올릴 수 있어요.
-        </p>
-        {design.dateBox.enabled && (
-          <>
-            <SliderRow
-              label="글자 크기"
-              value={design.dateBox.fontSize}
-              min={11}
-              max={22}
-              unit="px"
-              onChange={(fontSize) =>
-                onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
-              }
-            />
-            <PositionSliders
-              verticalOnly
-              position={design.dateBox.position}
-              onChange={(position) =>
-                onChange({ ...design, dateBox: { ...design.dateBox, position } })
-              }
-            />
-          </>
-        )}
-      </Group>
+      {/* 날짜 + 이름 — 같은 행에 나란히 (sm+). 이름은 정렬/순서/크기/위치 컨트롤이
+          더 많아 카드 높이가 살짝 다를 수 있어 items-start 로 상단 정렬. */}
+      <div className="grid items-start gap-3 sm:grid-cols-2">
+        <Group
+          label="날짜"
+          toggle={{
+            checked: design.dateBox.enabled,
+            onChange: (v) =>
+              onChange({ ...design, dateBox: { ...design.dateBox, enabled: v } }),
+          }}
+        >
+          <p className="text-xs text-muted-foreground">
+            데코 아래에 기본 위치. 상하 위치 슬라이더로 데코 위까지 올릴 수 있어요.
+          </p>
+          {design.dateBox.enabled && (
+            <>
+              <SliderRow
+                label="글자 크기"
+                value={design.dateBox.fontSize}
+                min={11}
+                max={22}
+                unit="px"
+                onChange={(fontSize) =>
+                  onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
+                }
+              />
+              <PositionSliders
+                verticalOnly
+                position={design.dateBox.position}
+                onChange={(position) =>
+                  onChange({ ...design, dateBox: { ...design.dateBox, position } })
+                }
+              />
+            </>
+          )}
+        </Group>
 
-      {/* 이름 — 토글 + 정렬(한 줄/두 줄) + 순서(신부 먼저) + 글자 크기/상하 위치 */}
-      <Group
-        label="이름"
-        toggle={{
-          checked: design.nameBox.enabled,
-          onChange: (v) =>
-            onChange({ ...design, nameBox: { ...design.nameBox, enabled: v } }),
-        }}
-      >
-        <p className="text-xs text-muted-foreground">
-          데코 아래에 기본 위치. 상하 위치로 데코 위까지 올릴 수 있고, 신랑·신부
-          접두어는 표시되지 않습니다.
-        </p>
-        {design.nameBox.enabled && (
-          <>
-            {/* 정렬 — 한 줄(점) / 위·아래(✦) / 위·아래(— ♥ —) / 한 줄+세로선(♥) */}
-            <OptionCombobox<'inline' | 'stack' | 'stackHeart' | 'inlineCross'>
-              label="정렬"
-              value={design.nameBox.layout}
-              options={[
-                { value: 'inline', name: '한 줄', hint: '신랑 · 신부' },
-                { value: 'stack', name: '위·아래', hint: '신랑 / ✦ / 신부' },
-                { value: 'stackHeart', name: '위·아래 + 하트', hint: '신랑 / ─ ♥ ─ / 신부' },
-                { value: 'inlineCross', name: '한 줄 + 십자', hint: '│ / 신랑 ♥ 신부 / │' },
-              ]}
-              onChange={(layout) =>
-                onChange({ ...design, nameBox: { ...design.nameBox, layout } })
-              }
-            />
+        <Group
+          label="이름"
+          toggle={{
+            checked: design.nameBox.enabled,
+            onChange: (v) =>
+              onChange({ ...design, nameBox: { ...design.nameBox, enabled: v } }),
+          }}
+        >
+          <p className="text-xs text-muted-foreground">
+            데코 아래에 기본 위치. 상하 위치로 데코 위까지 올릴 수 있고, 신랑·신부
+            접두어는 표시되지 않습니다.
+          </p>
+          {design.nameBox.enabled && (
+            <>
+              {/* 정렬 — 한 줄(점) / 위·아래(✦) / 위·아래(— ♥ —) / 한 줄+세로선(♥) */}
+              <OptionCombobox<'inline' | 'stack' | 'stackHeart' | 'inlineCross'>
+                label="정렬"
+                value={design.nameBox.layout}
+                options={[
+                  { value: 'inline', name: '한 줄', hint: '신랑 · 신부' },
+                  { value: 'stack', name: '위·아래', hint: '신랑 / ✦ / 신부' },
+                  { value: 'stackHeart', name: '위·아래 + 하트', hint: '신랑 / ─ ♥ ─ / 신부' },
+                  { value: 'inlineCross', name: '한 줄 + 십자', hint: '│ / 신랑 ♥ 신부 / │' },
+                ]}
+                onChange={(layout) =>
+                  onChange({ ...design, nameBox: { ...design.nameBox, layout } })
+                }
+              />
 
-            <ToggleRow
-              label="신부 이름 먼저"
-              hint="신부 → 신랑 순서로 표시"
-              checked={design.nameBox.brideFirst}
-              onChange={(v) =>
-                onChange({ ...design, nameBox: { ...design.nameBox, brideFirst: v } })
-              }
-            />
+              <ToggleRow
+                label="신부 이름 먼저"
+                hint="신부 → 신랑 순서로 표시"
+                checked={design.nameBox.brideFirst}
+                onChange={(v) =>
+                  onChange({ ...design, nameBox: { ...design.nameBox, brideFirst: v } })
+                }
+              />
 
-            <SliderRow
-              label="글자 크기"
-              value={design.nameBox.fontSize}
-              min={14}
-              max={56}
-              unit="px"
-              onChange={(fontSize) =>
-                onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
-              }
-            />
-            <PositionSliders
-              verticalOnly
-              position={design.nameBox.position}
-              onChange={(position) =>
-                onChange({ ...design, nameBox: { ...design.nameBox, position } })
-              }
-            />
-          </>
-        )}
-      </Group>
+              <SliderRow
+                label="글자 크기"
+                value={design.nameBox.fontSize}
+                min={14}
+                max={56}
+                unit="px"
+                onChange={(fontSize) =>
+                  onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
+                }
+              />
+              <PositionSliders
+                verticalOnly
+                position={design.nameBox.position}
+                onChange={(position) =>
+                  onChange({ ...design, nameBox: { ...design.nameBox, position } })
+                }
+              />
+            </>
+          )}
+        </Group>
+      </div>
 
       {/* 인사말 — 토글 + 글자 크기/상하 위치 + 본문 입력 */}
       <Group
@@ -1331,9 +1335,9 @@ function FontPicker({
   // 사용자가 한글↔영문을 오갈 때 현재 선택된 폰트가 새 그룹에 속하지
   // 않으면 그 그룹의 기본 폰트로 자동 전환 (한 번만).
   const isKorean = isKoreanTitleText(previewText);
-  const visibleKeys = isKorean
-    ? TITLE_FONT_KEYS_KO
-    : TITLE_FONT_KEYS_EN;
+  const visibleKeys = (isKorean ? TITLE_FONT_KEYS_KO : TITLE_FONT_KEYS_EN).filter(
+    (k) => !HIDDEN_TITLE_FONT_KEYS.has(k),
+  );
   const valueInGroup = (visibleKeys as readonly string[]).includes(value);
 
   useEffect(() => {

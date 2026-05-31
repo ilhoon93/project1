@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   FrameDesignSchema,
   IllustrationDesignSchema,
@@ -22,6 +22,7 @@ import {
 } from '@/lib/theme';
 import { Confetti } from '@/components/shared/Confetti';
 import { HeartClip } from '@/components/shared/HeartClip';
+import { HandwritingStroke } from '@/components/invitation/slides/HandwritingStroke';
 
 interface Props {
   invitationId: string;
@@ -365,21 +366,25 @@ function PosterFullImageSlide({
       </div>
 
       <Confetti trigger={confettiTrigger} scoped={scoped} />
-      {/* mw-title-word / mw-pos-fade 키프레임은 globals.css 에 글로벌로 정의 —
-          모든 레이아웃(poster/frame/illustration/text)에서 동일하게 동작. */}
+      {/* mw-title-wipe / mw-pos-fade 키프레임은 globals.css 에 글로벌로 정의 —
+          모든 레이아웃(poster/frame/illustration/text)에서 동일하게 동작.
+          stroke 필기 효과는 HandwritingStroke 가 Web Animations API 로 자체 처리. */}
     </section>
   );
 }
 
 /**
- * 풀이미지형 메인 슬라이드의 제목 h1 + 애니메이션 분기.
+ * 메인 슬라이드 제목 h1 + 필기 애니메이션 분기.
  *  - animate=false : 그냥 텍스트.
- *  - animate=true  : 1) HandwritingStroke (SVG path stroke 그려지기) 시도.
- *                    2) 폰트 URL 을 못 찾거나 파싱 실패시 onUnsupported 콜백
- *                       을 받아 HandwritingText (글자 단위 fade) 로 폴백.
+ *  - animate=true  : 1) HandwritingStroke — fontkit 으로 추출한 글자 outline 을
+ *                       SVG <path> 로 "한 획씩 그려지듯" 필기. 글리프 outline
+ *                       그대로라 어떤 폰트·레이아웃에서도 모양이 안 깨진다.
+ *                    2) 폰트 파일을 못 찾거나(파싱 실패) 시 onUnsupported 콜백 →
+ *                       HandwritingWipe (좌→우 clip-path 리빌) 로 폴백.
+ *                       텍스트를 단일 노드로 두고 클립만 움직이므로 합자·자간이
+ *                       그대로 유지돼 "글자 분리(inline-block)" 가 깨던 문제 없음.
  *
- * Inner 컴포넌트에 key 를 걸어 텍스트/폰트가 바뀌면 fallback state 가 깔끔하게
- * 초기화되도록 한다 (이전 텍스트가 stroke 실패한 상태를 가져오는 flash 방지).
+ * Inner 에 key 를 걸어 텍스트/폰트가 바뀌면 fallback state 가 깔끔하게 초기화.
  */
 function AnimatedTitleH1({
   text,
@@ -421,68 +426,44 @@ function AnimatedTitleH1({
 
 function AnimatedTitleInner({
   text,
+  fontFamily,
+  fontSize,
+  color,
 }: {
   text: string;
   fontFamily: string;
   fontSize: number;
   color: string;
 }) {
-  // SVG path stroke 애니메이션(HandwritingStroke)을 사용하지 않고 항상 안전한
-  // whole-text fade 만 사용한다. 이전엔 폰트 outline 을 SVG path 로 추출해 한
-  // 획씩 그렸는데, 일부 폰트(예: 고운바탕 — 라벤더 오로라/더스티 로즈 디자인)는
-  // fontkit 의 path 추출이 본래 글리프와 다르게 보이거나 kerning/advance 가
-  // 어긋나 깨져 보이는 케이스가 있었다. fade 만으로도 충분히 자연스러운 등장
-  // 효과를 주면서 어떤 폰트가 와도 본연의 모양·자간 그대로 유지된다.
-  return <HandwritingText text={text} />;
+  // 1순위: 글자 outline 을 한 획씩 그리는 필기 효과(HandwritingStroke).
+  //   glyph outline 을 그대로 path 로 그려 어떤 폰트도 모양이 깨지지 않는다.
+  // 폴백: 폰트 파일 fetch/파싱 실패(예: CORS) 시 좌→우 clip 리빌(HandwritingWipe).
+  //   per-char inline-block 으로 쪼개지 않아 합자·자간이 그대로 유지된다.
+  const [strokeUnsupported, setStrokeUnsupported] = useState(false);
+  if (strokeUnsupported) {
+    return <HandwritingWipe text={text} />;
+  }
+  return (
+    <HandwritingStroke
+      text={text}
+      fontFamily={fontFamily}
+      fontSize={fontSize}
+      color={color}
+      onUnsupported={() => setStrokeUnsupported(true)}
+    />
+  );
 }
 
 /**
- * 제목 등장 애니메이션 — "단어 단위" stagger fade-up.
- *
- * 폰트 안전성: 단어 1개는 통째로 한 텍스트 노드라 그 안의 합자(fi/fl/ff)·자간
- * (kerning)·자모 위치가 폰트 본연 그대로 유지된다. 단어 분리는 공백 경계에서만
- * 일어나는데, 공백을 사이에 둔 두 단어 사이에는 합자/커닝이 존재하지 않으므로
- * inline-block 으로 감싸도 폰트가 깨지지 않는다.
- *   (이전의 "글자(char) 단위" 분리는 글자마다 box 가 생겨 합자/커닝이 깨졌던
- *    문제가 있었고, 반대로 "전체 한 덩어리 fade" 는 움직임이 약해 애니메이션이
- *    적용 안 된 것처럼 보였다 — 그 중간 지점인 단어 단위가 안전 + 또렷함.)
- *
- * - 줄바꿈(\n) → <br/>
- * - 공백 → 일반 텍스트로 보존해 자연스러운 줄바꿈 허용
- * - 각 단어에 stagger delay (0.14s 간격) 를 흘려 좌→우 순차 등장.
+ * 폰트 안전 폴백 — 텍스트를 단일 노드로 두고 좌→우로 clip-path 리빌해
+ * "써 내려가는" 인상을 준다. 글자를 inline-block 으로 쪼개지 않으므로 합자·
+ * 자간(kerning)·자모 위치가 폰트 본연 그대로 유지된다 (폰트 안 깨짐).
+ * 줄바꿈(\n)은 부모 h1 의 whitespace-pre-wrap 가 처리.
  */
-function HandwritingText({ text }: { text: string }) {
-  const lines = text.split('\n');
-  let wordIndex = 0;
+function HandwritingWipe({ text }: { text: string }) {
   return (
-    <span aria-hidden>
-      {lines.map((line, li) => {
-        // 공백을 보존하며 단어/공백 토큰으로 분리.
-        const tokens = line.split(/(\s+)/);
-        return (
-          <Fragment key={li}>
-            {li > 0 && <br />}
-            {tokens.map((tok, ti) => {
-              if (tok === '' ) return null;
-              if (tok.trim() === '') {
-                // 공백 토큰 — 그대로 출력해 줄바꿈/간격 유지.
-                return <Fragment key={ti}>{tok}</Fragment>;
-              }
-              const delay = (wordIndex * 0.14).toFixed(3);
-              wordIndex += 1;
-              return (
-                <span
-                  key={ti}
-                  className="mw-title-word"
-                  style={{ animationDelay: `${delay}s` }}
-                >
-                  {tok}
-                </span>
-              );
-            })}
-          </Fragment>
-        );
-      })}
+    <span aria-hidden className="mw-title-wipe" style={{ display: 'inline-block' }}>
+      {text}
     </span>
   );
 }

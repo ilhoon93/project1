@@ -16,7 +16,9 @@ import type { ReactNode } from 'react';
 export function FadeUp({
   children,
   delay = 0,
-  duration = 0.65,
+  // 0.65 → 0.95 로 살짝 늘려 메인 Hero 헤드라인/카피의 등장이 조금 더 천천히
+  // 떠오르도록. 사용자 요청.
+  duration = 0.95,
   y = 22,
   scroll = false,
   className,
