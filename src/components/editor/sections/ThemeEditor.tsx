@@ -302,7 +302,7 @@ function Field({
  * 트리거에 선택된 옵션의 renderItem 결과를 그대로 표시, 드롭다운에는
  * 전체 옵션을 같은 renderItem 으로 표시. 바깥 클릭/Escape 시 닫힘.
  */
-function Combobox<T extends string>({
+export function Combobox<T extends string>({
   options,
   value,
   onChange,
@@ -381,7 +381,7 @@ function Combobox<T extends string>({
 }
 
 /** 콤보박스 트리거/옵션 안에 들어가는 작은 색 스와치. */
-function ColorSwatchSm({ value }: { value: ColorTheme }) {
+export function ColorSwatchSm({ value }: { value: ColorTheme }) {
   const palette = THEME_PALETTES[value];
   const hasPattern = !!palette.bgPattern;
   return (

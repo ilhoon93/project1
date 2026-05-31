@@ -29,7 +29,7 @@ export function DesignCatalogClient({ designs }: { designs: SampleDesign[] }) {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 lg:grid-cols-4">
         {designs.map((d) => (
           <div
             key={d.id}

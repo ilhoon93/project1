@@ -22,7 +22,6 @@ import {
 } from '@/lib/theme';
 import { Confetti } from '@/components/shared/Confetti';
 import { HeartClip } from '@/components/shared/HeartClip';
-import { HandwritingStroke } from '@/components/invitation/slides/HandwritingStroke';
 
 interface Props {
   invitationId: string;
@@ -317,7 +316,7 @@ function PosterFullImageSlide({
 
       {/* 4) 이름 박스 — 글로벌 테마 폰트·색 그대로 */}
       {design.nameBox.enabled && (
-        <PositionedBox position={design.nameBox.position}>
+        <PositionedBox position={design.nameBox.position} delay={0.3}>
           <div
             className="flex items-baseline justify-center gap-3 text-center font-light tracking-wide drop-shadow-sm"
             style={{ fontSize: `${design.nameBox.fontSize}px` }}
@@ -331,7 +330,7 @@ function PosterFullImageSlide({
 
       {/* 3) 날짜 박스 — 글로벌 테마 폰트·색 그대로 */}
       {design.dateBox.enabled && weddingDate && (
-        <PositionedBox position={design.dateBox.position}>
+        <PositionedBox position={design.dateBox.position} delay={0.45}>
           <p
             className="text-center tracking-[0.3em] drop-shadow-sm"
             style={{ fontSize: `${design.dateBox.fontSize}px` }}
@@ -343,7 +342,7 @@ function PosterFullImageSlide({
 
       {/* 5) 인사말 — 토글이 켜져 있고 본문이 있을 때만 표시 */}
       {design.messageBox.enabled && main.greeting && (
-        <PositionedBox position={design.messageBox.position}>
+        <PositionedBox position={design.messageBox.position} delay={0.15}>
           <p
             className="max-w-md whitespace-pre-line text-center leading-relaxed drop-shadow-sm"
             style={{ fontSize: `${design.messageBox.fontSize}px` }}
@@ -394,6 +393,25 @@ function PosterFullImageSlide({
             opacity: 1;
             transform: translateY(0) scale(1);
             filter: blur(0);
+          }
+        }
+
+        /* 메인 슬라이드의 모든 텍스트 박스(제목 외 이름·날짜·인사말) — 마케팅
+           Hero 의 FadeUp 과 같은 결의 자연스러운 위→아래 fade-in.
+           각 박스의 animation-delay 로 자연스러운 스태거(0/0.15/0.3/0.45s). */
+        :global(.mw-pos-fade) {
+          opacity: 0;
+          animation: mw-pos-fade 0.65s cubic-bezier(0.22, 0.68, 0.32, 1.04) forwards;
+          will-change: opacity, transform;
+        }
+        @keyframes mw-pos-fade {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, calc(-50% + 8px));
+          }
+          100% {
+            opacity: 1;
+            transform: translate(-50%, -50%);
           }
         }
       `}</style>
@@ -451,28 +469,19 @@ function AnimatedTitleH1({
 
 function AnimatedTitleInner({
   text,
-  fontFamily,
-  fontSize,
-  color,
 }: {
   text: string;
   fontFamily: string;
   fontSize: number;
   color: string;
 }) {
-  const [strokeUnsupported, setStrokeUnsupported] = useState(false);
-  if (strokeUnsupported) {
-    return <HandwritingText text={text} />;
-  }
-  return (
-    <HandwritingStroke
-      text={text}
-      fontFamily={fontFamily}
-      fontSize={fontSize}
-      color={color}
-      onUnsupported={() => setStrokeUnsupported(true)}
-    />
-  );
+  // SVG path stroke 애니메이션(HandwritingStroke)을 사용하지 않고 항상 안전한
+  // whole-text fade 만 사용한다. 이전엔 폰트 outline 을 SVG path 로 추출해 한
+  // 획씩 그렸는데, 일부 폰트(예: 고운바탕 — 라벤더 오로라/더스티 로즈 디자인)는
+  // fontkit 의 path 추출이 본래 글리프와 다르게 보이거나 kerning/advance 가
+  // 어긋나 깨져 보이는 케이스가 있었다. fade 만으로도 충분히 자연스러운 등장
+  // 효과를 주면서 어떤 폰트가 와도 본연의 모양·자간 그대로 유지된다.
+  return <HandwritingText text={text} />;
 }
 
 /**
@@ -503,19 +512,23 @@ function HandwritingText({ text }: { text: string }) {
  */
 function PositionedBox({
   position,
+  delay = 0,
   children,
 }: {
   position: { x: number; y: number };
+  /** 메인 슬라이드 진입 시 텍스트 스태거 fade-in 딜레이(초). */
+  delay?: number;
   children: React.ReactNode;
 }) {
   return (
     <div
-      className="absolute z-10 w-full px-6"
+      className="mw-pos-fade absolute z-10 w-full px-6"
       style={{
         left: `${position.x}%`,
         top: `${position.y}%`,
         transform: 'translate(-50%, -50%)',
         maxWidth: 'min(90vw, 32rem)',
+        animationDelay: `${delay}s`,
       }}
     >
       {children}
@@ -589,7 +602,7 @@ function IllustrationSlide({
 
       {/* 인사말 */}
       {design.messageBox.enabled && main.greeting && (
-        <PositionedBox position={design.messageBox.position}>
+        <PositionedBox position={design.messageBox.position} delay={0.15}>
           <p
             className="max-w-md whitespace-pre-line leading-relaxed opacity-80"
             style={{ fontSize: `${design.messageBox.fontSize}px` }}
@@ -601,7 +614,7 @@ function IllustrationSlide({
 
       {/* 이름 */}
       {design.nameBox.enabled && (
-        <PositionedBox position={design.nameBox.position}>
+        <PositionedBox position={design.nameBox.position} delay={0.3}>
           <p
             className="font-light tracking-wide"
             style={{ fontSize: `${design.nameBox.fontSize}px` }}
@@ -613,7 +626,7 @@ function IllustrationSlide({
 
       {/* 날짜 */}
       {design.dateBox.enabled && weddingDate && (
-        <PositionedBox position={design.dateBox.position}>
+        <PositionedBox position={design.dateBox.position} delay={0.45}>
           <p
             className="tracking-[0.2em]"
             style={{
@@ -719,7 +732,7 @@ function TextLayoutSlide({
 
       {/* 인사말 */}
       {design.messageBox.enabled && main.greeting && (
-        <PositionedBox position={design.messageBox.position}>
+        <PositionedBox position={design.messageBox.position} delay={0.15}>
           <p
             className="max-w-md whitespace-pre-line leading-relaxed opacity-80"
             style={{ fontSize: `${design.messageBox.fontSize}px` }}
@@ -731,7 +744,7 @@ function TextLayoutSlide({
 
       {/* 이름 — 4가지 레이아웃 (inline / stack / stackHeart / inlineCross) */}
       {design.nameBox.enabled && (
-        <PositionedBox position={design.nameBox.position}>
+        <PositionedBox position={design.nameBox.position} delay={0.3}>
           <NameLayout
             layout={design.nameBox.layout}
             firstName={firstName}
@@ -743,7 +756,7 @@ function TextLayoutSlide({
 
       {/* 날짜 */}
       {design.dateBox.enabled && weddingDate && (
-        <PositionedBox position={design.dateBox.position}>
+        <PositionedBox position={design.dateBox.position} delay={0.45}>
           <p
             className="tracking-[0.2em]"
             style={{
@@ -1192,7 +1205,7 @@ function FrameSlide({
 
       {/* 인사말 */}
       {design.messageBox.enabled && main.greeting && (
-        <PositionedBox position={design.messageBox.position}>
+        <PositionedBox position={design.messageBox.position} delay={0.15}>
           <p
             className="max-w-md whitespace-pre-line leading-relaxed opacity-80"
             style={{ fontSize: `${design.messageBox.fontSize}px` }}
@@ -1204,7 +1217,7 @@ function FrameSlide({
 
       {/* 이름 */}
       {design.nameBox.enabled && (
-        <PositionedBox position={design.nameBox.position}>
+        <PositionedBox position={design.nameBox.position} delay={0.3}>
           <p
             className="font-light tracking-wide"
             style={{ fontSize: `${design.nameBox.fontSize}px` }}
@@ -1216,7 +1229,7 @@ function FrameSlide({
 
       {/* 날짜 */}
       {design.dateBox.enabled && weddingDate && (
-        <PositionedBox position={design.dateBox.position}>
+        <PositionedBox position={design.dateBox.position} delay={0.45}>
           <p
             className="tracking-[0.2em] opacity-90"
             style={{ fontSize: `${design.dateBox.fontSize}px` }}
