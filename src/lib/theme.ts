@@ -360,7 +360,13 @@ export interface FontOption {
  */
 export const FONT_OPTIONS: Record<FontKey, FontOption> = {
   // ── 명조 / 고딕 ──────────────────────────────────────
-  serif: { label: '명조', family: "var(--font-noto-serif-kr), serif" },
+  // serif(Noto Serif KR)는 사용자 요청으로 picker 에서 숨김 — '명조' 선택지는
+  // jeju(제주명조) 로 통합. 기존 저장 데이터(font='serif') 호환을 위해 key 는
+  // 유지하되 family 만 제주명조 폴백을 우선 두어 시각적으로 동일하게 보이도록 함.
+  serif: {
+    label: '명조',
+    family: "'Jeju Myeongjo', var(--font-noto-serif-kr), serif",
+  },
   sans: { label: '본고딕', family: "var(--font-noto-sans-kr), sans-serif" }, // 히든
   nanumGothic: {
     label: '나눔고딕',
@@ -384,8 +390,9 @@ export const FONT_OPTIONS: Record<FontKey, FontOption> = {
   },
   gowun: { label: '고운바탕', family: "var(--font-gowun-batang), serif" },
   jeju: {
-    // Google Fonts CSS @import 로 로드 (next/font/google 14.2 미지원)
-    label: '제주명조',
+    // Google Fonts CSS @import 로 로드 (next/font/google 14.2 미지원).
+    // 사용자 요청으로 picker 라벨을 '명조' 로 변경 — 본문 '명조' 선택 시 제주명조 적용.
+    label: '명조',
     family: "'Jeju Myeongjo', var(--font-noto-serif-kr), serif",
   },
   songMyung: {
@@ -520,6 +527,15 @@ export const TITLE_FONT_KEYS = [
   ...TITLE_FONT_KEYS_KO,
 ] as const;
 export type TitleFontKey = (typeof TITLE_FONT_KEYS)[number];
+
+/**
+ * 제목 폰트 picker 에서 숨길 키 — 스키마 z.enum 호환을 위해 키 자체는 유지하되
+ * picker UI 에는 노출하지 않는다. 기존 저장본은 family 폴백을 통해 렌더됨.
+ */
+export const HIDDEN_TITLE_FONT_KEYS = new Set<TitleFontKey>([
+  // 사용자 요청으로 제거.
+  'qillseyEinstein',
+]);
 
 export const TITLE_FONT_OPTIONS: Record<TitleFontKey, FontOption> = {
   // 영문
@@ -684,6 +700,9 @@ export const HIDDEN_FONT_KEYS = new Set<FontKey>([
   // 사용자 요청으로 picker 에서 제외 — 키/family 폴백은 보존(기존 저장 데이터 호환).
   'nanumPen',
   'nanumBrush',
+  // '명조' 항목은 jeju(제주명조) 하나로 통합. 기존 serif 저장본은 family 폴백을
+  // 통해 자동으로 제주명조로 렌더됨.
+  'serif',
 ]);
 
 /** picker 에 노출되는 키만 모아둔 배열 — 편집기는 이 목록만 보여준다. */
