@@ -31,7 +31,6 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `seoul-nightview` | 서울 야경 루프탑 | `seoul-nightview.jpg` |
 | `studio-floral-pastel` | 플라워 파스텔 스튜디오 | `studio-floral-pastel.jpg` |
 | `desert-warm-walk` | 사막 웨딩 워킹 | `desert-warm-walk.jpg` |
-| `meadow-casual-shades` | 잔디밭 캐주얼 선글라스 | `meadow-casual-shades.jpg` |
 | `bridge-night-noir` | 브릿지 야경 누아르 | `bridge-night-noir.jpg` |
 | `canola-field-walk` | 유채꽃밭 산책 | `canola-field-walk.jpg` |
 | `studio-couple-puppy` | 스튜디오 강아지 동반 | `studio-couple-puppy.jpg` |
@@ -61,6 +60,14 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `hotel-corridor-couple-walk` | 호텔 복도 워킹샷 | `hotel-corridor-couple-walk.jpg` |
 | `london-night-doubledecker` | 런던 야경 이층버스 | `london-night-doubledecker.jpg` |
 | `groom-ivory-tux-warmwall` | 신랑 아이보리 턱시도 단독 | `groom-ivory-tux-warmwall.jpg` |
+| `london-bigben-bridge-walk` | 런던 빅벤 다리 워킹 | `london-bigben-bridge-walk.jpg` |
+| `jeju-forest-road-walk` | 제주 숲길 도로 워킹 | `jeju-forest-road-walk.jpg` |
+| `flowershop-vespa-couple` | 플라워샵 베스파 | `flowershop-vespa-couple.jpg` |
+| `rome-colosseum-sunset` | 로마 콜로세움 노을 | `rome-colosseum-sunset.jpg` |
+| `tuscany-villa-arch-couple` | 토스카나 빌라 아치문 | `tuscany-villa-arch-couple.jpg` |
+| `snowforest-blackwhite-couple` | 설경 숲 흑백 | `snowforest-blackwhite-couple.jpg` |
+| `rooftop-bluesky-couple` | 루프탑 파란하늘 | `rooftop-bluesky-couple.jpg` |
+| `groom-library-navy-tux` | 신랑 서재 네이비 턱시도 단독 | `groom-library-navy-tux.jpg` |
 | `hanbok-couple-studio` | 한복 스튜디오 핑크·라일락 | `hanbok-couple-studio.jpg` |
 | `studio-arch-window-couple` | 아치 창 + 베이지 슈트 머메이드 | `studio-arch-window-couple.jpg` |
 | `garden-finger-heart` | 가든 손가락 하트 | `garden-finger-heart.jpg` |
