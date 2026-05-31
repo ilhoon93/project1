@@ -3,8 +3,11 @@
 import { useMemo, useRef, useState, useTransition } from 'react';
 import {
   COLOR_THEMES,
+  COLOR_THEME_LABELS,
   PETAL_TYPES,
+  PETAL_LABELS,
   AVAILABLE_FONT_KEYS,
+  FONT_OPTIONS,
   THEME_PALETTES,
   type ColorTheme,
   type PetalType,
@@ -17,7 +20,11 @@ import {
   IllustrationDesignControls,
   TextDesignControls,
 } from '@/components/editor/sections/MainEditor';
-import { ColorSwatch, PetalIcon } from '@/components/editor/sections/ThemeEditor';
+import {
+  Combobox,
+  ColorSwatchSm,
+  PetalIcon,
+} from '@/components/editor/sections/ThemeEditor';
 import {
   buildDesign,
   type BeforeAfterConfig,
@@ -148,8 +155,15 @@ export function HomeSamplesEditor({
 
   const save = () => {
     setMsg(null);
+    // 저장 시점에 layoutLabel 을 현재 데이터 기준으로 자동 재계산 — 운영자가
+    // 따로 입력란을 두지 않고도 카드에 일관된 태그가 들어가게.
+    const stamped: HomeSamplesConfig = {
+      ...config,
+      designs: config.designs.map((d) => ({ ...d, layoutLabel: computeLayoutLabel(d) })),
+    };
     startTransition(async () => {
-      const res = await saveHomeSamplesAction(config);
+      const res = await saveHomeSamplesAction(stamped);
+      if (res.ok) setConfig(stamped);
       setMsg(res.ok ? '저장됐습니다.' : `저장 실패: ${res.error ?? '알 수 없음'}`);
     });
   };
@@ -255,7 +269,9 @@ export function HomeSamplesEditor({
           아래 &quot;공유 본문 템플릿&quot; 으로 일괄 관리합니다.
         </p>
 
-        <div className="mt-4 space-y-3">
+        {/* 디자인 카드 그리드 — md 2열, xl 3열로 빈 공간 줄임. 카드 클릭으로 펼쳐서
+            상세 편집. 펼친 카드는 grid 안에서 그대로 확장 (col-span-full). */}
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {config.designs.map((d, i) => {
             const open = openId === d.id;
             const accent = THEME_PALETTES[d.colorTheme].accent;
@@ -266,6 +282,8 @@ export function HomeSamplesEditor({
               <div
                 key={d.id}
                 className={`overflow-hidden rounded-md border ${
+                  open ? 'md:col-span-2 xl:col-span-3' : ''
+                } ${
                   d.enabled ? 'border-[#E8DCC9] bg-[#FCFAF6]' : 'border-[#EEE6D8] bg-[#F3EFE8]'
                 }`}
               >
@@ -277,7 +295,7 @@ export function HomeSamplesEditor({
                     </div>
                   </div>
                   <input
-                    className={`${inputCls} min-w-[140px] flex-1 font-medium`}
+                    className={`${inputCls} min-w-[120px] flex-1 font-medium`}
                     value={d.name}
                     onChange={(e) => patchDesign(i, { name: e.target.value })}
                     placeholder="디자인 이름"
@@ -304,30 +322,39 @@ export function HomeSamplesEditor({
                 </div>
 
                 {open && (
-                  <div className="grid gap-4 border-t border-[#E8DCC9] p-3 lg:grid-cols-[180px_minmax(0,1fr)]">
-                    {/* 라이브 미리보기 (큰 사이즈) */}
-                    <div className="mx-auto w-[150px]">
-                      <div className="overflow-hidden rounded-[20px] border-[6px] border-[#15110E] bg-white">
+                  <div className="grid gap-4 border-t border-[#E8DCC9] p-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+                    {/* 좌: 큰 표지 미리보기 + (하단) 이름/날짜/표지사진 */}
+                    <div className="mx-auto w-full max-w-[260px]">
+                      <div className="overflow-hidden rounded-[24px] border-[8px] border-[#15110E] bg-[#15110E]">
                         <div className="relative aspect-[9/18] w-full overflow-hidden">
                           <InvitationPreview design={buildDesign(d, config.template)} cover />
                         </div>
                       </div>
-                      <p className="mt-1 text-center text-[10px] text-[#8B7355]">표지 미리보기</p>
-                    </div>
+                      <p className="mt-2 text-center text-[10px] text-[#8B7355]">표지 미리보기</p>
 
-                    {/* 컨트롤 — min-w-0 로 부모 grid 셀 안에 안전히 수렴 */}
-                    <div className="min-w-0 space-y-4 overflow-hidden">
-                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                        <Field label="레이아웃">
-                          <select
+                      {/* 미리보기 하단의 데이터 입력 — 신랑/신부/날짜/표지사진 */}
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        <Field label="신랑 이름">
+                          <input
                             className={inputCls}
-                            value={normalizeLayout(d.main.layout)}
-                            onChange={(e) => patchMain(i, { layout: e.target.value as MainLayout })}
-                          >
-                            {LAYOUT_OPTIONS.map((o) => (
-                              <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
-                          </select>
+                            value={d.groomName}
+                            onChange={(e) => patchDesign(i, { groomName: e.target.value })}
+                          />
+                        </Field>
+                        <Field label="신부 이름">
+                          <input
+                            className={inputCls}
+                            value={d.brideName}
+                            onChange={(e) => patchDesign(i, { brideName: e.target.value })}
+                          />
+                        </Field>
+                        <Field label="예식일 (YYYY-MM-DD)">
+                          <input
+                            className={inputCls}
+                            value={d.weddingDate}
+                            onChange={(e) => patchDesign(i, { weddingDate: e.target.value })}
+                            placeholder="2026-05-23"
+                          />
                         </Field>
                         <Field label="표지 사진">
                           <select
@@ -336,70 +363,79 @@ export function HomeSamplesEditor({
                             onChange={(e) => patchDesign(i, { heroImageId: e.target.value })}
                           >
                             {heroOptions.map((c) => (
-                              <option key={c.id} value={c.id}>{c.label}</option>
+                              <option key={c.id} value={c.id}>
+                                {c.label}
+                              </option>
                             ))}
                           </select>
+                        </Field>
+                      </div>
+                      <p className="mt-2 text-center text-[10px] text-[#8B7355]">
+                        태그는 저장 시점에{' '}
+                        <span className="font-medium text-[#5C4633]">{computeLayoutLabel(d)}</span>{' '}
+                        로 자동 지정됩니다.
+                      </p>
+                    </div>
+
+                    {/* 우: 레이아웃/색상/배경효과/폰트 + 표지 디자인 컨트롤 */}
+                    <div className="min-w-0 space-y-4 overflow-hidden">
+                      {/* 레이아웃 + 컬러 + 효과 + 폰트 — 에디터 형식의 콤보박스 */}
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <Field label="레이아웃">
+                          <Combobox<MainLayout>
+                            options={LAYOUT_OPTIONS.map((o) => o.value)}
+                            value={normalizeLayout(d.main.layout)}
+                            onChange={(layout) => patchMain(i, { layout })}
+                            renderItem={(v) => (
+                              <span>
+                                {LAYOUT_OPTIONS.find((o) => o.value === v)?.label ?? v}
+                              </span>
+                            )}
+                          />
+                        </Field>
+                        <Field label="컬러 테마">
+                          <Combobox<ColorTheme>
+                            options={COLOR_THEMES}
+                            value={d.colorTheme}
+                            onChange={(colorTheme) => patchDesign(i, { colorTheme })}
+                            renderItem={(t) => (
+                              <>
+                                <ColorSwatchSm value={t} />
+                                <span>{COLOR_THEME_LABELS[t]}</span>
+                              </>
+                            )}
+                          />
+                        </Field>
+                        <Field label="배경 효과">
+                          <Combobox<PetalType>
+                            options={PETAL_TYPES}
+                            value={d.petalType}
+                            onChange={(petalType) => patchDesign(i, { petalType })}
+                            renderItem={(t) => (
+                              <>
+                                <span className="inline-flex h-5 w-5 items-center justify-center">
+                                  <PetalIcon type={t} accent={accent} />
+                                </span>
+                                <span>{PETAL_LABELS[t]}</span>
+                              </>
+                            )}
+                          />
                         </Field>
                         <Field label="폰트(본문)">
-                          <select
-                            className={inputCls}
+                          <Combobox<FontKey>
+                            options={AVAILABLE_FONT_KEYS}
                             value={d.font}
-                            onChange={(e) => patchDesign(i, { font: e.target.value as FontKey })}
-                          >
-                            {AVAILABLE_FONT_KEYS.map((t) => (
-                              <option key={t} value={t}>{t}</option>
-                            ))}
-                          </select>
-                        </Field>
-                        <Field label="태그(레이아웃 라벨)">
-                          <input className={inputCls} value={d.layoutLabel} onChange={(e) => patchDesign(i, { layoutLabel: e.target.value })} />
-                        </Field>
-                        <Field label="신랑 이름">
-                          <input className={inputCls} value={d.groomName} onChange={(e) => patchDesign(i, { groomName: e.target.value })} />
-                        </Field>
-                        <Field label="신부 이름">
-                          <input className={inputCls} value={d.brideName} onChange={(e) => patchDesign(i, { brideName: e.target.value })} />
-                        </Field>
-                        <Field label="예식일 (YYYY-MM-DD)">
-                          <input className={inputCls} value={d.weddingDate} onChange={(e) => patchDesign(i, { weddingDate: e.target.value })} placeholder="2026-05-23" />
-                        </Field>
-                      </div>
-
-                      <div>
-                        <span className={labelCls}>컬러 테마</span>
-                        <div className="mt-1.5 flex flex-wrap gap-1.5">
-                          {COLOR_THEMES.map((t) => (
-                            <ColorSwatch
-                              key={t}
-                              value={t}
-                              selected={d.colorTheme === t}
-                              onClick={() => patchDesign(i, { colorTheme: t as ColorTheme })}
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <span className={labelCls}>배경 효과</span>
-                        <div className="mt-1.5 flex flex-wrap gap-1.5">
-                          {PETAL_TYPES.map((t) => {
-                            const on = d.petalType === t;
-                            return (
-                              <button
-                                key={t}
-                                type="button"
-                                onClick={() => patchDesign(i, { petalType: t as PetalType })}
-                                aria-pressed={on}
-                                title={t}
-                                className={`grid h-9 w-9 place-items-center rounded-md border ${
-                                  on ? 'border-[#3D2E1F] bg-[#FAF7F2]' : 'border-[#E8DCC9]'
-                                }`}
+                            onChange={(font) => patchDesign(i, { font })}
+                            renderItem={(f) => (
+                              <span
+                                className="truncate"
+                                style={{ fontFamily: FONT_OPTIONS[f].family }}
                               >
-                                <PetalIcon type={t} accent={accent} />
-                              </button>
-                            );
-                          })}
-                        </div>
+                                {FONT_OPTIONS[f].label}
+                              </span>
+                            )}
+                          />
+                        </Field>
                       </div>
 
                       {/* 에디터 디자인 컨트롤 — 가로 넘침 방지 */}
@@ -575,6 +611,37 @@ export function HomeSamplesEditor({
 /** 'polaroid' 레거시 레이아웃은 frame 으로 통합 표시. */
 function normalizeLayout(layout: MainLayout): MainLayout {
   return layout === 'polaroid' ? 'frame' : layout;
+}
+
+const LAYOUT_NAMES: Record<MainLayout, string> = {
+  poster: '풀이미지',
+  frame: '액자',
+  polaroid: '액자',
+  illustration: '일러스트',
+  text: '텍스트',
+};
+
+const PETAL_TAG_LABELS: Partial<Record<PetalType, string>> = {
+  none: '무효과',
+  sakura: '벚꽃',
+  flower: '꽃잎',
+  leaf: '잎',
+  heart: '하트',
+  star: '별',
+  starlight: '별빛',
+  whitePetal: '흰 꽃잎',
+  snow: '눈송이',
+  bokeh: '보케',
+};
+
+/**
+ * 저장된 데이터(레이아웃 + 배경효과) 기반으로 카드 태그(layoutLabel) 를 자동 생성.
+ * 운영자가 따로 입력 안 해도 "액자 · 꽃잎" 같은 일관된 태그가 카드 아래에 표시됨.
+ */
+function computeLayoutLabel(d: DesignConfig): string {
+  const layoutName = LAYOUT_NAMES[normalizeLayout(d.main.layout)] ?? d.main.layout;
+  const petalName = PETAL_TAG_LABELS[d.petalType] ?? PETAL_LABELS[d.petalType] ?? '';
+  return petalName ? `${layoutName} · ${petalName}` : layoutName;
 }
 
 /** 현재 레이아웃에 맞는 에디터 디자인 컨트롤을 렌더 (prop-driven 재사용). */

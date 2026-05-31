@@ -298,10 +298,6 @@ const SEEDS: Seed[] = [
   { id: 'sky-poster', name: '스카이 포스터', layoutLabel: '풀이미지 · 하트', colorTheme: 'sky', petalType: 'heart', font: 'gowun', layout: 'poster', heroImageId: 'meadow-blue-sky-couple', groomName: '하준', brideName: '아윤', weddingDate: '2026-04-25', greetingShort: '맑은 봄날에' },
   { id: 'pearl-minimal', name: '펄 미니멀', layoutLabel: '텍스트 · 무효과', colorTheme: 'pearl', petalType: 'none', font: 'songMyung', layout: 'text', heroImageId: 'beige-wall-cheek-lean', groomName: '윤서', brideName: '서아', weddingDate: '2026-03-14', greetingShort: 'Save the date' },
   { id: 'charcoal-modern', name: '차콜 모던', layoutLabel: '일러스트 · 잎', colorTheme: 'charcoal', petalType: 'leaf', font: 'pretendard', layout: 'illustration', heroImageId: 'studio-greenwall-glasses', groomName: '도현', brideName: '예지', weddingDate: '2026-12-05', greetingShort: '모던한 시작' },
-  // ── 신규 3종 (2026-05 추가) ──
-  { id: 'sage-botanical', name: '세이지 가든', layoutLabel: '액자 · 잎', colorTheme: 'sage', petalType: 'leaf', font: 'jeju', layout: 'frame', heroImageId: 'garden-finger-heart', groomName: '재현', brideName: '소영', weddingDate: '2026-05-30', greetingShort: '정원에 핀 약속' },
-  { id: 'dusk-twilight', name: '더스크 트와일라잇', layoutLabel: '풀이미지 · 별빛', colorTheme: 'dusk', petalType: 'starlight', font: 'songMyung', layout: 'poster', heroImageId: 'mountain-pink-sunset-hug', groomName: '연우', brideName: '민서', weddingDate: '2026-09-12', greetingShort: '해 질 녘, 우리의 시작' },
-  { id: 'cream-handwritten', name: '크림 손글씨', layoutLabel: '액자 · 흰 꽃잎', colorTheme: 'cream', petalType: 'whitePetal', font: 'gabiaBombaram', layout: 'frame', heroImageId: 'bride-rose-garden-pink-seated', groomName: '서준', brideName: '나경', weddingDate: '2026-06-20', greetingShort: '두 사람, 손 잡고 시작합니다' },
 ];
 
 function seedToConfig(s: Seed): DesignConfig {
