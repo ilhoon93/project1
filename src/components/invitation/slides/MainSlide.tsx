@@ -461,8 +461,13 @@ function AnimatedTitleInner({
  * 줄바꿈(\n)은 부모 h1 의 whitespace-pre-wrap 가 처리.
  */
 function HandwritingWipe({ text }: { text: string }) {
+  // text-align:center 를 명시 — inline-block 폭이 부모 가득일 때 내부 줄들도 가운데로.
   return (
-    <span aria-hidden className="mw-title-wipe" style={{ display: 'inline-block' }}>
+    <span
+      aria-hidden
+      className="mw-title-wipe"
+      style={{ display: 'inline-block', textAlign: 'center' }}
+    >
       {text}
     </span>
   );

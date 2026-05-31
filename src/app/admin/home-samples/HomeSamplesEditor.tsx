@@ -27,6 +27,8 @@ import {
 } from '@/components/editor/sections/ThemeEditor';
 import {
   buildDesign,
+  deriveSampleLayoutLabel,
+  deriveSampleName,
   type BeforeAfterConfig,
   type BeforeAfterStyle,
   type DesignConfig,
@@ -178,7 +180,13 @@ export function InvitationSamplesEditor({
     // 저장 시점에 layoutLabel 을 현재 데이터 기준으로 자동 재계산.
     save({
       ...config,
-      designs: config.designs.map((d) => ({ ...d, layoutLabel: computeLayoutLabel(d) })),
+      // name 과 layoutLabel 모두 현재 데이터(컬러/레이아웃/배경효과) 기준으로
+      // 자동 stamping — 운영자가 수동으로 안 입력해도 일관된 라벨이 DB 에 보장됨.
+      designs: config.designs.map((d) => ({
+        ...d,
+        name: deriveSampleName(d),
+        layoutLabel: deriveSampleLayoutLabel(d),
+      })),
     });
   };
 
@@ -218,12 +226,14 @@ export function InvitationSamplesEditor({
                       <InvitationPreview design={buildDesign(d, config.template)} cover />
                     </div>
                   </div>
-                  <input
-                    className={`${inputCls} min-w-[120px] flex-1 font-medium`}
-                    value={d.name}
-                    onChange={(e) => patchDesign(i, { name: e.target.value })}
-                    placeholder="디자인 이름"
-                  />
+                  {/* 디자인 이름은 입력란 없이 컬러+레이아웃 기반으로 자동 — 컬러/레이아웃을
+                      바꾸면 즉시 이 이름이 갱신되고, 저장 시점에 DB에도 stamping 된다. */}
+                  <div className="min-w-[120px] flex-1 truncate">
+                    <span className="text-[13px] font-medium text-[#3D2E1F]">
+                      {deriveSampleName(d)}
+                    </span>
+                    <span className="ml-2 text-[10px] text-[#8B7355]">자동</span>
+                  </div>
                   <label className="flex items-center gap-1 text-[11px] text-[#5C4633]">
                     <input
                       type="checkbox"
@@ -249,7 +259,7 @@ export function InvitationSamplesEditor({
                   <div className="grid gap-4 border-t border-[#E8DCC9] p-4 lg:grid-cols-[260px_minmax(0,1fr)]">
                     {/* 좌: 큰 표지 미리보기 + (하단) 이름/날짜/표지사진 */}
                     <div className="mx-auto w-full max-w-[260px]">
-                      <div className="overflow-hidden rounded-[24px] border-[8px] border-[#15110E] bg-[#15110E]">
+                      <div className="overflow-hidden rounded-[18px] border-[2px] border-[#15110E] bg-[#15110E]">
                         <div className="relative aspect-[6/13] w-full overflow-hidden">
                           <InvitationPreview design={buildDesign(d, config.template)} cover />
                         </div>
@@ -296,7 +306,7 @@ export function InvitationSamplesEditor({
                       </div>
                       <p className="mt-2 text-center text-[10px] text-[#8B7355]">
                         태그는 저장 시점에{' '}
-                        <span className="font-medium text-[#5C4633]">{computeLayoutLabel(d)}</span>{' '}
+                        <span className="font-medium text-[#5C4633]">{deriveSampleLayoutLabel(d)}</span>{' '}
                         로 자동 지정됩니다.
                       </p>
                     </div>
@@ -713,37 +723,6 @@ export function SnapSamplesEditor({
 /** 'polaroid' 레거시 레이아웃은 frame 으로 통합 표시. */
 function normalizeLayout(layout: MainLayout): MainLayout {
   return layout === 'polaroid' ? 'frame' : layout;
-}
-
-const LAYOUT_NAMES: Record<MainLayout, string> = {
-  poster: '풀이미지',
-  frame: '액자',
-  polaroid: '액자',
-  illustration: '일러스트',
-  text: '텍스트',
-};
-
-const PETAL_TAG_LABELS: Partial<Record<PetalType, string>> = {
-  none: '무효과',
-  sakura: '벚꽃',
-  flower: '꽃잎',
-  leaf: '잎',
-  heart: '하트',
-  star: '별',
-  starlight: '별빛',
-  whitePetal: '흰 꽃잎',
-  snow: '눈송이',
-  bokeh: '보케',
-};
-
-/**
- * 저장된 데이터(레이아웃 + 배경효과) 기반으로 카드 태그(layoutLabel) 를 자동 생성.
- * 운영자가 따로 입력 안 해도 "액자 · 꽃잎" 같은 일관된 태그가 카드 아래에 표시됨.
- */
-function computeLayoutLabel(d: DesignConfig): string {
-  const layoutName = LAYOUT_NAMES[normalizeLayout(d.main.layout)] ?? d.main.layout;
-  const petalName = PETAL_TAG_LABELS[d.petalType] ?? PETAL_LABELS[d.petalType] ?? '';
-  return petalName ? `${layoutName} · ${petalName}` : layoutName;
 }
 
 /** 현재 레이아웃에 맞는 에디터 디자인 컨트롤을 렌더 (prop-driven 재사용). */
