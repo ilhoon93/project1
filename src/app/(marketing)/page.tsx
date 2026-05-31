@@ -11,6 +11,9 @@ import { SideCaption } from '@/components/marketing/SideMarginalia';
 import { getAvailableCatalog } from '@/lib/snap/catalog-availability';
 import { catalogCountStat } from '@/lib/snap/catalog-display';
 import {
+  ARCHIVE_PRICE,
+  INVITATION_PRICE,
+  SNAP_BUNDLE_PACKAGE,
   SNAP_PACKAGES,
   SNAP_STARTING_PRICE,
   formatKRW,
@@ -113,7 +116,7 @@ function Hero({ aiSnaps, designs }: { aiSnaps: AiSnapItem[]; designs: SampleDesi
 
       <FadeUp delay={0.15} className="relative">
         <h1 className="mx-auto mt-6 max-w-[15ch] text-balance break-keep text-[32px] font-medium leading-[1.36] tracking-tight sm:text-[36px]">
-          예식 없이도,<br />
+          예식 없이도,{' '}
           <em className="not-italic text-[var(--wd-coral)]">우리의 소식을 전해요.</em>
         </h1>
       </FadeUp>
@@ -320,12 +323,16 @@ function Pricing() {
 
 function InvitationPricingCard() {
   return (
-    <div className="flex h-full flex-col rounded-2xl bg-[var(--wd-paper)] p-7 text-center shadow-sm ring-1 ring-[var(--wd-line)]">
-      <p className="font-italiana text-xs tracking-[0.3em] text-[var(--wd-coral)]">
-        INVITATION
-      </p>
-      <p className="mt-3 text-4xl font-semibold tracking-tight">9,900원</p>
-      <p className="mt-1 text-sm text-[var(--wd-mute)]">알림장 1건 · 일시불</p>
+    <div className="flex h-full flex-col rounded-2xl bg-[var(--wd-paper)] p-7 shadow-sm ring-1 ring-[var(--wd-line)]">
+      <div className="text-center">
+        <p className="font-italiana text-xs tracking-[0.3em] text-[var(--wd-coral)]">
+          INVITATION
+        </p>
+        <p className="mt-3 text-4xl font-semibold tracking-tight">
+          {formatKRW(INVITATION_PRICE)}
+        </p>
+        <p className="mt-1 text-sm text-[var(--wd-mute)]">알림장 1건 · 일시불</p>
+      </div>
 
       <ul className="mt-5 flex flex-col gap-1.5 text-left text-sm text-[var(--wd-mute)] [&>li]:break-keep">
         <li>· 메인·스토리·갤러리 등 10개 섹션 구성</li>
@@ -334,6 +341,33 @@ function InvitationPricingCard() {
         <li>· 발행 후 30일간 공개</li>
         <li>· 혼인서약서·방명록·사진 PDF·이미지 영구 소장</li>
       </ul>
+
+      {/* 알림장과 함께 결제할 수 있는 부가 상품 — 영구소장 / 스냅 번들. */}
+      <div className="mt-4 flex flex-col gap-1.5 rounded-xl border border-[var(--wd-line)] bg-[var(--wd-cream)] p-3 text-[12px] text-[var(--wd-mute)]">
+        <p className="text-[10.5px] font-medium uppercase tracking-[0.18em] text-[var(--wd-coral)]">
+          함께 결제 시
+        </p>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[var(--wd-ink)]">영구소장 추가</span>
+          <span className="font-semibold text-[var(--wd-ink)]">
+            +{formatKRW(ARCHIVE_PRICE)}
+          </span>
+        </div>
+        <p className="text-[10.5px] leading-relaxed">
+          공개 30일 만료를 영구로 전환 — 하객 메시지·서명·통계가 그대로 보존.
+        </p>
+        <div className="mt-1 flex items-center justify-between gap-2 border-t border-[var(--wd-line)] pt-2">
+          <span className="text-[var(--wd-ink)]">
+            {SNAP_BUNDLE_PACKAGE.name}
+          </span>
+          <span className="font-semibold text-[var(--wd-ink)]">
+            +{formatKRW(SNAP_BUNDLE_PACKAGE.price)}
+          </span>
+        </div>
+        <p className="text-[10.5px] leading-relaxed">
+          단독 10장({formatKRW(12900)}) 대비 3,000원 할인 — 알림장 결제와 묶음 한정.
+        </p>
+      </div>
 
       <Link
         href="/new"
@@ -356,7 +390,9 @@ function SnapPricingCard() {
           {formatKRW(SNAP_STARTING_PRICE)}
           <span className="ml-1 text-base font-medium text-[var(--wd-mute)]">부터</span>
         </p>
-        <p className="mt-1 text-sm text-[var(--wd-mute)]">패키지 3종 · 크레딧 충전</p>
+        <p className="mt-1 text-sm text-[var(--wd-mute)]">
+          패키지 {SNAP_PACKAGES.length}종 · 크레딧 충전
+        </p>
       </div>
 
       <ul className="mt-5 flex flex-col gap-2">

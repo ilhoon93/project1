@@ -8,11 +8,7 @@ import {
   type CatalogStatsMap,
 } from '@/lib/snap/catalog-stats';
 import { catalogCountLabel } from '@/lib/snap/catalog-display';
-import {
-  SNAP_STARTING_PRICE,
-  formatKRW,
-  freeRegenSummary,
-} from '@/lib/snap/packages';
+import { SNAP_STARTING_PRICE, formatKRW } from '@/lib/snap/packages';
 
 export const metadata: Metadata = {
   title: 'AI 웨딩스냅 — 우리다운',
@@ -38,7 +34,7 @@ export default async function WeddingSnapLandingPage() {
     <main className="px-6 pb-20 pt-12 sm:py-16">
       <div className="mx-auto max-w-3xl">
         <Hero catalogCount={catalogCount} />
-        <AboutSnap catalogCount={catalogCount} />
+        <AboutSnap />
         <HowItWorks catalogCount={catalogCount} />
         <CatalogPreview items={visibleCatalog} catalogStats={catalogStats} />
       </div>
@@ -88,7 +84,7 @@ function Hero({ catalogCount }: { catalogCount: number }) {
   );
 }
 
-function AboutSnap({ catalogCount }: { catalogCount: number }) {
+function AboutSnap() {
   return (
     <section className="mt-14">
       <SectionHeading eyebrow="WHAT IS IT" title="AI 웨딩스냅이란?" />

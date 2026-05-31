@@ -57,7 +57,10 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `paris-eiffel-walk` | 파리 에펠탑 보도 워킹 | `paris-eiffel-walk.jpg` |
 | `vintage-90s-street-vsign` | 90s 빈티지 거리 V사인 | `vintage-90s-street-vsign.jpg` |
 | `vintage-90s-street-fullbody` | 90s 빈티지 거리 풀신 | `vintage-90s-street-fullbody.jpg` |
-| `cinema-popcorn-couple` | 영화관 팝콘 데이트 | `cinema-popcorn-couple.jpg` |
+| `cinema-redseat-couple` | 영화관 레드시트 데이트 | `cinema-redseat-couple.jpg` |
+| `hotel-corridor-couple-walk` | 호텔 복도 워킹샷 | `hotel-corridor-couple-walk.jpg` |
+| `london-night-doubledecker` | 런던 야경 이층버스 | `london-night-doubledecker.jpg` |
+| `groom-ivory-tux-warmwall` | 신랑 아이보리 턱시도 단독 | `groom-ivory-tux-warmwall.jpg` |
 | `hanbok-couple-studio` | 한복 스튜디오 핑크·라일락 | `hanbok-couple-studio.jpg` |
 | `studio-arch-window-couple` | 아치 창 + 베이지 슈트 머메이드 | `studio-arch-window-couple.jpg` |
 | `garden-finger-heart` | 가든 손가락 하트 | `garden-finger-heart.jpg` |
