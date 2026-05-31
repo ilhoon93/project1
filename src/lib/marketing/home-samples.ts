@@ -76,8 +76,15 @@ const TemplateSchema = z.object({
   quizQuestion: z.string(),
   quizOptions: z.array(z.string()),
   quizAnswer: z.number().int().min(0).max(3),
+  // 두 번째 퀴즈 — 구버전 호환 default.
+  quiz2Question: z.string().default(''),
+  quiz2Options: z.array(z.string()).default(['', '', '', '']),
+  quiz2Answer: z.number().int().min(0).max(3).default(0),
   voteQuestion: z.string(),
   voteOptions: z.array(z.string()),
+  // 두 번째 투표 — 구버전 호환 default.
+  vote2Question: z.string().default(''),
+  vote2Options: z.array(z.string()).default(['', '']),
   // 영상 — 구버전 저장본 호환 위해 optional + 기본값.
   videoTitle: z.string().default('우리의 영상'),
   videoUrl: z.string().default(''),
@@ -87,6 +94,15 @@ const TemplateSchema = z.object({
   accountGroomNumber: z.string(),
   accountBrideBank: z.string(),
   accountBrideNumber: z.string(),
+  // 부모 계좌 6 측 — 구버전 호환 default(빈 문자열).
+  accountGroomFatherBank: z.string().default(''),
+  accountGroomFatherNumber: z.string().default(''),
+  accountGroomMotherBank: z.string().default(''),
+  accountGroomMotherNumber: z.string().default(''),
+  accountBrideFatherBank: z.string().default(''),
+  accountBrideFatherNumber: z.string().default(''),
+  accountBrideMotherBank: z.string().default(''),
+  accountBrideMotherNumber: z.string().default(''),
   closing: z.string(),
 });
 
@@ -137,18 +153,22 @@ async function readRow(): Promise<HomeSamplesConfig | null> {
  * 운영자 편집용 raw 설정. 노출 디자인 집합을 코드의 SEEDS(DEFAULT_SAMPLE_CONFIGS)
  * 에 고정한다:
  *   - DB 에 같은 id 의 편집본이 있으면 그 편집 내용을 우선 사용
+ *   - DB 에 저장된 순서 그대로 사용 (운영자가 admin 에서 ▲/▼ 로 바꾼 순서 보존)
  *   - 코드 SEEDS 에 없는 DB 전용 디자인(예: 단종된 sage/dusk/handwritten)은 제외
  *   - DB 에 아직 없는 신규 SEED 는 뒤에 자동 추가
- * 결과적으로 항상 코드 SEEDS 와 동일한 개수·순서(12개)가 노출돼, 코드에서 샘플을
- * 늘리거나 줄이면 admin/랜딩에 그대로 반영된다.
+ * 결과적으로 운영자 정렬은 유지되면서, 코드에서 SEED 가 늘면 자동으로 합쳐진다.
  */
 export async function getHomeSamplesConfig(): Promise<HomeSamplesConfig> {
   const row = await readRow();
   if (!row || row.designs.length === 0) return DEFAULT_HOME_SAMPLES_CONFIG;
 
-  const byId = new Map(row.designs.map((d) => [d.id, d]));
-  // 코드 SEEDS 순서를 기준으로 — DB 편집본이 있으면 그것, 없으면 코드 기본값.
-  const designs = DEFAULT_SAMPLE_CONFIGS.map((seed) => byId.get(seed.id) ?? seed);
+  const seedIds = new Set(DEFAULT_SAMPLE_CONFIGS.map((s) => s.id));
+  // 1) DB 에 저장된 순서대로, 단 코드 SEEDS 에 있는 id 만 (단종 디자인 제외).
+  const rowOrdered = row.designs.filter((d) => seedIds.has(d.id));
+  // 2) DB 에 없는 코드 신규 SEED 만 뒤에 추가.
+  const dbIds = new Set(rowOrdered.map((d) => d.id));
+  const newDefaults = DEFAULT_SAMPLE_CONFIGS.filter((s) => !dbIds.has(s.id));
+  const designs = [...rowOrdered, ...newDefaults];
 
   return {
     aiSnapCatalogIds: row.aiSnapCatalogIds.length

@@ -145,7 +145,7 @@ export function SlideContainer({
         {slides.map((slide, i) => (
           <div
             key={i}
-            className={`relative h-full flex-shrink-0 touch-pan-y overflow-y-auto ${
+            className={`mw-thin-scroll relative h-full flex-shrink-0 touch-pan-y overflow-y-auto ${
               scoped ? 'w-full' : 'w-screen'
             }`}
             // 모든 cqw/cqh 단위가 슬라이드 박스 자체를 기준으로 잡히도록

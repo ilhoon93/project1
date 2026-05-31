@@ -364,7 +364,7 @@ function OwnerGuestbookView({
           {current.kind === 'signatures' && (
             <div className="flex h-full flex-col gap-3">
               <p className="text-xs font-medium text-stone-500">서명 모음 ({current.sigs.length})</p>
-              <div className="grid flex-1 grid-cols-2 gap-3 overflow-y-auto pr-1">
+              <div className="mw-thin-scroll grid flex-1 grid-cols-2 gap-3 overflow-y-auto pr-1">
                 {current.sigs.map((s) => (
                   <div key={s.id} className="flex flex-col gap-1 rounded-md border border-stone-200 p-2">
                     <p className="truncate text-[11px] text-stone-500">

@@ -170,10 +170,20 @@ export function InvitationSamplesEditor({
       ...config.template,
       quizOptions: config.template.quizOptions.map((o, k) => (k === i ? v : o)),
     });
+  const setQuiz2Opt = (i: number, v: string) =>
+    setTpl({
+      ...config.template,
+      quiz2Options: config.template.quiz2Options.map((o, k) => (k === i ? v : o)),
+    });
   const setVoteOpt = (i: number, v: string) =>
     setTpl({
       ...config.template,
       voteOptions: config.template.voteOptions.map((o, k) => (k === i ? v : o)),
+    });
+  const setVote2Opt = (i: number, v: string) =>
+    setTpl({
+      ...config.template,
+      vote2Options: config.template.vote2Options.map((o, k) => (k === i ? v : o)),
     });
 
   const handleSave = () => {
@@ -460,45 +470,52 @@ export function InvitationSamplesEditor({
             </div>
           </div>
 
-          {/* 퀴즈 */}
-          <div className="grid gap-2 rounded border border-[#E8DCC9] p-3">
-            <span className={labelCls}>퀴즈 (4지선다)</span>
-            <input className={inputCls} placeholder="질문" value={config.template.quizQuestion} onChange={(e) => patchTpl({ quizQuestion: e.target.value })} />
-            <div className="grid grid-cols-2 gap-2">
-              {config.template.quizOptions.map((o, i) => (
-                <label key={i} className="flex items-center gap-1.5">
-                  <input
-                    type="radio"
-                    name="quizAnswer"
-                    checked={config.template.quizAnswer === i}
-                    onChange={() => patchTpl({ quizAnswer: i })}
-                  />
-                  <input
-                    className={inputCls}
-                    placeholder={`보기 ${i + 1}`}
-                    value={o}
-                    onChange={(e) => setQuizOpt(i, e.target.value)}
-                  />
-                </label>
-              ))}
+          {/* 퀴즈 — 1번 + 2번. 2번 질문 비우면 미노출. */}
+          <div className="grid gap-3 rounded border border-[#E8DCC9] p-3">
+            <span className={labelCls}>퀴즈 (4지선다, 2문항)</span>
+            <div className="grid gap-2">
+              <input className={inputCls} placeholder="1번 질문" value={config.template.quizQuestion} onChange={(e) => patchTpl({ quizQuestion: e.target.value })} />
+              <div className="grid grid-cols-2 gap-2">
+                {config.template.quizOptions.map((o, i) => (
+                  <label key={i} className="flex items-center gap-1.5">
+                    <input type="radio" name="quizAnswer" checked={config.template.quizAnswer === i} onChange={() => patchTpl({ quizAnswer: i })} />
+                    <input className={inputCls} placeholder={`보기 ${i + 1}`} value={o} onChange={(e) => setQuizOpt(i, e.target.value)} />
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-2 border-t border-[#E8DCC9] pt-3">
+              <input className={inputCls} placeholder="2번 질문 (비우면 미노출)" value={config.template.quiz2Question} onChange={(e) => patchTpl({ quiz2Question: e.target.value })} />
+              <div className="grid grid-cols-2 gap-2">
+                {config.template.quiz2Options.map((o, i) => (
+                  <label key={i} className="flex items-center gap-1.5">
+                    <input type="radio" name="quiz2Answer" checked={config.template.quiz2Answer === i} onChange={() => patchTpl({ quiz2Answer: i })} />
+                    <input className={inputCls} placeholder={`보기 ${i + 1}`} value={o} onChange={(e) => setQuiz2Opt(i, e.target.value)} />
+                  </label>
+                ))}
+              </div>
             </div>
             <p className="text-[10px] text-[#8B7355]">왼쪽 라디오로 정답 보기를 선택하세요.</p>
           </div>
 
-          {/* 투표 */}
-          <div className="grid gap-2 rounded border border-[#E8DCC9] p-3">
-            <span className={labelCls}>A/B 투표</span>
-            <input className={inputCls} placeholder="질문" value={config.template.voteQuestion} onChange={(e) => patchTpl({ voteQuestion: e.target.value })} />
-            <div className="grid grid-cols-2 gap-2">
-              {config.template.voteOptions.map((o, i) => (
-                <input
-                  key={i}
-                  className={inputCls}
-                  placeholder={i === 0 ? 'A' : 'B'}
-                  value={o}
-                  onChange={(e) => setVoteOpt(i, e.target.value)}
-                />
-              ))}
+          {/* 투표 — 1번 + 2번. 2번 질문 비우면 미노출. */}
+          <div className="grid gap-3 rounded border border-[#E8DCC9] p-3">
+            <span className={labelCls}>A/B 투표 (2문항)</span>
+            <div className="grid gap-2">
+              <input className={inputCls} placeholder="1번 질문" value={config.template.voteQuestion} onChange={(e) => patchTpl({ voteQuestion: e.target.value })} />
+              <div className="grid grid-cols-2 gap-2">
+                {config.template.voteOptions.map((o, i) => (
+                  <input key={i} className={inputCls} placeholder={i === 0 ? 'A' : 'B'} value={o} onChange={(e) => setVoteOpt(i, e.target.value)} />
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-2 border-t border-[#E8DCC9] pt-3">
+              <input className={inputCls} placeholder="2번 질문 (비우면 미노출)" value={config.template.vote2Question} onChange={(e) => patchTpl({ vote2Question: e.target.value })} />
+              <div className="grid grid-cols-2 gap-2">
+                {config.template.vote2Options.map((o, i) => (
+                  <input key={i} className={inputCls} placeholder={i === 0 ? 'A' : 'B'} value={o} onChange={(e) => setVote2Opt(i, e.target.value)} />
+                ))}
+              </div>
             </div>
           </div>
 
@@ -558,19 +575,46 @@ export function InvitationSamplesEditor({
               rows={3}
               placeholder="축하의 마음을 담아 마음 전하실 분들을 위해 계좌번호를 안내드립니다."
             />
-            <div className="grid grid-cols-2 gap-2">
-              <Field label="신랑 은행">
-                <input className={inputCls} value={config.template.accountGroomBank} onChange={(e) => patchTpl({ accountGroomBank: e.target.value })} />
-              </Field>
-              <Field label="신랑 계좌">
-                <input className={inputCls} value={config.template.accountGroomNumber} onChange={(e) => patchTpl({ accountGroomNumber: e.target.value })} />
-              </Field>
-              <Field label="신부 은행">
-                <input className={inputCls} value={config.template.accountBrideBank} onChange={(e) => patchTpl({ accountBrideBank: e.target.value })} />
-              </Field>
-              <Field label="신부 계좌">
-                <input className={inputCls} value={config.template.accountBrideNumber} onChange={(e) => patchTpl({ accountBrideNumber: e.target.value })} />
-              </Field>
+            <div className="sm:col-span-2">
+              <span className={labelCls}>계좌 6 측 — 신랑·신부 + 양가 부모 (은행/계좌 모두 비우면 해당 측 미노출)</span>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <Field label="신랑 은행">
+                  <input className={inputCls} value={config.template.accountGroomBank} onChange={(e) => patchTpl({ accountGroomBank: e.target.value })} />
+                </Field>
+                <Field label="신랑 계좌">
+                  <input className={inputCls} value={config.template.accountGroomNumber} onChange={(e) => patchTpl({ accountGroomNumber: e.target.value })} />
+                </Field>
+                <Field label="신부 은행">
+                  <input className={inputCls} value={config.template.accountBrideBank} onChange={(e) => patchTpl({ accountBrideBank: e.target.value })} />
+                </Field>
+                <Field label="신부 계좌">
+                  <input className={inputCls} value={config.template.accountBrideNumber} onChange={(e) => patchTpl({ accountBrideNumber: e.target.value })} />
+                </Field>
+                <Field label="신랑 아버지 은행">
+                  <input className={inputCls} value={config.template.accountGroomFatherBank} onChange={(e) => patchTpl({ accountGroomFatherBank: e.target.value })} />
+                </Field>
+                <Field label="신랑 아버지 계좌">
+                  <input className={inputCls} value={config.template.accountGroomFatherNumber} onChange={(e) => patchTpl({ accountGroomFatherNumber: e.target.value })} />
+                </Field>
+                <Field label="신랑 어머니 은행">
+                  <input className={inputCls} value={config.template.accountGroomMotherBank} onChange={(e) => patchTpl({ accountGroomMotherBank: e.target.value })} />
+                </Field>
+                <Field label="신랑 어머니 계좌">
+                  <input className={inputCls} value={config.template.accountGroomMotherNumber} onChange={(e) => patchTpl({ accountGroomMotherNumber: e.target.value })} />
+                </Field>
+                <Field label="신부 아버지 은행">
+                  <input className={inputCls} value={config.template.accountBrideFatherBank} onChange={(e) => patchTpl({ accountBrideFatherBank: e.target.value })} />
+                </Field>
+                <Field label="신부 아버지 계좌">
+                  <input className={inputCls} value={config.template.accountBrideFatherNumber} onChange={(e) => patchTpl({ accountBrideFatherNumber: e.target.value })} />
+                </Field>
+                <Field label="신부 어머니 은행">
+                  <input className={inputCls} value={config.template.accountBrideMotherBank} onChange={(e) => patchTpl({ accountBrideMotherBank: e.target.value })} />
+                </Field>
+                <Field label="신부 어머니 계좌">
+                  <input className={inputCls} value={config.template.accountBrideMotherNumber} onChange={(e) => patchTpl({ accountBrideMotherNumber: e.target.value })} />
+                </Field>
+              </div>
             </div>
           </div>
         </div>
