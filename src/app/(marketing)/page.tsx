@@ -385,8 +385,13 @@ function InvitationPricingCard() {
 
 function SnapPricingCard() {
   return (
-    <div className="flex h-full flex-col rounded-2xl bg-[var(--wd-paper)] p-7 shadow-sm ring-1 ring-[var(--wd-line)]">
-      <div className="text-center">
+    <div className="relative flex h-full flex-col overflow-hidden rounded-2xl bg-[var(--wd-paper)] p-7 shadow-sm ring-1 ring-[var(--wd-line)]">
+      {/* 오픈 이벤트 띠 — 카드 상단에 가로 띠로 항상 노출. */}
+      <div className="absolute inset-x-0 top-0 flex items-center justify-center gap-1.5 bg-[var(--wd-coral)] py-1 text-[11px] font-medium text-white">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-white/90" />
+        OPEN EVENT · 가입 즉시 1크레딧 무료
+      </div>
+      <div className="mt-5 text-center">
         <p className="font-italiana text-xs tracking-[0.3em] text-[var(--wd-coral)]">
           AI WEDDING SNAP
         </p>
