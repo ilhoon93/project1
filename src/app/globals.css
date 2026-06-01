@@ -130,15 +130,6 @@
     opacity: 1;
   }
 }
-/* 배경음악 mock 의 파형 막대 — 세로로 늘었다 줄었다. */
-@keyframes wd-eq {
-  from {
-    transform: scaleY(0.5);
-  }
-  to {
-    transform: scaleY(1);
-  }
-}
 @keyframes float-a {
   0%,
   100% {

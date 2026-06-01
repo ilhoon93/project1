@@ -8,24 +8,22 @@ import { OwnerUrlModal } from './OwnerUrlButton';
 /** mock 으로 phone 안에서 보여지는 탭들. */
 type MockTabId =
   | 'design'
-  | 'bgm'
+  | 'gallery'
   | 'video'
   | 'quiz'
   | 'vote'
   | 'guestbook'
-  | 'account'
   | 'vow';
 /** mock 탭 + 모달만 띄우는 'ownerUrl' 통합 — 같은 list UI 에서 한 줄로 나열. */
 type TabId = MockTabId | 'ownerUrl';
 
 const TABS: Array<{ id: TabId; name: string; tag: string }> = [
-  { id: 'design', name: '움직이는 디자인', tag: '폰트·애니메이션·일러스트' },
-  { id: 'bgm', name: '배경음악', tag: '우리 분위기에 맞는 BGM' },
+  { id: 'design', name: '움직이는 디자인', tag: '배경효과·텍스트 애니메이션·폭죽효과' },
+  { id: 'gallery', name: '좋아요 가능한 갤러리', tag: '사진마다 하객이 ♥ 좋아요' },
   { id: 'video', name: '영상 슬라이드', tag: '사진뿐 아니라 영상까지' },
   { id: 'quiz', name: '하객 참여 퀴즈', tag: '객관식 퀴즈로 함께 노는 페이지' },
   { id: 'vote', name: 'A/B 투표', tag: '신혼여행지·드레스 색깔 투표' },
   { id: 'guestbook', name: '소장용 방명록', tag: '축하 메시지 + 손글씨 서명' },
-  { id: 'account', name: '마음 전달', tag: '복사 한 번에 계좌 전송' },
   { id: 'vow', name: '혼인서약서 PDF', tag: '발행 후 마이페이지에서 소장' },
   { id: 'ownerUrl', name: '소장용 URL', tag: '신랑·신부 전용 URL 평생 소장' },
 ];
@@ -33,12 +31,11 @@ const TABS: Array<{ id: TabId; name: string; tag: string }> = [
 /** 자동 순환 대상 — 'ownerUrl' 은 모달이라 제외. */
 const MOCK_TAB_IDS: MockTabId[] = [
   'design',
-  'bgm',
+  'gallery',
   'video',
   'quiz',
   'vote',
   'guestbook',
-  'account',
   'vow',
 ];
 
@@ -82,12 +79,11 @@ export function ShowcaseTabs({
         <div className="flex justify-center py-2">
           <PhoneFrame>
             <MockDesign active={active === 'design'} samples={designSamples} />
-            <MockBgm active={active === 'bgm'} />
+            <MockGallery active={active === 'gallery'} />
             <MockVideo active={active === 'video'} />
             <MockQuiz active={active === 'quiz'} />
             <MockVote active={active === 'vote'} />
             <MockGuestbook active={active === 'guestbook'} />
-            <MockAccount active={active === 'account'} />
             <MockVowPdf active={active === 'vow'} />
           </PhoneFrame>
         </div>
@@ -160,18 +156,16 @@ function TabIcon({ id, active }: { id: TabId; active: boolean }) {
           <line x1="5" y1="11" x2="11" y2="11" stroke={fill} strokeWidth="1.2" />
         </svg>
       )}
-      {id === 'bgm' && (
-        // 음표 (배경음악)
+      {id === 'gallery' && (
+        // 사진 + 하트 (좋아요 가능한 갤러리)
         <svg width="18" height="22" viewBox="0 0 18 22" fill="none">
+          <rect x="2" y="4" width="14" height="11" rx="2" stroke={fill} strokeWidth="1.2" />
+          <circle cx="6" cy="8" r="1.3" stroke={fill} strokeWidth="1.2" />
+          <path d="M3 14l4-3.5 3 2.5 2.5-2L15 13" stroke={fill} strokeWidth="1.2" strokeLinejoin="round" />
           <path
-            d="M7 14V5l8-1.5V12"
-            stroke={fill}
-            strokeWidth="1.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+            d="M9 20.5c-2.4-1.7-3.6-3-3.6-4.3a1.7 1.7 0 0 1 3-1.1 1.7 1.7 0 0 1 3 1.1c0 1.3-1.2 2.6-3.4 4.3z"
+            fill={fill}
           />
-          <circle cx="5" cy="14.5" r="2" stroke={fill} strokeWidth="1.2" />
-          <circle cx="13" cy="12.5" r="2" stroke={fill} strokeWidth="1.2" />
         </svg>
       )}
       {id === 'video' && (
@@ -179,13 +173,6 @@ function TabIcon({ id, active }: { id: TabId; active: boolean }) {
         <svg width="18" height="22" viewBox="0 0 18 22" fill="none">
           <rect x="2" y="5" width="14" height="12" rx="2" stroke={fill} strokeWidth="1.2" />
           <path d="M7.5 8.5l4 2.5-4 2.5V8.5z" fill={fill} />
-        </svg>
-      )}
-      {id === 'account' && (
-        // 봉투/하트 (마음 전달 · 계좌)
-        <svg width="18" height="22" viewBox="0 0 18 22" fill="none">
-          <rect x="2" y="5" width="14" height="11" rx="2" stroke={fill} strokeWidth="1.2" />
-          <path d="M2.5 6l6.5 4.5L15.5 6" stroke={fill} strokeWidth="1.2" strokeLinejoin="round" />
         </svg>
       )}
       {id === 'quiz' && (
@@ -249,7 +236,7 @@ function TabIcon({ id, active }: { id: TabId; active: boolean }) {
   );
 }
 
-/* ─────────────────── mini mock 5 종 ─────────────────── */
+/* ─────────────────── mini mock 7 종 ─────────────────── */
 
 // 디자인 탭은 실제 알림장 렌더러로 만든 표지를 순환 (나머지 탭은 경량 mock 유지).
 function MockDesign({ active, samples }: { active: boolean; samples: SampleDesign[] }) {
@@ -275,44 +262,37 @@ function MockDesign({ active, samples }: { active: boolean; samples: SampleDesig
   );
 }
 
-function MockBgm({ active }: { active: boolean }) {
-  // 파형 막대 — active 일 때만 isactive animation 으로 살아 움직이게.
-  const bars = [10, 22, 14, 28, 18, 32, 16, 24, 12, 26, 20, 30, 14, 22];
+function MockGallery({ active }: { active: boolean }) {
+  // 사진 타일 2×2 — 각 타일에 ♥ 좋아요 배지. 한 장은 '좋아요 누른' 상태(코랄 채움).
+  const tiles = [
+    { from: '#E8C8B8', to: '#C9748E', likes: 24, liked: true },
+    { from: '#C9D2BD', to: '#658067', likes: 12, liked: false },
+    { from: '#D7C9EA', to: '#8E6FBF', likes: 31, liked: false },
+    { from: '#F5DCC4', to: '#B8915A', likes: 18, liked: true },
+  ];
   return (
     <div
-      className={`absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-[#241C16] to-[#15110E] px-6 transition-opacity duration-500 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+      className={`absolute inset-0 flex flex-col bg-[var(--wd-paper)] px-4 pb-4 pt-9 transition-opacity duration-500 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
     >
       <div className="font-italiana text-[10px] tracking-[0.3em] text-[var(--wd-coral)]">
-        BACKGROUND MUSIC
+        GALLERY
       </div>
-      {/* 앨범아트 */}
-      <div className="mt-4 grid h-[96px] w-[96px] place-items-center rounded-2xl bg-[var(--wd-coral)]/20 ring-1 ring-white/10">
-        <svg width="40" height="40" viewBox="0 0 18 22" fill="none">
-          <path
-            d="M7 14V5l8-1.5V12"
-            stroke="var(--wd-cream)"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <circle cx="5" cy="14.5" r="2" stroke="var(--wd-cream)" strokeWidth="1.2" />
-          <circle cx="13" cy="12.5" r="2" stroke="var(--wd-cream)" strokeWidth="1.2" />
-        </svg>
+      <div className="mt-1 text-[12px] text-[var(--wd-mute)]">
+        사진마다 하객이 <span className="text-[var(--wd-coral)]">♥</span> 좋아요
       </div>
-      <div className="mt-4 text-[12.5px] font-medium text-[var(--wd-cream)]">
-        우리 둘의 테마곡
-      </div>
-      {/* 파형 */}
-      <div className="mt-4 flex h-[34px] items-end gap-[3px]">
-        {bars.map((h, i) => (
-          <span
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {tiles.map((t, i) => (
+          <div
             key={i}
-            className="w-[3px] origin-bottom rounded-full bg-[var(--wd-coral)]/80"
-            style={{
-              height: `${h}px`,
-              animation: active ? `wd-eq 0.9s ease-in-out ${i * 0.06}s infinite alternate` : 'none',
-            }}
-          />
+            className="relative aspect-[3/4] overflow-hidden rounded-xl"
+            style={{ background: `linear-gradient(135deg, ${t.from}, ${t.to})` }}
+          >
+            {/* 좋아요 배지 */}
+            <div className="absolute bottom-1.5 left-1.5 inline-flex items-center gap-1 rounded-full bg-black/35 px-1.5 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">
+              <span className={t.liked ? 'text-[var(--wd-coral)]' : 'text-white'}>♥</span>
+              {t.likes}
+            </div>
+          </div>
         ))}
       </div>
     </div>
@@ -345,49 +325,6 @@ function MockVideo({ active }: { active: boolean }) {
       </div>
       <div className="mt-3 text-[11px] leading-snug text-[var(--wd-cream)]">
         사진뿐 아니라 <span className="text-[var(--wd-coral)]">영상</span> 한 컷까지
-      </div>
-    </div>
-  );
-}
-
-function MockAccount({ active }: { active: boolean }) {
-  const rows = [
-    { side: '신랑', bank: '우리은행', num: '1002-•••-••4567' },
-    { side: '신부', bank: '카카오뱅크', num: '3333-••-•••8901' },
-  ];
-  return (
-    <div
-      className={`absolute inset-0 flex flex-col justify-center bg-[var(--wd-paper)] px-5 transition-opacity duration-500 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
-    >
-      <div className="font-italiana text-[10px] tracking-[0.3em] text-[var(--wd-coral)]">
-        WITH HEART
-      </div>
-      <div className="mt-2 text-[14px] font-medium leading-snug text-[var(--wd-ink)]">
-        마음 전하실 곳
-      </div>
-      <div className="mt-1 text-[11px] text-[var(--wd-mute)]">
-        복사 한 번이면 계좌번호 전송 완료
-      </div>
-      <div className="mt-4 flex flex-col gap-2">
-        {rows.map((r, i) => (
-          <div
-            key={i}
-            className="flex items-center justify-between rounded-xl border border-[var(--wd-line)] bg-[var(--wd-cream)] px-3 py-2.5"
-          >
-            <div className="flex flex-col text-left">
-              <span className="text-[10px] tracking-wider text-[var(--wd-coral)]">
-                {r.side}
-              </span>
-              <span className="text-[11.5px] font-medium text-[var(--wd-ink)]">
-                {r.bank}
-              </span>
-              <span className="text-[10.5px] text-[var(--wd-mute)]">{r.num}</span>
-            </div>
-            <span className="rounded-full bg-[var(--wd-ink)] px-2.5 py-1 text-[10px] font-medium text-[var(--wd-cream)]">
-              복사
-            </span>
-          </div>
-        ))}
       </div>
     </div>
   );
