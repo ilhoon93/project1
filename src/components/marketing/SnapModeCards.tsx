@@ -14,8 +14,6 @@ import {
   type ExampleFlowMode,
 } from '@/components/snap/ExampleFlowModal';
 
-const WELCOME_CREDIT = 1;
-
 export function SnapModeCards() {
   const [openMode, setOpenMode] = useState<ExampleFlowMode | null>(null);
   return (
@@ -23,33 +21,39 @@ export function SnapModeCards() {
       <div className="grid gap-3 lg:grid-cols-2">
         {/* MODE A — 커플사진 (강조: 가입 1크레딧 즉시 체험 가능). */}
         <article className="relative flex flex-col gap-3 overflow-hidden rounded-2xl border-[1.5px] border-[var(--wd-coral)] bg-[var(--wd-cream)] p-4">
-          <div className="absolute right-3 top-3 rounded-full bg-[var(--wd-coral)] px-2 py-0.5 text-[10px] font-medium text-white">
-            가입 {WELCOME_CREDIT}크레딧 즉시 체험
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="font-italiana text-[10px] tracking-[0.24em] text-[var(--wd-coral)]">
+                MODE A
+              </p>
+              <h3 className="mt-1 text-[15px] font-medium text-[var(--wd-ink)]">
+                커플사진 한 장으로
+              </h3>
+            </div>
+            <ExampleButton onClick={() => setOpenMode('couple')} variant="primary" />
           </div>
-          <header>
-            <p className="font-italiana text-[10px] tracking-[0.24em] text-[var(--wd-coral)]">
-              MODE A
-            </p>
-            <h3 className="mt-1 text-[15px] font-medium text-[var(--wd-ink)]">
-              커플사진 한 장으로
-            </h3>
-            <p className="mt-1 text-[12px] leading-relaxed text-[var(--wd-mute)]">
+          <div>
+            <p className="text-[12px] leading-relaxed text-[var(--wd-mute)]">
               커플사진을 바로 카탈로그에 적용해 한 컷당 1크레딧으로 만들어요.
             </p>
-          </header>
-          <ExampleButton onClick={() => setOpenMode('couple')} variant="primary" />
+          </div>
         </article>
 
         {/* MODE B — 셀카 + 앵커. 솔로/함께 흐름 안내. */}
         <article className="flex flex-col gap-3 rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)] p-4">
-          <header>
-            <p className="font-italiana text-[10px] tracking-[0.24em] text-[var(--wd-coral)]">
-              MODE B
-            </p>
-            <h3 className="mt-1 text-[15px] font-medium text-[var(--wd-ink)]">
-              각자 셀카로 — 솔로 · 함께 컷 모두
-            </h3>
-            <p className="mt-1 text-[12px] leading-relaxed text-[var(--wd-mute)]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="font-italiana text-[10px] tracking-[0.24em] text-[var(--wd-coral)]">
+                MODE B
+              </p>
+              <h3 className="mt-1 text-[15px] font-medium text-[var(--wd-ink)]">
+                각자 셀카로 — 솔로 · 함께 컷 모두
+              </h3>
+            </div>
+            <ExampleButton onClick={() => setOpenMode('selfies')} />
+          </div>
+          <div>
+            <p className="text-[12px] leading-relaxed text-[var(--wd-mute)]">
               신랑·신부 각각의 사진을 올리면 AI가 <strong>앵커</strong>(나만의 기준
               얼굴)을 만들어요. 이 앵커를 카탈로그 컷에 적용해{' '}
               <strong>신랑 단독 · 신부 단독 · 함께 컷</strong> 3 가지를 모두 만들 수
@@ -59,8 +63,7 @@ export function SnapModeCards() {
               ※ <strong>결제 사용자에게 최초 1회</strong> 앵커 무료 생성 혜택이
               제공됩니다.
             </p>
-          </header>
-          <ExampleButton onClick={() => setOpenMode('selfies')} />
+          </div>
         </article>
       </div>
 

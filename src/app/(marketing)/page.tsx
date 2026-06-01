@@ -211,17 +211,35 @@ function DesignAndValues({
         </FadeUp>
         <FadeUp scroll delay={0.08}>
           <h2 className="mt-2 max-w-[20ch] text-balance break-keep text-[22px] font-medium leading-[1.45] tracking-tight">
-            정지된 청첩장이 아닌, 함께 노는 한 편의 알림장
+            정지된 청첩장이 아닌, 손끝으로 넘기는 한 편의 알림장
           </h2>
         </FadeUp>
         <FadeUp scroll delay={0.16}>
-          <p className="mb-7 mt-2 max-w-[540px] break-keep text-[14px] leading-[1.75] text-[var(--wd-mute)]">
-            14가지 컬러 테마와 살아 움직이는 배경, 하객이 함께하는 퀴즈와 A/B 투표,
-            손글씨 서명을 남기는 방명록, 발행 후 PDF로 간직하는 혼인서약서까지. 메인부터
-            엔딩까지 10개 섹션을 우리답게 구성하세요. 발행 후엔 신랑·신부 전용 소장용
-            URL이 발급돼 하객 메시지·서명·퀴즈/투표 결과·축하 카운트를 한곳에 모아
-            평생 간직할 수 있어요.
+          <p className="mb-5 mt-2 max-w-[540px] break-keep text-[14px] leading-[1.75] text-[var(--wd-mute)]">
+            가로로 스와이프하며 보는 10개 섹션 —{' '}
+            <strong className="font-medium text-[var(--wd-ink)]">
+              폰트·애니메이션·일러스트
+            </strong>
+            까지 우리답게. 발행 전까지{' '}
+            <strong className="font-medium text-[var(--wd-ink)]">무료로 자유롭게</strong>{' '}
+            만들어 보세요.
           </p>
+        </FadeUp>
+
+        {/* 핵심 가치 칩 — 긴 설명 대신 한눈에 스캔되도록. '무료 제작' 만 코랄
+            채움으로 강조. flex-wrap 으로 모바일에선 자연스럽게 여러 줄. */}
+        <FadeUp scroll delay={0.22}>
+          <ul className="mb-7 flex flex-wrap gap-1.5">
+            <KeyChip>⇄ 가로 스와이프</KeyChip>
+            <KeyChip>14가지 컬러 테마</KeyChip>
+            <KeyChip>폰트·애니메이션·일러스트</KeyChip>
+            <KeyChip>배경음악</KeyChip>
+            <KeyChip>영상 슬라이드</KeyChip>
+            <KeyChip>퀴즈·A/B 투표</KeyChip>
+            <KeyChip>방명록·혼인서약서</KeyChip>
+            <KeyChip>계좌 전달</KeyChip>
+            <KeyChip accent>무료 제작</KeyChip>
+          </ul>
         </FadeUp>
 
         <ShowcaseTabs designs={designs} ownerUrlExample={ownerUrlExample} />
@@ -236,6 +254,27 @@ function DesignAndValues({
         </div>
       </div>
     </section>
+  );
+}
+
+/** 핵심 가치 칩 — 디자인 소개 섹션의 스캔용 pill. accent 면 코랄 채움(강조). */
+function KeyChip({
+  children,
+  accent,
+}: {
+  children: React.ReactNode;
+  accent?: boolean;
+}) {
+  return (
+    <li
+      className={`inline-flex items-center whitespace-nowrap rounded-full px-3 py-1.5 text-[12px] font-medium ${
+        accent
+          ? 'bg-[var(--wd-coral)] text-white'
+          : 'border border-[var(--wd-line)] bg-[var(--wd-paper)] text-[var(--wd-ink)]'
+      }`}
+    >
+      {children}
+    </li>
   );
 }
 

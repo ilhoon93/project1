@@ -108,23 +108,23 @@ function SectionHeading({
 
 function Hero({ catalogCount }: { catalogCount: number }) {
   return (
-    <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:gap-6">
-      <div className="min-w-0 flex-1">
-        <div className="font-italiana text-[11px] font-medium tracking-[0.18em] text-[var(--wd-coral)]">
-          AI WEDDING SNAP
-        </div>
-        <h1 className="mt-2 max-w-[20ch] text-balance break-keep text-[24px] font-medium leading-[1.4] tracking-tight text-[var(--wd-ink)] sm:text-[28px]">
-          우리 둘 셀카 한 장이면, 웨딩 화보가 완성됩니다
-        </h1>
-        <p className="mt-2 max-w-[540px] break-keep text-[14px] leading-[1.75] text-[var(--wd-mute)]">
-          스튜디오·한옥·도심 골든아워·바닷가·해외 풍경까지 —{' '}
-          {catalogCountLabel(catalogCount)}의 베스트샷 중 마음에 드는 컷을 고르면
-          우리 얼굴로 자연스럽게 합성해드려요.
-        </p>
+    <div>
+      <div className="font-italiana text-[11px] font-medium tracking-[0.18em] text-[var(--wd-coral)]">
+        AI WEDDING SNAP
+      </div>
+      <h1 className="mt-2 max-w-[20ch] text-balance break-keep text-[24px] font-medium leading-[1.4] tracking-tight text-[var(--wd-ink)] sm:text-[28px]">
+        우리 둘 셀카 한 장이면, 웨딩 화보가 완성됩니다
+      </h1>
+      <p className="mt-2 max-w-[540px] break-keep text-[14px] leading-[1.75] text-[var(--wd-mute)]">
+        스튜디오·한옥·도심 골든아워·바닷가·해외 풍경까지 —{' '}
+        {catalogCountLabel(catalogCount)}의 베스트샷 중 마음에 드는 컷을 고르면
+        우리 얼굴로 자연스럽게 합성해드려요.
+      </p>
 
-        {/* 오픈 이벤트 배지 — 강조를 위해 코랄 본 톤을 채워 배경으로 사용.
-            OPEN EVENT(이브로우)는 더 진한 코랄 칩으로 한 번 더 분리. */}
-        <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--wd-coral)] px-2.5 py-1.5 text-[12px] font-medium text-white shadow-sm ring-1 ring-[var(--wd-coral)]/40">
+      {/* 오픈 이벤트 배지 + 지금 만들기 CTA 가 한 줄에 — 배지 좌측, 버튼 우측 정렬.
+          모바일에서 배지가 길어지면 줄바꿈, 버튼은 항상 우측 끝 유지. */}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex flex-wrap items-center gap-2 rounded-full bg-[var(--wd-coral)] px-2.5 py-1.5 text-[12px] font-medium text-white shadow-sm ring-1 ring-[var(--wd-coral)]/40">
           <span className="font-italiana inline-flex items-center rounded-full bg-[var(--wd-ink)]/85 px-2 py-0.5 text-[9.5px] tracking-[0.28em] text-[var(--wd-cream)]">
             OPEN EVENT
           </span>
@@ -133,13 +133,13 @@ function Hero({ catalogCount }: { catalogCount: number }) {
             커플사진 1장 즉시 체험
           </span>
         </div>
+        <Link
+          href="/wedding-snap/create"
+          className="ml-auto inline-flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--wd-ink)] px-5 py-3 text-[13px] font-medium text-[var(--wd-cream)] transition-transform active:scale-[0.97]"
+        >
+          지금 만들기 →
+        </Link>
       </div>
-      <Link
-        href="/wedding-snap/create"
-        className="inline-flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--wd-ink)] px-5 py-3 text-[13px] font-medium text-[var(--wd-cream)] transition-transform active:scale-[0.97] sm:mt-1"
-      >
-        지금 만들기 →
-      </Link>
     </div>
   );
 }

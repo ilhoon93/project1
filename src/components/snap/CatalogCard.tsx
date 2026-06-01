@@ -117,14 +117,14 @@ function BadgeStack({
   isRecommended: boolean;
 }) {
   const config = {
-    together: { label: '함께', color: 'bg-[var(--wd-ink)]/85' },
-    'groom-solo': { label: '신랑 단독', color: 'bg-blue-600/85' },
-    'bride-solo': { label: '신부 단독', color: 'bg-pink-600/85' },
+    together: { label: '함께', color: 'bg-[var(--wd-coral)]' },
+    'groom-solo': { label: '신랑 단독', color: 'bg-blue-600' },
+    'bride-solo': { label: '신부 단독', color: 'bg-pink-600' },
   }[personality];
   return (
     <div className="absolute left-1 top-1 z-10 flex flex-col items-start gap-1">
       <span
-        className={`rounded px-1.5 py-0.5 text-[9px] font-medium text-white shadow-sm ${config.color}`}
+        className={`rounded px-1.5 py-0.5 text-[9px] font-medium text-white shadow-sm ring-1 ring-black/10 ${config.color}`}
       >
         {config.label}
       </span>
