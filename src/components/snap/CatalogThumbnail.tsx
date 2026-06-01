@@ -22,7 +22,7 @@ export function CatalogThumbnail({
   //   가로형 마스터 → 위아래 여백,  세로형 → 좌우 여백 (모두 박스 가운데).
   //   별도 `mx-auto my-auto` 없이도 flex center 부모가 처리.
   return (
-    <div className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden bg-[#F5EDE0]">
+    <div className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden bg-[var(--wd-cream)]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
@@ -36,7 +36,7 @@ export function CatalogThumbnail({
         }}
       />
       <div
-        className="absolute inset-0 hidden flex-col items-center justify-center px-2 text-center text-[10px] text-[#8B7355]"
+        className="absolute inset-0 hidden flex-col items-center justify-center px-2 text-center text-[10px] text-[var(--wd-mute)]"
         style={{ display: 'none' }}
       >
         <span className="mb-1">📷</span>

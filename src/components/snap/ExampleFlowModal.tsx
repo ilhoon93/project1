@@ -98,13 +98,13 @@ export function ExampleFlowModal({
           onClick={(e) => e.stopPropagation()}
         >
           {/* 헤더 */}
-          <div className="flex items-baseline justify-between border-b border-[#E8DCC9] px-5 py-3">
-            <h3 className="text-sm font-semibold text-[#3D2E1F]">{title}</h3>
+          <div className="flex items-baseline justify-between border-b border-[var(--wd-line)] px-5 py-3">
+            <h3 className="text-sm font-semibold text-[var(--wd-ink)]">{title}</h3>
             <button
               type="button"
               onClick={onClose}
               aria-label="닫기"
-              className="text-[#8B7355] hover:text-[#3D2E1F]"
+              className="text-[var(--wd-mute)] hover:text-[var(--wd-ink)]"
             >
               ✕
             </button>
@@ -112,7 +112,7 @@ export function ExampleFlowModal({
 
           {/* 본문 */}
           <div className="flex flex-col gap-5 px-5 py-4">
-            <p className="text-[11px] leading-relaxed text-[#5C4633]">
+            <p className="text-[11px] leading-relaxed text-[var(--wd-ink)]">
               {mode === 'selfies'
                 ? '신랑·신부 각자 셀카 3장(정면/좌45°/우45°)으로 앵커를 만들고, 그 앵커를 카탈로그에 합성합니다. 함께 컷 / 신랑 단독 / 신부 단독 컷 모두 가능. 사진을 누르면 크게 볼 수 있어요.'
                 : '두 사람이 함께 찍힌 커플 사진 1장으로 만듭니다. 포즈·체형·상호작용을 그대로 유지하며 카탈로그의 의상/배경만 바꿔요. (함께 컷만 가능)'}
@@ -261,11 +261,11 @@ export function ExampleFlowModal({
           </div>
 
           {/* 하단 닫기 */}
-          <div className="flex justify-end border-t border-[#E8DCC9] px-5 py-3">
+          <div className="flex justify-end border-t border-[var(--wd-line)] px-5 py-3">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md bg-[#3D2E1F] px-4 py-1.5 text-xs font-medium text-white hover:bg-[#5C4633]"
+              className="rounded-md bg-[var(--wd-ink)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--wd-ink)]"
             >
               닫기
             </button>
@@ -327,8 +327,8 @@ function ExampleFlowRow({
   onPick: (src: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-[#E8DCC9] bg-[#FAF7F2]/40 p-3">
-      <p className="text-[12px] font-medium text-[#3D2E1F]">{title}</p>
+    <div className="flex flex-col gap-2 rounded-md border border-[var(--wd-line)] bg-[var(--wd-cream)]/40 p-3">
+      <p className="text-[12px] font-medium text-[var(--wd-ink)]">{title}</p>
       <div className="flex items-end gap-1 overflow-x-auto pb-1">
         {steps.map((step, i) => (
           <div key={i} className="flex items-end gap-1">
@@ -336,7 +336,7 @@ function ExampleFlowRow({
             {i < steps.length - 1 && (
               <span
                 aria-hidden
-                className="mx-0.5 self-center text-base font-light text-[#8B7355]"
+                className="mx-0.5 self-center text-base font-light text-[var(--wd-mute)]"
               >
                 →
               </span>
@@ -383,11 +383,11 @@ function FlowThumb({
           />
         ))}
       </div>
-      <span className="text-center text-[10px] leading-tight text-[#5C4633]">
+      <span className="text-center text-[10px] leading-tight text-[var(--wd-ink)]">
         {step.label}
       </span>
       {step.subLabel && (
-        <span className="text-center text-[9px] leading-tight text-[#8B7355]">
+        <span className="text-center text-[9px] leading-tight text-[var(--wd-mute)]">
           {step.subLabel}
         </span>
       )}
@@ -408,7 +408,7 @@ function ThumbBox({
     <button
       type="button"
       onClick={() => onPick(src)}
-      className="relative aspect-[3/4] flex-1 overflow-hidden rounded border border-[#D4C5B0] bg-[#F5EDE0] transition-transform hover:scale-[1.02]"
+      className="relative aspect-[3/4] flex-1 overflow-hidden rounded border border-[var(--wd-line)] bg-[var(--wd-cream)] transition-transform hover:scale-[1.02]"
       title="크게 보기"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -424,7 +424,7 @@ function ThumbBox({
         }}
       />
       <div
-        className="absolute inset-0 hidden flex-col items-center justify-center text-center text-[10px] leading-tight text-[#8B7355]"
+        className="absolute inset-0 hidden flex-col items-center justify-center text-center text-[10px] leading-tight text-[var(--wd-mute)]"
         style={{ display: 'none' }}
       >
         <span className="opacity-60">준비 중</span>

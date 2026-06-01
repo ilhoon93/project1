@@ -126,7 +126,7 @@ export function CatalogFilterBar({
   const showSortChips = !!sortMode && !!onSortModeChange;
 
   return (
-    <div className="flex h-full flex-col gap-2 rounded-lg border border-[#E8DCC9] bg-white p-3 shadow-sm">
+    <div className="flex h-full flex-col gap-2 rounded-lg border border-[var(--wd-line)] bg-white p-3 shadow-sm">
       {/*
         헤더 — 필터 아이콘 + 라벨 + 결과 카운트 + 초기화. solid 박스 + 명확한
         섹션 분리로 시각적 hierarchy 강화 (기존 dashed border + 회색 배경 → solid
@@ -134,14 +134,14 @@ export function CatalogFilterBar({
         h-full + 부모 row 의 items-stretch 로 좌측 CatalogSelectionGuide 와 같은
         height 정렬 (SnapGenerator 카탈로그 섹션 헤더 아래 2-col row).
       */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F0E8D8] pb-1.5">
-        <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#3D2E1F]">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--wd-line)] pb-1.5">
+        <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[var(--wd-ink)]">
           <FilterIcon />
           필터
         </span>
         <div className="flex items-center gap-2">
           {resultCount && (
-            <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[10px] font-medium text-[#5C4633] ring-1 ring-[#E8DCC9]">
+            <span className="rounded-full bg-[var(--wd-cream)] px-2 py-0.5 text-[10px] font-medium text-[var(--wd-ink)] ring-1 ring-[var(--wd-line)]">
               {resultCount.shown === resultCount.total
                 ? `${resultCount.total}개`
                 : `${resultCount.shown} / ${resultCount.total}`}
@@ -151,7 +151,7 @@ export function CatalogFilterBar({
             <button
               type="button"
               onClick={() => onChange(EMPTY_CATALOG_FILTER)}
-              className="text-[10px] text-[#8B7355] underline underline-offset-2 hover:text-[#3D2E1F]"
+              className="text-[10px] text-[var(--wd-mute)] underline underline-offset-2 hover:text-[var(--wd-ink)]"
             >
               초기화
             </button>
@@ -166,7 +166,7 @@ export function CatalogFilterBar({
       {(showRecommendToggle || showSortChips) && (
         <div className="flex flex-wrap items-center justify-between gap-2">
           {showRecommendToggle && (
-            <div className="inline-flex rounded-full bg-[#FAF7F2] p-0.5 ring-1 ring-[#E8DCC9]">
+            <div className="inline-flex rounded-full bg-[var(--wd-cream)] p-0.5 ring-1 ring-[var(--wd-line)]">
               <SegmentedButton
                 selected={!!onlyRecommended}
                 onClick={() => onOnlyRecommendedChange!(true)}
@@ -182,7 +182,7 @@ export function CatalogFilterBar({
             </div>
           )}
           {showSortChips && (
-            <div className="inline-flex rounded-full bg-[#FAF7F2] p-0.5 ring-1 ring-[#E8DCC9]">
+            <div className="inline-flex rounded-full bg-[var(--wd-cream)] p-0.5 ring-1 ring-[var(--wd-line)]">
               {(
                 [
                   { value: 'default', label: '추천순' },
@@ -248,7 +248,7 @@ function FilterIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="text-[#8B7355]"
+      className="text-[var(--wd-mute)]"
     >
       <path d="M3 4h14l-5.5 7v5l-3 1v-6L3 4z" />
     </svg>
@@ -270,7 +270,7 @@ function SegmentedButton({
   label: string;
   accent: 'emerald' | 'brown';
 }) {
-  const activeBg = accent === 'emerald' ? 'bg-emerald-600' : 'bg-[#3D2E1F]';
+  const activeBg = accent === 'emerald' ? 'bg-emerald-600' : 'bg-[var(--wd-ink)]';
   return (
     <button
       type="button"
@@ -279,7 +279,7 @@ function SegmentedButton({
       className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium transition-colors ${
         selected
           ? `${activeBg} text-white shadow-sm`
-          : 'text-[#5C4633] hover:text-[#3D2E1F]'
+          : 'text-[var(--wd-ink)] hover:text-[var(--wd-ink)]'
       }`}
     >
       {label}
@@ -305,7 +305,7 @@ function InlineChipGroup<T extends string>({
 }) {
   return (
     <div className="flex items-center gap-1">
-      <span className="text-[10px] font-medium text-[#5C4633]">{label}</span>
+      <span className="text-[10px] font-medium text-[var(--wd-ink)]">{label}</span>
       {options.map((opt) => {
         const isOn = selected.has(opt.value);
         return (
@@ -316,8 +316,8 @@ function InlineChipGroup<T extends string>({
             aria-pressed={isOn}
             className={`rounded-full border px-2 py-0.5 text-[10px] transition-colors ${
               isOn
-                ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white'
-                : 'border-[#D4C5B0] bg-white text-[#5C4633] hover:border-[#8B7355]'
+                ? 'border-[var(--wd-ink)] bg-[var(--wd-ink)] text-white'
+                : 'border-[var(--wd-line)] bg-white text-[var(--wd-ink)] hover:border-[var(--wd-mute)]'
             }`}
           >
             {opt.label}

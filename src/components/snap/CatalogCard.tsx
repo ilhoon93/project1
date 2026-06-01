@@ -65,7 +65,7 @@ export function CatalogCard(props: Props) {
 
   if (props.variant === 'preview') {
     return (
-      <div className="relative flex h-full flex-col overflow-hidden rounded-md border border-[#E8DCC9] bg-white">
+      <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)]">
         {inner}
       </div>
     );
@@ -81,8 +81,8 @@ export function CatalogCard(props: Props) {
       title={title}
       className={`relative flex h-full flex-col overflow-hidden rounded-md border text-left transition-colors ${
         selected
-          ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
-          : 'border-[#E8DCC9] hover:border-[#8B7355]'
+          ? 'border-[var(--wd-ink)] ring-2 ring-[var(--wd-ink)]/30'
+          : 'border-[var(--wd-line)] hover:border-[var(--wd-mute)]'
       } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
     >
       {inner}
@@ -97,10 +97,10 @@ function CardCaption({ label, hint }: { label: string; hint: string }) {
   // stretch 됐을 때도 이미지 영역 비율 유지 + caption 영역 통일.
   return (
     <div className="flex h-16 flex-col justify-start gap-0.5 px-2 py-2">
-      <p className="truncate text-xs font-medium leading-tight text-[#3D2E1F]">
+      <p className="truncate text-xs font-medium leading-tight text-[var(--wd-ink)]">
         {label}
       </p>
-      <p className="line-clamp-2 text-[10px] leading-snug text-[#8B7355]">{hint}</p>
+      <p className="line-clamp-2 text-[10px] leading-snug text-[var(--wd-mute)]">{hint}</p>
     </div>
   );
 }
@@ -117,7 +117,7 @@ function BadgeStack({
   isRecommended: boolean;
 }) {
   const config = {
-    together: { label: '함께', color: 'bg-[#3D2E1F]/85' },
+    together: { label: '함께', color: 'bg-[var(--wd-ink)]/85' },
     'groom-solo': { label: '신랑 단독', color: 'bg-blue-600/85' },
     'bride-solo': { label: '신부 단독', color: 'bg-pink-600/85' },
   }[personality];
