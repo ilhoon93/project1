@@ -222,7 +222,7 @@ function DesignAndValues({
         <FadeUp scroll delay={0.16}>
           <p className="mb-5 mt-2 max-w-[540px] break-keep text-[14px] leading-[1.75] text-[var(--wd-mute)]">
             손 끝으로 넘기며 보는 10개 섹션 — 디자인 테마, 폰트, 슬라이드 순서까지
-            우리답게. 발행 전까지{' '}
+            우리답게. <br/>발행 전까지{' '}
             <strong className="font-medium text-[var(--wd-ink)]">무료로 자유롭게</strong>{' '}
             만들어 보세요.
           </p>
@@ -237,14 +237,14 @@ function DesignAndValues({
             <KeyChip>9가지 움직이는 배경효과</KeyChip>
             <KeyChip>메인화면 축하폭죽</KeyChip>
             <KeyChip>텍스트 애니메이션</KeyChip>
-            <KeyChip>4가지 레이아웃 디자인</KeyChip>
+            <KeyChip>14가지 레이아웃 디자인</KeyChip>
             <KeyChip>19가지 폰트</KeyChip>
             <KeyChip>좋아요 가능한 갤러리</KeyChip>
-            <KeyChip>영상 슬라이드</KeyChip>
-            <KeyChip>배경음악</KeyChip>
             <KeyChip>퀴즈·A/B 투표</KeyChip>
             <KeyChip>손글씨를 담은 소장용 방명록</KeyChip>
             <KeyChip>혼인서약서</KeyChip>
+            <KeyChip>영상 슬라이드</KeyChip>
+            <KeyChip>배경음악</KeyChip>
             <KeyChip>계좌 정보</KeyChip>
             <KeyChip>슬라이드 순서변경</KeyChip>
             <KeyChip>무료 제작</KeyChip>
@@ -310,7 +310,7 @@ function AiSnapPreview({
 
         <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[var(--wd-coral)]/12 px-3.5 py-1.5 text-[11.5px] font-medium text-[var(--wd-coral)]">
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--wd-coral)]" />
-          신규 가입 후 첫 결제 시 5장 무료 체험
+          신규 가입 후 1크레딧 무료, 첫 결제시 앵커 생성 무료
         </div>
 
         <BeforeAfterSlider config={beforeAfter} />
@@ -382,10 +382,10 @@ function InvitationPricingCard() {
 
       <ul className="mt-5 flex flex-col gap-1.5 text-left text-sm text-[var(--wd-mute)] [&>li]:break-keep">
         <li>· 메인·스토리·갤러리 등 10개 섹션 구성</li>
-        <li>· AI 메인 사진 1장 포함</li>
+        <li>· 하객용, 소장용 URL 각각 제공</li>
         <li>· 하객 서명·퀴즈·투표·방명록 수집</li>
         <li>· 발행 후 30일간 공개</li>
-        <li>· 혼인서약서·방명록·사진 PDF·이미지 영구 소장</li>
+        <li>· 혼인서약서 PDF·이미지 영구 소장</li>
       </ul>
 
       {/* 알림장과 함께 결제할 수 있는 부가 상품 — 영구소장 / 스냅 번들. */}
