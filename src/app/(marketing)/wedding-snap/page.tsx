@@ -175,7 +175,7 @@ function TwoWaysToStart() {
       <SectionHeading
         eyebrow="HOW TO INPUT"
         title="두 가지로 시작할 수 있어요"
-        description="가진 사진에 맞춰 두 가지 입력 방식 중 하나를 고르세요. 가입 즉시 받는 1크레딧으로는 커플사진 모드의 첫 1장을 무료로 만들어볼 수 있어요."
+        description="가진 사진에 맞춰 두 가지 입력 방식 중 하나를 고르세요."
       />
       <div className="grid gap-3 lg:grid-cols-2">
         {/* 1) 커플사진 모드 — 즉시 1장 무료 체험 가능 (강조). */}
@@ -191,8 +191,7 @@ function TwoWaysToStart() {
               커플사진 한 장으로
             </h3>
             <p className="mt-1 text-[12px] leading-relaxed text-[var(--wd-mute)]">
-              이미 함께 찍은 사진이 있다면 가장 간단한 방법. 앵커 생성 단계 없이
-              그 사진 한 장을 바로 카탈로그 컷에 적용해 컷당 1크레딧으로 만들어요.
+              커플사진 한 장을 바로 카탈로그 컷에 적용해 컷당 1크레딧으로 만들어요.
             </p>
           </header>
           <FlowRow
@@ -214,16 +213,12 @@ function TwoWaysToStart() {
               각자 셀카로 — 솔로 · 함께 컷 모두
             </h3>
             <p className="mt-1 text-[12px] leading-relaxed text-[var(--wd-mute)]">
-              함께 찍은 사진이 없어도 OK. 신랑·신부 각자 셀카 1~3장(정면·좌·우)을
-              올리면 AI 가 4장 후보 중 1장씩 <strong>앵커</strong>(나만의 기준 얼굴)
-              로 선택. 이 앵커를 카탈로그 컷에 적용해{' '}
-              <strong>신랑 단독 · 신부 단독 · 함께 컷</strong> 3 가지를 모두 만들 수
-              있어요.
+              신랑·신부 각각의 사진을 올리면 AI가 <strong>앵커</strong>(나만의 기준 얼굴)을 만들어요.
+              이 앵커를 카탈로그 컷에 적용해{' '} <strong>신랑 단독 · 신부 단독 · 함께 컷</strong> 
+              3 가지를 모두 만들 수 있어요.
             </p>
             <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--wd-ink)]/70">
-              ※ 앵커 무료 혜택은 <strong>결제 사용자에게 최초 1회</strong>만.
-              가입 1크레딧으로는 앵커 생성이 불가하니, 커플사진 모드부터 체험을
-              권장.
+              ※ <strong>결제 사용자에게 최초 1회</strong> 앵커 무료 생성 혜택이 제공됩니다.
             </p>
           </header>
 
@@ -349,7 +344,7 @@ function HowItWorks({ catalogCount }: { catalogCount: number }) {
     },
     {
       n: 4,
-      title: '다운로드 + 청첩장 메인',
+      title: '다운로드 & 활용',
       body: '갤러리에서 모두 다운로드. 청첩장 메인 사진으로도 사용.',
       // 결과 그리드 느낌 — 셀카 함께 모드 결과 컷.
       img: SELFIES_FLOWS.together.result,
@@ -410,7 +405,7 @@ function CatalogPreview({
       <SectionHeading
         eyebrow="GALLERY"
         title="카탈로그 미리보기"
-        description="실제로 만들 수 있는 컷의 일부예요. 만들기 페이지에서 더 자세히 둘러보고 필터링할 수 있어요."
+        description=" "
       />
       <CatalogPreviewClient items={items} catalogStats={catalogStats} />
     </section>
@@ -430,8 +425,7 @@ function FinalCta() {
           <br className="sm:hidden" /> — 커플사진 1장 무료 체험
         </h3>
         <p className="max-w-md break-keep text-[13px] leading-relaxed text-[var(--wd-mute)]">
-          만든 결과물은 마이페이지에 영구 보관되고, 청첩장 메인 사진으로도 사용할
-          수 있어요.
+          만든 결과물은 마이페이지에 영구 보관되고 다운로드해 언제든 활용할 수 있어요.
         </p>
         <Link
           href="/wedding-snap/create"
@@ -439,9 +433,7 @@ function FinalCta() {
         >
           지금 만들기 →
         </Link>
-        <p className="text-[11px] text-[var(--wd-mute)]">
-          ※ 셀카 모드 앵커 무료(최초 1회) 혜택은 결제 사용자 전용입니다.
-        </p>
+
       </div>
     </section>
   );
