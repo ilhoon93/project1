@@ -176,7 +176,7 @@ function HowToInput() {
       <SectionHeading
         eyebrow="HOW TO INPUT"
         title="두 가지로 시작할 수 있어요"
-        description="가진 사진에 맞춰 두 가지 입력 방식 중 하나를 고르세요. 가입 즉시 받는 1크레딧으로는 커플사진 모드의 첫 1장을 무료로 만들어볼 수 있어요."
+        description="가진 사진에 맞춰 두 가지 입력 방식 중 하나를 고르세요."
       />
       <SnapModeCards />
     </section>
@@ -206,7 +206,7 @@ function HowItWorks({ catalogCount }: { catalogCount: number }) {
     },
     {
       n: 4,
-      title: '다운로드 + 청첩장 메인',
+      title: '다운로드 & 활용',
       body: '갤러리에서 모두 다운로드. 청첩장 메인 사진으로도 사용.',
       // 결과 그리드 느낌 — 셀카 함께 모드 결과 컷.
       img: SELFIES_FLOWS.together.result,
@@ -267,7 +267,7 @@ function CatalogPreview({
       <SectionHeading
         eyebrow="GALLERY"
         title="카탈로그 미리보기"
-        description="실제로 만들 수 있는 컷의 일부예요. 만들기 페이지에서 더 자세히 둘러보고 필터링할 수 있어요."
+        description=" "
       />
       <CatalogPreviewClient items={items} catalogStats={catalogStats} />
     </section>
@@ -287,8 +287,7 @@ function FinalCta() {
           <br className="sm:hidden" /> — 커플사진 1장 무료 체험
         </h3>
         <p className="max-w-md break-keep text-[13px] leading-relaxed text-[var(--wd-mute)]">
-          만든 결과물은 마이페이지에 영구 보관되고, 청첩장 메인 사진으로도 사용할
-          수 있어요.
+          만든 결과물은 마이페이지에 영구 보관되고 다운로드해 언제든 활용할 수 있어요.
         </p>
         <Link
           href="/wedding-snap/create"
@@ -296,9 +295,7 @@ function FinalCta() {
         >
           지금 만들기 →
         </Link>
-        <p className="text-[11px] text-[var(--wd-mute)]">
-          ※ 셀카 모드 앵커 무료(최초 1회) 혜택은 결제 사용자 전용입니다.
-        </p>
+
       </div>
     </section>
   );

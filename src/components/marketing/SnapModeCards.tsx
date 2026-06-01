@@ -34,8 +34,7 @@ export function SnapModeCards() {
               커플사진 한 장으로
             </h3>
             <p className="mt-1 text-[12px] leading-relaxed text-[var(--wd-mute)]">
-              이미 함께 찍은 사진이 있다면 가장 간단한 방법. 앵커 생성 단계 없이
-              그 사진 한 장을 바로 카탈로그 컷에 적용해 컷당 1크레딧으로 만들어요.
+              커플사진을 바로 카탈로그에 적용해 한 컷당 1크레딧으로 만들어요.
             </p>
           </header>
           <ExampleButton onClick={() => setOpenMode('couple')} variant="primary" />
@@ -51,16 +50,14 @@ export function SnapModeCards() {
               각자 셀카로 — 솔로 · 함께 컷 모두
             </h3>
             <p className="mt-1 text-[12px] leading-relaxed text-[var(--wd-mute)]">
-              함께 찍은 사진이 없어도 OK. 신랑·신부 각자 셀카 1~3장(정면·좌·우)을
-              올리면 AI 가 4장 후보 중 1장씩 <strong>앵커</strong>(나만의 기준 얼굴)
-              로 선택. 이 앵커를 카탈로그 컷에 적용해{' '}
+              신랑·신부 각각의 사진을 올리면 AI가 <strong>앵커</strong>(나만의 기준
+              얼굴)을 만들어요. 이 앵커를 카탈로그 컷에 적용해{' '}
               <strong>신랑 단독 · 신부 단독 · 함께 컷</strong> 3 가지를 모두 만들 수
               있어요.
             </p>
             <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--wd-ink)]/70">
-              ※ 앵커 무료 혜택은 <strong>결제 사용자에게 최초 1회</strong>만.
-              가입 {WELCOME_CREDIT}크레딧으로는 앵커 생성이 불가하니, 커플사진
-              모드부터 체험을 권장.
+              ※ <strong>결제 사용자에게 최초 1회</strong> 앵커 무료 생성 혜택이
+              제공됩니다.
             </p>
           </header>
           <ExampleButton onClick={() => setOpenMode('selfies')} />
