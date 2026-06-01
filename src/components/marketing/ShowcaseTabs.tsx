@@ -32,7 +32,14 @@ const MOCK_TAB_IDS: MockTabId[] = ['design', 'quiz', 'vote', 'guestbook', 'vow']
  * 마케팅 페이지 안에서만 쓰는 경량 비주얼이다. (실제 슬라이드 컴포넌트는
  * invitationId·서버 API·축하 카운트 등 부수효과가 있어 메인 임베드 부적합.)
  */
-export function ShowcaseTabs({ designs }: { designs: SampleDesign[] }) {
+export function ShowcaseTabs({
+  designs,
+  ownerUrlExample,
+}: {
+  designs: SampleDesign[];
+  /** 관리자(/admin/home-samples)에서 세팅한 owner URL 예시. 비면 placeholder. */
+  ownerUrlExample?: string;
+}) {
   const [active, setActive] = useState<MockTabId>('design');
   const [userPicked, setUserPicked] = useState(false);
   const [ownerOpen, setOwnerOpen] = useState(false);
@@ -98,7 +105,9 @@ export function ShowcaseTabs({ designs }: { designs: SampleDesign[] }) {
         </ul>
       </div>
 
-      {ownerOpen && <OwnerUrlModal onClose={() => setOwnerOpen(false)} />}
+      {ownerOpen && (
+        <OwnerUrlModal onClose={() => setOwnerOpen(false)} exampleUrl={ownerUrlExample} />
+      )}
     </>
   );
 }
@@ -243,9 +252,6 @@ function MockQuiz({ active }: { active: boolean }) {
           </div>
         ))}
       </div>
-      <div className="mt-5 text-center text-[10px] text-[var(--wd-mute)]">
-        하객 32 명 참여 중
-      </div>
     </div>
   );
 }
@@ -266,9 +272,6 @@ function MockVote({ active }: { active: boolean }) {
       <div className="mt-5 flex flex-col gap-3">
         <VoteRow label="A · 발리" pct={A} highlight />
         <VoteRow label="B · 제주" pct={B} />
-      </div>
-      <div className="mt-5 text-center text-[10px] text-[var(--wd-mute)]">
-        하객 48 표 · 자정 마감
       </div>
     </div>
   );
@@ -304,7 +307,7 @@ function MockGuestbook({ active }: { active: boolean }) {
       <div className="font-italiana text-[10px] tracking-[0.3em] text-[var(--wd-coral)]">
         GUESTBOOK
       </div>
-      <div className="mt-1 text-[12px] text-[var(--wd-mute)]">하객 12 명의 메시지</div>
+      <div className="mt-1 text-[12px] text-[var(--wd-mute)]">축하 메시지 & 손글씨 서명</div>
       <div className="mt-3 flex flex-1 flex-col gap-2 overflow-hidden">
         {items.map((it, i) => (
           <div

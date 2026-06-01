@@ -42,7 +42,7 @@ export default async function LandingPage() {
   return (
     <>
       <Hero aiSnaps={home.aiSnaps} designs={home.designs} />
-      <DesignAndValues designs={home.designs} />
+      <DesignAndValues designs={home.designs} ownerUrlExample={home.ownerUrlExample} />
       <AiSnapPreview
         catalogCount={catalogCount}
         aiSnaps={home.aiSnaps}
@@ -189,7 +189,13 @@ function PeekPolaroid({
 
 /* ─────────────────────── 2. 디자인 + 차별화 가치 ─────────────────────── */
 
-function DesignAndValues({ designs }: { designs: SampleDesign[] }) {
+function DesignAndValues({
+  designs,
+  ownerUrlExample,
+}: {
+  designs: SampleDesign[];
+  ownerUrlExample: string;
+}) {
   return (
     <section
       id="design-values"
@@ -218,7 +224,7 @@ function DesignAndValues({ designs }: { designs: SampleDesign[] }) {
           </p>
         </FadeUp>
 
-        <ShowcaseTabs designs={designs} />
+        <ShowcaseTabs designs={designs} ownerUrlExample={ownerUrlExample} />
 
         <div className="mt-7">
           <Link
@@ -275,7 +281,7 @@ function AiSnapPreview({
 
         <div className="mt-5 grid grid-cols-2 divide-x divide-[var(--wd-line)] rounded-2xl border border-[var(--wd-line)] bg-white py-4 text-center">
           <Stat number={catalogCountStat(catalogCount)} label="스타일 라인업" />
-          <Stat number="≈90s" label="컷 당 평균 생성" />
+          <Stat number="약 2분" label="컷 당 평균 생성" />
         </div>
 
         <CatalogStrip catalogCount={catalogCount} aiSnaps={aiSnaps} />
@@ -386,12 +392,16 @@ function InvitationPricingCard() {
 function SnapPricingCard() {
   return (
     <div className="relative flex h-full flex-col overflow-hidden rounded-2xl bg-[var(--wd-paper)] p-7 shadow-sm ring-1 ring-[var(--wd-line)]">
-      {/* 오픈 이벤트 띠 — 카드 상단에 가로 띠로 항상 노출. */}
-      <div className="absolute inset-x-0 top-0 flex items-center justify-center gap-1.5 bg-[var(--wd-coral)] py-1 text-[11px] font-medium text-white">
-        <span className="inline-block h-1.5 w-1.5 rounded-full bg-white/90" />
-        OPEN EVENT · 가입 즉시 1크레딧 무료
+      {/* 오픈 이벤트 띠 — 카드 상단에 가로 띠로 항상 노출. wd 톤(cream + ink) 으로
+          파란빛 없이 따뜻하게. */}
+      <div className="absolute inset-x-0 top-0 flex items-center justify-center gap-2 bg-[var(--wd-cream)] py-1.5 text-[11px] font-medium text-[var(--wd-ink)]">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--wd-coral)]" />
+        <span className="font-italiana text-[10px] tracking-[0.26em] text-[var(--wd-coral)]">
+          OPEN EVENT
+        </span>
+        <span>가입 즉시 1크레딧 무료</span>
       </div>
-      <div className="mt-5 text-center">
+      <div className="mt-7 text-center">
         <p className="font-italiana text-xs tracking-[0.3em] text-[var(--wd-coral)]">
           AI WEDDING SNAP
         </p>
@@ -426,7 +436,7 @@ function SnapPricingCard() {
                 )}
               </div>
               <span className="text-[11px] text-[var(--wd-mute)]">
-                크레딧 {p.credits}개 · 컷당 {formatKRW(p.perImage)}
+                크레딧 {p.credits}개
               </span>
             </div>
             <span className="flex-shrink-0 text-[13px] font-semibold text-[var(--wd-ink)]">

@@ -190,10 +190,11 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient();
 
-  // 1. 무료 활성화 여부 — 결제한 사용자에게만 (마이그 016 정책).
-  //    조건: has_purchased_snap == true && full batch && freeUsed < 2.
+  // 1. 무료 활성화 여부 — 결제한 사용자에게만 (마이그 016 정책 / 개정).
+  //    조건: has_purchased_snap == true && 전체 묶음 && freeUsed < 1.
+  //    정책(개정): "최초 1회" 만 앵커 묶음 무료. 재생성/추가 묶음은 모두 4 크레딧.
   //    부분 재생성은 카운터에 영향 없음 (항상 유료).
-  //    미결제 사용자는 무료 batch 없음 — 첫 batch 부터 4 크레딧 필요.
+  //    미결제 사용자는 무료 묶음 없음 — 첫 묶음부터 4 크레딧 필요.
   const [{ data: existing }, { data: hasPurchasedRaw }] = await Promise.all([
     admin
       .from('snap_anchors')
@@ -207,7 +208,8 @@ export async function POST(req: Request) {
   const hasPurchased = !!hasPurchasedRaw;
   const freeUsed = existing?.free_full_batches_used ?? 0;
   const isFullBatch = uniqueSlots.length === 2;
-  const isFreeActivation = hasPurchased && isFullBatch && freeUsed < 2;
+  // 정책 개정 — 첫 2회 → 최초 1회만.
+  const isFreeActivation = hasPurchased && isFullBatch && freeUsed < 1;
 
   // 2. 비용 계산 — 1 output 당 1 크레딧. slots 길이 × 2.
   const cost = isFreeActivation ? 0 : uniqueSlots.length * 2;

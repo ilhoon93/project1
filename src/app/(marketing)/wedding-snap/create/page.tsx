@@ -49,7 +49,7 @@ export default async function WeddingSnapCreatePage() {
           AI 웨딩스냅 만들기
         </h1>
         <span className="text-xs text-[#8B7355]">
-          평균 60~120초 · 1컷 = 크레딧 1개
+          평균 약 2분 · 1컷 = 크레딧 1개
         </span>
       </div>
 

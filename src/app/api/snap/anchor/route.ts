@@ -25,8 +25,8 @@ import {
  *
  * 무료 활성화 정책 (마이그 016 적용 후):
  *   * 앵커 무료 batch 는 "스냅 크레딧 결제 이력이 있는" 사용자에게만 제공.
- *   * 결제 사용자: free_full_batches_used < 2 → 무료. 최초 생성 + 재생성 1회.
- *   * 미결제 사용자: 무료 batch 0회 (첫 batch 부터 4 크레딧 필요).
+ *   * 결제 사용자: free_full_batches_used < 1 → 최초 1회만 무료(개정).
+ *   * 미결제 사용자: 무료 묶음 0회 (첫 묶음부터 4 크레딧 필요).
  *   * 가입 환영 크레딧 +1 은 별도 — 커플 카탈로그 1장 체험용.
  */
 
@@ -123,9 +123,10 @@ export async function GET() {
       discardedAt: e.discarded_at as string,
     }));
 
-  // 무료 batch: 결제 사용자에게만 제공. 미결제면 잔량 0.
+  // 무료 앵커 묶음: 결제 사용자에게 "최초 1회" 만 제공 — 정책 개정(2→1).
+  // 미결제면 잔량 0.
   const freeUsed = anchor?.free_full_batches_used ?? 0;
-  const freeBatchesLeft = hasPurchased ? Math.max(0, 2 - freeUsed) : 0;
+  const freeBatchesLeft = hasPurchased ? Math.max(0, 1 - freeUsed) : 0;
   const freeActivationAvailable = freeBatchesLeft > 0;
 
   return NextResponse.json(
