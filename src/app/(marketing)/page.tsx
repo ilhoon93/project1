@@ -238,7 +238,7 @@ function DesignAndValues({
             <KeyChip>메인화면 축하폭죽</KeyChip>
             <KeyChip>텍스트 애니메이션</KeyChip>
             <KeyChip>4가지 레이아웃 디자인</KeyChip>
-            <KeyChip>34가지 폰트</KeyChip>
+            <KeyChip>19가지 폰트</KeyChip>
             <KeyChip>좋아요 가능한 갤러리</KeyChip>
             <KeyChip>영상 슬라이드</KeyChip>
             <KeyChip>배경음악</KeyChip>
