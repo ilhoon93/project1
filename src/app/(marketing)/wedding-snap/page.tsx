@@ -191,7 +191,7 @@ function TwoWaysToStart() {
               커플사진 한 장으로
             </h3>
             <p className="mt-1 text-[12px] leading-relaxed text-[var(--wd-mute)]">
-              커플사진 한 장을 바로 카탈로그 컷에 적용해 컷당 1크레딧으로 만들어요.
+              커플사진을 바로 카탈로그에 적용해 한 컷당 1크레딧으로 만들어요.
             </p>
           </header>
           <FlowRow
