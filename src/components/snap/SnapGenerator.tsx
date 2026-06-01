@@ -924,7 +924,6 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
           <ModeCard
             title="커플 사진으로 만들기"
             hint="가장 간단 · 함께 컷"
-            recommended="1크레딧 즉시 체험"
             description={
               <>
                 커플 사진 1장으로 바로 합성. 앵커 단계 없이 <strong>포즈·체형
