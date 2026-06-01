@@ -9,7 +9,6 @@ import { OwnerUrlModal } from './OwnerUrlButton';
 type MockTabId =
   | 'design'
   | 'gallery'
-  | 'video'
   | 'quiz'
   | 'vote'
   | 'guestbook'
@@ -20,7 +19,6 @@ type TabId = MockTabId | 'ownerUrl';
 const TABS: Array<{ id: TabId; name: string; tag: string }> = [
   { id: 'design', name: '움직이는 디자인', tag: '배경효과·텍스트 애니메이션·폭죽효과' },
   { id: 'gallery', name: '좋아요 가능한 갤러리', tag: '사진마다 하객이 ♥ 좋아요' },
-  { id: 'video', name: '영상 슬라이드', tag: '사진뿐 아니라 영상까지' },
   { id: 'quiz', name: '하객 참여 퀴즈', tag: '객관식 퀴즈로 함께 노는 페이지' },
   { id: 'vote', name: 'A/B 투표', tag: '신혼여행지·드레스 색깔 투표' },
   { id: 'guestbook', name: '소장용 방명록', tag: '축하 메시지 + 손글씨 서명' },
@@ -32,7 +30,6 @@ const TABS: Array<{ id: TabId; name: string; tag: string }> = [
 const MOCK_TAB_IDS: MockTabId[] = [
   'design',
   'gallery',
-  'video',
   'quiz',
   'vote',
   'guestbook',
@@ -80,7 +77,6 @@ export function ShowcaseTabs({
           <PhoneFrame>
             <MockDesign active={active === 'design'} samples={designSamples} />
             <MockGallery active={active === 'gallery'} />
-            <MockVideo active={active === 'video'} />
             <MockQuiz active={active === 'quiz'} />
             <MockVote active={active === 'vote'} />
             <MockGuestbook active={active === 'guestbook'} />
@@ -168,13 +164,6 @@ function TabIcon({ id, active }: { id: TabId; active: boolean }) {
           />
         </svg>
       )}
-      {id === 'video' && (
-        // 재생 버튼 (영상 슬라이드)
-        <svg width="18" height="22" viewBox="0 0 18 22" fill="none">
-          <rect x="2" y="5" width="14" height="12" rx="2" stroke={fill} strokeWidth="1.2" />
-          <path d="M7.5 8.5l4 2.5-4 2.5V8.5z" fill={fill} />
-        </svg>
-      )}
       {id === 'quiz' && (
         <svg width="18" height="22" viewBox="0 0 18 22" fill="none">
           <circle cx="9" cy="9" r="7" stroke={fill} strokeWidth="1.2" />
@@ -236,7 +225,7 @@ function TabIcon({ id, active }: { id: TabId; active: boolean }) {
   );
 }
 
-/* ─────────────────── mini mock 7 종 ─────────────────── */
+/* ─────────────────── mini mock 6 종 ─────────────────── */
 
 // 디자인 탭은 실제 알림장 렌더러로 만든 표지를 순환 (나머지 탭은 경량 mock 유지).
 function MockDesign({ active, samples }: { active: boolean; samples: SampleDesign[] }) {
@@ -294,37 +283,6 @@ function MockGallery({ active }: { active: boolean }) {
             </div>
           </div>
         ))}
-      </div>
-    </div>
-  );
-}
-
-function MockVideo({ active }: { active: boolean }) {
-  return (
-    <div
-      className={`absolute inset-0 flex flex-col items-center justify-center bg-[#15110E] px-5 transition-opacity duration-500 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
-    >
-      <div className="font-italiana text-[10px] tracking-[0.3em] text-[var(--wd-coral)]">
-        OUR FILM
-      </div>
-      {/* 세로 영상 프레임 + 재생 버튼 */}
-      <div className="relative mt-4 h-[230px] w-[150px] overflow-hidden rounded-xl bg-gradient-to-br from-[#3a2e25] via-[#2a211b] to-[#15110E] ring-1 ring-white/10">
-        <div className="absolute inset-0 grid place-items-center">
-          <span className="grid h-12 w-12 place-items-center rounded-full bg-white/90 shadow-lg">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M5 3.5l7 4.5-7 4.5v-9z" fill="var(--wd-ink)" />
-            </svg>
-          </span>
-        </div>
-        {/* progress */}
-        <div className="absolute inset-x-3 bottom-3">
-          <div className="h-1 w-full overflow-hidden rounded-full bg-white/25">
-            <div className="h-full w-1/3 rounded-full bg-[var(--wd-coral)]" />
-          </div>
-        </div>
-      </div>
-      <div className="mt-3 text-[11px] leading-snug text-[var(--wd-cream)]">
-        사진뿐 아니라 <span className="text-[var(--wd-coral)]">영상</span> 한 컷까지
       </div>
     </div>
   );
