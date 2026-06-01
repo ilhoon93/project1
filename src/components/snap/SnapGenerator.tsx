@@ -1676,7 +1676,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
               : `⚠️ ${submitSummary.ok}개 시작 · ${submitSummary.failed.length}개 실패`}
           </h2>
           <p className="mt-1 text-xs text-[#5C4633]">
-            평균 60~120초 후에 완성됩니다. 화면을 떠나도 생성은 계속 진행되며, 결과는
+            평균 약 2분 후에 완성됩니다. 화면을 떠나도 생성은 계속 진행되며, 결과는
             마이페이지에서 모아 볼 수 있어요.
           </p>
           {submitSummary.failed.length > 0 && (

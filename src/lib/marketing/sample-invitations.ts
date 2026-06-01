@@ -131,6 +131,12 @@ export interface TemplateConfig {
 export interface HomeSamplesConfig {
   aiSnapCatalogIds: string[];
   designs: DesignConfig[];
+  /**
+   * 메인 ShowcaseTabs "소장용 URL" 모달의 "예시 열기" 버튼이 가리키는 실 owner URL.
+   * 관리자가 실제 발행한 알림장의 owner URL 을 여기 입력해 두면, 사용자가 모달에서
+   * "예시 열기" 를 누를 때 그 URL 이 새 창으로 뜸. 비면 버튼 미노출(placeholder URL 만 표시).
+   */
+  ownerUrlExample?: string;
   beforeAfter: BeforeAfterConfig;
   template: TemplateConfig;
 }
@@ -444,6 +450,7 @@ export const DEFAULT_AI_SNAP_IDS: string[] = [
 export const DEFAULT_HOME_SAMPLES_CONFIG: HomeSamplesConfig = {
   aiSnapCatalogIds: DEFAULT_AI_SNAP_IDS,
   designs: DEFAULT_SAMPLE_CONFIGS,
+  ownerUrlExample: '',
   beforeAfter: DEFAULT_BEFORE_AFTER,
   template: DEFAULT_TEMPLATE,
 };

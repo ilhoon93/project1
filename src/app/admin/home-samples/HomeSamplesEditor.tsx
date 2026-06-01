@@ -395,6 +395,26 @@ export function InvitationSamplesEditor({
         </div>
       </section>
 
+      {/* ───────────── 소장용 URL 예시 ───────────── */}
+      <section className="rounded-lg border border-[#E8DCC9] bg-white p-4">
+        <h2 className="text-sm font-semibold text-[#3D2E1F]">소장용 URL 예시</h2>
+        <p className="mt-0.5 text-[11px] text-[#8B7355]">
+          메인 화면 ShowcaseTabs &quot;소장용 URL&quot; 모달의 &quot;예시 열기&quot;
+          버튼이 가리키는 실제 owner URL. 실제로 발행한 알림장의 owner URL
+          (예: <span className="font-mono">https://wooridaun.com/i/&lt;slug&gt;?own=&lt;token&gt;</span>)
+          을 여기 붙여 넣으면 사용자가 모달에서 새 창으로 열어볼 수 있습니다.
+          비워 두면 모달엔 placeholder URL 만 표시되고 &quot;예시 열기&quot;
+          버튼은 노출되지 않습니다.
+        </p>
+        <input
+          type="url"
+          className={`${inputCls} mt-3 font-mono text-[12px]`}
+          placeholder="https://wooridaun.com/i/<slug>?own=<token>"
+          value={config.ownerUrlExample ?? ''}
+          onChange={(e) => setConfig((c) => ({ ...c, ownerUrlExample: e.target.value }))}
+        />
+      </section>
+
       {/* ───────────── 공유 본문 템플릿 ───────────── */}
       <section className="rounded-lg border border-[#E8DCC9] bg-white p-4">
         <h2 className="text-sm font-semibold text-[#3D2E1F]">공유 본문 템플릿</h2>

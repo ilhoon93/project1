@@ -32,6 +32,8 @@ export interface HomeSamples {
   aiSnaps: AiSnapItem[];
   designs: SampleDesign[];
   beforeAfter: BeforeAfterConfig;
+  /** 메인 ShowcaseTabs "소장용 URL" 모달 "예시 열기" 버튼 URL — 관리자 세팅. */
+  ownerUrlExample: string;
 }
 
 const DesignConfigSchema = z.object({
@@ -109,6 +111,8 @@ const TemplateSchema = z.object({
 const ConfigSchema = z.object({
   aiSnapCatalogIds: z.array(z.string()),
   designs: z.array(DesignConfigSchema),
+  // 관리자에서 세팅한 owner URL 예시 (옵션). 구버전 호환 default ''.
+  ownerUrlExample: z.string().default(''),
   beforeAfter: BeforeAfterSchema.optional(),
   template: TemplateSchema.optional(),
 });
@@ -125,22 +129,35 @@ function resolveAiSnaps(ids: string[]): AiSnapItem[] {
 async function readRow(): Promise<HomeSamplesConfig | null> {
   try {
     const supabase = createClient();
+    // owner_url_example 컬럼은 036 마이그에서 추가. DB 타입(자동생성)이 아직
+    // 갱신되지 않은 환경 호환을 위해 select 컬럼 문자열을 좁힌 후 row 만 캐스팅.
+    // 마이그 미적용 환경에선 supabase 가 컬럼 없음 에러를 던져 outer catch 가 null 폴백.
     const { data, error } = await supabase
       .from('marketing_home_samples')
-      .select('ai_snap_catalog_ids, designs, before_after, template')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .select('*' as any)
       .eq('id', true)
       .maybeSingle();
     if (error || !data) return null;
+    const row = data as unknown as {
+      ai_snap_catalog_ids: string[] | null;
+      designs: unknown;
+      before_after?: unknown;
+      template?: unknown;
+      owner_url_example?: string | null;
+    };
     const parsed = ConfigSchema.safeParse({
-      aiSnapCatalogIds: data.ai_snap_catalog_ids ?? [],
-      designs: data.designs ?? [],
-      beforeAfter: data.before_after ?? undefined,
-      template: data.template ?? undefined,
+      aiSnapCatalogIds: row.ai_snap_catalog_ids ?? [],
+      designs: row.designs ?? [],
+      ownerUrlExample: row.owner_url_example ?? '',
+      beforeAfter: row.before_after ?? undefined,
+      template: row.template ?? undefined,
     });
     if (!parsed.success) return null;
     return {
       aiSnapCatalogIds: parsed.data.aiSnapCatalogIds,
       designs: parsed.data.designs,
+      ownerUrlExample: parsed.data.ownerUrlExample,
       beforeAfter: parsed.data.beforeAfter ?? DEFAULT_BEFORE_AFTER,
       template: parsed.data.template ?? DEFAULT_TEMPLATE,
     };
@@ -175,6 +192,7 @@ export async function getHomeSamplesConfig(): Promise<HomeSamplesConfig> {
       ? row.aiSnapCatalogIds
       : DEFAULT_AI_SNAP_IDS,
     designs,
+    ownerUrlExample: row.ownerUrlExample ?? '',
     beforeAfter: row.beforeAfter,
     template: row.template,
   };
@@ -193,6 +211,7 @@ export async function getHomeSamples(): Promise<HomeSamples> {
       : DEFAULT_SAMPLE_CONFIGS.map((d) => buildDesign(d, cfg.template)),
     aiSnaps: aiSnaps.length ? aiSnaps : resolveAiSnaps(DEFAULT_AI_SNAP_IDS),
     beforeAfter: cfg.beforeAfter ?? DEFAULT_BEFORE_AFTER,
+    ownerUrlExample: cfg.ownerUrlExample ?? '',
   };
 }
 
@@ -203,14 +222,18 @@ export async function saveHomeSamples(
   const parsed = ConfigSchema.safeParse(config);
   if (!parsed.success) return { ok: false, error: 'invalid config' };
   const supabase = createClient();
+  const upsertRow = {
+    id: true,
+    ai_snap_catalog_ids: parsed.data.aiSnapCatalogIds,
+    designs: parsed.data.designs,
+    owner_url_example: parsed.data.ownerUrlExample,
+    before_after: parsed.data.beforeAfter,
+    template: parsed.data.template,
+  };
+  // DB 타입(자동생성)이 owner_url_example 컬럼을 아직 모르는 환경 호환 위해 캐스팅.
   const { error } = await supabase.from('marketing_home_samples').upsert(
-    {
-      id: true,
-      ai_snap_catalog_ids: parsed.data.aiSnapCatalogIds,
-      designs: parsed.data.designs,
-      before_after: parsed.data.beforeAfter,
-      template: parsed.data.template,
-    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    upsertRow as any,
     { onConflict: 'id' },
   );
   if (error) return { ok: false, error: error.message };

@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
  * 발행 후 신랑·신부에게 부여되는 owner_token URL 의 예시를 보여줘
  * "어떤 게 평생 남는지" 를 시각적으로 전달한다.
  */
-export function OwnerUrlButton() {
+export function OwnerUrlButton({ exampleUrl }: { exampleUrl?: string }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -34,14 +34,26 @@ export function OwnerUrlButton() {
         소장용 URL 예시 보기 →
       </button>
 
-      {open && <OwnerUrlModal onClose={() => setOpen(false)} />}
+      {open && <OwnerUrlModal onClose={() => setOpen(false)} exampleUrl={exampleUrl} />}
     </>
   );
 }
 
-export function OwnerUrlModal({ onClose }: { onClose: () => void }) {
-  const exampleUrl =
-    'https://wooridaun.com/i/minjun-seoyeon-2026?own=8a4f2c91-d3e7-4b06-9c2f-7e1a8b5d6e4f';
+/** 관리자에서 세팅한 실 예시 owner URL 이 비었을 때 보여줄 placeholder. */
+const PLACEHOLDER_URL =
+  'https://wooridaun.com/i/minjun-seoyeon-2026?own=8a4f2c91-d3e7-4b06-9c2f-7e1a8b5d6e4f';
+
+export function OwnerUrlModal({
+  onClose,
+  exampleUrl: exampleUrlProp,
+}: {
+  onClose: () => void;
+  /** 관리자(/admin/home-samples)에서 세팅한 owner URL. 비면 placeholder. */
+  exampleUrl?: string;
+}) {
+  const trimmed = (exampleUrlProp ?? '').trim();
+  const exampleUrl = trimmed || PLACEHOLDER_URL;
+  const hasReal = !!trimmed;
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -99,13 +111,26 @@ export function OwnerUrlModal({ onClose }: { onClose: () => void }) {
             <p className="mt-1.5 break-all font-mono text-[11.5px] leading-[1.6] text-[var(--wd-ink)]">
               {exampleUrl}
             </p>
-            <button
-              type="button"
-              onClick={() => void handleCopy()}
-              className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--wd-ink)] px-3 py-1.5 text-[11px] font-medium text-[var(--wd-cream)] transition-transform active:scale-[0.96]"
-            >
-              {copied ? '복사됨 ✓' : 'URL 복사'}
-            </button>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => void handleCopy()}
+                className="inline-flex items-center gap-1 rounded-full bg-[var(--wd-ink)] px-3 py-1.5 text-[11px] font-medium text-[var(--wd-cream)] transition-transform active:scale-[0.96]"
+              >
+                {copied ? '복사됨 ✓' : 'URL 복사'}
+              </button>
+              {/* "예시 열기" — 관리자에서 세팅한 실 예시 URL 이 있을 때만 활성 */}
+              {hasReal && (
+                <a
+                  href={exampleUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-full border border-[var(--wd-ink)]/30 bg-[var(--wd-paper)] px-3 py-1.5 text-[11px] font-medium text-[var(--wd-ink)] transition-colors hover:bg-[var(--wd-ink)]/8"
+                >
+                  예시 열기 →
+                </a>
+              )}
+            </div>
           </div>
 
           {/* 안에 뭐가 있는지 */}

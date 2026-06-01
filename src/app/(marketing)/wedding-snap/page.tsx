@@ -26,30 +26,36 @@ export const dynamic = 'force-dynamic';
 const WELCOME_CREDIT = 1;
 
 /**
- * 커플 모드 흐름 데모에 쓰는 카탈로그 id — couple-input-1.jpg 를
- * `garden-champagne-toast` 스타일로 변환한 결과(couple-result-1.jpg) 와 짝.
- * (해당 결과 이미지는 ExampleFlowModal 도 사용 — 동일 자산 재활용으로 일관성.)
+ * 모드별 흐름 데모 — ExampleFlowModal 의 EXAMPLE_CATALOG_IDS 와 동일 매핑.
+ * 카탈로그 마스터 ↔ 결과 사진이 같은 짝이어야 사용자에게 일관되게 보임.
  */
 const COUPLE_FLOW = {
   input: '/wedding-snap/mode-examples/couple-input-1.jpg',
-  catalog: '/wedding-snap/catalog/garden-champagne-toast.jpg',
+  // 'studio-couple-puppy' = couple-result-1.jpg 의 짝 (ExampleFlowModal 와 일치).
+  catalog: '/wedding-snap/catalog/studio-couple-puppy.jpg',
   result: '/wedding-snap/mode-examples/couple-result-1.jpg',
 };
 
-const SELFIES_FLOW = {
-  groomSelfies: [
-    '/wedding-snap/mode-examples/selfies-groom-front.jpg',
-    '/wedding-snap/mode-examples/selfies-groom-left.jpg',
-    '/wedding-snap/mode-examples/selfies-groom-right.jpg',
-  ],
-  brideSelfies: [
-    '/wedding-snap/mode-examples/selfies-bride-front.jpg',
-    '/wedding-snap/mode-examples/selfies-bride-left.jpg',
-    '/wedding-snap/mode-examples/selfies-bride-right.jpg',
-  ],
-  groomAnchor: '/wedding-snap/mode-examples/selfies-groom-anchor.jpg',
-  brideAnchor: '/wedding-snap/mode-examples/selfies-bride-anchor.jpg',
-  togetherResult: '/wedding-snap/mode-examples/selfies-together-result.jpg',
+/** 셀카 → 앵커 → 카탈로그 → 결과 4 step 흐름. solo / together 3 가지. */
+const SELFIES_FLOWS = {
+  groomSolo: {
+    selfie: '/wedding-snap/mode-examples/selfies-groom-front.jpg',
+    anchor: '/wedding-snap/mode-examples/selfies-groom-anchor.jpg',
+    catalog: '/wedding-snap/catalog/groom-hotel-stairs.jpg',
+    result: '/wedding-snap/mode-examples/selfies-groom-result.jpg',
+  },
+  brideSolo: {
+    selfie: '/wedding-snap/mode-examples/selfies-bride-front.jpg',
+    anchor: '/wedding-snap/mode-examples/selfies-bride-anchor.jpg',
+    catalog: '/wedding-snap/catalog/bride-paris-eiffel.jpg',
+    result: '/wedding-snap/mode-examples/selfies-bride-result.jpg',
+  },
+  together: {
+    selfie: '/wedding-snap/mode-examples/selfies-groom-front.jpg',
+    anchor: '/wedding-snap/mode-examples/selfies-groom-anchor.jpg',
+    catalog: '/wedding-snap/catalog/garden-finger-heart.jpg',
+    result: '/wedding-snap/mode-examples/selfies-together-result.jpg',
+  },
 };
 
 export default async function WeddingSnapLandingPage() {
@@ -116,10 +122,16 @@ function Hero({ catalogCount }: { catalogCount: number }) {
           우리 얼굴로 자연스럽게 합성해드려요.
         </p>
 
-        {/* 오픈 이벤트 배지 — 가입 즉시 1크레딧 무료. 첫 화면 즉시 후크. */}
-        <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--wd-coral)]/12 px-3.5 py-1.5 text-[12px] font-medium text-[var(--wd-coral)] ring-1 ring-[var(--wd-coral)]/25">
+        {/* 오픈 이벤트 배지 — 가입 즉시 1크레딧 무료. 페이지 톤에 맞춘 따뜻한
+            크림 배경 + 코랄 점 + 어두운 텍스트 (이전 코랄 ring 톤이 푸르스름하게
+            보이던 문제 보정 → ring 제거, 차분한 wd 톤만 사용). */}
+        <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--wd-cream)] px-3.5 py-1.5 text-[12px] font-medium text-[var(--wd-ink)]">
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--wd-coral)]" />
-          오픈 이벤트 · 가입 즉시 {WELCOME_CREDIT}크레딧 무료 (커플사진 1장 즉시 체험)
+          <span className="font-italiana text-[10px] tracking-[0.28em] text-[var(--wd-coral)]">
+            OPEN EVENT
+          </span>
+          <span>가입 즉시 {WELCOME_CREDIT}크레딧 무료</span>
+          <span className="text-[var(--wd-mute)]">· 커플사진 1장 즉시 체험</span>
         </div>
       </div>
       <Link
@@ -132,13 +144,13 @@ function Hero({ catalogCount }: { catalogCount: number }) {
   );
 }
 
-/** 신뢰 지표 stat — Hero 바로 아래. 평균 시간 · 카탈로그 규모 · 컷당 단가. */
+/** 신뢰 지표 stat — Hero 바로 아래. 평균 시간 · 카탈로그 규모 · 패키지 시작가. */
 function StatStrip({ catalogCount }: { catalogCount: number }) {
   return (
     <ul className="mt-7 grid grid-cols-3 divide-x divide-[var(--wd-line)] rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)] py-4 text-center">
-      <Stat number="≈ 90s" label="컷 당 평균 생성" />
+      <Stat number="약 2분" label="컷 당 평균 생성" />
       <Stat number={`${catalogCount}+`} label="베스트샷 카탈로그" />
-      <Stat number="₩780~" label="컷 당 단가" />
+      <Stat number={formatKRW(SNAP_STARTING_PRICE)} label="패키지 시작가" />
     </ul>
   );
 }
@@ -165,7 +177,7 @@ function TwoWaysToStart() {
         title="두 가지로 시작할 수 있어요"
         description="가진 사진에 맞춰 두 가지 입력 방식 중 하나를 고르세요. 가입 즉시 받는 1크레딧으로는 커플사진 모드의 첫 1장을 무료로 만들어볼 수 있어요."
       />
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 lg:grid-cols-2">
         {/* 1) 커플사진 모드 — 즉시 1장 무료 체험 가능 (강조). */}
         <article className="relative flex flex-col gap-3 overflow-hidden rounded-2xl border-[1.5px] border-[var(--wd-coral)] bg-[var(--wd-cream)] p-4">
           <div className="absolute right-3 top-3 rounded-full bg-[var(--wd-coral)] px-2 py-0.5 text-[10px] font-medium text-white">
@@ -186,37 +198,41 @@ function TwoWaysToStart() {
           <FlowRow
             steps={[
               { src: COUPLE_FLOW.input, label: '커플사진 1장' },
-              { src: COUPLE_FLOW.catalog, label: '카탈로그 컷 선택' },
+              { src: COUPLE_FLOW.catalog, label: '카탈로그' },
               { src: COUPLE_FLOW.result, label: '결과 (1크레딧)', highlight: true },
             ]}
           />
         </article>
 
-        {/* 2) 셀카 모드 — 결제 후 앵커 무료 batch. */}
+        {/* 2) 셀카 모드 — 신랑/신부 셀카로 앵커를 만들고 솔로/함께 컷 모두 생성. */}
         <article className="flex flex-col gap-3 rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)] p-4">
           <header>
             <p className="font-italiana text-[10px] tracking-[0.24em] text-[var(--wd-coral)]">
               MODE B
             </p>
             <h3 className="mt-1 text-[15px] font-medium text-[var(--wd-ink)]">
-              각자 셀카로 (앵커 만들기)
+              각자 셀카로 — 솔로 · 함께 컷 모두
             </h3>
             <p className="mt-1 text-[12px] leading-relaxed text-[var(--wd-mute)]">
               함께 찍은 사진이 없어도 OK. 신랑·신부 각자 셀카 1~3장(정면·좌·우)을
-              올리면 AI 가 4장 앵커 후보를 만들어 1장 선택. 이후 카탈로그에 적용.
-              <span className="block mt-1 text-[11px] text-[var(--wd-ink)]/70">
-                ※ 앵커 batch 무료(첫 2회)는 <strong>결제 사용자 전용</strong>.
-                가입 1크레딧으로는 진행 불가.
-              </span>
+              올리면 AI 가 4장 후보 중 1장씩 <strong>앵커</strong>(나만의 기준 얼굴)
+              로 선택. 이 앵커를 카탈로그 컷에 적용해{' '}
+              <strong>신랑 단독 · 신부 단독 · 함께 컷</strong> 3 가지를 모두 만들 수
+              있어요.
+            </p>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--wd-ink)]/70">
+              ※ 앵커 무료 혜택은 <strong>결제 사용자에게 최초 1회</strong>만.
+              가입 1크레딧으로는 앵커 생성이 불가하니, 커플사진 모드부터 체험을
+              권장.
             </p>
           </header>
-          <FlowRow
-            steps={[
-              { src: SELFIES_FLOW.groomSelfies[0], label: '셀카 3장' },
-              { src: SELFIES_FLOW.groomAnchor, label: '앵커 선택' },
-              { src: SELFIES_FLOW.togetherResult, label: '함께 결과' },
-            ]}
-          />
+
+          {/* 솔로 / 함께 3 흐름 — 셀카 → 앵커 → 카탈로그 → 결과. */}
+          <div className="flex flex-col gap-2">
+            <SelfieFlowMini label="신랑 단독" flow={SELFIES_FLOWS.groomSolo} />
+            <SelfieFlowMini label="신부 단독" flow={SELFIES_FLOWS.brideSolo} />
+            <SelfieFlowMini label="함께" flow={SELFIES_FLOWS.together} />
+          </div>
         </article>
       </div>
     </section>
@@ -244,6 +260,33 @@ function FlowRow({
           )}
         </Fragment>
       ))}
+    </div>
+  );
+}
+
+/** 셀카 모드의 3 가지 흐름(솔로 / 함께) — 1행 컴팩트 4 step. */
+function SelfieFlowMini({
+  label,
+  flow,
+}: {
+  label: string;
+  flow: { selfie: string; anchor: string; catalog: string; result: string };
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-14 flex-shrink-0 text-[10.5px] font-medium text-[var(--wd-ink)]">
+        {label}
+      </span>
+      <div className="min-w-0 flex-1">
+        <FlowRow
+          steps={[
+            { src: flow.selfie, label: '셀카' },
+            { src: flow.anchor, label: '앵커' },
+            { src: flow.catalog, label: '카탈로그' },
+            { src: flow.result, label: '결과' },
+          ]}
+        />
+      </div>
     </div>
   );
 }
@@ -301,15 +344,15 @@ function HowItWorks({ catalogCount }: { catalogCount: number }) {
     {
       n: 3,
       title: 'AI 가 합성',
-      body: '컷당 평균 60~120초. 의상·배경·구도는 그대로, 얼굴·체형만 두 사람으로.',
+      body: '컷당 평균 약 2분. 의상·배경·구도는 그대로, 얼굴·체형만 두 사람으로.',
       img: COUPLE_FLOW.result,
     },
     {
       n: 4,
       title: '다운로드 + 청첩장 메인',
       body: '갤러리에서 모두 다운로드. 청첩장 메인 사진으로도 사용.',
-      // 결과 그리드 느낌 — 또 다른 함께 결과 컷.
-      img: SELFIES_FLOW.togetherResult,
+      // 결과 그리드 느낌 — 셀카 함께 모드 결과 컷.
+      img: SELFIES_FLOWS.together.result,
     },
   ];
   return (
@@ -387,8 +430,8 @@ function FinalCta() {
           <br className="sm:hidden" /> — 커플사진 1장 무료 체험
         </h3>
         <p className="max-w-md break-keep text-[13px] leading-relaxed text-[var(--wd-mute)]">
-          만들고 마음에 드는 컷이 있으면 그때 패키지를 결제해도 늦지 않아요.
-          만든 결과물은 마이페이지에 영구 보관됩니다.
+          만든 결과물은 마이페이지에 영구 보관되고, 청첩장 메인 사진으로도 사용할
+          수 있어요.
         </p>
         <Link
           href="/wedding-snap/create"
@@ -397,7 +440,7 @@ function FinalCta() {
           지금 만들기 →
         </Link>
         <p className="text-[11px] text-[var(--wd-mute)]">
-          ※ 셀카 모드 앵커 batch 무료(첫 2회) 혜택은 결제 사용자 전용입니다.
+          ※ 셀카 모드 앵커 무료(최초 1회) 혜택은 결제 사용자 전용입니다.
         </p>
       </div>
     </section>
