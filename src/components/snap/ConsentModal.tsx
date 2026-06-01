@@ -63,16 +63,16 @@ export function ConsentModal({ onAccept, onCancel }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
       <div className="w-full max-w-md overflow-hidden rounded-t-lg bg-white shadow-xl sm:rounded-lg">
-        <div className="border-b border-[#E8DCC9] px-5 py-4">
-          <h2 className="text-base font-semibold text-[#3D2E1F]">
+        <div className="border-b border-[var(--wd-line)] px-5 py-4">
+          <h2 className="text-base font-semibold text-[var(--wd-ink)]">
             AI 웨딩스냅 사용 동의
           </h2>
-          <p className="mt-1 text-[11px] text-[#8B7355]">
+          <p className="mt-1 text-[11px] text-[var(--wd-mute)]">
             얼굴 정보와 AI 합성 처리에 대한 동의가 필요합니다.
           </p>
         </div>
 
-        <div className="max-h-[60vh] overflow-y-auto px-5 py-4 text-[12px] text-[#5C4633]">
+        <div className="max-h-[60vh] overflow-y-auto px-5 py-4 text-[12px] text-[var(--wd-ink)]">
           <ConsentItem
             label="(필수) 개인정보 처리"
             checked={personalInfo}
@@ -80,7 +80,7 @@ export function ConsentModal({ onAccept, onCancel }: Props) {
           >
             업로드한 사진(얼굴 정보 포함) 의 저장·분석·처리에 동의합니다.
             합성 결과 생성 후 원본 사진은 30일간 보관 후 삭제됩니다.{' '}
-            <Link href="/legal/snap-privacy" target="_blank" className="text-[#3D2E1F] underline">
+            <Link href="/legal/snap-privacy" target="_blank" className="text-[var(--wd-ink)] underline">
               개인정보 처리방침 보기
             </Link>
           </ConsentItem>
@@ -92,7 +92,7 @@ export function ConsentModal({ onAccept, onCancel }: Props) {
           >
             업로드 사진이 AI 합성을 위해 fal.ai(미국) 에 처리 위탁됨에 동의합니다.
             fal.ai 는 본 서비스 외 용도로 데이터를 사용하지 않습니다.{' '}
-            <Link href="/legal/snap-terms" target="_blank" className="text-[#3D2E1F] underline">
+            <Link href="/legal/snap-terms" target="_blank" className="text-[var(--wd-ink)] underline">
               이용약관 보기
             </Link>
           </ConsentItem>
@@ -113,12 +113,12 @@ export function ConsentModal({ onAccept, onCancel }: Props) {
           )}
         </div>
 
-        <div className="flex gap-2 border-t border-[#E8DCC9] px-5 py-3">
+        <div className="flex gap-2 border-t border-[var(--wd-line)] px-5 py-3">
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 rounded-md border border-[#E8DCC9] bg-white px-3 py-2 text-xs font-medium text-[#5C4633] hover:bg-[#FAF7F2]"
+              className="flex-1 rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)] px-3 py-2 text-xs font-medium text-[var(--wd-ink)] hover:bg-[var(--wd-cream)]"
             >
               취소
             </button>
@@ -127,7 +127,7 @@ export function ConsentModal({ onAccept, onCancel }: Props) {
             type="button"
             disabled={!canSubmit}
             onClick={() => void handleSubmit()}
-            className="flex-1 rounded-md bg-[#3D2E1F] px-3 py-2 text-xs font-medium text-white disabled:opacity-50"
+            className="flex-1 rounded-md bg-[var(--wd-ink)] px-3 py-2 text-xs font-medium text-white disabled:opacity-50"
           >
             {submitting ? '저장 중...' : '동의하고 시작'}
           </button>
@@ -149,7 +149,7 @@ function ConsentItem({
   children: React.ReactNode;
 }) {
   return (
-    <label className="mb-3 flex cursor-pointer items-start gap-2 rounded border border-[#E8DCC9] bg-white p-3 transition-colors hover:border-[#8B7355]">
+    <label className="mb-3 flex cursor-pointer items-start gap-2 rounded border border-[var(--wd-line)] bg-white p-3 transition-colors hover:border-[var(--wd-mute)]">
       <input
         type="checkbox"
         checked={checked}
@@ -157,8 +157,8 @@ function ConsentItem({
         className="mt-0.5"
       />
       <div className="flex-1">
-        <span className="block text-[12px] font-medium text-[#3D2E1F]">{label}</span>
-        <span className="mt-0.5 block text-[11px] leading-relaxed text-[#5C4633]">
+        <span className="block text-[12px] font-medium text-[var(--wd-ink)]">{label}</span>
+        <span className="mt-0.5 block text-[11px] leading-relaxed text-[var(--wd-ink)]">
           {children}
         </span>
       </div>

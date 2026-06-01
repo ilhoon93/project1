@@ -83,7 +83,7 @@ export function CatalogPreviewClient({
         />
       </div>
       {filtered.length === 0 ? (
-        <p className="rounded-md border border-dashed border-[#E8DCC9] bg-white p-6 text-center text-xs text-[#8B7355]">
+        <p className="rounded-md border border-dashed border-[var(--wd-line)] bg-white p-6 text-center text-xs text-[var(--wd-mute)]">
           선택한 필터 조합에 맞는 카탈로그가 없어요. 필터를 조정해 보세요.
         </p>
       ) : (
@@ -97,12 +97,12 @@ export function CatalogPreviewClient({
           </div>
 
           {totalPages > 1 && (
-            <div className="flex w-full max-w-full flex-wrap items-center justify-center gap-1 overflow-hidden pt-2 text-[11px] text-[#5C4633]">
+            <div className="flex w-full max-w-full flex-wrap items-center justify-center gap-1 overflow-hidden pt-2 text-[11px] text-[var(--wd-ink)]">
               <button
                 type="button"
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={clampedPage === 0}
-                className="shrink-0 rounded border border-[#E8DCC9] bg-white px-2 py-1 hover:bg-[#FAF7F2] disabled:opacity-40"
+                className="shrink-0 rounded border border-[var(--wd-line)] bg-white px-2 py-1 hover:bg-[var(--wd-cream)] disabled:opacity-40"
               >
                 이전
               </button>
@@ -110,7 +110,7 @@ export function CatalogPreviewClient({
                 item === 'ellipsis' ? (
                   <span
                     key={`e-${idx}`}
-                    className="shrink-0 px-1 text-[#8B7355]"
+                    className="shrink-0 px-1 text-[var(--wd-mute)]"
                     aria-hidden
                   >
                     …
@@ -122,8 +122,8 @@ export function CatalogPreviewClient({
                     onClick={() => setPage(item)}
                     className={`min-w-[28px] shrink-0 rounded border px-2 py-1 ${
                       item === clampedPage
-                        ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white'
-                        : 'border-[#E8DCC9] bg-white hover:bg-[#FAF7F2]'
+                        ? 'border-[var(--wd-ink)] bg-[var(--wd-ink)] text-white'
+                        : 'border-[var(--wd-line)] bg-white hover:bg-[var(--wd-cream)]'
                     }`}
                   >
                     {item + 1}
@@ -134,7 +134,7 @@ export function CatalogPreviewClient({
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                 disabled={clampedPage >= totalPages - 1}
-                className="shrink-0 rounded border border-[#E8DCC9] bg-white px-2 py-1 hover:bg-[#FAF7F2] disabled:opacity-40"
+                className="shrink-0 rounded border border-[var(--wd-line)] bg-white px-2 py-1 hover:bg-[var(--wd-cream)] disabled:opacity-40"
               >
                 다음
               </button>

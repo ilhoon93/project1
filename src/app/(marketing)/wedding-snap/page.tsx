@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { Fragment } from 'react';
 import type { Metadata } from 'next';
 import { getAvailableCatalog } from '@/lib/snap/catalog-availability';
 import type { SnapCatalogItem } from '@/lib/snap/catalog';
 import { CatalogPreviewClient } from '@/components/snap/CatalogPreviewClient';
+import { SnapModeCards } from '@/components/marketing/SnapModeCards';
 import {
   fetchCatalogStatsMap,
   type CatalogStatsMap,
@@ -70,7 +70,7 @@ export default async function WeddingSnapLandingPage() {
       <div className="mx-auto max-w-3xl">
         <Hero catalogCount={catalogCount} />
         <StatStrip catalogCount={catalogCount} />
-        <TwoWaysToStart />
+        <HowToInput />
         <HowItWorks catalogCount={catalogCount} />
         <CatalogPreview items={visibleCatalog} catalogStats={catalogStats} />
         <FinalCta />
@@ -122,16 +122,16 @@ function Hero({ catalogCount }: { catalogCount: number }) {
           우리 얼굴로 자연스럽게 합성해드려요.
         </p>
 
-        {/* 오픈 이벤트 배지 — 가입 즉시 1크레딧 무료. 페이지 톤에 맞춘 따뜻한
-            크림 배경 + 코랄 점 + 어두운 텍스트 (이전 코랄 ring 톤이 푸르스름하게
-            보이던 문제 보정 → ring 제거, 차분한 wd 톤만 사용). */}
-        <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--wd-cream)] px-3.5 py-1.5 text-[12px] font-medium text-[var(--wd-ink)]">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--wd-coral)]" />
-          <span className="font-italiana text-[10px] tracking-[0.28em] text-[var(--wd-coral)]">
+        {/* 오픈 이벤트 배지 — 강조를 위해 코랄 본 톤을 채워 배경으로 사용.
+            OPEN EVENT(이브로우)는 더 진한 코랄 칩으로 한 번 더 분리. */}
+        <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--wd-coral)] px-2.5 py-1.5 text-[12px] font-medium text-white shadow-sm ring-1 ring-[var(--wd-coral)]/40">
+          <span className="font-italiana inline-flex items-center rounded-full bg-[var(--wd-ink)]/85 px-2 py-0.5 text-[9.5px] tracking-[0.28em] text-[var(--wd-cream)]">
             OPEN EVENT
           </span>
-          <span>가입 즉시 {WELCOME_CREDIT}크레딧 무료</span>
-          <span className="text-[var(--wd-mute)]">· 커플사진 1장 즉시 체험</span>
+          <span className="pl-0.5">가입 즉시 {WELCOME_CREDIT}크레딧 무료</span>
+          <span className="rounded-full bg-white/22 px-2 py-0.5 text-[11px] text-white/95">
+            커플사진 1장 즉시 체험
+          </span>
         </div>
       </div>
       <Link
@@ -168,8 +168,9 @@ function Stat({ number, label }: { number: string; label: string }) {
   );
 }
 
-/** "두 가지 시작 방법" — 커플사진 모드(즉시 무료 체험 가능) + 셀카 모드(결제 후 앵커). */
-function TwoWaysToStart() {
+/** "HOW TO INPUT" 섹션 wrapper — SectionHeading + client 카드(SnapModeCards).
+ * 사진 시퀀스는 모두 SnapModeCards 안의 "예시 보기" 버튼 → ExampleFlowModal 로 위임. */
+function HowToInput() {
   return (
     <section className="mt-14">
       <SectionHeading
@@ -177,147 +178,8 @@ function TwoWaysToStart() {
         title="두 가지로 시작할 수 있어요"
         description="가진 사진에 맞춰 두 가지 입력 방식 중 하나를 고르세요."
       />
-      <div className="grid gap-3 lg:grid-cols-2">
-        {/* 1) 커플사진 모드 — 즉시 1장 무료 체험 가능 (강조). */}
-        <article className="relative flex flex-col gap-3 overflow-hidden rounded-2xl border-[1.5px] border-[var(--wd-coral)] bg-[var(--wd-cream)] p-4">
-          <div className="absolute right-3 top-3 rounded-full bg-[var(--wd-coral)] px-2 py-0.5 text-[10px] font-medium text-white">
-            가입 1크레딧 즉시 체험
-          </div>
-          <header>
-            <p className="font-italiana text-[10px] tracking-[0.24em] text-[var(--wd-coral)]">
-              MODE A
-            </p>
-            <h3 className="mt-1 text-[15px] font-medium text-[var(--wd-ink)]">
-              커플사진 한 장으로
-            </h3>
-            <p className="mt-1 text-[12px] leading-relaxed text-[var(--wd-mute)]">
-              커플사진을 바로 카탈로그에 적용해 한 컷당 1크레딧으로 만들어요.
-            </p>
-          </header>
-          <FlowRow
-            steps={[
-              { src: COUPLE_FLOW.input, label: '커플사진 1장' },
-              { src: COUPLE_FLOW.catalog, label: '카탈로그' },
-              { src: COUPLE_FLOW.result, label: '결과 (1크레딧)', highlight: true },
-            ]}
-          />
-        </article>
-
-        {/* 2) 셀카 모드 — 신랑/신부 셀카로 앵커를 만들고 솔로/함께 컷 모두 생성. */}
-        <article className="flex flex-col gap-3 rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)] p-4">
-          <header>
-            <p className="font-italiana text-[10px] tracking-[0.24em] text-[var(--wd-coral)]">
-              MODE B
-            </p>
-            <h3 className="mt-1 text-[15px] font-medium text-[var(--wd-ink)]">
-              각자 셀카로 — 솔로 · 함께 컷 모두
-            </h3>
-            <p className="mt-1 text-[12px] leading-relaxed text-[var(--wd-mute)]">
-              신랑·신부 각각의 사진을 올리면 AI가 <strong>앵커</strong>(나만의 기준 얼굴)을 만들어요.
-              이 앵커를 카탈로그 컷에 적용해{' '} <strong>신랑 단독 · 신부 단독 · 함께 컷</strong> 
-              3 가지를 모두 만들 수 있어요.
-            </p>
-            <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--wd-ink)]/70">
-              ※ <strong>결제 사용자에게 최초 1회</strong> 앵커 무료 생성 혜택이 제공됩니다.
-            </p>
-          </header>
-
-          {/* 솔로 / 함께 3 흐름 — 셀카 → 앵커 → 카탈로그 → 결과. */}
-          <div className="flex flex-col gap-2">
-            <SelfieFlowMini label="신랑 단독" flow={SELFIES_FLOWS.groomSolo} />
-            <SelfieFlowMini label="신부 단독" flow={SELFIES_FLOWS.brideSolo} />
-            <SelfieFlowMini label="함께" flow={SELFIES_FLOWS.together} />
-          </div>
-        </article>
-      </div>
+      <SnapModeCards />
     </section>
-  );
-}
-
-/** 한 행 안에 N 단계 썸네일(폴라로이드 스타일) + 화살표. */
-function FlowRow({
-  steps,
-}: {
-  steps: { src: string; label: string; highlight?: boolean }[];
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      {steps.map((s, i) => (
-        <Fragment key={i}>
-          <FlowThumb src={s.src} label={s.label} highlight={s.highlight} />
-          {i < steps.length - 1 && (
-            <span
-              className="flex-shrink-0 select-none text-[14px] text-[var(--wd-mute)]"
-              aria-hidden
-            >
-              →
-            </span>
-          )}
-        </Fragment>
-      ))}
-    </div>
-  );
-}
-
-/** 셀카 모드의 3 가지 흐름(솔로 / 함께) — 1행 컴팩트 4 step. */
-function SelfieFlowMini({
-  label,
-  flow,
-}: {
-  label: string;
-  flow: { selfie: string; anchor: string; catalog: string; result: string };
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="w-14 flex-shrink-0 text-[10.5px] font-medium text-[var(--wd-ink)]">
-        {label}
-      </span>
-      <div className="min-w-0 flex-1">
-        <FlowRow
-          steps={[
-            { src: flow.selfie, label: '셀카' },
-            { src: flow.anchor, label: '앵커' },
-            { src: flow.catalog, label: '카탈로그' },
-            { src: flow.result, label: '결과' },
-          ]}
-        />
-      </div>
-    </div>
-  );
-}
-
-function FlowThumb({
-  src,
-  label,
-  highlight,
-}: {
-  src: string;
-  label: string;
-  highlight?: boolean;
-}) {
-  return (
-    <figure
-      className={`min-w-0 flex-1 overflow-hidden rounded-md border ${
-        highlight ? 'border-[var(--wd-coral)]/60 bg-white' : 'border-[var(--wd-line)] bg-white'
-      }`}
-    >
-      <div className="relative aspect-[3/4] w-full overflow-hidden bg-[var(--wd-cream)]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={src}
-          alt={label}
-          loading="lazy"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-      </div>
-      <figcaption
-        className={`px-1.5 py-1 text-center text-[10px] ${
-          highlight ? 'font-medium text-[var(--wd-coral)]' : 'text-[var(--wd-mute)]'
-        }`}
-      >
-        {label}
-      </figcaption>
-    </figure>
   );
 }
 

@@ -901,19 +901,19 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
       })} />
 
       {/* 1. 사진 업로드 — 모드 카드 2개 → 셀카 sub-toggle */}
-      <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
-        <h2 className="text-sm font-medium text-[#3D2E1F]">1. 사진 업로드</h2>
+      <section className="rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)] p-4">
+        <h2 className="text-sm font-medium text-[var(--wd-ink)]">1. 사진 업로드</h2>
 
         {/* 모드 카드 2개 — 셀카로 만들기 / 커플 사진으로 만들기.
             각 카드에 설명을 풀어써서 사용자가 자기 케이스에 맞는 모드를 한 번에 선택. */}
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           <ModeCard
             title="셀카로 만들기"
+            hint="함께 · 단독 컷 모두"
             description={
               <>
-                신랑·신부 각자 <strong>셀카·증명사진</strong>으로 앵커를 만들고, 그
-                앵커를 카탈로그에 합성합니다. <strong>함께 / 신랑 단독 / 신부 단독
-                컷 모두</strong> 가능. 키·몸무게로 전신 비율 보정 지원.
+                각자 셀카로 <strong>앵커</strong>(나만의 기준 얼굴) 를 만든 뒤
+                카탈로그에 적용. 키·몸무게로 전신 비율 보정.
               </>
             }
             selected={mode === 'selfies1' || mode === 'selfies3'}
@@ -923,11 +923,12 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
           />
           <ModeCard
             title="커플 사진으로 만들기"
+            hint="가장 간단 · 함께 컷"
+            recommended="1크레딧 즉시 체험"
             description={
               <>
-                두 사람이 함께 찍힌 <strong>커플 사진 1장</strong>으로 만듭니다.
-                <strong>포즈·체형·상호작용을 그대로 유지</strong>하며 의상/배경만 바꿔요. <strong>함께
-                컷만</strong> 가능 (단독 카탈로그는 숨겨짐).
+                커플 사진 1장으로 바로 합성. 앵커 단계 없이 <strong>포즈·체형
+                그대로</strong> 의상/배경만 바꿔요.
               </>
             }
             selected={mode === 'couple'}
@@ -940,9 +941,9 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
         {/* 기존 앵커가 있으면 분기 토글 — "기존 앵커 사용" / "앵커 새로 만들기".
             재방문 사용자가 매번 사진/앵커 입력을 다시 보지 않아도 되게 collapse. */}
         {showAnchorBranchToggle && (
-          <div className="mt-3 flex flex-col gap-2 rounded-md border border-[#3D2E1F]/15 bg-[#FAF7F2] p-3">
+          <div className="mt-3 flex flex-col gap-2 rounded-md border border-[var(--wd-ink)]/15 bg-[var(--wd-cream)] p-3">
             <div className="flex items-baseline justify-between gap-2">
-              <span className="text-[11px] font-medium text-[#3D2E1F]">
+              <span className="text-[11px] font-medium text-[var(--wd-ink)]">
                 저장된 앵커가 있어요
               </span>
             </div>
@@ -968,8 +969,8 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
         {/* 셀카 모드 선택 시 — 1장 vs 3장 sub-toggle.
             "기존 사용" 선택 시는 사진 입력 자체가 collapse 라 1장/3장 구분 의미 없음 → 숨김. */}
         {mode !== 'couple' && showSelfieInputs && (
-          <div className="mt-3 flex flex-col gap-2 rounded-md border border-dashed border-[#E8DCC9] bg-[#FAF7F2]/60 p-2.5">
-            <span className="text-[11px] font-medium text-[#3D2E1F]">셀카 장수</span>
+          <div className="mt-3 flex flex-col gap-2 rounded-md border border-dashed border-[var(--wd-line)] bg-[var(--wd-cream)]/60 p-2.5">
+            <span className="text-[11px] font-medium text-[var(--wd-ink)]">셀카 장수</span>
             <div className="grid grid-cols-2 gap-2">
               <SubToggleButton
                 selected={mode === 'selfies1'}
@@ -993,7 +994,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
             너무 가까이서 찍은 셀카는 코·얼굴 가운데가 부풀고 옆얼굴이 작아 보여,
             앵커 → 카탈로그 합성 결과의 비율이 어색해진다. */}
         {mode !== 'couple' && (
-          <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-[11px] text-[#5C4633]">
+          <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-[11px] text-[var(--wd-ink)]">
             <p className="font-semibold text-amber-800">
               📸 좋은 결과를 위한 사진 가이드
             </p>
@@ -1023,7 +1024,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
             얼굴이 너무 작음, (3) 두꺼운 외투·머플러로 어깨·턱선이 가려짐, (4) 두 사람이
             정면을 안 봄, (5) 강한 필터·야경/저조도. */}
         {mode === 'couple' && (
-          <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-[11px] text-[#5C4633]">
+          <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-[11px] text-[var(--wd-ink)]">
             <p className="font-semibold text-amber-800">
               📸 무조건 잘 나오는 커플 사진 가이드
             </p>
@@ -1145,11 +1146,11 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
             커플 사진 모드는 사용자 사진에서 실제 체형 정보가 그대로 들어오므로
             별도 키/몸무게 입력이 합성에 영향을 주지 않음 → 셀카 모드에서만 노출. */}
       {showSelfieInputs && (
-        <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
-          <h2 className="text-sm font-medium text-[#3D2E1F]">
-            1-1. 키 · 몸무게 <span className="text-[10px] text-[#8B7355]">(선택)</span>
+        <section className="rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)] p-4">
+          <h2 className="text-sm font-medium text-[var(--wd-ink)]">
+            1-1. 키 · 몸무게 <span className="text-[10px] text-[var(--wd-mute)]">(선택)</span>
           </h2>
-          <p className="mt-1 text-xs text-[#8B7355]">
+          <p className="mt-1 text-xs text-[var(--wd-mute)]">
             전신 / 반신 컷의 비율을 맞추는 데 사용돼요. 키 {HEIGHT_RANGE.min}–
             {HEIGHT_RANGE.max}cm · 몸무게 {WEIGHT_RANGE.min}–{WEIGHT_RANGE.max}kg.
           </p>
@@ -1172,9 +1173,9 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
 
       {/* 2. 앵커 만들기 — 셀카 모드 + 미완성 앵커일 때만 */}
       {showAnchorBuilder && (
-        <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
-          <h2 className="text-sm font-medium text-[#3D2E1F]">2. 앵커 만들기</h2>
-          <p className="mt-1 text-xs text-[#8B7355]">
+        <section className="rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)] p-4">
+          <h2 className="text-sm font-medium text-[var(--wd-ink)]">2. 앵커 만들기</h2>
+          <p className="mt-1 text-xs text-[var(--wd-mute)]">
             한 번에 신랑 단독 2장 + 신부 단독 2장 (클로즈업 / 반신) 을 만들어
             드려요. 각 row 에서 마음에 드는 컷을 1장씩 골라 저장하면 모든 카탈로그
             (함께 컷 / 단독 컷) 에 적용됩니다.
@@ -1195,7 +1196,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
           </p>
 
           {/* 표정 옵션 — 3종 (차분한 자연 표정 / 약간 미소 / 환하게 웃는 미소) */}
-          <div className="mt-3 flex flex-col gap-1.5 text-xs text-[#5C4633]">
+          <div className="mt-3 flex flex-col gap-1.5 text-xs text-[var(--wd-ink)]">
             <span className="font-medium">표정</span>
             <div className="grid grid-cols-3 gap-2">
               {([
@@ -1211,14 +1212,14 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
                   aria-pressed={expression === opt.v}
                   className={`flex flex-col items-center gap-0.5 rounded-md border px-2 py-1.5 text-[11px] transition-colors disabled:opacity-50 ${
                     expression === opt.v
-                      ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white'
-                      : 'border-[#D4C5B0] bg-white text-[#3D2E1F] hover:bg-[#F5EDE0]'
+                      ? 'border-[var(--wd-ink)] bg-[var(--wd-ink)] text-white'
+                      : 'border-[var(--wd-line)] bg-white text-[var(--wd-ink)] hover:bg-[var(--wd-cream)]'
                   }`}
                 >
                   <span className="font-medium">{opt.label}</span>
                   <span
                     className={`text-[10px] ${
-                      expression === opt.v ? 'opacity-80' : 'text-[#8B7355]'
+                      expression === opt.v ? 'opacity-80' : 'text-[var(--wd-mute)]'
                     }`}
                   >
                     {opt.hint}
@@ -1246,7 +1247,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
                         : '앵커 후보 만들기 (무료)'}
                 </Button>
                 {!inputsReady && (
-                  <span className="text-xs text-[#8B7355]">
+                  <span className="text-xs text-[var(--wd-mute)]">
                     {mode === 'selfies3' ? '신랑/신부 각 3장씩 업로드' : '신랑/신부 각 1장씩 업로드'}
                   </span>
                 )}
@@ -1287,7 +1288,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
                     : '둘 다 재생성 (4 크레딧)'}
                 </Button>
                 {!groomSelfiesReady && !brideSelfiesReady && (
-                  <span className="text-xs text-[#8B7355]">셀카를 업로드하세요</span>
+                  <span className="text-xs text-[var(--wd-mute)]">셀카를 업로드하세요</span>
                 )}
               </div>
             )}
@@ -1301,7 +1302,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
 
           {anchorBatch && (
             <div className="mt-4 flex flex-col gap-4">
-              <p className="text-xs text-[#5C4633]">
+              <p className="text-xs text-[var(--wd-ink)]">
                 {groomNeeded && brideNeeded
                   ? '신랑 / 신부 각 row 에서 마음에 드는 컷을 1장씩 선택한 뒤 아래 "앵커 저장" 을 누르세요.'
                   : groomNeeded
@@ -1338,7 +1339,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
                   {anchorStage === 'saving' ? '저장 중...' : '앵커 저장'}
                 </Button>
                 {!canSaveAnchor && anchorStage !== 'saving' && (
-                  <span className="text-xs text-[#8B7355]">
+                  <span className="text-xs text-[var(--wd-mute)]">
                     {!pendingGroomRequestId && !pendingBrideRequestId
                       ? '신랑/신부 각 1장씩 선택해주세요'
                       : !pendingGroomRequestId
@@ -1361,9 +1362,9 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
           !!anchor?.brideAnchorUrl ||
           groomLibrary.length > 0 ||
           brideLibrary.length > 0) && (
-          <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
-            <h2 className="text-sm font-medium text-[#3D2E1F]">사용할 앵커 선택</h2>
-            <p className="mt-1 text-xs text-[#8B7355]">
+          <section className="rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)] p-4">
+            <h2 className="text-sm font-medium text-[var(--wd-ink)]">사용할 앵커 선택</h2>
+            <p className="mt-1 text-xs text-[var(--wd-mute)]">
               신랑·신부를 각자 골라 조합할 수 있어요.
             </p>
 
@@ -1389,17 +1390,17 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
         )}
 
       {/* 3. 카탈로그 선택 — 다중 선택 가능 */}
-      <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
+      <section className="rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)] p-4">
         {/* 헤더 — 제목 + 선택 카운트 + 안내문. 한 줄 너비 사용. */}
         <div className="flex flex-wrap items-baseline gap-2">
-          <h2 className="text-sm font-medium text-[#3D2E1F]">카탈로그 컷 선택</h2>
+          <h2 className="text-sm font-medium text-[var(--wd-ink)]">카탈로그 컷 선택</h2>
           {selectedIds.size > 0 && (
-            <span className="text-[11px] text-[#5C4633]">
+            <span className="text-[11px] text-[var(--wd-ink)]">
               {selectedIds.size}개 선택 · {selectedIds.size} 스냅 크레딧 차감
             </span>
           )}
         </div>
-        <p className="mt-1 text-xs text-[#8B7355]">
+        <p className="mt-1 text-xs text-[var(--wd-mute)]">
           여러 컷을 선택해 한 번에 만들 수 있어요. 1장당 스냅 크레딧 1개 차감.
         </p>
 
@@ -1414,7 +1415,9 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
           <div className="flex min-w-0 flex-1 flex-col">
             <CatalogSelectionGuide />
           </div>
-          <div className="flex w-full flex-col lg:w-[320px] lg:shrink-0">
+          {/* lg+ 에선 우측 필터 컬럼을 sticky — 카탈로그가 길어 스크롤하다가
+              필터를 다시 위로 올릴 필요 없게. 모바일은 자연 흐름 유지. */}
+          <div className="flex w-full flex-col lg:sticky lg:top-3 lg:w-[320px] lg:shrink-0 lg:self-start">
             <CatalogFilterBar
               value={catalogFilter}
               onChange={setCatalogFilter}
@@ -1431,7 +1434,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
         </div>
 
         {visibleCatalog.length === 0 ? (
-          <p className="mt-3 rounded-md border border-dashed border-[#E8DCC9] bg-white p-6 text-center text-xs text-[#8B7355]">
+          <p className="mt-3 rounded-md border border-dashed border-[var(--wd-line)] bg-white p-6 text-center text-xs text-[var(--wd-mute)]">
             선택한 필터 조합에 맞는 카탈로그가 없어요. 필터를 조정해 보세요.
           </p>
         ) : (
@@ -1462,7 +1465,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
                     <span
                       className={`pointer-events-none absolute right-2 top-2 z-20 grid h-6 w-6 place-items-center rounded-full border-2 text-[13px] font-bold leading-none shadow-md backdrop-blur-sm transition-all ${
                         selected
-                          ? 'border-white bg-[#3D2E1F] text-white scale-110'
+                          ? 'border-white bg-[var(--wd-ink)] text-white scale-110'
                           : 'border-white/90 bg-black/35 text-white/0'
                       }`}
                       aria-hidden
@@ -1491,12 +1494,12 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
 
         {/* 카탈로그 그리드 페이지네이션 — 24개/페이지. 랜딩과 동일 컨벤션. */}
         {visibleCatalog.length > 0 && totalCatalogPages > 1 && (
-          <div className="mt-3 flex w-full max-w-full flex-wrap items-center justify-center gap-1 overflow-hidden text-[11px] text-[#5C4633]">
+          <div className="mt-3 flex w-full max-w-full flex-wrap items-center justify-center gap-1 overflow-hidden text-[11px] text-[var(--wd-ink)]">
             <button
               type="button"
               onClick={() => setCatalogPage((p) => Math.max(0, p - 1))}
               disabled={clampedCatalogPage === 0}
-              className="shrink-0 rounded border border-[#E8DCC9] bg-white px-2 py-1 hover:bg-[#FAF7F2] disabled:opacity-40"
+              className="shrink-0 rounded border border-[var(--wd-line)] bg-white px-2 py-1 hover:bg-[var(--wd-cream)] disabled:opacity-40"
             >
               이전
             </button>
@@ -1504,7 +1507,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
               it === 'ellipsis' ? (
                 <span
                   key={`e-${idx}`}
-                  className="shrink-0 px-1 text-[#8B7355]"
+                  className="shrink-0 px-1 text-[var(--wd-mute)]"
                   aria-hidden
                 >
                   …
@@ -1516,8 +1519,8 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
                   onClick={() => setCatalogPage(it)}
                   className={`min-w-[28px] shrink-0 rounded border px-2 py-1 ${
                     it === clampedCatalogPage
-                      ? 'border-[#3D2E1F] bg-[#3D2E1F] text-white'
-                      : 'border-[#E8DCC9] bg-white hover:bg-[#FAF7F2]'
+                      ? 'border-[var(--wd-ink)] bg-[var(--wd-ink)] text-white'
+                      : 'border-[var(--wd-line)] bg-white hover:bg-[var(--wd-cream)]'
                   }`}
                 >
                   {it + 1}
@@ -1530,7 +1533,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
                 setCatalogPage((p) => Math.min(totalCatalogPages - 1, p + 1))
               }
               disabled={clampedCatalogPage >= totalCatalogPages - 1}
-              className="shrink-0 rounded border border-[#E8DCC9] bg-white px-2 py-1 hover:bg-[#FAF7F2] disabled:opacity-40"
+              className="shrink-0 rounded border border-[var(--wd-line)] bg-white px-2 py-1 hover:bg-[var(--wd-cream)] disabled:opacity-40"
             >
               다음
             </button>
@@ -1543,16 +1546,16 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
             한눈에 비교 가능. 예시 이미지는 public/wedding-snap/catalog/examples/
             <id>-<mode>.jpg 규칙으로 admin 이 미리 올림. 없으면 마스터 이미지로
             자동 fallback. */}
-      <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
+      <section className="rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)] p-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-sm font-medium text-[#3D2E1F]">4. 합성 방식</h2>
+          <h2 className="text-sm font-medium text-[var(--wd-ink)]">4. 합성 방식</h2>
           {selectedCatalogs.length > 0 && (
-            <span className="text-[10px] text-[#8B7355]">
+            <span className="text-[10px] text-[var(--wd-mute)]">
               이번 선택 {selectedCatalogs.length}개에 모두 적용
             </span>
           )}
         </div>
-        <p className="mt-1 text-xs text-[#8B7355]">
+        <p className="mt-1 text-xs text-[var(--wd-mute)]">
           기본은 카탈로그 사진을 그대로 따라 만들고, 얼굴이 어색하면 강화 모드로
           한 번 더 보강할 수 있어요.
         </p>
@@ -1609,8 +1612,8 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
       </section>
 
       {/* 5. 생성 */}
-      <section className="rounded-md border border-[#E8DCC9] bg-white p-4">
-        <h2 className="text-sm font-medium text-[#3D2E1F]">5. 생성</h2>
+      <section className="rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)] p-4">
+        <h2 className="text-sm font-medium text-[var(--wd-ink)]">5. 생성</h2>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Button type="button" onClick={() => void handleGenerateCatalog()} disabled={!canGenerateCatalog}>
             {stage === 'submitting'
@@ -1632,13 +1635,13 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
             <button
               type="button"
               onClick={() => setSelectedIds(new Set())}
-              className="text-[11px] text-[#8B7355] underline underline-offset-2 hover:text-[#3D2E1F]"
+              className="text-[11px] text-[var(--wd-mute)] underline underline-offset-2 hover:text-[var(--wd-ink)]"
             >
               선택 모두 해제
             </button>
           )}
         </div>
-        <p className="mt-2 text-[11px] text-[#8B7355]">
+        <p className="mt-2 text-[11px] text-[var(--wd-mute)]">
           제출 후 화면을 떠나도 생성은 백그라운드에서 계속 진행됩니다. 결과는
           <a href="/mypage?tab=snap" className="ml-1 underline underline-offset-2">
             마이페이지 &gt; AI 웨딩스냅
@@ -1675,7 +1678,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
               ? `✨ ${submitSummary.ok}개 작업 모두 시작되었어요`
               : `⚠️ ${submitSummary.ok}개 시작 · ${submitSummary.failed.length}개 실패`}
           </h2>
-          <p className="mt-1 text-xs text-[#5C4633]">
+          <p className="mt-1 text-xs text-[var(--wd-ink)]">
             평균 약 2분 후에 완성됩니다. 화면을 떠나도 생성은 계속 진행되며, 결과는
             마이페이지에서 모아 볼 수 있어요.
           </p>
@@ -1710,6 +1713,39 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
           </div>
         </section>
       )}
+
+      {/* 하단 sticky 액션 바 — 카탈로그 선택 후 "생성하기" 도달성 향상.
+          긴 그리드 스크롤 중에도 화면 아래 항상 노출. submitted/제출 중엔 숨김.
+          선택 0 이거나 canGenerateCatalog false 면 사용자에게 왜 못 누르는지 보여줌. */}
+      {stage !== 'submitted' && (selectedIds.size > 0 || !canGenerateCatalog) && (
+        <div className="pointer-events-none sticky bottom-3 z-30 mt-2 flex justify-center px-3">
+          <div className="pointer-events-auto flex w-full max-w-2xl items-center justify-between gap-3 rounded-full border border-[var(--wd-line)] bg-[var(--wd-paper)]/95 px-3 py-2 shadow-[0_12px_32px_rgba(31,27,23,0.18)] backdrop-blur">
+            <div className="flex min-w-0 items-baseline gap-2 text-[12px] text-[var(--wd-ink)]">
+              <span className="font-semibold">
+                {selectedIds.size > 0 ? `${selectedIds.size}장 선택` : '선택 없음'}
+              </span>
+              {selectedIds.size > 0 && (
+                <span className="text-[var(--wd-mute)]">
+                  · {selectedIds.size}크레딧
+                  {snapBalance !== null ? ` (잔여 ${snapBalance})` : ''}
+                </span>
+              )}
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => void handleGenerateCatalog()}
+              disabled={!canGenerateCatalog}
+            >
+              {stage === 'submitting'
+                ? '제출 중...'
+                : selectedIds.size === 0
+                  ? '생성하기'
+                  : `${selectedIds.size}장 생성`}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1737,7 +1773,7 @@ function GenerateHint({
     else text = '선택한 컷 중 필요한 앵커가 부족한 컷이 있어요';
   }
   if (!text) return null;
-  return <span className="text-xs text-[#8B7355]">{text}</span>;
+  return <span className="text-xs text-[var(--wd-mute)]">{text}</span>;
 }
 
 function AnchorRowGrid({
@@ -1757,8 +1793,8 @@ function AnchorRowGrid({
 }) {
   return (
     <div>
-      <p className="mb-2 text-xs font-medium text-[#3D2E1F]">
-        {label} <span className="text-[10px] text-[#8B7355]">({slot === 'groom' ? '신랑' : '신부'} 단독 2 컷)</span>
+      <p className="mb-2 text-xs font-medium text-[var(--wd-ink)]">
+        {label} <span className="text-[10px] text-[var(--wd-mute)]">({slot === 'groom' ? '신랑' : '신부'} 단독 2 컷)</span>
       </p>
       <div className="grid grid-cols-2 gap-3">
         {candidates.map((c) => {
@@ -1772,13 +1808,13 @@ function AnchorRowGrid({
               onClick={() => onSelect(c)}
               className={`flex flex-col overflow-hidden rounded-md border text-left transition-colors ${
                 isSelected
-                  ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
+                  ? 'border-[var(--wd-ink)] ring-2 ring-[var(--wd-ink)]/30'
                   : c.status === 'done'
-                    ? 'border-[#E8DCC9] hover:border-[#8B7355]'
-                    : 'border-[#E8DCC9] opacity-70'
+                    ? 'border-[var(--wd-line)] hover:border-[var(--wd-mute)]'
+                    : 'border-[var(--wd-line)] opacity-70'
               }`}
             >
-              <div className="grid aspect-[3/4] w-full place-items-center overflow-hidden bg-[#F5EDE0]">
+              <div className="grid aspect-[3/4] w-full place-items-center overflow-hidden bg-[var(--wd-cream)]">
                 {c.resultUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -1789,16 +1825,16 @@ function AnchorRowGrid({
                 ) : c.status === 'error' ? (
                   <span className="text-[10px] text-red-600">실패</span>
                 ) : (
-                  <span className="text-[10px] text-[#8B7355]">
+                  <span className="text-[10px] text-[var(--wd-mute)]">
                     {c.status === 'in-progress' ? '합성 중...' : '대기 중...'}
                   </span>
                 )}
               </div>
               <div className="p-2">
-                <p className="text-xs font-medium text-[#3D2E1F]">
+                <p className="text-xs font-medium text-[var(--wd-ink)]">
                   {c.framing === 'closeup' ? '클로즈업' : '반신'}
                 </p>
-                <p className="mt-0.5 text-[10px] text-[#8B7355]">
+                <p className="mt-0.5 text-[10px] text-[var(--wd-mute)]">
                   {isSelected ? '✓ 선택됨' : c.status === 'done' ? '눌러서 선택' : '...'}
                 </p>
               </div>
@@ -1825,9 +1861,9 @@ function AngleRow({
 }) {
   return (
     <div>
-      <p className="mb-2 text-xs font-medium text-[#3D2E1F]">
+      <p className="mb-2 text-xs font-medium text-[var(--wd-ink)]">
         {personLabel}{' '}
-        {numAngles > 1 && <span className="text-[10px] text-[#8B7355]">— {numAngles}각도</span>}
+        {numAngles > 1 && <span className="text-[10px] text-[var(--wd-mute)]">— {numAngles}각도</span>}
       </p>
       <div
         className={`grid gap-2 ${
@@ -1888,8 +1924,8 @@ function AnchorSlotPicker({
   if (!hasAny) {
     return (
       <div className="mt-3">
-        <h3 className="text-[12px] font-medium text-[#3D2E1F]">{label}</h3>
-        <p className="mt-1 text-[11px] text-[#8B7355]">
+        <h3 className="text-[12px] font-medium text-[var(--wd-ink)]">{label}</h3>
+        <p className="mt-1 text-[11px] text-[var(--wd-mute)]">
           아직 저장된 {slot === 'groom' ? '신랑' : '신부'} 앵커가 없어요.
         </p>
       </div>
@@ -1897,14 +1933,14 @@ function AnchorSlotPicker({
   }
   return (
     <div className="mt-3">
-      <h3 className="text-[12px] font-medium text-[#3D2E1F]">{label}</h3>
+      <h3 className="text-[12px] font-medium text-[var(--wd-ink)]">{label}</h3>
       <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
         {activeUrl && (
           <div
             className={`relative rounded-md border transition-colors ${
               selectedId === 'current'
-                ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
-                : 'border-[#E8DCC9] hover:border-[#8B7355]'
+                ? 'border-[var(--wd-ink)] ring-2 ring-[var(--wd-ink)]/30'
+                : 'border-[var(--wd-line)] hover:border-[var(--wd-mute)]'
             }`}
           >
             <button
@@ -1914,8 +1950,8 @@ function AnchorSlotPicker({
               className="flex w-full flex-col gap-1 p-2 text-left"
             >
               <AnchorTinyThumb url={activeUrl} />
-              <span className="text-[11px] font-medium text-[#3D2E1F]">현재</span>
-              <span className="text-[10px] text-[#8B7355]">최근 저장</span>
+              <span className="text-[11px] font-medium text-[var(--wd-ink)]">현재</span>
+              <span className="text-[10px] text-[var(--wd-mute)]">최근 저장</span>
             </button>
             <LightboxButton onClick={() => setLightboxUrl(activeUrl)} />
           </div>
@@ -1925,8 +1961,8 @@ function AnchorSlotPicker({
             key={lib.id}
             className={`relative rounded-md border transition-colors ${
               selectedId === lib.id
-                ? 'border-[#3D2E1F] ring-2 ring-[#3D2E1F]/30'
-                : 'border-[#E8DCC9] hover:border-[#8B7355]'
+                ? 'border-[var(--wd-ink)] ring-2 ring-[var(--wd-ink)]/30'
+                : 'border-[var(--wd-line)] hover:border-[var(--wd-mute)]'
             }`}
           >
             <button
@@ -1936,8 +1972,8 @@ function AnchorSlotPicker({
               className="flex w-full flex-col gap-1 p-2 text-left"
             >
               <AnchorTinyThumb url={lib.anchorUrl} />
-              <span className="text-[11px] font-medium text-[#3D2E1F]">라이브러리</span>
-              <span className="text-[10px] text-[#8B7355]">
+              <span className="text-[11px] font-medium text-[var(--wd-ink)]">라이브러리</span>
+              <span className="text-[10px] text-[var(--wd-mute)]">
                 {formatLibraryDate(lib.anchorCreatedAt ?? lib.discardedAt)}
               </span>
             </button>
@@ -1949,7 +1985,7 @@ function AnchorSlotPicker({
               onClick={() => onDiscard(lib.id)}
               title="삭제"
               aria-label="삭제"
-              className="absolute right-1 top-1 z-10 grid h-5 w-5 place-items-center rounded-full bg-white/95 text-[10px] leading-none text-[#8B7355] shadow-sm ring-1 ring-[#E8DCC9] hover:text-red-600 hover:ring-red-300"
+              className="absolute right-1 top-1 z-10 grid h-5 w-5 place-items-center rounded-full bg-white/95 text-[10px] leading-none text-[var(--wd-mute)] shadow-sm ring-1 ring-[var(--wd-line)] hover:text-red-600 hover:ring-red-300"
             >
               ✕
             </button>
@@ -1977,7 +2013,7 @@ function AnchorSlotPicker({
               type="button"
               onClick={() => setLightboxUrl(null)}
               aria-label="닫기"
-              className="absolute -right-2 -top-2 grid h-7 w-7 place-items-center rounded-full bg-white text-sm text-[#3D2E1F] shadow-md hover:bg-[#FAF7F2]"
+              className="absolute -right-2 -top-2 grid h-7 w-7 place-items-center rounded-full bg-white text-sm text-[var(--wd-ink)] shadow-md hover:bg-[var(--wd-cream)]"
             >
               ✕
             </button>
@@ -2003,7 +2039,7 @@ function LightboxButton({ onClick }: { onClick: () => void }) {
       }}
       title="크게 보기"
       aria-label="크게 보기"
-      className="absolute bottom-1 right-1 z-10 rounded-sm bg-white/95 px-1.5 py-0.5 text-[9px] font-medium leading-none text-[#5C4633] shadow-sm ring-1 ring-[#E8DCC9] hover:text-[#3D2E1F]"
+      className="absolute bottom-1 right-1 z-10 rounded-sm bg-white/95 px-1.5 py-0.5 text-[9px] font-medium leading-none text-[var(--wd-ink)] shadow-sm ring-1 ring-[var(--wd-line)] hover:text-[var(--wd-ink)]"
     >
       크게보기
     </button>
@@ -2014,13 +2050,13 @@ function LightboxButton({ onClick }: { onClick: () => void }) {
 function AnchorTinyThumb({ url }: { url: string | null }) {
   if (!url) {
     return (
-      <div className="grid aspect-[3/4] w-full place-items-center rounded border border-dashed border-[#D4C5B0] bg-[#F5EDE0] text-[9px] text-[#8B7355]">
+      <div className="grid aspect-[3/4] w-full place-items-center rounded border border-dashed border-[var(--wd-line)] bg-[var(--wd-cream)] text-[9px] text-[var(--wd-mute)]">
         없음
       </div>
     );
   }
   return (
-    <div className="overflow-hidden rounded border border-[#D4C5B0]">
+    <div className="overflow-hidden rounded border border-[var(--wd-line)]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={url} alt="" className="block aspect-[3/4] w-full object-cover" />
     </div>
@@ -2043,16 +2079,22 @@ function formatLibraryDate(iso: string): string {
  */
 function ModeCard({
   title,
+  hint,
   description,
   selected,
   disabled,
+  recommended,
   onClick,
   onShowExample,
 }: {
   title: string;
+  /** 제목 옆에 한 줄 요약 (예: "함께 / 단독 컷 모두"). 모바일 가독성용. */
+  hint?: string;
   description: React.ReactNode;
   selected: boolean;
   disabled?: boolean;
+  /** "1크레딧 즉시 체험" 같은 코랄 추천 배지 노출. */
+  recommended?: string;
   onClick: () => void;
   /** "예시 보기" 버튼 핸들러. 없으면 버튼 숨김. */
   onShowExample?: () => void;
@@ -2070,24 +2112,40 @@ function ModeCard({
           onClick();
         }
       }}
-      className={`flex cursor-pointer flex-col gap-1.5 rounded-md border p-3 text-left transition-colors ${
+      className={`relative flex cursor-pointer flex-col gap-1.5 rounded-2xl border p-3 text-left transition-colors ${
         selected
-          ? 'border-[#3D2E1F] bg-white ring-2 ring-[#3D2E1F]/20'
-          : 'border-[#E8DCC9] bg-white hover:border-[#8B7355]'
+          ? recommended
+            ? 'border-[var(--wd-coral)] bg-[var(--wd-cream)] ring-2 ring-[var(--wd-coral)]/25'
+            : 'border-[var(--wd-ink)] bg-[var(--wd-paper)] ring-2 ring-[var(--wd-ink)]/15'
+          : recommended
+            ? 'border-[var(--wd-coral)]/60 bg-[var(--wd-cream)] hover:border-[var(--wd-coral)]'
+            : 'border-[var(--wd-line)] bg-[var(--wd-paper)] hover:border-[var(--wd-mute)]'
       } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
     >
+      {recommended && (
+        <span className="absolute right-2 top-2 rounded-full bg-[var(--wd-coral)] px-2 py-0.5 text-[9.5px] font-medium text-white">
+          {recommended}
+        </span>
+      )}
       <span className="flex items-center gap-1.5">
         <span
           className={`grid h-3.5 w-3.5 shrink-0 place-items-center rounded-full border-2 ${
-            selected ? 'border-[#3D2E1F] bg-[#3D2E1F]' : 'border-[#D4C5B0] bg-white'
+            selected
+              ? recommended
+                ? 'border-[var(--wd-coral)] bg-[var(--wd-coral)]'
+                : 'border-[var(--wd-ink)] bg-[var(--wd-ink)]'
+              : 'border-[var(--wd-line)] bg-[var(--wd-paper)]'
           }`}
           aria-hidden
         >
           {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
         </span>
-        <span className="text-sm font-semibold text-[#3D2E1F]">{title}</span>
+        <span className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0">
+          <span className="text-sm font-semibold text-[var(--wd-ink)]">{title}</span>
+          {hint && <span className="text-[11px] text-[var(--wd-mute)]">— {hint}</span>}
+        </span>
       </span>
-      <span className="text-[11px] leading-relaxed text-[#5C4633]">{description}</span>
+      <span className="text-[11px] leading-relaxed text-[var(--wd-ink)]/85">{description}</span>
       {onShowExample && (
         <button
           type="button"
@@ -2095,7 +2153,7 @@ function ModeCard({
             e.stopPropagation();
             onShowExample();
           }}
-          className="mt-1 self-start text-[11px] font-medium text-[#3D2E1F] underline underline-offset-2 hover:text-[#5C4633]"
+          className="mt-0.5 inline-flex w-fit items-center gap-1 rounded-full border border-[var(--wd-ink)]/20 bg-[var(--wd-paper)] px-2.5 py-1 text-[11px] font-medium text-[var(--wd-ink)] transition-colors hover:bg-[var(--wd-ink)]/8"
         >
           예시 보기 →
         </button>
@@ -2127,12 +2185,12 @@ function SubToggleButton({
       onClick={onClick}
       className={`flex flex-col gap-0.5 rounded-md border px-2.5 py-2 text-left transition-colors ${
         selected
-          ? 'border-[#3D2E1F] bg-white ring-2 ring-[#3D2E1F]/20'
-          : 'border-[#D4C5B0] bg-white hover:border-[#8B7355]'
+          ? 'border-[var(--wd-ink)] bg-white ring-2 ring-[var(--wd-ink)]/20'
+          : 'border-[var(--wd-line)] bg-white hover:border-[var(--wd-mute)]'
       } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
     >
-      <span className="text-[11px] font-semibold text-[#3D2E1F]">{title}</span>
-      <span className="text-[10px] leading-snug text-[#8B7355]">{desc}</span>
+      <span className="text-[11px] font-semibold text-[var(--wd-ink)]">{title}</span>
+      <span className="text-[10px] leading-snug text-[var(--wd-mute)]">{desc}</span>
     </button>
   );
 }
@@ -2150,7 +2208,7 @@ function CoupleFaceMetaBadge({
 }) {
   if (status === 'measuring') {
     return (
-      <p className="text-[10px] text-[#8B7355]">
+      <p className="text-[10px] text-[var(--wd-mute)]">
         ⏳ 사진 분석 중… (얼굴 크기 측정 후 호환 카탈로그 자동 추천)
       </p>
     );
@@ -2173,7 +2231,7 @@ function CoupleFaceMetaBadge({
             ? '보통 반신 사진 — 클로즈업 카탈로그는 살짝 주의'
             : '얼굴 작은 전신 사진 — 클로즈업 카탈로그는 변형 위험이 있어요';
     return (
-      <p className="text-[10px] text-[#5C4633]">
+      <p className="text-[10px] text-[var(--wd-ink)]">
         ✓ 얼굴 {meta.faceCount}개 감지 · {sizeLabel}
       </p>
     );
@@ -2195,21 +2253,21 @@ function CoupleFaceMetaBadge({
  */
 function CatalogSelectionGuide() {
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-[#E8DCC9] bg-gradient-to-br from-[#FAF7F2] to-white">
-      <div className="border-b border-[#F0E8D8] bg-[#FAF7F2] px-3 py-1.5">
-        <span className="text-[11px] font-semibold tracking-wide text-[#3D2E1F]">
+    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-[var(--wd-line)] bg-gradient-to-br from-[var(--wd-cream)] to-white">
+      <div className="border-b border-[var(--wd-line)] bg-[var(--wd-cream)] px-3 py-1.5">
+        <span className="text-[11px] font-semibold tracking-wide text-[var(--wd-ink)]">
           자연스러운 카탈로그 선택 가이드
         </span>
       </div>
-      <ul className="flex flex-1 flex-col divide-y divide-[#F0E8D8] text-[12px] leading-relaxed text-[#5C4633]">
+      <ul className="flex flex-1 flex-col divide-y divide-[var(--wd-line)] text-[12px] leading-relaxed text-[var(--wd-ink)]">
         <li className="px-3 py-2">
-          <strong className="text-[#3D2E1F]">셀카로 만들기</strong>
-          <span className="text-[#8B7355]"> →</span> 솔로 컷 ·
+          <strong className="text-[var(--wd-ink)]">셀카로 만들기</strong>
+          <span className="text-[var(--wd-mute)]"> →</span> 솔로 컷 ·
           커플 클로즈업 컷에 어울려요
         </li>
         <li className="px-3 py-2">
-          <strong className="text-[#3D2E1F]">커플사진으로 만들기</strong>
-          <span className="text-[#8B7355]"> →</span> 모든 커플 카탈로그에 어울려요
+          <strong className="text-[var(--wd-ink)]">커플사진으로 만들기</strong>
+          <span className="text-[var(--wd-mute)]"> →</span> 모든 커플 카탈로그에 어울려요
         </li>
       </ul>
     </div>
@@ -2246,22 +2304,22 @@ function ImageReferenceCard({
       onClick={onSelect}
       className={`flex flex-col gap-2 rounded-md border p-3 text-left transition-colors ${
         selected
-          ? 'border-[#3D2E1F] bg-white ring-2 ring-[#3D2E1F]/20'
-          : 'border-[#E8DCC9] bg-white hover:border-[#8B7355]'
+          ? 'border-[var(--wd-ink)] bg-white ring-2 ring-[var(--wd-ink)]/20'
+          : 'border-[var(--wd-line)] bg-white hover:border-[var(--wd-mute)]'
       } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
     >
       <span className="flex items-center gap-1.5">
         <span
           className={`grid h-3.5 w-3.5 shrink-0 place-items-center rounded-full border-2 ${
-            selected ? 'border-[#3D2E1F] bg-[#3D2E1F]' : 'border-[#D4C5B0] bg-white'
+            selected ? 'border-[var(--wd-ink)] bg-[var(--wd-ink)]' : 'border-[var(--wd-line)] bg-white'
           }`}
           aria-hidden
         >
           {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
         </span>
-        <span className="text-sm font-semibold text-[#3D2E1F]">{title}</span>
+        <span className="text-sm font-semibold text-[var(--wd-ink)]">{title}</span>
       </span>
-      <span className="text-[11px] leading-relaxed text-[#5C4633]">{description}</span>
+      <span className="text-[11px] leading-relaxed text-[var(--wd-ink)]">{description}</span>
     </button>
   );
 }
@@ -2344,9 +2402,9 @@ function BodyFields({
     Number.isFinite(weightNum) &&
     (weightNum < WEIGHT_RANGE.min || weightNum > WEIGHT_RANGE.max);
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-3">
-      <span className="text-xs font-medium text-[#3D2E1F]">{label}</span>
-      <label className="flex items-center gap-2 text-xs text-[#5C4633]">
+    <div className="flex flex-col gap-2 rounded-md border border-[var(--wd-line)] bg-[var(--wd-cream)] p-3">
+      <span className="text-xs font-medium text-[var(--wd-ink)]">{label}</span>
+      <label className="flex items-center gap-2 text-xs text-[var(--wd-ink)]">
         <span className="w-10 shrink-0">키</span>
         <input
           type="number"
@@ -2359,12 +2417,12 @@ function BodyFields({
           value={value.heightCm}
           onChange={(e) => onChange({ ...value, heightCm: e.target.value })}
           className={`w-full rounded border bg-white px-2 py-1.5 text-sm ${
-            heightOut ? 'border-red-400' : 'border-[#D4C5B0]'
+            heightOut ? 'border-red-400' : 'border-[var(--wd-line)]'
           }`}
         />
-        <span className="text-[10px] text-[#8B7355]">cm</span>
+        <span className="text-[10px] text-[var(--wd-mute)]">cm</span>
       </label>
-      <label className="flex items-center gap-2 text-xs text-[#5C4633]">
+      <label className="flex items-center gap-2 text-xs text-[var(--wd-ink)]">
         <span className="w-10 shrink-0">몸무게</span>
         <input
           type="number"
@@ -2377,10 +2435,10 @@ function BodyFields({
           value={value.weightKg}
           onChange={(e) => onChange({ ...value, weightKg: e.target.value })}
           className={`w-full rounded border bg-white px-2 py-1.5 text-sm ${
-            weightOut ? 'border-red-400' : 'border-[#D4C5B0]'
+            weightOut ? 'border-red-400' : 'border-[var(--wd-line)]'
           }`}
         />
-        <span className="text-[10px] text-[#8B7355]">kg</span>
+        <span className="text-[10px] text-[var(--wd-mute)]">kg</span>
       </label>
       {(heightOut || weightOut) && (
         <p className="text-[10px] text-red-600">입력 범위를 벗어났어요.</p>
@@ -2409,12 +2467,12 @@ function FaceUploader({
       onClick={onPick}
       className={`flex flex-col items-center gap-2 rounded-md border border-dashed p-3 transition-colors ${
         face.preview
-          ? 'border-[#8B7355] bg-[#F5EDE0]'
-          : 'border-[#E8DCC9] bg-white hover:bg-[#FAF7F2]'
+          ? 'border-[var(--wd-mute)] bg-[var(--wd-cream)]'
+          : 'border-[var(--wd-line)] bg-white hover:bg-[var(--wd-cream)]'
       } ${disabled || face.uploading ? 'opacity-60' : ''} ${wide ? 'col-span-2' : ''}`}
     >
       <div
-        className={`relative grid w-full place-items-center overflow-hidden rounded bg-[#F5EDE0] ${
+        className={`relative grid w-full place-items-center overflow-hidden rounded bg-[var(--wd-cream)] ${
           wide ? 'aspect-[4/3] max-w-[280px]' : 'aspect-square max-w-[140px]'
         }`}
       >
@@ -2430,11 +2488,11 @@ function FaceUploader({
         ) : (
           <>
             {!wide && <UploadGuideOverlay wide={wide} opacity={0.6} />}
-            <span className="absolute text-2xl text-[#8B7355]">＋</span>
+            <span className="absolute text-2xl text-[var(--wd-mute)]">＋</span>
           </>
         )}
       </div>
-      <span className="text-xs font-medium text-[#3D2E1F]">
+      <span className="text-xs font-medium text-[var(--wd-ink)]">
         {face.uploading ? '업로드 중...' : face.preview ? `${label} ✓ 변경` : `${label} 업로드`}
       </span>
     </button>
@@ -2505,7 +2563,7 @@ function UploadGuideOverlay({
     >
       <g
         fill="none"
-        stroke="#8B7355"
+        stroke="var(--wd-mute)"
         strokeWidth="0.9"
         strokeDasharray="2 1.6"
         strokeLinecap="round"
