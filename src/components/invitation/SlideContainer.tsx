@@ -34,6 +34,11 @@ interface Props {
    * 판별한다.
    */
   isPreview?: boolean;
+  /**
+   * forceBgm: isPreview 여도 배경음악 플레이어를 노출. 마케팅 디자인 전체보기
+   * 모달처럼 "샘플 음악을 들려주고 싶은" 미리보기 한정으로 켠다.
+   */
+  forceBgm?: boolean;
 }
 
 export function SlideContainer({
@@ -44,6 +49,7 @@ export function SlideContainer({
   bgmUrl = null,
   scoped = false,
   isPreview = false,
+  forceBgm = false,
 }: Props) {
   const slides = children.filter(Boolean);
   const [index, setIndex] = useState(0);
@@ -137,7 +143,7 @@ export function SlideContainer({
           : {}),
       }}
     >
-      {bgmUrl && !isPreview && <BgmPlayer url={bgmUrl} />}
+      {bgmUrl && (!isPreview || forceBgm) && <BgmPlayer url={bgmUrl} />}
 
       <motion.div
         className="flex h-full"

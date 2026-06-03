@@ -74,16 +74,17 @@ export function BgmPlayer({ url }: Props) {
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
       />
-      {/* 좌하단 코너 — absolute 라 폰 프레임 안에서도 보인다. 풀블리드 사진 위에서도
-          또렷하도록 다크 반투명 펄 + 흰 아이콘 + 작은 라벨. 콘텐츠 영역과 안 겹침. */}
+      {/* 좌하단 코너 — absolute 라 폰 프레임 안에서도 보인다. 배경색/라벨 없이 아이콘만
+          둬서 콘텐츠를 가리지 않으며, 사진 위에서도 또렷하도록 drop-shadow 만 입힌다.
+          작은 히트박스(아이콘 크기)라 다른 요소 위를 거의 점유하지 않음. */}
       <button
         type="button"
         onClick={toggle}
         aria-label={playing ? '배경음악 끄기' : '배경음악 켜기'}
-        className="pointer-events-auto absolute bottom-4 left-3 z-30 inline-flex items-center gap-1 rounded-full bg-black/45 py-1.5 pl-2 pr-2.5 text-[11px] font-medium text-white shadow-md backdrop-blur-sm transition-colors hover:bg-black/65"
+        className="pointer-events-auto absolute bottom-4 left-3 z-30 grid h-8 w-8 place-items-center bg-transparent text-xl leading-none transition-opacity hover:opacity-70"
+        style={{ filter: 'drop-shadow(0 1px 2.5px rgba(0,0,0,0.6))' }}
       >
-        <span aria-hidden className="text-sm leading-none">{playing ? '🔊' : '🔇'}</span>
-        <span>{playing ? '음악 ON' : '음악 OFF'}</span>
+        <span aria-hidden>{playing ? '🔊' : '🔇'}</span>
       </button>
     </>
   );

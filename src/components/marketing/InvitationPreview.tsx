@@ -23,9 +23,12 @@ const BASE_H = 780;
 export function InvitationPreview({
   design,
   cover = false,
+  withBgm = false,
 }: {
   design: SampleDesign;
   cover?: boolean;
+  /** 전체보기 모달처럼 몰입형 뷰에서 샘플 배경음악을 재생/토글 노출. 표지(cover)는 항상 무음. */
+  withBgm?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
@@ -61,6 +64,7 @@ export function InvitationPreview({
           content={content}
           isPreview
           scoped
+          forceBgm={withBgm && !cover}
         />
       </div>
     </div>
