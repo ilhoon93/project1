@@ -159,7 +159,13 @@ export function InvitationSlides({
         content.account.guide.trim().length > 0) ? (
         <AccountSlide account={content.account} />
       ) : null,
-    closing: <ClosingSlide message={content.closing} />,
+    closing: (
+      <ClosingSlide
+        message={content.closing}
+        // 발행용 하객 뷰에서만 공유 버튼 노출 (미리보기/소장용 제외).
+        showShare={mode === 'guest' && !isPreview}
+      />
+    ),
   };
 
   const orderedKeys = reconcilePageOrder(content.theme.pageOrder);

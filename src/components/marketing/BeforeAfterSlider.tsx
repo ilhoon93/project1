@@ -13,7 +13,9 @@ import type { BeforeAfterConfig } from '@/lib/marketing/sample-invitations';
  * /admin/home-samples 에서 편집한 BeforeAfterConfig 를 props 로 받아 렌더.
  */
 export function BeforeAfterSlider({ config }: { config: BeforeAfterConfig }) {
-  const styles = config.styles;
+  // afterImage 가 아직 비어 있는(admin 이 추가만 하고 안 채운) 예시는 공개 슬라이더에서
+  // 제외 — 빈 이미지가 노출되지 않게.
+  const styles = config.styles.filter((s) => s.afterImage?.trim());
   const [styleId, setStyleId] = useState<string>(styles[0]?.id ?? '');
   const [pct, setPct] = useState(50);
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -90,7 +92,7 @@ export function BeforeAfterSlider({ config }: { config: BeforeAfterConfig }) {
           {/* object-contain — 사진 전체가 잘리지 않고 보이도록 (letterbox 는 paper 톤). */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={config.beforeImage}
+            src={active.beforeImage?.trim() ? active.beforeImage : config.beforeImage}
             alt="평소 커플 사진 (변환 전)"
             draggable={false}
             className="absolute inset-0 h-full w-full object-contain"
@@ -162,6 +164,11 @@ export function BeforeAfterSlider({ config }: { config: BeforeAfterConfig }) {
           );
         })}
       </div>
+
+      {/* 실제 서비스 결과물임을 알리는 작은 안내 문구 */}
+      <p className="border-t border-[var(--wd-line)] px-4 py-2.5 text-[10.5px] leading-relaxed text-[var(--wd-mute)]">
+        ⓘ 실제 우리 서비스에서 생성한 결과물입니다.
+      </p>
     </div>
   );
 }

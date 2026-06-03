@@ -78,6 +78,11 @@ export interface BeforeAfterStyle {
    * 아니라 "사용자 입력 + 카탈로그 = 합성 결과" 의 데모.
    */
   afterImage: string;
+  /**
+   * (옵션) 이 예시 전용 Before 사진. 지정 시 슬라이더가 공통 beforeImage 대신 이걸
+   * 보여 준다 → 예시마다 입력 사진(Before)을 다르게 세팅 가능. 비우면 공통 사용.
+   */
+  beforeImage?: string;
 }
 
 export interface BeforeAfterConfig {

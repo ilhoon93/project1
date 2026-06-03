@@ -698,6 +698,19 @@ export function SnapSamplesEditor({
         k === i ? { ...s, ...patch } : s,
       ),
     });
+  const addStyle = () =>
+    setBA({
+      ...config.beforeAfter,
+      styles: [
+        ...config.beforeAfter.styles,
+        { id: `style-${Date.now()}`, label: '새 예시', afterLabel: 'AI · 새 예시', afterImage: '' },
+      ],
+    });
+  const removeStyle = (i: number) =>
+    setBA({
+      ...config.beforeAfter,
+      styles: config.beforeAfter.styles.filter((_, k) => k !== i),
+    });
 
   const unusedCatalog = catalog.filter((c) => !snaps.includes(c.id));
 
@@ -786,9 +799,17 @@ export function SnapSamplesEditor({
               catalog={catalog}
               byId={byId}
               onPatch={(patch) => patchStyle(i, patch)}
+              onRemove={config.beforeAfter.styles.length > 1 ? () => removeStyle(i) : undefined}
             />
           ))}
         </div>
+        <button
+          type="button"
+          onClick={addStyle}
+          className="mt-3 rounded-full border border-[#8B7355]/40 px-3.5 py-1.5 text-[12px] font-medium text-[#5C4633] hover:bg-[#FAF7F2]"
+        >
+          + Before/After 예시 추가
+        </button>
       </section>
 
       {/* ───────────── AI 스냅 예시보기 팝업 ───────────── */}
@@ -941,16 +962,23 @@ function BeforeAfterStyleEditor({
   catalog,
   byId,
   onPatch,
+  onRemove,
 }: {
   style: BeforeAfterStyle;
   index: number;
   catalog: CatalogItem[];
   byId: Map<string, CatalogItem>;
   onPatch: (patch: Partial<BeforeAfterStyle>) => void;
+  /** 있으면 헤더에 제거 버튼 노출. (예시가 2개 이상일 때만 전달) */
+  onRemove?: () => void;
 }) {
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  // 예시 전용 Before 업로드용 (비우면 공통 beforeImage 사용).
+  const beforeFileRef = useRef<HTMLInputElement>(null);
+  const [beforeUploading, setBeforeUploading] = useState(false);
+  const [beforeErr, setBeforeErr] = useState<string | null>(null);
   const styleCatalogId = style.styleCatalogId ?? style.id;
   const catalogItem = byId.get(styleCatalogId);
 
@@ -985,6 +1013,27 @@ function BeforeAfterStyleEditor({
     }
   };
 
+  const handleBeforeFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBeforeUploading(true);
+    setBeforeErr(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('styleId', `${style.id || styleCatalogId}-before`);
+      const res = await uploadBeforeAfterAfterImage(fd);
+      if (!res.ok) {
+        setBeforeErr(res.error);
+        return;
+      }
+      onPatch({ beforeImage: res.url });
+    } finally {
+      setBeforeUploading(false);
+      if (beforeFileRef.current) beforeFileRef.current.value = '';
+    }
+  };
+
   return (
     <div className="rounded-md border border-[#E8DCC9] bg-[#FCFAF6] p-3">
       <div className="mb-2 flex items-center gap-2">
@@ -997,6 +1046,16 @@ function BeforeAfterStyleEditor({
         <span className="text-[10px] uppercase tracking-wide text-[#8B7355]">
           스타일 {index + 1}
         </span>
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="ml-auto rounded px-1.5 py-0.5 text-[11px] font-medium text-[#B5614F] hover:bg-[#B5614F]/10"
+            aria-label="이 예시 제거"
+          >
+            ✕ 제거
+          </button>
+        )}
       </div>
 
       <Field label="카탈로그 스타일 (탭/After 라벨 자동)">
@@ -1056,9 +1115,43 @@ function BeforeAfterStyleEditor({
           </div>
         </Field>
       </div>
+      <div className="mt-2">
+        <Field label="Before 사진 (이 예시 전용 — 비우면 공통 Before 사용)">
+          <div className="flex flex-col gap-1">
+            <input
+              ref={beforeFileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => void handleBeforeFileChange(e)}
+              disabled={beforeUploading}
+              className="block w-full text-[11px] file:mr-2 file:rounded file:border-0 file:bg-[#3D2E1F] file:px-2 file:py-1 file:text-[11px] file:text-white file:hover:bg-[#5C4633]"
+            />
+            {beforeUploading && <span className="text-[10px] text-[#8B7355]">업로드 중…</span>}
+            {beforeErr && <span className="text-[10px] text-[#B5614F]">{beforeErr}</span>}
+            {style.beforeImage ? (
+              <span className="flex items-center gap-2 text-[10px] text-[#8B7355]">
+                <span className="truncate" title={style.beforeImage}>
+                  {style.beforeImage.split('/').pop()}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onPatch({ beforeImage: '' })}
+                  className="shrink-0 text-[#B5614F] hover:underline"
+                >
+                  비우기(공통 사용)
+                </button>
+              </span>
+            ) : (
+              <span className="text-[10px] text-[#8B7355]">공통 Before 사용 중</span>
+            )}
+          </div>
+        </Field>
+      </div>
+
       <p className="mt-2 text-[10px] leading-relaxed text-[#8B7355]">
         Before 입력 사진에 위 카탈로그 스타일을 적용한{' '}
         <strong className="text-[#3D2E1F]">실제 생성 결과물</strong>을 업로드하세요.
+        예시별로 Before(입력 사진)를 다르게 두려면 위 “이 예시 전용” 칸에 업로드하세요.
         JPG/PNG/WEBP · 최대 8MB.
       </p>
     </div>

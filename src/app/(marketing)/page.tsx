@@ -308,8 +308,9 @@ function AiSnapPreview({
           </p>
         </FadeUp>
 
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[var(--wd-coral)]/12 px-3.5 py-1.5 text-[11.5px] font-medium text-[var(--wd-coral)]">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--wd-coral)]" />
+        {/* 색 반전 강조 — 글자색(코랄)을 배경으로, 배경색(크림)을 글자색으로. */}
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[var(--wd-coral)] px-3.5 py-1.5 text-[11.5px] font-semibold text-[var(--wd-cream)] shadow-sm">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--wd-cream)]" />
           신규 가입 후 1크레딧 무료, 첫 결제시 앵커 생성 무료
         </div>
 
@@ -327,7 +328,7 @@ function AiSnapPreview({
             href="/wedding-snap"
             className="inline-flex items-center gap-1.5 rounded-full bg-[var(--wd-ink)] px-5 py-2.5 text-[13px] font-medium text-[var(--wd-cream)]"
           >
-            AI 화보 둘러보기 · {formatKRW(SNAP_STARTING_PRICE)}부터 →
+            AI 화보 둘러보기 →
           </Link>
         </div>
       </div>
