@@ -288,11 +288,23 @@ export async function saveHomeSamples(
     example_flow: parsed.data.exampleFlow,
   };
   // DB 타입(자동생성)이 owner_url_example 컬럼을 아직 모르는 환경 호환 위해 캐스팅.
-  const { error } = await supabase.from('marketing_home_samples').upsert(
+  let { error } = await supabase.from('marketing_home_samples').upsert(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     upsertRow as any,
     { onConflict: 'id' },
   );
+  // migration 037(example_flow 컬럼) 미적용 환경 호환 — 그 컬럼 때문에 실패하면
+  // example_flow 만 빼고 재시도해 나머지 설정(디자인/Before·After/템플릿 등)은 저장되게 한다.
+  // (037 적용 전이라도 admin 저장이 통째로 막히지 않도록 하는 방어 로직.)
+  if (error && /example_flow/i.test(error.message)) {
+    const rowWithoutExampleFlow: Record<string, unknown> = { ...upsertRow };
+    delete rowWithoutExampleFlow.example_flow;
+    ({ error } = await supabase.from('marketing_home_samples').upsert(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rowWithoutExampleFlow as any,
+      { onConflict: 'id' },
+    ));
+  }
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
