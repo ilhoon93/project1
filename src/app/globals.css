@@ -223,6 +223,24 @@
   animation: mw-pos-fade 0.65s cubic-bezier(0.22, 0.68, 0.32, 1.04) forwards;
   will-change: opacity, transform;
 }
+
+/* ── 메인 슬라이드 히어로 켄번스(살짝 줌·팬) ──────────────────
+ * 메인(첫) 슬라이드 진입 시 배경 사진이 아주 천천히 확대·이동하며 "살아 있는"
+ * 인상을 준다. 시작 시 1.03 배로 살짝 키워, 팬(translate) 중에도 사진 가장자리
+ * 가 비치지 않게 한다. 한 번만 재생(both)하고 끝 상태를 유지. */
+.mw-kenburns {
+  transform-origin: center;
+  animation: mw-kenburns 18s ease-out both;
+  will-change: transform;
+}
+@keyframes mw-kenburns {
+  0% {
+    transform: scale(1.03) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.1) translate(-1.4%, -1.4%);
+  }
+}
 @keyframes mw-pos-fade {
   0% {
     opacity: 0;
@@ -250,6 +268,11 @@
     animation: none !important;
     opacity: 1 !important;
     transform: translate(-50%, -50%) !important;
+  }
+  /* 켄번스도 멈추고 원본 크기로 고정. */
+  .mw-kenburns {
+    animation: none !important;
+    transform: none !important;
   }
 }
 

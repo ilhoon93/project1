@@ -8,7 +8,9 @@ const BodySchema = z.object({
   visitorSide: z.enum(['groom', 'bride']).optional(),
   // base64 data URL ("data:image/png;base64,..."). 클라이언트는 가로 600px 로
   // 다운스케일한 PNG 를 보내므로 보통 50–150KB. 여유 있게 800KB 까지 허용.
-  signatureData: z.string().max(800_000).optional(),
+  // 서명은 선택 항목 — 미서명 시 클라이언트가 null 을 보내므로 nullable 로 받는다
+  // (optional 만 두면 null 이 검증에서 거부돼 400 이 났다).
+  signatureData: z.string().max(800_000).nullable().optional(),
   consentPersonalInfo: z.boolean(),
 });
 

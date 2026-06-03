@@ -27,6 +27,13 @@ interface Props {
    * 화면 일부에만 슬라이드를 보여줄 때 사용. 기본 false (= 풀스크린).
    */
   scoped?: boolean;
+  /**
+   * isPreview: 에디터 좌측 미리보기. true 면 배경음악 플레이어를 띄우지 않는다
+   * (편집 중 자동 재생 방지). 데스크톱 폰 프레임 게스트 뷰처럼 scoped 이지만
+   * 실제 하객/소장용 화면에서는 음악이 나와야 하므로 scoped 가 아닌 isPreview 로
+   * 판별한다.
+   */
+  isPreview?: boolean;
 }
 
 export function SlideContainer({
@@ -36,6 +43,7 @@ export function SlideContainer({
   font = 'serif',
   bgmUrl = null,
   scoped = false,
+  isPreview = false,
 }: Props) {
   const slides = children.filter(Boolean);
   const [index, setIndex] = useState(0);
@@ -129,7 +137,7 @@ export function SlideContainer({
           : {}),
       }}
     >
-      {bgmUrl && !scoped && <BgmPlayer url={bgmUrl} color={palette.accent} />}
+      {bgmUrl && !isPreview && <BgmPlayer url={bgmUrl} color={palette.accent} />}
 
       <motion.div
         className="flex h-full"
