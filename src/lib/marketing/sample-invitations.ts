@@ -83,6 +83,50 @@ export interface BeforeAfterConfig {
   styles: BeforeAfterStyle[];
 }
 
+// ── AI 스냅 '예시보기 팝업'(ExampleFlowModal) 설정 ──────────────
+// 흐름 구조는 고정(셀카 3행: 신랑/신부/함께, 커플 2행). 이미지·카탈로그·텍스트만
+// 운영자(/admin/snap-samples)가 편집한다. 카탈로그 칸은 catalogId 로 SNAP_CATALOG
+// 마스터를 그대로 보여 주고, 나머지 칸은 업로드한 이미지 URL 을 쓴다.
+export const MODE_EXAMPLE_BASE = '/wedding-snap/mode-examples';
+
+export interface ExampleFlowSelfiePerson {
+  rowTitle: string;
+  /** 정면 / 좌45° / 우45° 셀카 3장. */
+  selfies: string[];
+  anchor: string;
+  catalogId: string;
+  result: string;
+  resultSubLabel: string;
+}
+export interface ExampleFlowCoupleRow {
+  rowTitle: string;
+  input: string;
+  aCatalogId: string;
+  aResult: string;
+  aSubLabel: string;
+  bCatalogId: string;
+  bResult: string;
+  bSubLabel: string;
+}
+export interface ExampleFlowConfig {
+  selfies: {
+    desc: string;
+    groom: ExampleFlowSelfiePerson;
+    bride: ExampleFlowSelfiePerson;
+    /** 함께 컷 — 앵커는 신랑/신부 앵커를 재사용하므로 별도 이미지 없음. */
+    together: {
+      rowTitle: string;
+      catalogId: string;
+      result: string;
+      resultSubLabel: string;
+    };
+  };
+  couple: {
+    desc: string;
+    rows: ExampleFlowCoupleRow[];
+  };
+}
+
 export interface TemplateChapter {
   title: string;
   text: string;
@@ -139,6 +183,8 @@ export interface HomeSamplesConfig {
   ownerUrlExample?: string;
   beforeAfter: BeforeAfterConfig;
   template: TemplateConfig;
+  /** AI 스냅 예시보기 팝업 설정. */
+  exampleFlow: ExampleFlowConfig;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -447,12 +493,74 @@ export const DEFAULT_AI_SNAP_IDS: string[] = [
   'city-goldenhour-balcony',
 ];
 
+export const DEFAULT_EXAMPLE_FLOW: ExampleFlowConfig = {
+  selfies: {
+    desc: '신랑·신부 각자 셀카 3장(정면/좌45°/우45°)으로 앵커를 만들고, 그 앵커를 카탈로그에 합성합니다. 함께 컷 / 신랑 단독 / 신부 단독 컷 모두 가능. 사진을 누르면 크게 볼 수 있어요.',
+    groom: {
+      rowTitle: '신랑 단독 컷 만들기',
+      selfies: [
+        `${MODE_EXAMPLE_BASE}/selfies-groom-front.jpg`,
+        `${MODE_EXAMPLE_BASE}/selfies-groom-left.jpg`,
+        `${MODE_EXAMPLE_BASE}/selfies-groom-right.jpg`,
+      ],
+      anchor: `${MODE_EXAMPLE_BASE}/selfies-groom-anchor.jpg`,
+      catalogId: 'groom-hotel-stairs',
+      result: `${MODE_EXAMPLE_BASE}/selfies-groom-result.jpg`,
+      resultSubLabel: '기본 모드',
+    },
+    bride: {
+      rowTitle: '신부 단독 컷 만들기',
+      selfies: [
+        `${MODE_EXAMPLE_BASE}/selfies-bride-front.jpg`,
+        `${MODE_EXAMPLE_BASE}/selfies-bride-left.jpg`,
+        `${MODE_EXAMPLE_BASE}/selfies-bride-right.jpg`,
+      ],
+      anchor: `${MODE_EXAMPLE_BASE}/selfies-bride-anchor.jpg`,
+      catalogId: 'bride-paris-eiffel',
+      result: `${MODE_EXAMPLE_BASE}/selfies-bride-result.jpg`,
+      resultSubLabel: '기본 모드',
+    },
+    together: {
+      rowTitle: '함께 컷 만들기',
+      catalogId: 'garden-finger-heart',
+      result: `${MODE_EXAMPLE_BASE}/selfies-together-result.jpg`,
+      resultSubLabel: '기본 모드',
+    },
+  },
+  couple: {
+    desc: '두 사람이 함께 찍힌 커플 사진 1장으로 만듭니다. 포즈·체형·상호작용을 그대로 유지하며 카탈로그의 의상/배경만 바꿔요. (함께 컷만 가능)',
+    rows: [
+      {
+        rowTitle: '예시 1 — 반신 이상 클로즈업 커플 사진으로 카탈로그 2종',
+        input: `${MODE_EXAMPLE_BASE}/couple-input-1.jpg`,
+        aCatalogId: 'studio-couple-puppy',
+        aResult: `${MODE_EXAMPLE_BASE}/couple-result-1.jpg`,
+        aSubLabel: '기본 모드',
+        bCatalogId: 'beach-sunset-sparkler-couple',
+        bResult: `${MODE_EXAMPLE_BASE}/couple-result-1b.jpg`,
+        bSubLabel: '얼굴 강화 모드',
+      },
+      {
+        rowTitle: '예시 2 — 전신 커플 사진으로 카탈로그 2종',
+        input: `${MODE_EXAMPLE_BASE}/couple-input-2.jpg`,
+        aCatalogId: 'budapest-bastion-sunset',
+        aResult: `${MODE_EXAMPLE_BASE}/couple-result-2.jpg`,
+        aSubLabel: '기본 모드',
+        bCatalogId: 'yosemite-trail-walk',
+        bResult: `${MODE_EXAMPLE_BASE}/couple-result-2b.jpg`,
+        bSubLabel: '얼굴 강화 모드',
+      },
+    ],
+  },
+};
+
 export const DEFAULT_HOME_SAMPLES_CONFIG: HomeSamplesConfig = {
   aiSnapCatalogIds: DEFAULT_AI_SNAP_IDS,
   designs: DEFAULT_SAMPLE_CONFIGS,
   ownerUrlExample: '',
   beforeAfter: DEFAULT_BEFORE_AFTER,
   template: DEFAULT_TEMPLATE,
+  exampleFlow: DEFAULT_EXAMPLE_FLOW,
 };
 
 export const SAMPLE_DESIGNS: SampleDesign[] = DEFAULT_SAMPLE_CONFIGS.map((c) =>

@@ -28,35 +28,25 @@
 
 import { useEffect, useState } from 'react';
 import { findSnapCatalog } from '@/lib/snap/catalog';
-
-/**
- * 각 row 의 카탈로그 칸에 보일 catalog id. 운영 중 더 좋은 reference 가 생기면
- * 여기만 바꾸면 됨. (모두 active 항목이어야 함 — hidden 인 항목 쓰면 결과 칸이
- * placeholder 로 빠짐.)
- *
- * 커플 모드는 입력 사진 1장당 2개 카탈로그 → 4개 catalog id (couple1~4).
- */
-const EXAMPLE_CATALOG_IDS = {
-  groomSolo: 'groom-hotel-stairs',
-  brideSolo: 'bride-paris-eiffel',
-  together: 'garden-finger-heart',
-  couple1a: 'studio-couple-puppy',
-  couple1b: 'beach-sunset-sparkler-couple',
-  couple2a: 'budapest-bastion-sunset',
-  couple2b: 'yosemite-trail-walk',
-} as const;
-
-const MODE_BASE = '/wedding-snap/mode-examples';
+import {
+  DEFAULT_EXAMPLE_FLOW,
+  MODE_EXAMPLE_BASE,
+  type ExampleFlowConfig,
+} from '@/lib/marketing/sample-invitations';
 
 export type ExampleFlowMode = 'selfies' | 'couple';
 
 export function ExampleFlowModal({
   mode,
   onClose,
+  config,
 }: {
   mode: ExampleFlowMode | null;
   onClose: () => void;
+  /** 운영자(/admin/snap-samples)가 세팅한 예시 흐름. 없으면 코드 기본값. */
+  config?: ExampleFlowConfig;
 }) {
+  const cfg = config ?? DEFAULT_EXAMPLE_FLOW;
   // lightbox state — 클릭한 썸네일 src.
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
@@ -113,85 +103,51 @@ export function ExampleFlowModal({
           {/* 본문 */}
           <div className="flex flex-col gap-5 px-5 py-4">
             <p className="text-[11px] leading-relaxed text-[var(--wd-ink)]">
-              {mode === 'selfies'
-                ? '신랑·신부 각자 셀카 3장(정면/좌45°/우45°)으로 앵커를 만들고, 그 앵커를 카탈로그에 합성합니다. 함께 컷 / 신랑 단독 / 신부 단독 컷 모두 가능. 사진을 누르면 크게 볼 수 있어요.'
-                : '두 사람이 함께 찍힌 커플 사진 1장으로 만듭니다. 포즈·체형·상호작용을 그대로 유지하며 카탈로그의 의상/배경만 바꿔요. (함께 컷만 가능)'}
+              {mode === 'selfies' ? cfg.selfies.desc : cfg.couple.desc}
             </p>
 
             {mode === 'selfies' ? (
               <>
                 <ExampleFlowRow
-                  title="신랑 단독 컷 만들기"
+                  title={cfg.selfies.groom.rowTitle}
                   steps={[
+                    { srcs: cfg.selfies.groom.selfies, label: '신랑 셀카 3장' },
+                    { srcs: [cfg.selfies.groom.anchor], label: '신랑 앵커' },
+                    { srcs: [imageForCatalogId(cfg.selfies.groom.catalogId)], label: '카탈로그' },
                     {
-                      srcs: [
-                        `${MODE_BASE}/selfies-groom-front.jpg`,
-                        `${MODE_BASE}/selfies-groom-left.jpg`,
-                        `${MODE_BASE}/selfies-groom-right.jpg`,
-                      ],
-                      label: '신랑 셀카 3장',
-                    },
-                    {
-                      srcs: [`${MODE_BASE}/selfies-groom-anchor.jpg`],
-                      label: '신랑 앵커',
-                    },
-                    {
-                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.groomSolo)],
-                      label: '카탈로그',
-                    },
-                    {
-                      srcs: [`${MODE_BASE}/selfies-groom-result.jpg`],
+                      srcs: [cfg.selfies.groom.result],
                       label: '결과',
-                      subLabel: '기본 모드',
+                      subLabel: cfg.selfies.groom.resultSubLabel,
                     },
                   ]}
                   onPick={setLightboxSrc}
                 />
                 <ExampleFlowRow
-                  title="신부 단독 컷 만들기"
+                  title={cfg.selfies.bride.rowTitle}
                   steps={[
+                    { srcs: cfg.selfies.bride.selfies, label: '신부 셀카 3장' },
+                    { srcs: [cfg.selfies.bride.anchor], label: '신부 앵커' },
+                    { srcs: [imageForCatalogId(cfg.selfies.bride.catalogId)], label: '카탈로그' },
                     {
-                      srcs: [
-                        `${MODE_BASE}/selfies-bride-front.jpg`,
-                        `${MODE_BASE}/selfies-bride-left.jpg`,
-                        `${MODE_BASE}/selfies-bride-right.jpg`,
-                      ],
-                      label: '신부 셀카 3장',
-                    },
-                    {
-                      srcs: [`${MODE_BASE}/selfies-bride-anchor.jpg`],
-                      label: '신부 앵커',
-                    },
-                    {
-                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.brideSolo)],
-                      label: '카탈로그',
-                    },
-                    {
-                      srcs: [`${MODE_BASE}/selfies-bride-result.jpg`],
+                      srcs: [cfg.selfies.bride.result],
                       label: '결과',
-                      subLabel: '기본 모드',
+                      subLabel: cfg.selfies.bride.resultSubLabel,
                     },
                   ]}
                   onPick={setLightboxSrc}
                 />
                 <ExampleFlowRow
-                  title="함께 컷 만들기"
+                  title={cfg.selfies.together.rowTitle}
                   steps={[
                     {
-                      srcs: [
-                        `${MODE_BASE}/selfies-groom-anchor.jpg`,
-                        `${MODE_BASE}/selfies-bride-anchor.jpg`,
-                      ],
+                      srcs: [cfg.selfies.groom.anchor, cfg.selfies.bride.anchor],
                       label: '신랑 + 신부 앵커',
                     },
+                    { srcs: [imageForCatalogId(cfg.selfies.together.catalogId)], label: '카탈로그' },
                     {
-                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.together)],
-                      label: '카탈로그',
-                    },
-                    {
-                      srcs: [`${MODE_BASE}/selfies-together-result.jpg`],
+                      srcs: [cfg.selfies.together.result],
                       label: '결과',
-                      subLabel: '기본 모드',
+                      subLabel: cfg.selfies.together.resultSubLabel,
                     },
                   ]}
                   onPick={setLightboxSrc}
@@ -199,63 +155,20 @@ export function ExampleFlowModal({
               </>
             ) : (
               <>
-                {/* 커플 모드 row 1 — input 1 + 2 카탈로그 (각각 기본 / 얼굴 강화). */}
-                <ExampleFlowRow
-                  title="예시 1 — 반신 이상 클로즈업 커플 사진으로 카탈로그 2종"
-                  steps={[
-                    {
-                      srcs: [`${MODE_BASE}/couple-input-1.jpg`],
-                      label: '커플 사진',
-                    },
-                    {
-                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.couple1a)],
-                      label: '카탈로그 A',
-                    },
-                    {
-                      srcs: [`${MODE_BASE}/couple-result-1.jpg`],
-                      label: '결과 A',
-                      subLabel: '기본 모드',
-                    },
-                    {
-                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.couple1b)],
-                      label: '카탈로그 B',
-                    },
-                    {
-                      srcs: [`${MODE_BASE}/couple-result-1b.jpg`],
-                      label: '결과 B',
-                      subLabel: '얼굴 강화 모드',
-                    },
-                  ]}
-                  onPick={setLightboxSrc}
-                />
-                <ExampleFlowRow
-                  title="예시 2 — 전신 커플 사진으로 카탈로그 2종"
-                  steps={[
-                    {
-                      srcs: [`${MODE_BASE}/couple-input-2.jpg`],
-                      label: '커플 사진',
-                    },
-                    {
-                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.couple2a)],
-                      label: '카탈로그 A',
-                    },
-                    {
-                      srcs: [`${MODE_BASE}/couple-result-2.jpg`],
-                      label: '결과 A',
-                      subLabel: '기본 모드',
-                    },
-                    {
-                      srcs: [imageForCatalogId(EXAMPLE_CATALOG_IDS.couple2b)],
-                      label: '카탈로그 B',
-                    },
-                    {
-                      srcs: [`${MODE_BASE}/couple-result-2b.jpg`],
-                      label: '결과 B',
-                      subLabel: '얼굴 강화 모드',
-                    },
-                  ]}
-                  onPick={setLightboxSrc}
-                />
+                {cfg.couple.rows.map((row, i) => (
+                  <ExampleFlowRow
+                    key={i}
+                    title={row.rowTitle}
+                    steps={[
+                      { srcs: [row.input], label: '커플 사진' },
+                      { srcs: [imageForCatalogId(row.aCatalogId)], label: '카탈로그 A' },
+                      { srcs: [row.aResult], label: '결과 A', subLabel: row.aSubLabel },
+                      { srcs: [imageForCatalogId(row.bCatalogId)], label: '카탈로그 B' },
+                      { srcs: [row.bResult], label: '결과 B', subLabel: row.bSubLabel },
+                    ]}
+                    onPick={setLightboxSrc}
+                  />
+                ))}
               </>
             )}
           </div>
@@ -436,5 +349,5 @@ function ThumbBox({
 /** catalog id → image path. catalog 가 hidden / 없으면 placeholder. */
 function imageForCatalogId(id: string): string {
   const item = findSnapCatalog(id);
-  return item?.image ?? `${MODE_BASE}/missing.jpg`;
+  return item?.image ?? `${MODE_EXAMPLE_BASE}/missing.jpg`;
 }

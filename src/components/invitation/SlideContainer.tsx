@@ -137,7 +137,7 @@ export function SlideContainer({
           : {}),
       }}
     >
-      {bgmUrl && !isPreview && <BgmPlayer url={bgmUrl} color={palette.accent} />}
+      {bgmUrl && !isPreview && <BgmPlayer url={bgmUrl} />}
 
       <motion.div
         className="flex h-full"

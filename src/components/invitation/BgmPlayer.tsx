@@ -4,21 +4,21 @@ import { useEffect, useRef, useState } from 'react';
 
 interface Props {
   url: string;
-  /** Optional — color of the toggle pill (matches theme accent). */
-  color?: string;
 }
 
 /**
- * Floating background-music toggle pinned to the top-right of the screen.
+ * 배경음악 ON/OFF 토글 — 슬라이드 컨테이너 좌하단 코너에 absolute 로 고정.
  *
- * Browser autoplay-with-sound policies (Chrome, Safari, iOS) block automatic
- * playback until the user has interacted with the page, so we don't try to
- * autoplay on mount. We attempt one play() on the first user pointer/key
- * interaction with the document (which always succeeds because it counts as
- * a gesture), and the floating pill always lets the user mute or restart
- * playback manually.
+ * position 을 fixed 가 아닌 absolute 로 둬, 데스크톱 폰 프레임(소장용/하객용 뷰)
+ * 안에서도 프레임 기준으로 보이게 한다(예전 fixed 는 브라우저 화면 구석에 떨어져
+ * "안 보이는" 문제가 있었음). 위치는 메인 슬라이드의 제목(중앙)·헤더(상단 중앙)·
+ * 축하하기/인디케이터(하단 중앙)·좌우 화살표(세로 중앙)와 겹치지 않는 좌하단 코너.
+ *
+ * 브라우저 자동재생 정책(Chrome/Safari/iOS)상 소리 자동재생은 첫 사용자 제스처
+ * 전엔 막히므로, 첫 pointer/key 제스처에 한 번 play() 를 시도하고, 펄 버튼으로
+ * 언제든 끄거나 다시 켤 수 있다.
  */
-export function BgmPlayer({ url, color }: Props) {
+export function BgmPlayer({ url }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
 
@@ -74,14 +74,16 @@ export function BgmPlayer({ url, color }: Props) {
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
       />
+      {/* 좌하단 코너 — absolute 라 폰 프레임 안에서도 보인다. 풀블리드 사진 위에서도
+          또렷하도록 다크 반투명 펄 + 흰 아이콘 + 작은 라벨. 콘텐츠 영역과 안 겹침. */}
       <button
         type="button"
         onClick={toggle}
-        aria-label={playing ? '음악 끄기' : '음악 재생'}
-        className="pointer-events-auto fixed right-3 top-3 z-30 grid h-9 w-9 place-items-center rounded-full bg-white/30 text-base shadow-sm backdrop-blur-sm transition-colors hover:bg-white/50"
-        style={{ color: color ?? '#3D2E1F' }}
+        aria-label={playing ? '배경음악 끄기' : '배경음악 켜기'}
+        className="pointer-events-auto absolute bottom-4 left-3 z-30 inline-flex items-center gap-1 rounded-full bg-black/45 py-1.5 pl-2 pr-2.5 text-[11px] font-medium text-white shadow-md backdrop-blur-sm transition-colors hover:bg-black/65"
       >
-        {playing ? '🔊' : '🔈'}
+        <span aria-hidden className="text-sm leading-none">{playing ? '🔊' : '🔇'}</span>
+        <span>{playing ? '음악 ON' : '음악 OFF'}</span>
       </button>
     </>
   );
