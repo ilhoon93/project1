@@ -7,6 +7,7 @@ import { SnapGenerator } from '@/components/snap/SnapGenerator';
 import { getAvailableCatalogWith } from '@/lib/snap/catalog-availability';
 import { fetchAllCatalogTags } from '@/lib/snap/catalog-admin-tags';
 import { fetchCatalogStatsMap } from '@/lib/snap/catalog-stats';
+import { getExampleFlow } from '@/lib/marketing/home-samples';
 
 export const metadata: Metadata = {
   title: 'AI 웨딩스냅 — 사진 업로드 / 카탈로그 선택',
@@ -25,7 +26,7 @@ export default async function WeddingSnapCreatePage() {
 
   // tagMap + stats + 잔액·재생성quota 병렬 fetch. 실패 시 0 으로 안전 fallback.
   const admin = createAdminClient();
-  const [adminTags, catalogStats, snapBalanceRes, quotaRes] = await Promise.all([
+  const [adminTags, catalogStats, snapBalanceRes, quotaRes, exampleFlow] = await Promise.all([
     fetchAllCatalogTags(),
     fetchCatalogStatsMap(),
     supabase.rpc('snap_credits_balance', { uid: user.id }),
@@ -34,6 +35,7 @@ export default async function WeddingSnapCreatePage() {
       .select('free_regen_remaining')
       .eq('user_id', user.id)
       .maybeSingle(),
+    getExampleFlow(),
   ]);
   const snapBalance =
     typeof snapBalanceRes.data === 'number' ? snapBalanceRes.data : 0;
@@ -82,6 +84,7 @@ export default async function WeddingSnapCreatePage() {
         catalog={availableCatalog}
         adminTags={adminTags}
         catalogStats={catalogStats}
+        exampleFlow={exampleFlow}
       />
     </main>
   );

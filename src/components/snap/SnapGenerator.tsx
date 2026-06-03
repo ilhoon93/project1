@@ -15,6 +15,7 @@ import {
   ExampleFlowModal,
   type ExampleFlowMode,
 } from '@/components/snap/ExampleFlowModal';
+import type { ExampleFlowConfig } from '@/lib/marketing/sample-invitations';
 import { CatalogCard } from '@/components/snap/CatalogCard';
 import { StepIndicator, type SnapStep } from '@/components/snap/StepIndicator';
 import {
@@ -119,6 +120,8 @@ interface Props {
    * 정렬 모드 'popular' / 'most-liked' 의 정렬 키. 없으면 정렬 chip UI 숨김.
    */
   catalogStats?: CatalogStatsMap;
+  /** AI 스냅 예시보기 팝업 설정(운영자 세팅). 없으면 모달이 코드 기본값 사용. */
+  exampleFlow?: ExampleFlowConfig;
 }
 
 function parseBody(b: BodyForm): { heightCm: number; weightKg: number } | null {
@@ -142,7 +145,7 @@ async function parseRes(res: Response) {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
+export function SnapGenerator({ catalog, adminTags, catalogStats, exampleFlow }: Props) {
   // 입력 모드 — 셀카 1장씩 (디폴트) / 셀카 3장씩 (정면+좌45°+우45°) / 커플 사진.
   const [mode, setMode] = useState<InputMode>('selfies1');
 
@@ -886,6 +889,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
       <ExampleFlowModal
         mode={exampleModalMode}
         onClose={() => setExampleModalMode(null)}
+        config={exampleFlow}
       />
 
 

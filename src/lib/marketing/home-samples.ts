@@ -17,12 +17,14 @@ import { MainSectionSchema } from '@/types/invitation';
 import {
   DEFAULT_AI_SNAP_IDS,
   DEFAULT_BEFORE_AFTER,
+  DEFAULT_EXAMPLE_FLOW,
   DEFAULT_HOME_SAMPLES_CONFIG,
   DEFAULT_SAMPLE_CONFIGS,
   DEFAULT_TEMPLATE,
   buildDesign,
   type AiSnapItem,
   type BeforeAfterConfig,
+  type ExampleFlowConfig,
   type HomeSamplesConfig,
   type SampleDesign,
 } from './sample-invitations';
@@ -34,6 +36,8 @@ export interface HomeSamples {
   beforeAfter: BeforeAfterConfig;
   /** 메인 ShowcaseTabs "소장용 URL" 모달 "예시 열기" 버튼 URL — 관리자 세팅. */
   ownerUrlExample: string;
+  /** AI 스냅 예시보기 팝업 설정. */
+  exampleFlow: ExampleFlowConfig;
 }
 
 const DesignConfigSchema = z.object({
@@ -62,6 +66,43 @@ const BeforeAfterStyleSchema = z.object({
 const BeforeAfterSchema = z.object({
   beforeImage: z.string(),
   styles: z.array(BeforeAfterStyleSchema),
+});
+
+const ExampleFlowSelfiePersonSchema = z.object({
+  rowTitle: z.string(),
+  selfies: z.array(z.string()),
+  anchor: z.string(),
+  catalogId: z.string(),
+  result: z.string(),
+  resultSubLabel: z.string(),
+});
+const ExampleFlowSchema = z.object({
+  selfies: z.object({
+    desc: z.string(),
+    groom: ExampleFlowSelfiePersonSchema,
+    bride: ExampleFlowSelfiePersonSchema,
+    together: z.object({
+      rowTitle: z.string(),
+      catalogId: z.string(),
+      result: z.string(),
+      resultSubLabel: z.string(),
+    }),
+  }),
+  couple: z.object({
+    desc: z.string(),
+    rows: z.array(
+      z.object({
+        rowTitle: z.string(),
+        input: z.string(),
+        aCatalogId: z.string(),
+        aResult: z.string(),
+        aSubLabel: z.string(),
+        bCatalogId: z.string(),
+        bResult: z.string(),
+        bSubLabel: z.string(),
+      }),
+    ),
+  }),
 });
 
 const TemplateChapterSchema = z.object({
@@ -115,6 +156,7 @@ const ConfigSchema = z.object({
   ownerUrlExample: z.string().default(''),
   beforeAfter: BeforeAfterSchema.optional(),
   template: TemplateSchema.optional(),
+  exampleFlow: ExampleFlowSchema.optional(),
 });
 
 function resolveAiSnaps(ids: string[]): AiSnapItem[] {
@@ -145,6 +187,7 @@ async function readRow(): Promise<HomeSamplesConfig | null> {
       before_after?: unknown;
       template?: unknown;
       owner_url_example?: string | null;
+      example_flow?: unknown;
     };
     const parsed = ConfigSchema.safeParse({
       aiSnapCatalogIds: row.ai_snap_catalog_ids ?? [],
@@ -152,6 +195,7 @@ async function readRow(): Promise<HomeSamplesConfig | null> {
       ownerUrlExample: row.owner_url_example ?? '',
       beforeAfter: row.before_after ?? undefined,
       template: row.template ?? undefined,
+      exampleFlow: row.example_flow ?? undefined,
     });
     if (!parsed.success) return null;
     return {
@@ -160,6 +204,7 @@ async function readRow(): Promise<HomeSamplesConfig | null> {
       ownerUrlExample: parsed.data.ownerUrlExample,
       beforeAfter: parsed.data.beforeAfter ?? DEFAULT_BEFORE_AFTER,
       template: parsed.data.template ?? DEFAULT_TEMPLATE,
+      exampleFlow: parsed.data.exampleFlow ?? DEFAULT_EXAMPLE_FLOW,
     };
   } catch {
     return null;
@@ -195,7 +240,14 @@ export async function getHomeSamplesConfig(): Promise<HomeSamplesConfig> {
     ownerUrlExample: row.ownerUrlExample ?? '',
     beforeAfter: row.beforeAfter,
     template: row.template,
+    exampleFlow: row.exampleFlow ?? DEFAULT_EXAMPLE_FLOW,
   };
+}
+
+/** AI 스냅 예시보기 팝업 설정만 가볍게 읽는다 (create 페이지 → SnapGenerator 용). */
+export async function getExampleFlow(): Promise<ExampleFlowConfig> {
+  const row = await readRow();
+  return row?.exampleFlow ?? DEFAULT_EXAMPLE_FLOW;
 }
 
 /** 랜딩에 바로 쓰는 해석된 샘플 (enabled 만, 비면 기본값 폴백). */
@@ -212,6 +264,7 @@ export async function getHomeSamples(): Promise<HomeSamples> {
     aiSnaps: aiSnaps.length ? aiSnaps : resolveAiSnaps(DEFAULT_AI_SNAP_IDS),
     beforeAfter: cfg.beforeAfter ?? DEFAULT_BEFORE_AFTER,
     ownerUrlExample: cfg.ownerUrlExample ?? '',
+    exampleFlow: cfg.exampleFlow ?? DEFAULT_EXAMPLE_FLOW,
   };
 }
 
@@ -229,6 +282,7 @@ export async function saveHomeSamples(
     owner_url_example: parsed.data.ownerUrlExample,
     before_after: parsed.data.beforeAfter,
     template: parsed.data.template,
+    example_flow: parsed.data.exampleFlow,
   };
   // DB 타입(자동생성)이 owner_url_example 컬럼을 아직 모르는 환경 호환 위해 캐스팅.
   const { error } = await supabase.from('marketing_home_samples').upsert(

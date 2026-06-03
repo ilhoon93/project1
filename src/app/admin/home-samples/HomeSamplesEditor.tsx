@@ -32,6 +32,7 @@ import {
   type BeforeAfterConfig,
   type BeforeAfterStyle,
   type DesignConfig,
+  type ExampleFlowConfig,
   type HomeSamplesConfig,
   type TemplateChapter,
   type TemplateConfig,
@@ -45,7 +46,11 @@ import {
   ACCOUNT_GUIDE_PRESETS,
   CLOSING_PRESETS,
 } from '@/lib/presets';
-import { saveHomeSamplesAction, uploadBeforeAfterAfterImage } from './actions';
+import {
+  saveHomeSamplesAction,
+  uploadBeforeAfterAfterImage,
+  uploadExampleFlowImage,
+} from './actions';
 
 type MainSection = InvitationContent['main'];
 type MainLayout = MainSection['layout'];
@@ -779,6 +784,23 @@ export function SnapSamplesEditor({
         </div>
       </section>
 
+      {/* ───────────── AI 스냅 예시보기 팝업 ───────────── */}
+      <section className="rounded-lg border border-[#E8DCC9] bg-white p-4">
+        <h2 className="text-sm font-semibold text-[#3D2E1F]">예시보기 팝업 (AI 스냅 만들기)</h2>
+        <p className="mt-0.5 text-[11px] text-[#8B7355]">
+          AI 웨딩스냅 만들기의 “예시 보기” 팝업(셀카 3행 / 커플 2행)에 보이는 예시
+          이미지·카탈로그·설명/라벨을 설정합니다. 흐름 구조는 고정이며, 카탈로그 칸은
+          선택한 카탈로그 마스터가 자동 표시됩니다. 이미지: JPG/PNG/WEBP · 최대 8MB.
+        </p>
+        <div className="mt-3">
+          <ExampleFlowEditor
+            value={config.exampleFlow}
+            catalog={catalog}
+            onChange={(next) => setConfig((c) => ({ ...c, exampleFlow: next }))}
+          />
+        </div>
+      </section>
+
       <SaveBar pending={pending} msg={msg} onSave={() => save(config)} />
     </div>
   );
@@ -979,6 +1001,237 @@ function BeforeAfterStyleEditor({
         <strong className="text-[#3D2E1F]">실제 생성 결과물</strong>을 업로드하세요.
         JPG/PNG/WEBP · 최대 8MB.
       </p>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// AI 스냅 예시보기 팝업(ExampleFlowModal) 에디터 — 흐름 구조 고정, 이미지·카탈로그·텍스트 편집.
+// ─────────────────────────────────────────────────────────────
+
+const SELFIE_ANGLES = ['정면', '좌45°', '우45°'] as const;
+
+function ExampleFlowEditor({
+  value: ef,
+  catalog,
+  onChange,
+}: {
+  value: ExampleFlowConfig;
+  catalog: CatalogItem[];
+  onChange: (next: ExampleFlowConfig) => void;
+}) {
+  const patchPerson = (
+    who: 'groom' | 'bride',
+    patch: Partial<ExampleFlowConfig['selfies']['groom']>,
+  ) => onChange({ ...ef, selfies: { ...ef.selfies, [who]: { ...ef.selfies[who], ...patch } } });
+  const setSelfie = (who: 'groom' | 'bride', idx: number, url: string) => {
+    const arr = [...ef.selfies[who].selfies];
+    arr[idx] = url;
+    patchPerson(who, { selfies: arr });
+  };
+  const patchTogether = (patch: Partial<ExampleFlowConfig['selfies']['together']>) =>
+    onChange({ ...ef, selfies: { ...ef.selfies, together: { ...ef.selfies.together, ...patch } } });
+  const patchCoupleRow = (
+    i: number,
+    patch: Partial<ExampleFlowConfig['couple']['rows'][number]>,
+  ) =>
+    onChange({
+      ...ef,
+      couple: { ...ef.couple, rows: ef.couple.rows.map((r, k) => (k === i ? { ...r, ...patch } : r)) },
+    });
+
+  return (
+    <div className="space-y-4">
+      {/* 셀카 모드 */}
+      <div className="rounded-md border border-[#E8DCC9] bg-[#FCFAF6] p-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8B7355]">셀카 모드 흐름</p>
+        <div className="mt-2">
+          <Field label="설명문">
+            <textarea
+              className={`${inputCls} min-h-[48px]`}
+              value={ef.selfies.desc}
+              onChange={(e) => onChange({ ...ef, selfies: { ...ef.selfies, desc: e.target.value } })}
+            />
+          </Field>
+        </div>
+
+        {(['groom', 'bride'] as const).map((who) => {
+          const p = ef.selfies[who];
+          const ko = who === 'groom' ? '신랑' : '신부';
+          return (
+            <div key={who} className="mt-3 rounded border border-[#E8DCC9] bg-white p-2.5">
+              <Field label={`${ko} 행 제목`}>
+                <input className={inputCls} value={p.rowTitle} onChange={(e) => patchPerson(who, { rowTitle: e.target.value })} />
+              </Field>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {p.selfies.map((src, idx) => (
+                  <ExampleImageSlot
+                    key={idx}
+                    label={`${ko} 셀카 ${SELFIE_ANGLES[idx] ?? idx + 1}`}
+                    value={src}
+                    slot={`selfies-${who}-${idx}`}
+                    onChange={(url) => setSelfie(who, idx, url)}
+                  />
+                ))}
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <ExampleImageSlot label={`${ko} 앵커`} value={p.anchor} slot={`selfies-${who}-anchor`} onChange={(url) => patchPerson(who, { anchor: url })} />
+                <ExampleImageSlot label={`${ko} 결과`} value={p.result} slot={`selfies-${who}-result`} onChange={(url) => patchPerson(who, { result: url })} />
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <ExampleCatalogPick label="카탈로그" value={p.catalogId} catalog={catalog} onChange={(id) => patchPerson(who, { catalogId: id })} />
+                <Field label="결과 보조 라벨">
+                  <input className={inputCls} value={p.resultSubLabel} onChange={(e) => patchPerson(who, { resultSubLabel: e.target.value })} />
+                </Field>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* 함께 컷 — 앵커는 위 신랑/신부 앵커 재사용 */}
+        <div className="mt-3 rounded border border-[#E8DCC9] bg-white p-2.5">
+          <Field label="함께 컷 행 제목">
+            <input className={inputCls} value={ef.selfies.together.rowTitle} onChange={(e) => patchTogether({ rowTitle: e.target.value })} />
+          </Field>
+          <p className="mt-1 text-[10px] text-[#8B7355]">앵커 칸은 위 신랑/신부 앵커를 그대로 사용합니다.</p>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <ExampleImageSlot label="함께 결과" value={ef.selfies.together.result} slot="selfies-together-result" onChange={(url) => patchTogether({ result: url })} />
+            <ExampleCatalogPick label="카탈로그" value={ef.selfies.together.catalogId} catalog={catalog} onChange={(id) => patchTogether({ catalogId: id })} />
+          </div>
+          <div className="mt-2">
+            <Field label="결과 보조 라벨">
+              <input className={inputCls} value={ef.selfies.together.resultSubLabel} onChange={(e) => patchTogether({ resultSubLabel: e.target.value })} />
+            </Field>
+          </div>
+        </div>
+      </div>
+
+      {/* 커플 모드 */}
+      <div className="rounded-md border border-[#E8DCC9] bg-[#FCFAF6] p-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8B7355]">커플 모드 흐름</p>
+        <div className="mt-2">
+          <Field label="설명문">
+            <textarea
+              className={`${inputCls} min-h-[48px]`}
+              value={ef.couple.desc}
+              onChange={(e) => onChange({ ...ef, couple: { ...ef.couple, desc: e.target.value } })}
+            />
+          </Field>
+        </div>
+        {ef.couple.rows.map((row, i) => (
+          <div key={i} className="mt-3 rounded border border-[#E8DCC9] bg-white p-2.5">
+            <Field label={`예시 ${i + 1} 행 제목`}>
+              <input className={inputCls} value={row.rowTitle} onChange={(e) => patchCoupleRow(i, { rowTitle: e.target.value })} />
+            </Field>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <ExampleImageSlot label="커플 입력 사진" value={row.input} slot={`couple-${i}-input`} onChange={(url) => patchCoupleRow(i, { input: url })} />
+              <ExampleImageSlot label="결과 A" value={row.aResult} slot={`couple-${i}-resultA`} onChange={(url) => patchCoupleRow(i, { aResult: url })} />
+              <ExampleImageSlot label="결과 B" value={row.bResult} slot={`couple-${i}-resultB`} onChange={(url) => patchCoupleRow(i, { bResult: url })} />
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <ExampleCatalogPick label="카탈로그 A" value={row.aCatalogId} catalog={catalog} onChange={(id) => patchCoupleRow(i, { aCatalogId: id })} />
+              <ExampleCatalogPick label="카탈로그 B" value={row.bCatalogId} catalog={catalog} onChange={(id) => patchCoupleRow(i, { bCatalogId: id })} />
+              <Field label="결과 A 보조 라벨">
+                <input className={inputCls} value={row.aSubLabel} onChange={(e) => patchCoupleRow(i, { aSubLabel: e.target.value })} />
+              </Field>
+              <Field label="결과 B 보조 라벨">
+                <input className={inputCls} value={row.bSubLabel} onChange={(e) => patchCoupleRow(i, { bSubLabel: e.target.value })} />
+              </Field>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ExampleCatalogPick({
+  label,
+  value,
+  catalog,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  catalog: CatalogItem[];
+  onChange: (id: string) => void;
+}) {
+  return (
+    <Field label={label}>
+      <select className={inputCls} value={value} onChange={(e) => onChange(e.target.value)}>
+        {!catalog.some((c) => c.id === value) && value && (
+          <option value={value}>(현재) {value}</option>
+        )}
+        {catalog.map((c) => (
+          <option key={c.id} value={c.id}>{c.label}</option>
+        ))}
+      </select>
+    </Field>
+  );
+}
+
+function ExampleImageSlot({
+  label,
+  value,
+  slot,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  slot: string;
+  onChange: (url: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const handle = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setErr(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('slot', slot);
+      const res = await uploadExampleFlowImage(fd);
+      if (!res.ok) {
+        setErr(res.error);
+        return;
+      }
+      onChange(res.url);
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+  return (
+    <div className="flex flex-col gap-1">
+      <span className={labelCls}>{label}</span>
+      <div className="flex items-start gap-1.5">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={value || '/wedding-snap/mode-examples/missing.jpg'}
+          alt={label}
+          className="h-[40px] w-[40px] flex-shrink-0 rounded bg-[#EFE6DC] object-cover"
+        />
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => void handle(e)}
+            disabled={uploading}
+            className="block w-full text-[10px] file:mr-1 file:rounded file:border-0 file:bg-[#3D2E1F] file:px-1.5 file:py-0.5 file:text-[10px] file:text-white"
+          />
+          {uploading && <span className="text-[9px] text-[#8B7355]">업로드 중…</span>}
+          {err && <span className="text-[9px] text-[#B5614F]">{err}</span>}
+          {value && !uploading && (
+            <span className="truncate text-[9px] text-[#8B7355]" title={value}>
+              {value.split('/').pop()}
+            </span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
