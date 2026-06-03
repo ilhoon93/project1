@@ -33,7 +33,7 @@ export async function GET(req: Request) {
   let query = admin
     .from('snap_jobs')
     .select(
-      'id, kind, fal_request_id, model, catalog_id, catalog_path, anchor_slot, anchor_framing, status, result_url, credit_delta, error_message, submitted_at, completed_at, liked, regen_used_free, regen_to_job_id',
+      'id, kind, fal_request_id, model, catalog_id, catalog_path, anchor_slot, anchor_framing, status, result_url, credit_delta, error_message, submitted_at, completed_at, liked, regen_used_free, regen_to_job_id, image_reference',
     )
     .eq('user_id', user.id)
     .order('submitted_at', { ascending: false })
