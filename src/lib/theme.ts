@@ -517,6 +517,12 @@ export const TITLE_FONT_KEYS_KO = [
   'koJeju',          // 제주명조 — 살짝 손글씨 느낌
   'koGabiaGosran',   // 가비아 고스란체 — 가는 명조
   'koGabiaCheongyeon', // 가비아 청연 — 캘리 느낌
+  // 아래는 추가 한글 제목 폰트 — 모두 로컬(next/font/local) 이라 stroke 애니메이션과
+  // 호환된다(외부 CDN 폰트가 아니어서 폰트 파일을 안정적으로 fetch 가능).
+  'koKimjungchul',   // 김정철명조 — 단정한 명조
+  'koGabiaMaeum',    // 가비아 마음결 — 부드러운 손글씨
+  'koGabiaBombaram', // 가비아 봄바람 — 경쾌한 손글씨
+  'koGabiaHeuldot',  // 가비아 흘림체 — 흘려 쓴 캘리그래피
 ] as const;
 export type TitleFontKeyKo = (typeof TITLE_FONT_KEYS_KO)[number];
 
@@ -619,6 +625,22 @@ export const TITLE_FONT_OPTIONS: Record<TitleFontKey, FontOption> = {
   koGabiaCheongyeon: {
     label: '가비아 청연',
     family: "var(--font-gabia-cheongyeon), var(--font-noto-serif-kr), serif",
+  },
+  koKimjungchul: {
+    label: '김정철명조',
+    family: "var(--font-kimjungchul), var(--font-noto-serif-kr), serif",
+  },
+  koGabiaMaeum: {
+    label: '가비아 마음결',
+    family: "var(--font-gabia-maeum), var(--font-noto-serif-kr), serif",
+  },
+  koGabiaBombaram: {
+    label: '가비아 봄바람',
+    family: "var(--font-gabia-bombaram), var(--font-noto-serif-kr), serif",
+  },
+  koGabiaHeuldot: {
+    label: '가비아 흘림체',
+    family: "var(--font-gabia-heuldot), var(--font-noto-serif-kr), serif",
   },
 };
 

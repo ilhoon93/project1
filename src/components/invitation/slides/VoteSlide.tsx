@@ -93,11 +93,17 @@ function QuestionStats({
               className="relative overflow-hidden rounded-md border border-[var(--mw-dot)] bg-white px-3 py-2.5 text-sm text-stone-900"
             >
               {/* 진행바 — 선택 비율(전체 응답 대비 %)에 비례한 폭. 0%면 폭 0.
-                  옅은 /25 는 흰 박스 위에서 거의 안 보여, 비율이 또렷이 보이도록 진하게. */}
+                  ⚠️ Tailwind `bg-[var(--mw-accent)]/45` 는 --mw-accent 가 hex(#..)라
+                  `rgb(#.. / .45)` 같은 무효 CSS 가 되어 색이 아예 안 나온다. 그래서
+                  backgroundColor(var) + opacity 인라인으로 확실히 칠한다. */}
               <span
                 aria-hidden
-                className="absolute inset-y-0 left-0 bg-[var(--mw-accent)]/45 transition-[width] duration-500"
-                style={{ width: `${pct}%` }}
+                className="absolute inset-y-0 left-0 transition-[width] duration-500"
+                style={{
+                  width: `${pct}%`,
+                  backgroundColor: 'var(--mw-accent)',
+                  opacity: 0.5,
+                }}
               />
               <span className="relative flex items-center justify-between gap-2">
                 <span className="font-medium">{opt}</span>

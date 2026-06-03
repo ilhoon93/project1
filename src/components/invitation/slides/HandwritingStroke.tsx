@@ -146,8 +146,17 @@ interface FontSubset {
  */
 function findFontSubsets(families: string[]): FontSubset[] {
   if (typeof document === 'undefined') return [];
-  const familySet = new Set(families.map((f) => f.toLowerCase()));
-  const subsets: FontSubset[] = [];
+  // 패밀리 우선순위 — families 배열은 CSS font-family 순서(선택 폰트 → 폴백)다.
+  // 이 순서를 보존해야 선택한 폰트가 폴백(예: noto-serif-kr)보다 먼저 쓰인다.
+  // 보존하지 않으면 stylesheet 등장 순서대로 골라져, 폴백 폰트의 서브셋이 한글을
+  // 먼저 커버해 제목이 "기본 폰트로 변환"된 것처럼 그려지는 버그가 생긴다.
+  const familyPriority = new Map<string, number>();
+  families.forEach((f, i) => {
+    const key = f.toLowerCase();
+    if (!familyPriority.has(key)) familyPriority.set(key, i);
+  });
+  const collected: Array<FontSubset & { priority: number; order: number }> = [];
+  let order = 0;
   for (const sheet of Array.from(document.styleSheets)) {
     let rules: CSSRuleList | null = null;
     try {
@@ -160,7 +169,8 @@ function findFontSubsets(families: string[]): FontSubset[] {
       const r = rule as CSSFontFaceRule;
       if (r.type !== CSSRule.FONT_FACE_RULE) continue;
       const family = r.style.getPropertyValue('font-family').replace(/['"]/g, '').trim();
-      if (!familySet.has(family.toLowerCase())) continue;
+      const priority = familyPriority.get(family.toLowerCase());
+      if (priority === undefined) continue;
       const src = r.style.getPropertyValue('src');
       const unicodeRange = r.style.getPropertyValue('unicode-range');
       const woff2 = src.match(/url\(\s*([^)]*?)\s*\)\s*format\(\s*['"]?woff2['"]?\s*\)/i);
@@ -171,10 +181,12 @@ function findFontSubsets(families: string[]): FontSubset[] {
       const ranges = (unicodeRange ? unicodeRange.split(',') : [])
         .map((t) => parseUnicodeRangeToken(t))
         .filter(Boolean) as [number, number][];
-      subsets.push({ url, ranges });
+      collected.push({ url, ranges, priority, order: order++ });
     }
   }
-  return subsets;
+  // 선택 폰트(우선순위 낮은 index) 서브셋 먼저, 같은 패밀리 내에선 등장 순서 유지.
+  collected.sort((a, b) => a.priority - b.priority || a.order - b.order);
+  return collected.map(({ url, ranges }) => ({ url, ranges }));
 }
 
 function subsetCovers(s: FontSubset, cp: number): boolean {
