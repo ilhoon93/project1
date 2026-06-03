@@ -285,7 +285,18 @@ function GuestGuestbookForm({
 
 // ─────────────────────────────────────────────────────────────
 // owner 모드 — 메시지/서명을 책처럼 한 페이지씩 넘기는 뷰.
+// 같은 사람(이름 기준)의 메시지 + 손글씨 서명을 한 페이지에 함께 보여 준다.
 // ─────────────────────────────────────────────────────────────
+
+/** 한 사람분의 방명록 — 메시지와 서명을 합친 단위. */
+type GuestEntry = {
+  key: string;
+  name: string | null;
+  side: 'groom' | 'bride' | null;
+  message: OwnerMessage | null;
+  signature: OwnerSignature | null;
+  createdAt: string;
+};
 
 function OwnerGuestbookView({
   guestbook,
@@ -296,12 +307,45 @@ function OwnerGuestbookView({
   messages: OwnerMessage[];
   signatures: OwnerSignature[];
 }) {
-  // 메시지 + 서명을 created_at 으로 한 페이지씩 정렬해 책장 넘기듯 보여 준다.
-  // 한 페이지에 메시지 1개씩 — 짧은 글이라도 큼지막하게 강조.
-  type Page = { kind: 'cover' } | { kind: 'message'; m: OwnerMessage } | { kind: 'signatures'; sigs: OwnerSignature[] };
-  const pages: Page[] = [{ kind: 'cover' }];
-  for (const m of messages) pages.push({ kind: 'message', m });
-  if (signatures.length > 0) pages.push({ kind: 'signatures', sigs: signatures });
+  // 같은 사람(이름 기준)의 메시지와 서명을 한 항목으로 합친다. 이름이 없는(익명)
+  // 기록은 합치지 않고 각각 별도 항목으로 둔다. → 한 페이지 = 한 사람.
+  const entries: GuestEntry[] = [];
+  const byName = new Map<string, GuestEntry>();
+  const ensure = (
+    name: string | null,
+    side: 'groom' | 'bride' | null,
+    createdAt: string,
+  ): GuestEntry => {
+    const k = name?.trim();
+    if (k) {
+      let e = byName.get(k);
+      if (!e) {
+        e = { key: `n:${k}`, name: k, side, message: null, signature: null, createdAt };
+        byName.set(k, e);
+        entries.push(e);
+      }
+      if (side && !e.side) e.side = side;
+      if (createdAt < e.createdAt) e.createdAt = createdAt;
+      return e;
+    }
+    const e: GuestEntry = {
+      key: `anon:${entries.length}`,
+      name: null,
+      side,
+      message: null,
+      signature: null,
+      createdAt,
+    };
+    entries.push(e);
+    return e;
+  };
+  for (const m of messages) ensure(m.visitor_name, null, m.created_at).message = m;
+  for (const s of signatures) ensure(s.visitor_name, s.visitor_side, s.created_at).signature = s;
+  // 최신 항목이 앞으로 오도록 created_at 내림차순 정렬.
+  entries.sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0));
+
+  type Page = { kind: 'cover' } | { kind: 'entry'; e: GuestEntry };
+  const pages: Page[] = [{ kind: 'cover' }, ...entries.map((e) => ({ kind: 'entry' as const, e }))];
 
   const [page, setPage] = useState(0);
   const [flipDir, setFlipDir] = useState<'next' | 'prev' | null>(null);
@@ -343,51 +387,15 @@ function OwnerGuestbookView({
           {current.kind === 'cover' && (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
               <p className="text-xs tracking-[0.4em] text-stone-500">VISITORS&apos; BOOK</p>
-              <p className="text-2xl font-light">{messages.length + signatures.length}건의 마음</p>
+              <p className="text-2xl font-light">{entries.length}분의 마음</p>
               <p className="max-w-xs text-sm leading-relaxed text-stone-600">
                 메시지 {messages.length}건 · 서명 {signatures.length}건
                 <br />
-                넘겨 가며 천천히 읽어 보세요.
+                넘겨 가며 한 분씩 천천히 읽어 보세요.
               </p>
             </div>
           )}
-          {current.kind === 'message' && (
-            <div className="flex h-full flex-col gap-3">
-              <p className="text-xs text-stone-500">
-                {formatDate(current.m.created_at)} · {current.m.visitor_name ?? '익명'} 님
-              </p>
-              <p className="flex-1 whitespace-pre-line text-base leading-relaxed text-stone-800">
-                {current.m.message}
-              </p>
-            </div>
-          )}
-          {current.kind === 'signatures' && (
-            <div className="flex h-full flex-col gap-3">
-              <p className="text-xs font-medium text-stone-500">서명 모음 ({current.sigs.length})</p>
-              <div className="mw-thin-scroll grid flex-1 grid-cols-2 gap-3 overflow-y-auto pr-1">
-                {current.sigs.map((s) => (
-                  <div key={s.id} className="flex flex-col gap-1 rounded-md border border-stone-200 p-2">
-                    <p className="truncate text-[11px] text-stone-500">
-                      {s.visitor_name ?? '익명'}
-                      {s.visitor_side ? ` · ${s.visitor_side === 'groom' ? '신랑측' : '신부측'}` : ''}
-                    </p>
-                    {s.signature_data_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={s.signature_data_url}
-                        alt={`${s.visitor_name ?? '익명'} 서명`}
-                        className="h-16 w-full rounded bg-white object-contain"
-                      />
-                    ) : (
-                      <div className="grid h-16 place-items-center text-[10px] text-stone-400">
-                        (서명 없음)
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {current.kind === 'entry' && <EntryCard e={current.e} />}
 
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[10px] text-stone-400">
             {clamped + 1} / {total}
@@ -444,6 +452,54 @@ function OwnerGuestbookView({
         `}</style>
       </div>
     </section>
+  );
+}
+
+/**
+ * 한 사람분 페이지 — 상단에 이름·날짜, 본문에 메시지, 하단에 손글씨 서명.
+ * 메시지/서명 중 하나만 있으면 그 항목이 카드를 채우도록 분기해 빈 공백을 줄인다.
+ */
+function EntryCard({ e }: { e: GuestEntry }) {
+  const sideLabel = e.side === 'groom' ? '신랑측' : e.side === 'bride' ? '신부측' : null;
+  const sig = e.signature?.signature_data_url ?? null;
+  return (
+    <div className="flex h-full flex-col gap-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="truncate text-sm font-medium text-stone-700">
+          {e.name ?? '익명'} 님
+          {sideLabel && <span className="ml-1 text-xs font-normal text-stone-400">· {sideLabel}</span>}
+        </p>
+        <p className="shrink-0 text-[11px] text-stone-400">{formatDate(e.createdAt)}</p>
+      </div>
+
+      {e.message && (
+        <p className="mw-thin-scroll flex-1 overflow-y-auto whitespace-pre-line text-[15px] leading-relaxed text-stone-800">
+          {e.message.message}
+        </p>
+      )}
+
+      {sig && (
+        <figure
+          className={`flex flex-col gap-1 ${
+            e.message ? 'border-t border-stone-200 pt-3' : 'flex-1 justify-center'
+          }`}
+        >
+          <figcaption className="text-[11px] text-stone-400">손글씨 서명</figcaption>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={sig}
+            alt={`${e.name ?? '익명'} 서명`}
+            className="max-h-32 w-full rounded bg-white object-contain"
+          />
+        </figure>
+      )}
+
+      {!e.message && !sig && (
+        <div className="flex flex-1 items-center justify-center text-sm text-stone-400">
+          {e.name ?? '익명'} 님이 다녀갔습니다
+        </div>
+      )}
+    </div>
   );
 }
 

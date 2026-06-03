@@ -56,6 +56,11 @@ export function BeforeAfterSlider({ config }: { config: BeforeAfterConfig }) {
   const active = styles.find((s) => s.id === styleId) ?? styles[0];
   if (!active) return null;
 
+  // 핸들 위치(pct)에 따라 태그 노출 — after 쪽(좌측, pct↓)으로 밀면 BEFORE 태그가,
+  // before 쪽(우측, pct↑)으로 밀면 AFTER 태그가 점점 사라진다. 가운데(50)에선 둘 다 보임.
+  const beforeTagOpacity = Math.min(1, pct / 50);
+  const afterTagOpacity = Math.min(1, (100 - pct) / 50);
+
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--wd-line)] bg-white">
       <div
@@ -104,11 +109,17 @@ export function BeforeAfterSlider({ config }: { config: BeforeAfterConfig }) {
             className="absolute inset-0 h-full w-full object-contain"
           />
         </div>
-        <div className="absolute left-3.5 top-3.5 rounded-full bg-black/55 px-3 py-1.5 text-[10.5px] font-medium tracking-wider text-white">
+        <div
+          className="absolute left-3.5 top-3.5 rounded-full bg-black/55 px-3 py-1.5 text-[10.5px] font-medium tracking-wider text-white transition-opacity duration-150"
+          style={{ opacity: beforeTagOpacity }}
+        >
           BEFORE
         </div>
-        <div className="absolute right-3.5 top-3.5 rounded-full bg-white/95 px-3 py-1.5 text-[10.5px] font-medium tracking-wider text-[var(--wd-ink)]">
-          {active.afterLabel}
+        <div
+          className="absolute right-3.5 top-3.5 rounded-full bg-white/95 px-3 py-1.5 text-[10.5px] font-medium tracking-wider text-[var(--wd-ink)] transition-opacity duration-150"
+          style={{ opacity: afterTagOpacity }}
+        >
+          AFTER
         </div>
         <div
           className="pointer-events-none absolute bottom-0 top-0 z-[3] w-[2px] -translate-x-1/2 bg-white/95"
