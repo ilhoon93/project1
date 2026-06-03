@@ -92,7 +92,7 @@ export function BeforeAfterSlider({ config }: { config: BeforeAfterConfig }) {
           {/* object-contain — 사진 전체가 잘리지 않고 보이도록 (letterbox 는 paper 톤). */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={config.beforeImage}
+            src={active.beforeImage?.trim() ? active.beforeImage : config.beforeImage}
             alt="평소 커플 사진 (변환 전)"
             draggable={false}
             className="absolute inset-0 h-full w-full object-contain"

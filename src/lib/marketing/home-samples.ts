@@ -58,6 +58,7 @@ const DesignConfigSchema = z.object({
 });
 
 const BeforeAfterStyleSchema = z.object({
+  beforeImage: z.string().optional(),
   id: z.string(),
   styleCatalogId: z.string().optional(),
   label: z.string(),
