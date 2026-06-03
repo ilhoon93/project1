@@ -87,7 +87,7 @@ export function CertificateView({
     const node = certRef.current;
     if (!node) throw new Error('cert node not ready');
     return await html2canvas(node, {
-      backgroundColor: '#ffffff',
+      backgroundColor: '#FFFCF7',
       scale: 2,
       useCORS: true,
       logging: false,
@@ -219,7 +219,7 @@ export function CertificateView({
         <article
           ref={certRef}
           id="cert-page"
-          className="cert-page mx-auto bg-white"
+          className="cert-page mx-auto"
           style={{
             width: '100%',
             // aspect-ratio CSS 는 html2canvas v1.4.x 가 측정 시점에 따라
@@ -231,7 +231,8 @@ export function CertificateView({
             boxShadow: '0 12px 40px -8px rgba(0,0,0,0.18)',
             fontFamily:
               "'Noto Serif KR', 'Nanum Myeongjo', 'Hahmlet', 'Times New Roman', serif",
-            color: '#0f0d0a',
+            color: '#1F1B17',
+            backgroundColor: '#FFFCF7',
             position: 'relative',
             // html2canvas 호환을 위해 box-sizing 명시.
             boxSizing: 'border-box',
@@ -243,7 +244,7 @@ export function CertificateView({
             style={{
               position: 'absolute',
               inset: `${px(4)}px`,
-              border: `${Math.max(1, px(0.5))}px solid #C9A227`,
+              border: `${Math.max(1, px(0.5))}px solid #B5614F`,
               pointerEvents: 'none',
             }}
           />
@@ -252,8 +253,8 @@ export function CertificateView({
             style={{
               position: 'absolute',
               inset: `${px(5.6)}px`,
-              border: `1px solid #D4AF37`,
-              opacity: 0.4,
+              border: `1px solid #B5614F`,
+              opacity: 0.25,
               pointerEvents: 'none',
             }}
           />
@@ -274,6 +275,20 @@ export function CertificateView({
                 marginTop: `${px(7)}px`,
               }}
             >
+              {/* 브랜드 키커 — 메인/방명록과 통일감을 주는 코랄 영문 라벨 */}
+              <p
+                style={{
+                  margin: 0,
+                  marginBottom: `${px(2)}px`,
+                  fontSize: `${px(2.4)}px`,
+                  letterSpacing: '0.42em',
+                  paddingLeft: '0.42em',
+                  color: '#B5614F',
+                  fontWeight: 600,
+                }}
+              >
+                MARRIAGE VOW
+              </p>
               <h1
                 style={{
                   fontSize: `${px(7.5)}px`,
@@ -332,7 +347,7 @@ export function CertificateView({
                   margin: 0,
                   marginTop: `${px(2)}px`,
                   fontSize: `${px(3)}px`,
-                  color: '#5c544a',
+                  color: '#6E6862',
                   letterSpacing: '0.2em',
                   paddingLeft: '0.2em',
                   textAlign: 'center',
@@ -371,7 +386,7 @@ export function CertificateView({
                   style={{
                     padding: `${px(1)}px`,
                     background: '#fff',
-                    border: `1px solid #D4AF37`,
+                    border: `1px solid #B5614F`,
                   }}
                 >
                   <div
@@ -392,7 +407,7 @@ export function CertificateView({
                 <span
                   style={{
                     fontSize: `${px(2.2)}px`,
-                    color: '#5c544a',
+                    color: '#6E6862',
                     letterSpacing: '0.25em',
                     paddingLeft: '0.25em',
                   }}
@@ -401,6 +416,23 @@ export function CertificateView({
                 </span>
               </div>
             )}
+
+            {/* 브랜드 워터마크 — 하단에 아주 옅게. 출처 표기·홍보용, 증서 느낌은
+                해치지 않도록 중앙/대형이 아닌 하단 미니 텍스트 한 줄. */}
+            <p
+              style={{
+                margin: 0,
+                marginTop: `${px(1.5)}px`,
+                textAlign: 'center',
+                fontSize: `${px(1.9)}px`,
+                letterSpacing: '0.22em',
+                paddingLeft: '0.22em',
+                color: '#6E6862',
+                opacity: 0.5,
+              }}
+            >
+              우리다운 · wooridaun.com
+            </p>
           </div>
         </article>
       </div>
@@ -432,7 +464,7 @@ function ScriptSign({
           fontSize: `${px(2.4)}px`,
           letterSpacing: '0.3em',
           paddingLeft: '0.3em',
-          color: '#5c544a',
+          color: '#6E6862',
         }}
       >
         {label}
@@ -441,7 +473,7 @@ function ScriptSign({
         style={{
           fontFamily: "var(--font-gabia-cheongyeon), serif",
           fontSize: `${px(7)}px`,
-          color: '#0f0d0a',
+          color: '#1F1B17',
           lineHeight: 1.1,
         }}
       >
@@ -450,7 +482,7 @@ function ScriptSign({
       <div
         style={{
           width: '70%',
-          borderTop: '1px solid #0f0d0a',
+          borderTop: '1px solid #1F1B17',
           marginTop: `${px(0.5)}px`,
         }}
       />
