@@ -1886,6 +1886,131 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     // solo 클로즈업 / 반신: 얼굴이 프레임 상단 중앙.
     faceMaskRegions: [[0.40, 0.14, 0.24, 0.26]],
   },
+
+  // ── 신규 추가 (2026-06) ──
+  {
+    id: 'amalfi-vespa-couple',
+    label: '아말피 베스파',
+    hint: '지중해 해안 + 흰 베스파 + 올화이트',
+    category: 'outdoor',
+    personality: 'together',
+    framing: 'full',
+    isSeated: true, // both seated on a parked scooter
+    image: '/wedding-snap/catalog/amalfi-vespa-couple.jpg',
+    promptHint:
+      'Outdoor Mediterranean Amalfi-coast cliffside road overlooking a deep-blue sea with terraced hillside villas and a tunnel in the background, bright warm midday daylight. A white vintage Vespa scooter parked on the stone roadside. Shot on 35–50mm lens, full-body framing, eye-level camera. Groom: relaxed white linen shirt and cream trousers, brown tousled hair, brown sunglasses, leather sandals, hands on the handlebars. Bride: flowing ivory off-shoulder chiffon dress, a white silk headscarf tied under the chin, cat-eye sunglasses, tan leather crossbody bag, long dark hair, nude pumps. Pose: both seated on the parked white Vespa — groom in front holding the handlebars, bride sitting behind close to him with one hand raised playfully near her face, both facing camera. Color grade: bright airy Mediterranean daylight, clean whites with blue-sea and warm-stone tones, sunny European honeymoon editorial — must clearly read as bright warm daylight, NOT night, NOT studio.',
+  },
+  {
+    id: 'palace-garden-bouquet-couple',
+    label: '팰리스 가든',
+    hint: '유럽 궁전 정원 + 작약 부케 + 클로즈업',
+    category: 'outdoor',
+    personality: 'together',
+    framing: 'closeup',
+    image: '/wedding-snap/catalog/palace-garden-bouquet-couple.jpg',
+    promptHint:
+      'Outdoor grand European baroque palace garden — an ornate honey-stone palace facade with tall arched windows, manicured cone-shaped hedges and stone garden urns softly blurred in the background, bright soft overcast daylight. Shot on 50–85mm portrait lens, chest-up to waist-up close framing, eye-level camera, shallow depth of field. Groom: charcoal-gray suit with white shirt and dark tie, softly tousled dark hair, standing close behind the bride with his cheek near her head. Bride: strapless ivory tulle wedding dress, a sheer long veil, a delicate diamond drop necklace and drop earrings, chin-length dark wavy hair, holding a lush cream peony bouquet at her chest. Pose: groom behind, both leaning together and facing the camera with calm serene soft expressions. Color grade: bright airy luxury-editorial whites with warm cream skin midtones and soft honey-stone background — elegant European garden bridal magazine atmosphere.',
+  },
+  {
+    id: 'studio-strawberry-cake-couple',
+    label: '스트로베리 케이크 스튜디오',
+    hint: '베이지 스튜디오 + 딸기 케이크 + 안경 신랑',
+    category: 'studio',
+    personality: 'together',
+    framing: 'closeup',
+    isSeated: true,
+    image: '/wedding-snap/catalog/studio-strawberry-cake-couple.jpg',
+    promptHint:
+      'Indoor photo studio with a smooth seamless warm beige / tan backdrop, soft diffused even studio lighting. Couple seated close together, cheeks gently touching, holding a small round white strawberry-cream cake topped with fresh strawberries on a white plate between them. Shot on 50–85mm portrait lens, waist-up close framing, eye-level camera. Groom: black notch-lapel suit with white shirt and slim black tie, black-framed glasses, a white rose boutonniere, short neat dark hair, warm soft smile. Bride: strapless sweetheart ivory tulle gown with a long sheer veil, soft long dark wavy hair, small drop earrings, gentle smile. Pose: seated side by side leaning warmly together, both hands holding the cake plate, facing camera. Color grade: warm beige studio tones with clean creamy skin midtones — cozy intimate warm Korean studio bridal atmosphere, never oversaturated.',
+  },
+  {
+    id: 'house-petal-toss-couple',
+    label: '하우스 플라워 토스',
+    hint: '주택 현관 꽃아치 + 꽃잎 + 환한 웃음',
+    category: 'outdoor',
+    personality: 'together',
+    framing: 'full',
+    image: '/wedding-snap/catalog/house-petal-toss-couple.jpg',
+    promptHint:
+      'Outdoor in front of a charming residential house entrance — a wooden front door framed by a lush white-and-green floral arch with a small brass "427 Pine Street" wall plaque and a vintage wall lantern, potted greenery on the steps, bright soft daylight, with white flower petals gently floating and falling through the air all around. Shot on 35–50mm lens, full-body framing, eye-level camera. Groom: black tuxedo with a black bow tie, white shirt and a white boutonniere, dark hair, one arm thrown out wide in a joyful celebratory gesture. Bride: simple elegant ivory satin spaghetti-strap slip dress with a long sheer veil, holding a small white rose bouquet. Pose: standing close together on the steps, both laughing brightly with genuine candid joy mid-celebration as petals shower down around them. Color grade: bright cheerful natural daylight, airy whites with warm brick and greenery tones — candid joyful wedding-day mood.',
+  },
+  {
+    id: 'groom-convertible-field',
+    label: '컨버터블 신랑',
+    hint: '빈티지 오픈카 + 황금 들판 + 골든아워',
+    category: 'outdoor',
+    personality: 'groom-solo',
+    framing: 'full',
+    isSeated: true, // seated in a vintage convertible
+    image: '/wedding-snap/catalog/groom-convertible-field.jpg',
+    promptHint:
+      'Solo groom portrait — only the groom is in the frame, no bride, no other people. Outdoor golden countryside scene: a vintage open-top convertible car with a rich cognac-brown leather bench seat, a dry golden-wheat field and a distant green tree line under a clear pale-blue sky at warm late-afternoon golden hour. Shot on 50–85mm portrait lens, three-quarter (knee-up) framing, eye-level camera, shallow depth of field. Groom: sharp black tuxedo with a satin shawl lapel, crisp white pleated tuxedo shirt, black bow tie, white pocket square, dark sunglasses, short neat dark hair, calm confident expression, lounging back relaxed in the leather seat with one arm draped along the seat back. Pose: seated reclined and effortlessly confident. Color grade: warm golden-hour glow with cognac-leather and golden-field tones and warm honey skin midtones — cinematic editorial groom portrait, must clearly read as warm golden-hour outdoors, NOT studio.',
+  },
+  {
+    id: 'studio-organic-window-couple',
+    label: '오가닉 윈도우 스튜디오',
+    hint: '모던 미니멀 크림 + 자연 채광 창 + 앉은 컷',
+    category: 'studio',
+    personality: 'together',
+    framing: 'full',
+    isSeated: true,
+    image: '/wedding-snap/catalog/studio-organic-window-couple.jpg',
+    promptHint:
+      'Indoor modern minimalist studio with a smooth seamless cream / ivory wall and floor, featuring a large organic free-form (soft blob-shaped) cut-out window opening that reveals lush green garden foliage outside, clean soft natural daylight spilling in. Couple seated together on the low window ledge. Shot on 35–50mm lens, full-body framing, eye-level camera. Groom: black velvet shawl-lapel tuxedo with a black bow tie and white shirt, short neat dark hair, laughing warmly. Bride: minimalist ivory halter-neck cowl satin mermaid gown with a long train pooling on the floor, sleek low updo with a small hair pin, holding a small white bouquet. Pose: both seated on the ledge turned toward each other sharing a genuine relaxed laugh. Color grade: clean airy cream tones with fresh soft-green window accents — modern minimalist Korean studio editorial mood.',
+  },
+  {
+    id: 'bride-luxury-suite-seated',
+    label: '럭셔리 스위트 신부',
+    hint: '유럽풍 호텔 스위트 + 샴페인 새틴 드레스',
+    category: 'studio',
+    personality: 'bride-solo',
+    framing: 'full',
+    isSeated: true, // seated on the floor against the bed
+    image: '/wedding-snap/catalog/bride-luxury-suite-seated.jpg',
+    promptHint:
+      'Solo bride portrait — only the bride is in the frame, no groom, no other people. Indoor classic luxury European hotel suite: an ornate gilded rococo upholstered bed headboard, a warm-glow pleated bedside lamp, a gold-framed antique oil painting on a paneled wall, an antique wood side table and a persian rug, warm tungsten ambient lighting. Shot on 50–85mm portrait lens, full-body framing, eye-level camera, shallow depth of field. Bride: a lustrous champagne / ivory strapless satin ball gown with a full voluminous pleated skirt, an elegant sleek low updo, small earrings, pale pointed satin heels, a soft radiant smile with both hands clasped gracefully near her chin. Pose: seated gracefully on the floor leaning back against the side of the bed with the satin skirt fanned out around her. Color grade: warm tungsten luxury-interior glow, soft champagne-satin sheen with gold accents and warm cream skin — elegant classic Korean prewedding boudoir editorial, must clearly read as warm indoor luxury suite, NOT studio gray backdrop, NOT outdoor.',
+  },
+  {
+    id: 'villa-balcony-shutters-couple',
+    label: '빌라 발코니',
+    hint: '지중해 빌라 발코니 + 검은 셔터 + 작약',
+    category: 'outdoor',
+    personality: 'together',
+    framing: 'full',
+    image: '/wedding-snap/catalog/villa-balcony-shutters-couple.jpg',
+    promptHint:
+      'Outdoor Mediterranean villa exterior — the couple standing on a small stone balcony framed by an arched doorway with black wooden louvered shutters and an ornate black wrought-iron railing, warm cream stucco walls, terracotta roof tiles and climbing white roses, bright clear warm daylight. Shot on 35–50mm lens, full-body framing, camera at a slight low angle looking up at the balcony. Groom: black tuxedo with a black bow tie and white shirt, dark wavy hair, hand resting on the railing. Bride: strapless ivory column dress with a subtle thigh slit and a long sheer veil, holding a white peony bouquet. Pose: standing close side by side at the railing, both facing camera with soft calm composed expressions. Color grade: bright warm Mediterranean daylight with cream-stucco and terracotta tones — elegant European villa wedding editorial.',
+  },
+  {
+    id: 'paris-cafe-night-couple',
+    label: '파리 카페 야경',
+    hint: '파리 노천카페 + 스트링 조명 + 야간 무드',
+    category: 'urban',
+    personality: 'together',
+    framing: 'full',
+    isSeated: true,
+    hasSideAngle: true, // seated facing each other in profile
+    image: '/wedding-snap/catalog/paris-cafe-night-couple.jpg',
+    promptHint:
+      'Outdoor Parisian street café at night — the couple seated at a small round marble-top bistro table under a deep-red awning lettered "CAFÉ de PARIS · BAR & COCKTAILS", warm Edison string lights and a glowing golden café interior behind, classic rattan bistro chairs, a rain-glossed cobblestone street with distant Haussmann buildings and warm street lamps. Shot on 35–50mm lens, full-body framing, eye-level camera. Groom: dark charcoal / brown suit with white shirt and tie, short neat dark hair, holding a small teacup. Bride: off-shoulder ivory satin gown, sleek low updo, drop earrings, holding a small teacup. Pose: seated across the small table turned toward each other in profile, gently sipping / toasting with the teacups in an intimate moment. Color grade: warm cinematic Parisian night palette — glowing tungsten string-lights and red-awning warmth against deep evening-blue street shadows, gentle film grain — must clearly read as warm night, NOT daytime.',
+    manualKelvin: 3200,
+    manualMoodHint:
+      'warm Parisian night café with Edison string lights and red awning glow, deep evening-blue street, cinematic film grain',
+  },
+  {
+    id: 'rome-colosseum-goldenhour',
+    label: '로마 콜로세움 골든아워',
+    hint: '콜로세움 + 황금빛 역광 + 백 새틴 드레스',
+    category: 'urban',
+    personality: 'together',
+    framing: 'closeup',
+    hasSideAngle: true, // bride turned, back partly to camera
+    image: '/wedding-snap/catalog/rome-colosseum-goldenhour.jpg',
+    promptHint:
+      'Outdoor in Rome with the ancient Colosseum’s arched stone arcades filling the background, a warm low golden-hour sun flaring from camera-right creating a soft backlit rim glow on hair, a low stone wall in the foreground. Shot on 50–85mm portrait lens, waist-up / three-quarter framing, eye-level camera, shallow depth of field. Groom: black notch-lapel suit with white shirt and black tie, short neat dark hair, one hand in his pocket, calm confident gaze to camera. Bride: elegant ivory satin V-back ball gown, long flowing wind-blown wavy hair catching the golden backlight, diamond earrings, looking back over her shoulder toward the camera. Pose: bride turned with her back partly to camera glancing back, groom standing close behind facing camera — romantic intimate. Color grade: warm romantic golden-hour backlight with sun-flare glow, honey skin tones and warm stone — must clearly read as golden-hour sunset, NOT noon, NOT night.',
+    manualMoodHint:
+      'warm golden-hour sun-flare backlight at the Roman Colosseum, honey skin tones, romantic glow',
+  },
 ];
 
 export const isSnapCatalogId = (v: string): boolean =>
