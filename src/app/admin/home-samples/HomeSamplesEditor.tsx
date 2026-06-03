@@ -51,6 +51,7 @@ import {
   uploadBeforeAfterAfterImage,
   uploadExampleFlowImage,
 } from './actions';
+import { BGM_PRESETS } from '@/lib/bgm-presets';
 
 type MainSection = InvitationContent['main'];
 type MainLayout = MainSection['layout'];
@@ -386,6 +387,12 @@ export function InvitationSamplesEditor({
                           />
                         </Field>
                       </div>
+
+                      {/* 샘플 배경음악 — 켜고 프리셋/URL 을 넣으면 content.theme.bgm 에 반영 */}
+                      <SampleBgmField
+                        value={d.bgm ?? { enabled: false, url: '' }}
+                        onChange={(bgm) => patchDesign(i, { bgm })}
+                      />
 
                       {/* 에디터 디자인 컨트롤 — 가로 넘침 방지 */}
                       <div className="max-w-full overflow-x-auto">
@@ -867,6 +874,59 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className={labelCls}>{label}</span>
       <div className="mt-1">{children}</div>
     </label>
+  );
+}
+
+/** 알림장 샘플 배경음악 — 사용 토글 + 프리셋 선택 + 직접 URL. */
+function SampleBgmField({
+  value,
+  onChange,
+}: {
+  value: { enabled: boolean; url: string };
+  onChange: (v: { enabled: boolean; url: string }) => void;
+}) {
+  const presetMatched = BGM_PRESETS.some((p) => p.url === value.url);
+  return (
+    <div className="rounded-md border border-[#E8DCC9] bg-[#FCFAF6] p-2.5">
+      <label className="flex items-center gap-2 text-[12px] font-medium text-[#3D2E1F]">
+        <input
+          type="checkbox"
+          checked={value.enabled}
+          onChange={(e) => onChange({ ...value, enabled: e.target.checked })}
+        />
+        배경음악 사용
+      </label>
+      {value.enabled && (
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <Field label="프리셋에서 선택">
+            <select
+              className={inputCls}
+              value={presetMatched ? value.url : ''}
+              onChange={(e) => onChange({ ...value, url: e.target.value })}
+            >
+              <option value="">
+                {value.url && !presetMatched ? '(직접 URL 사용 중)' : '프리셋 선택…'}
+              </option>
+              {BGM_PRESETS.map((p) => (
+                <option key={p.id} value={p.url}>
+                  {p.title}
+                  {p.artist ? ` · ${p.artist}` : ''} {p.hasLyrics ? '(가사O)' : '(가사X)'}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="또는 음악 URL 직접 입력">
+            <input
+              type="url"
+              className={`${inputCls} font-mono text-[12px]`}
+              placeholder="https://….mp3 또는 /bgm/….mp3"
+              value={value.url}
+              onChange={(e) => onChange({ ...value, url: e.target.value })}
+            />
+          </Field>
+        </div>
+      )}
+    </div>
   );
 }
 

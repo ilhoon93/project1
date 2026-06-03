@@ -92,7 +92,7 @@ function PreviewModal({ design, onClose }: { design: SampleDesign; onClose: () =
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative aspect-[1/2] h-full overflow-hidden">
-          <InvitationPreview design={design} />
+          <InvitationPreview design={design} withBgm />
         </div>
       </div>
 

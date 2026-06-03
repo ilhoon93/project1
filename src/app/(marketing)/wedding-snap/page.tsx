@@ -10,6 +10,8 @@ import {
 } from '@/lib/snap/catalog-stats';
 import { catalogCountLabel } from '@/lib/snap/catalog-display';
 import { SNAP_STARTING_PRICE, formatKRW } from '@/lib/snap/packages';
+import { getExampleFlow } from '@/lib/marketing/home-samples';
+import type { ExampleFlowConfig } from '@/lib/marketing/sample-invitations';
 
 export const metadata: Metadata = {
   title: 'AI 웨딩스냅 — 우리다운',
@@ -59,9 +61,10 @@ const SELFIES_FLOWS = {
 };
 
 export default async function WeddingSnapLandingPage() {
-  const [visibleCatalog, catalogStats] = await Promise.all([
+  const [visibleCatalog, catalogStats, exampleFlow] = await Promise.all([
     getAvailableCatalog(),
     fetchCatalogStatsMap(),
+    getExampleFlow(),
   ]);
   const catalogCount = visibleCatalog.length;
   // 섹션 — Hero(+오픈이벤트) → Stat → 두 가지 시작 → HowItWorks(시각) → 카탈로그 → CTA.
@@ -70,7 +73,7 @@ export default async function WeddingSnapLandingPage() {
       <div className="mx-auto max-w-3xl">
         <Hero catalogCount={catalogCount} />
         <StatStrip catalogCount={catalogCount} />
-        <HowToInput />
+        <HowToInput exampleFlow={exampleFlow} />
         <HowItWorks catalogCount={catalogCount} />
         <CatalogPreview items={visibleCatalog} catalogStats={catalogStats} />
         <FinalCta />
@@ -170,7 +173,7 @@ function Stat({ number, label }: { number: string; label: string }) {
 
 /** "HOW TO INPUT" 섹션 wrapper — SectionHeading + client 카드(SnapModeCards).
  * 사진 시퀀스는 모두 SnapModeCards 안의 "예시 보기" 버튼 → ExampleFlowModal 로 위임. */
-function HowToInput() {
+function HowToInput({ exampleFlow }: { exampleFlow: ExampleFlowConfig }) {
   return (
     <section className="mt-14">
       <SectionHeading
@@ -178,7 +181,7 @@ function HowToInput() {
         title="두 가지로 시작할 수 있어요"
         description="가진 사진에 맞춰 두 가지 입력 방식 중 하나를 고르세요."
       />
-      <SnapModeCards />
+      <SnapModeCards exampleFlow={exampleFlow} />
     </section>
   );
 }

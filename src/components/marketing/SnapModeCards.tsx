@@ -13,8 +13,9 @@ import {
   ExampleFlowModal,
   type ExampleFlowMode,
 } from '@/components/snap/ExampleFlowModal';
+import type { ExampleFlowConfig } from '@/lib/marketing/sample-invitations';
 
-export function SnapModeCards() {
+export function SnapModeCards({ exampleFlow }: { exampleFlow?: ExampleFlowConfig }) {
   const [openMode, setOpenMode] = useState<ExampleFlowMode | null>(null);
   return (
     <>
@@ -67,7 +68,7 @@ export function SnapModeCards() {
         </article>
       </div>
 
-      <ExampleFlowModal mode={openMode} onClose={() => setOpenMode(null)} />
+      <ExampleFlowModal mode={openMode} onClose={() => setOpenMode(null)} config={exampleFlow} />
     </>
   );
 }

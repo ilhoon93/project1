@@ -52,6 +52,8 @@ export interface DesignConfig {
   font: FontKey;
   heroImageId: string;
   main: InvitationContent['main'];
+  /** 샘플 배경음악 (선택). enabled+url 이면 content.theme.bgm 에 반영. */
+  bgm?: { enabled: boolean; url: string };
 }
 
 export interface AiSnapItem {
@@ -292,6 +294,10 @@ export function buildDesign(
   content.theme.colorTheme = c.colorTheme;
   content.theme.petalType = c.petalType;
   content.theme.font = c.font;
+  // 샘플 배경음악 — 운영자가 켜고 URL 을 넣었을 때만 적용.
+  if (c.bgm?.enabled && c.bgm.url.trim()) {
+    content.theme.bgm = { enabled: true, url: c.bgm.url.trim() };
+  }
 
   content.main = { ...c.main, heroImage: `${CAT}/${c.heroImageId}.jpg` };
 

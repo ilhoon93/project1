@@ -45,6 +45,8 @@ interface Props {
   /** owner 모드 — 신랑신부 전용 소장용 뷰. quiz/vote 통계, 방명록·서명 모음 표시. */
   mode?: 'guest' | 'owner';
   ownerData?: OwnerData;
+  /** isPreview 여도 배경음악 플레이어를 노출 — 마케팅 전체보기 모달의 샘플 음악용. */
+  forceBgm?: boolean;
 }
 
 export function InvitationSlides({
@@ -57,6 +59,7 @@ export function InvitationSlides({
   scoped,
   mode = 'guest',
   ownerData,
+  forceBgm,
 }: Props) {
   // 운영자가 고른 출력 형식으로 사전 포맷팅 — 자식 슬라이드들은 받은 문자열을
   // 그대로 표시(슬라이드별로 다른 변환을 거치지 않게 단일 출처).
@@ -176,6 +179,7 @@ export function InvitationSlides({
         bgmUrl={content.theme.bgm?.enabled ? content.theme.bgm.url : null}
         scoped={scoped}
         isPreview={isPreview}
+        forceBgm={forceBgm}
       >
         {slides}
       </SlideContainer>

@@ -53,6 +53,8 @@ const DesignConfigSchema = z.object({
   brideName: z.string(),
   weddingDate: z.string(),
   main: MainSectionSchema,
+  // 샘플 배경음악 (선택) — 구버전 호환 위해 optional.
+  bgm: z.object({ enabled: z.boolean(), url: z.string() }).optional(),
 });
 
 const BeforeAfterStyleSchema = z.object({
