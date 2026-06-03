@@ -255,7 +255,7 @@ function PosterFullImageSlide({
         src={main.heroImage!}
         alt=""
         className={`absolute inset-0 h-full w-full ${
-          imageFit === 'contain' ? 'object-contain' : 'object-cover'
+          imageFit === 'contain' ? 'object-contain' : 'object-cover mw-kenburns'
         }`}
         style={
           imageFit === 'cover'

@@ -24,7 +24,6 @@ import {
 import { PetalShape } from '@/components/shared/FallingPetals';
 import { Button } from '@/components/ui/button';
 import { SectionEditor } from '../SectionEditor';
-import { TextField } from '../form-fields';
 import { AUDIO_LIMITS, formatBytes } from '@/lib/uploads';
 import { BGM_PRESETS } from '@/lib/bgm-presets';
 
@@ -224,10 +223,16 @@ function BgmField({
           <>
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-foreground">공용 음악 선택</span>
-              <p className="text-xs text-muted-foreground">
-                <span className="font-medium text-primary">가사 있음</span> 곡이 먼저 표시됩니다.
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1">
+                  <span className="rounded bg-emerald-100 px-1 py-0.5 text-[10px] font-semibold text-emerald-700">
+                    가사 O
+                  </span>
+                  곡이 먼저 표시됩니다.
+                </span>
               </p>
-              <div className="flex flex-col gap-1.5">
+              {/* 항목을 풀폭 행이 아닌 내용폭 칩으로 wrap — 좁은 에디터 패널의 빈 공간을 줄인다. */}
+              <div className="flex flex-wrap gap-1.5">
                 {BGM_PRESETS.map((preset) => {
                   const selected = url === preset.url;
                   return (
@@ -236,45 +241,31 @@ function BgmField({
                       type="button"
                       onClick={() => onChange({ enabled: true, url: preset.url })}
                       aria-pressed={selected}
-                      className={`flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-left transition-colors ${
+                      title={preset.artist ? `${preset.title} · ${preset.artist}` : preset.title}
+                      className={`inline-flex items-center gap-1.5 rounded-full border py-1 pl-2.5 pr-1.5 text-left transition-colors ${
                         selected
                           ? 'border-primary bg-primary/5 ring-1 ring-primary'
                           : 'border-input bg-background hover:bg-muted'
                       }`}
                     >
-                      <span className="flex min-w-0 flex-col">
-                        <span className="truncate text-sm font-medium text-foreground">
-                          {preset.title}
-                        </span>
-                        {preset.artist && (
-                          <span className="truncate text-xs text-muted-foreground">
-                            {preset.artist}
-                          </span>
-                        )}
-                      </span>
+                      <span className="text-xs font-medium text-foreground">{preset.title}</span>
+                      {preset.artist && (
+                        <span className="text-[10px] text-muted-foreground">· {preset.artist}</span>
+                      )}
                       <span
-                        className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                        className={`shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold ${
                           preset.hasLyrics
-                            ? 'bg-primary/10 text-primary'
-                            : 'bg-muted text-muted-foreground'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-stone-200 text-stone-600'
                         }`}
                       >
-                        {preset.hasLyrics ? '가사 있음' : '가사 없음'}
+                        {preset.hasLyrics ? '가사 O' : '가사 X'}
                       </span>
                     </button>
                   );
                 })}
               </div>
             </div>
-
-            <TextField
-              label="또는 음악 URL 직접 입력"
-              type="url"
-              value={url ?? ''}
-              placeholder="https://example.com/song.mp3"
-              onChange={(e) => onChange({ enabled, url: e.target.value || null })}
-              hint="MP3 등 외부 URL을 붙여넣을 수 있습니다"
-            />
 
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-foreground">또는 직접 업로드</span>

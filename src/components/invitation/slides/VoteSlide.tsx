@@ -74,7 +74,6 @@ function QuestionStats({
 }) {
   const total = picks.length;
   const distribution = question.options.map((_, oi) => picks.filter((p) => p.selected_option === oi).length);
-  const max = Math.max(1, ...distribution);
   return (
     <article className="flex flex-col gap-3">
       <h3 className="text-center text-sm font-medium">
@@ -93,10 +92,11 @@ function QuestionStats({
               key={oi}
               className="relative overflow-hidden rounded-md border border-[var(--mw-dot)] bg-white px-3 py-2.5 text-sm text-stone-900"
             >
+              {/* 진행바 — 선택 비율(전체 응답 대비 %)에 비례한 폭. 0%면 폭 0. */}
               <span
                 aria-hidden
-                className="absolute inset-y-0 left-0 bg-[var(--mw-accent)]/20"
-                style={{ width: `${(count / max) * 100}%` }}
+                className="absolute inset-y-0 left-0 bg-[var(--mw-accent)]/25 transition-[width] duration-500"
+                style={{ width: `${pct}%` }}
               />
               <span className="relative flex items-center justify-between gap-2">
                 <span className="font-medium">{opt}</span>

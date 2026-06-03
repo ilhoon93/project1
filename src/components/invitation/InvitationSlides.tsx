@@ -175,6 +175,7 @@ export function InvitationSlides({
         font={content.theme.font}
         bgmUrl={content.theme.bgm?.enabled ? content.theme.bgm.url : null}
         scoped={scoped}
+        isPreview={isPreview}
       >
         {slides}
       </SlideContainer>

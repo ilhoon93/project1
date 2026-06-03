@@ -13,7 +13,16 @@ import {
 export const BgmSchema = z
   .object({
     enabled: z.boolean().default(false),
-    url: z.string().url().nullable().default(null),
+    // 외부 절대 URL(https://…) 또는 동일 출처 정적 자산의 루트 상대경로(/bgm/…) 둘 다 허용.
+    // 공용 프리셋(BGM_PRESETS)이 `/bgm/...` 상대경로를 쓰므로 z.string().url() 만으로는
+    // 검증이 깨져 content 전체 파싱이 실패(→ 디자인 초기화)하는 문제가 있었다.
+    url: z
+      .string()
+      .refine((s) => /^https?:\/\//.test(s) || s.startsWith('/'), {
+        message: 'http(s) URL 또는 / 로 시작하는 경로여야 합니다.',
+      })
+      .nullable()
+      .default(null),
   })
   .default({ enabled: false, url: null });
 

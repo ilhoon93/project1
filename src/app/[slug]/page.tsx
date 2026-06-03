@@ -116,14 +116,22 @@ export default async function PublicInvitationPage({ params }: PageProps) {
   return (
     <>
       <InAppBrowserGuard />
-      <FullscreenToggle />
-      <InvitationSlides
-        invitationId={inv.invitation_id}
-        groomName={inv.groom_name}
-        brideName={inv.bride_name}
-        weddingDate={inv.wedding_date}
-        content={content}
-      />
+      {/* 모바일은 풀스크린, 노트북/PC(>= md)는 가운데 폰 프레임 박스로 가둬 보여준다 —
+          소장용(o/[token]) 뷰와 동일한 처리. 큰 모니터에서 가로로 늘어진 알림장이
+          어색해 보이는 문제 해결. scoped 로 InvitationSlides 가 부모 박스 기준으로 렌더. */}
+      <div className="flex min-h-[100dvh] w-full items-center justify-center bg-neutral-950 md:p-6">
+        <FullscreenToggle />
+        <div className="relative h-[100dvh] w-full overflow-hidden bg-black md:h-[min(92dvh,calc(100vw*16/9))] md:max-h-[min(92dvh,900px)] md:w-[min(92vw,calc(92dvh*9/16))] md:max-w-[506px] md:rounded-2xl md:shadow-2xl">
+          <InvitationSlides
+            invitationId={inv.invitation_id}
+            groomName={inv.groom_name}
+            brideName={inv.bride_name}
+            weddingDate={inv.wedding_date}
+            content={content}
+            scoped
+          />
+        </div>
+      </div>
     </>
   );
 }
