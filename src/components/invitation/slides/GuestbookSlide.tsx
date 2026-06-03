@@ -361,7 +361,7 @@ function OwnerGuestbookView({
   };
 
   return (
-    <section className="flex min-h-full flex-col gap-6 px-6 py-16">
+    <section className="flex min-h-full flex-col gap-5 px-6 py-12">
       <header className="text-center">
         <p className="text-xs tracking-[0.3em] opacity-70">GUESTBOOK</p>
         <h2 className="mt-2 text-xl font-light">받은 메시지 · 서명</h2>
@@ -378,7 +378,7 @@ function OwnerGuestbookView({
           key={clamped}
           // 고정 비율(aspect) 대신 min-height + 내용 높이 — 짧은 글은 스크롤 없이
           // 한 화면에 담기고, 긴 글이 있을 때만 카드(책)가 아래로 늘어난다.
-          className={`relative flex min-h-[380px] w-full origin-left flex-col rounded-md bg-white p-6 pb-9 text-stone-900 shadow-xl ring-1 ring-stone-200 ${
+          className={`relative flex min-h-[300px] w-full origin-left flex-col rounded-md bg-white p-6 pb-9 text-stone-900 shadow-xl ring-1 ring-stone-200 ${
             flipDir === 'next'
               ? 'animate-mw-page-flip-next'
               : flipDir === 'prev'
@@ -484,15 +484,16 @@ function EntryCard({ e }: { e: GuestEntry }) {
       {sig && (
         <figure
           className={`flex flex-col gap-1 ${
-            e.message ? 'border-t border-stone-200 pt-3' : 'flex-1 justify-center'
+            e.message ? 'border-t border-stone-200 pt-2' : 'flex-1 justify-center'
           }`}
         >
           <figcaption className="text-[11px] text-stone-400">손글씨 서명</figcaption>
+          {/* 서명 높이를 낮춰(max-h-20) 기본 상태에서 세로 스크롤이 생기지 않게. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={sig}
             alt={`${e.name ?? '익명'} 서명`}
-            className="max-h-32 w-full rounded bg-white object-contain"
+            className="max-h-20 w-full rounded bg-white object-contain"
           />
         </figure>
       )}

@@ -368,7 +368,7 @@ function MockGuestbook({ active }: { active: boolean }) {
   const entries = [
     { name: '지원 누나', side: '신부측', date: '2026.06.02', body: '드디어! 정말 축하해요 ❤︎ 두 사람 오래오래 행복하게 잘 살아요.' },
     { name: '재현 형', side: '신랑측', date: '2026.06.01', body: '두 사람 정말 잘 어울려요. 결혼 진심으로 축하합니다.' },
-    { name: '하은', side: '신부측', date: '2026.05.30', body: '결혼식 못 가서 미안해. 신혼여행 사진 잔뜩 보여줘!' },
+    { name: '하은', side: '신부측', date: '2026.05.30', body: '너무너무 축하해! 앞으로도 늘 지금처럼 다정하게 지내 😊' },
   ];
   const [i, setI] = useState(0);
   useEffect(() => {
@@ -387,11 +387,13 @@ function MockGuestbook({ active }: { active: boolean }) {
       </div>
       <div className="mt-1 text-[12px] text-[var(--wd-mute)]">받은 메시지 · 손글씨 서명</div>
 
-      <div className="mt-3 flex flex-1 flex-col">
+      {/* 카드를 내용 높이에 맞춰 가운데 정렬 — 실제 페이지처럼 위아래 공백을 줄인다.
+          (flex-1 로 늘려 메시지와 서명 사이가 비던 문제 해소) */}
+      <div className="mt-3 flex flex-1 flex-col justify-center">
         {/* 흰 책장 카드 — 한 사람분 (이름·날짜 / 메시지 / 손글씨 서명) */}
         <div
           key={i}
-          className="flex flex-1 flex-col gap-2 rounded-lg bg-white p-3 shadow-[0_8px_20px_rgba(31,27,23,0.12)] ring-1 ring-[var(--wd-line)]"
+          className="flex flex-col gap-2 rounded-lg bg-white p-3 shadow-[0_8px_20px_rgba(31,27,23,0.12)] ring-1 ring-[var(--wd-line)]"
           style={{ animation: 'wd-fade 0.5s ease' }}
         >
           <div className="flex items-baseline justify-between">
@@ -401,14 +403,14 @@ function MockGuestbook({ active }: { active: boolean }) {
             <span className="text-[9px] text-[var(--wd-mute)]">{cur.date}</span>
           </div>
           <p className="text-[11px] leading-snug text-[var(--wd-ink)]/85">{cur.body}</p>
-          <div className="mt-auto border-t border-[var(--wd-line)] pt-1.5">
+          <div className="mt-1 border-t border-[var(--wd-line)] pt-1.5">
             <p className="text-[8.5px] text-[var(--wd-mute)]">손글씨 서명</p>
             <SignatureScribble seed={i} />
           </div>
         </div>
 
         {/* 페이지 인디케이터 — 넘겨 보는 책 느낌 */}
-        <div className="mt-2 flex items-center justify-center gap-1.5">
+        <div className="mt-2.5 flex items-center justify-center gap-1.5">
           {entries.map((_, di) => (
             <span
               key={di}
@@ -425,23 +427,47 @@ function MockGuestbook({ active }: { active: boolean }) {
   );
 }
 
-/** 손글씨 서명 느낌의 흘림 스크리블 — seed 로 약간씩 다른 모양. */
+/**
+ * 손글씨 사인 느낌의 SVG 스크리블 — 실제 서명처럼 글자 흐름(여러 획) + 끝의
+ * 언더라인 스와시(플로리시)를 가진다. seed 로 서로 다른 3종 스타일을 보여 준다.
+ */
 function SignatureScribble({ seed }: { seed: number }) {
-  const paths = [
-    'M4 16 C12 4, 20 22, 30 10 S 48 6, 62 16 70 12, 82 14',
-    'M6 14 C16 6, 22 20, 34 12 S 50 18, 60 10 72 16, 82 12',
-    'M4 12 C14 20, 24 4, 36 14 S 52 8, 64 16 74 10, 82 15',
+  // 각 배열: [본문 획..., 마지막 = 언더라인 스와시]
+  const sigs = [
+    // ① 둥근 흘림체 — 루프 위주
+    [
+      'M3 17 C6 6 12 7 13 14 C14 20 18 20 19 13 C20 7 24 7 27 13 C29 17 33 17 38 11',
+      'M40 13 C44 7 48 16 51 12 C54 8 59 12 61 16 C63 19 67 14 71 9',
+      'M8 22 C28 27 52 25 80 18',
+    ],
+    // ② 각진 빠른 사인 — 지그재그
+    [
+      'M4 16 L9 8 L12 17 L17 7 L20 16 L26 9',
+      'M30 15 C33 9 37 18 41 11 C44 7 49 13 53 10 L61 14 C65 16 71 12 77 8',
+      'M14 22 C32 26 54 24 76 18',
+    ],
+    // ③ 부드러운 필기 — 완만한 물결 + 끝 루프
+    [
+      'M3 14 C9 6 14 20 22 12 C28 7 33 18 41 11',
+      'M44 12 C49 7 53 15 58 11 C63 7 70 14 80 9 C83 8 82 13 78 15',
+      'M10 21 C30 25 52 23 72 17',
+    ],
   ];
+  const strokes = sigs[seed % sigs.length];
+  const last = strokes.length - 1;
   return (
-    <svg viewBox="0 0 88 22" className="mt-0.5 h-6 w-[88px]" fill="none" aria-hidden>
-      <path
-        d={paths[seed % paths.length]}
-        stroke="var(--wd-ink)"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity="0.72"
-      />
+    <svg viewBox="0 0 88 26" className="mt-0.5 h-7 w-[92px]" fill="none" aria-hidden>
+      {strokes.map((d, k) => (
+        <path
+          key={k}
+          d={d}
+          stroke="var(--wd-ink)"
+          strokeWidth={k === last ? 1 : 1.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={k === last ? 0.5 : 0.82}
+        />
+      ))}
     </svg>
   );
 }

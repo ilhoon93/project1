@@ -92,10 +92,11 @@ function QuestionStats({
               key={oi}
               className="relative overflow-hidden rounded-md border border-[var(--mw-dot)] bg-white px-3 py-2.5 text-sm text-stone-900"
             >
-              {/* 진행바 — 선택 비율(전체 응답 대비 %)에 비례한 폭. 0%면 폭 0. */}
+              {/* 진행바 — 선택 비율(전체 응답 대비 %)에 비례한 폭. 0%면 폭 0.
+                  옅은 /25 는 흰 박스 위에서 거의 안 보여, 비율이 또렷이 보이도록 진하게. */}
               <span
                 aria-hidden
-                className="absolute inset-y-0 left-0 bg-[var(--mw-accent)]/25 transition-[width] duration-500"
+                className="absolute inset-y-0 left-0 bg-[var(--mw-accent)]/45 transition-[width] duration-500"
                 style={{ width: `${pct}%` }}
               />
               <span className="relative flex items-center justify-between gap-2">
