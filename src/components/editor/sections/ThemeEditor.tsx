@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { SectionEditor } from '../SectionEditor';
 import { TextField } from '../form-fields';
 import { AUDIO_LIMITS, formatBytes } from '@/lib/uploads';
+import { BGM_PRESETS } from '@/lib/bgm-presets';
 
 export function ThemeEditor() {
   const content = useEditorStore((s) => s.content);
@@ -221,8 +222,53 @@ function BgmField({
 
         {enabled && (
           <>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-foreground">공용 음악 선택</span>
+              <p className="text-xs text-muted-foreground">
+                <span className="font-medium text-primary">가사 있음</span> 곡이 먼저 표시됩니다.
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {BGM_PRESETS.map((preset) => {
+                  const selected = url === preset.url;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => onChange({ enabled: true, url: preset.url })}
+                      aria-pressed={selected}
+                      className={`flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-left transition-colors ${
+                        selected
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                          : 'border-input bg-background hover:bg-muted'
+                      }`}
+                    >
+                      <span className="flex min-w-0 flex-col">
+                        <span className="truncate text-sm font-medium text-foreground">
+                          {preset.title}
+                        </span>
+                        {preset.artist && (
+                          <span className="truncate text-xs text-muted-foreground">
+                            {preset.artist}
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                          preset.hasLyrics
+                            ? 'bg-primary/10 text-primary'
+                            : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {preset.hasLyrics ? '가사 있음' : '가사 없음'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <TextField
-              label="음악 URL (직접 입력)"
+              label="또는 음악 URL 직접 입력"
               type="url"
               value={url ?? ''}
               placeholder="https://example.com/song.mp3"
