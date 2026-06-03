@@ -472,47 +472,83 @@ function SignatureScribble({ seed }: { seed: number }) {
   );
 }
 
+// 실제 혼인서약서(certificate-view)를 그대로 축소한 미니 카드 — 크림 배경 +
+// 코랄 이중 외곽선 + MARRIAGE VOW 키커 + 청연체 서명 + 하단 QR.
 function MockVowPdf({ active }: { active: boolean }) {
   return (
     <div
-      className={`absolute inset-0 flex flex-col items-center justify-center bg-[#EFEAE0] px-4 transition-opacity duration-500 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+      className={`absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#EFEAE0] px-4 transition-opacity duration-500 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
     >
-      {/* PDF 종이 mock */}
-      <div className="relative h-[260px] w-[160px] rotate-[-3deg] bg-white p-4 shadow-[0_18px_36px_rgba(31,27,23,0.18)]">
-        <div className="font-italiana text-center text-[10px] tracking-[0.32em] text-[var(--wd-coral)]">
-          MARRIAGE VOW
-        </div>
-        <div className="mt-1 text-center text-[9px] tracking-[0.18em] text-[var(--wd-mute)]">
-          혼인서약서
-        </div>
-        <div className="mt-3 space-y-1.5">
-          {[100, 92, 96, 84, 100, 78, 90, 100, 88].map((w, i) => (
-            <div
-              key={i}
-              className="h-[3px] rounded-full bg-[var(--wd-ink)]/15"
-              style={{ width: `${w}%` }}
-            />
-          ))}
-        </div>
-        <div className="mt-4 flex justify-between text-[9px] text-[var(--wd-mute)]">
-          <div>
-            <div className="text-[var(--wd-ink)]">민준</div>
-            <div className="mt-1 h-[20px] w-[44px] border-b border-[var(--wd-ink)]/40" />
+      <div className="relative w-[152px] bg-[#FFFCF7] px-4 py-5 shadow-[0_16px_34px_rgba(31,27,23,0.2)]">
+        {/* 코랄 이중 외곽선 */}
+        <div aria-hidden className="pointer-events-none absolute inset-[6px] border border-[var(--wd-coral)]" />
+        <div aria-hidden className="pointer-events-none absolute inset-[9px] border border-[var(--wd-coral)]/30" />
+        <div className="relative flex flex-col items-center gap-2 text-center">
+          <p className="text-[5.5px] font-semibold tracking-[0.38em] text-[var(--wd-coral)]">
+            MARRIAGE VOW
+          </p>
+          <h4
+            className="text-[13px] font-bold tracking-[0.3em] text-[var(--wd-ink)]"
+            style={{ fontFamily: "'Noto Serif KR', serif" }}
+          >
+            혼인서약서
+          </h4>
+          <div className="mt-1 flex flex-col gap-1 text-[6.5px] leading-[1.7] text-[var(--wd-ink)]/85">
+            <p>
+              오늘부터 우리 두 사람은
+              <br />
+              서로의 일상이 되어 함께합니다.
+            </p>
+            <p className="text-[var(--wd-mute)]">
+              서로의 가장 가까운 친구가 되겠습니다.
+              <br />
+              함께하는 매일을 소중히 여기겠습니다.
+            </p>
           </div>
-          <div>
-            <div className="text-[var(--wd-ink)]">서연</div>
-            <div className="mt-1 h-[20px] w-[44px] border-b border-[var(--wd-ink)]/40" />
+          <p className="text-[6px] tracking-[0.2em] text-[var(--wd-mute)]">2026년 6월 15일</p>
+          <div className="mt-0.5 flex w-full items-end justify-around">
+            <MiniSign label="신 랑" name="민준" />
+            <MiniSign label="신 부" name="서연" />
           </div>
-        </div>
-        <div className="mt-3 text-center text-[8px] tracking-wider text-[var(--wd-mute)]">
-          2025 · 06 · 15
+          <div className="mt-1 flex flex-col items-center gap-0.5">
+            <div className="grid grid-cols-5 gap-px border border-[var(--wd-coral)] bg-white p-[2px]">
+              {MOCK_QR_CELLS.map((on, k) => (
+                <span
+                  key={k}
+                  className="h-[2px] w-[2px]"
+                  style={{ backgroundColor: on ? 'var(--wd-ink)' : 'transparent' }}
+                />
+              ))}
+            </div>
+            <span className="text-[4.5px] tracking-[0.18em] text-[var(--wd-mute)]">모바일 알림장</span>
+          </div>
         </div>
       </div>
-      <div className="mt-5 text-center text-[10.5px] leading-snug text-[var(--wd-ink)]">
-        발행 후 마이페이지에서
-        <br />
+
+      <div className="text-center text-[10.5px] leading-snug text-[var(--wd-ink)]">
+        발행 후 마이페이지에서{' '}
         <span className="text-[var(--wd-coral)]">PDF · 이미지</span> 로 다운로드
       </div>
+    </div>
+  );
+}
+
+// 가짜 QR 패턴(5×5) — 실제 QR 느낌만 주는 장식.
+const MOCK_QR_CELLS = [
+  1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1,
+].map(Boolean);
+
+function MiniSign({ label, name }: { label: string; name: string }) {
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <span className="text-[5px] tracking-[0.2em] text-[var(--wd-mute)]">{label}</span>
+      <span
+        className="text-[11px] leading-none text-[var(--wd-ink)]"
+        style={{ fontFamily: 'var(--font-gabia-cheongyeon), serif' }}
+      >
+        {name}
+      </span>
+      <span className="mt-0.5 block h-px w-8 bg-[var(--wd-ink)]/70" />
     </div>
   );
 }

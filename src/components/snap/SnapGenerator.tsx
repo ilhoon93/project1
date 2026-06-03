@@ -463,6 +463,13 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
   const canRegenGroomOnly = mode !== 'couple' && groomSelfiesReady && !isAnchorBusy;
   const canRegenBrideOnly = mode !== 'couple' && brideSelfiesReady && !isAnchorBusy;
 
+  // 버튼 문구 — 해당 인물의 앵커가 이미 있으면 '재생성', 없으면 '생성'.
+  // (예: 신부 앵커만 있는 상태에서 신랑 버튼은 '신랑만 생성' 으로 표시)
+  const groomAnchorVerb = anchor?.groomAnchorUrl ? '재생성' : '생성';
+  const brideAnchorVerb = anchor?.brideAnchorUrl ? '재생성' : '생성';
+  const bothAnchorVerb =
+    anchor?.groomAnchorUrl && anchor?.brideAnchorUrl ? '재생성' : '생성';
+
   // slots 인자로 부분 재생성 (groom only / bride only / both) 도 지원.
   const handleGenerateAnchorBatch = async (slots: AnchorSlot[] = ['groom', 'bride']) => {
     if (mode === 'couple' || isAnchorBusy) return;
@@ -1264,7 +1271,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
                 >
                   {anchorStage === 'submitting' || anchorStage === 'polling'
                     ? '생성 중...'
-                    : '신랑만 재생성 (2 크레딧)'}
+                    : `신랑만 ${groomAnchorVerb} (2 크레딧)`}
                 </Button>
                 <Button
                   type="button"
@@ -1275,7 +1282,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
                 >
                   {anchorStage === 'submitting' || anchorStage === 'polling'
                     ? '생성 중...'
-                    : '신부만 재생성 (2 크레딧)'}
+                    : `신부만 ${brideAnchorVerb} (2 크레딧)`}
                 </Button>
                 <Button
                   type="button"
@@ -1285,7 +1292,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
                 >
                   {anchorStage === 'submitting' || anchorStage === 'polling'
                     ? '생성 중...'
-                    : '둘 다 재생성 (4 크레딧)'}
+                    : `둘 다 ${bothAnchorVerb} (4 크레딧)`}
                 </Button>
                 {!groomSelfiesReady && !brideSelfiesReady && (
                   <span className="text-xs text-[var(--wd-mute)]">셀카를 업로드하세요</span>
