@@ -872,8 +872,35 @@ function SnapResultCard({
 }) {
   const [liked, setLiked] = useState<boolean>(!!job.liked);
   const [likeBusy, setLikeBusy] = useState<boolean>(false);
+  const [dlBusy, setDlBusy] = useState<boolean>(false);
   const isCompleted = job.status === 'completed' && !!job.result_url;
   const isCatalog = job.kind === 'catalog';
+
+  // 이미지 다운로드 — 외부(Supabase) URL 은 a[download] 만으로는 새 탭만 열리므로
+  // blob 으로 받아 강제 저장. CORS 등 실패 시 새 탭으로 폴백.
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!job.result_url || dlBusy) return;
+    setDlBusy(true);
+    try {
+      const res = await fetch(job.result_url, { mode: 'cors' });
+      if (!res.ok) throw new Error('fetch failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `wedding-snap-${job.id.slice(0, 8)}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(job.result_url, '_blank', 'noopener,noreferrer');
+    } finally {
+      setDlBusy(false);
+    }
+  };
 
   // 부모에서 job 객체가 갱신되면 (예: 폴링) liked 상태 sync.
   useEffect(() => {
@@ -928,6 +955,19 @@ function SnapResultCard({
             {formatRelative(job.completed_at ?? job.submitted_at)}
           </p>
         </div>
+        {/* 완료된 결과는 이미지별 다운로드 버튼 제공 (catalog/anchor 무관). */}
+        {isCompleted && (
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={dlBusy}
+            title="이미지 저장"
+            className="flex w-full items-center justify-center gap-1 rounded border border-[#D4C5B0] bg-white px-1.5 py-1 text-[10px] font-medium text-[#5C4633] transition-colors hover:border-[#8B7355] disabled:opacity-50"
+          >
+            <span aria-hidden>⤓</span>
+            <span>{dlBusy ? '저장 중...' : '이미지 저장'}</span>
+          </button>
+        )}
         {/* 완료된 catalog 결과에만 좋아요 + 재생성 버튼. */}
         {isCompleted && isCatalog && (
           <div className="flex gap-1.5">

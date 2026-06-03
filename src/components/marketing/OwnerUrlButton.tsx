@@ -39,9 +39,8 @@ export function OwnerUrlButton({ exampleUrl }: { exampleUrl?: string }) {
   );
 }
 
-/** 관리자에서 세팅한 실 예시 owner URL 이 비었을 때 보여줄 placeholder. */
-const PLACEHOLDER_URL =
-  'https://wooridaun.com/i/minjun-seoyeon-2026?own=8a4f2c91-d3e7-4b06-9c2f-7e1a8b5d6e4f';
+/** 관리자(/admin/home-samples)에서 예시 URL 을 세팅하지 않았을 때 열리는 기본 소장용 예시 페이지. */
+const EXAMPLE_OWNER_URL = 'https://wooridaun.com/7lmlre0g/o/pu62v4dt0czz3f6l';
 
 export function OwnerUrlModal({
   onClose,
@@ -51,20 +50,9 @@ export function OwnerUrlModal({
   /** 관리자(/admin/home-samples)에서 세팅한 owner URL. 비면 placeholder. */
   exampleUrl?: string;
 }) {
+  // 관리자가 세팅한 예시 URL 이 있으면 그걸, 없으면 기본 예시 소장용 페이지로.
   const trimmed = (exampleUrlProp ?? '').trim();
-  const exampleUrl = trimmed || PLACEHOLDER_URL;
-  const hasReal = !!trimmed;
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(exampleUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
-    } catch {
-      // clipboard API 비지원 — 무시
-    }
-  };
+  const exampleUrl = trimmed || EXAMPLE_OWNER_URL;
 
   return (
     <div
@@ -103,41 +91,25 @@ export function OwnerUrlModal({
             평생 간직할 수 있습니다.
           </p>
 
-          {/* URL 미리보기 박스 */}
-          <div className="mt-5 rounded-xl border border-[var(--wd-line)] bg-[var(--wd-cream)] p-3 text-left">
-            <p className="font-italiana text-[9px] uppercase tracking-[0.3em] text-[var(--wd-mute)]">
-              example
-            </p>
-            <p className="mt-1.5 break-all font-mono text-[11.5px] leading-[1.6] text-[var(--wd-ink)]">
-              {exampleUrl}
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => void handleCopy()}
-                className="inline-flex items-center gap-1 rounded-full bg-[var(--wd-ink)] px-3 py-1.5 text-[11px] font-medium text-[var(--wd-cream)] transition-transform active:scale-[0.96]"
-              >
-                {copied ? '복사됨 ✓' : 'URL 복사'}
-              </button>
-              {/* "예시 열기" — 관리자에서 세팅한 실 예시 URL 이 있을 때만 활성 */}
-              {hasReal && (
-                <a
-                  href={exampleUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-full border border-[var(--wd-ink)]/30 bg-[var(--wd-paper)] px-3 py-1.5 text-[11px] font-medium text-[var(--wd-ink)] transition-colors hover:bg-[var(--wd-ink)]/8"
-                >
-                  예시 열기 →
-                </a>
-              )}
-            </div>
-          </div>
+          {/* 실제 소장용 페이지로 바로 들어가 보는 예시 버튼 (URL 텍스트 노출 대신). */}
+          <a
+            href={exampleUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-5 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-[var(--wd-ink)] px-6 py-3.5 text-[14px] font-medium text-[var(--wd-cream)] transition-transform active:scale-[0.98]"
+          >
+            소장용 페이지 예시 보기 →
+          </a>
 
           {/* 안에 뭐가 있는지 */}
           <ul className="mt-5 flex flex-col gap-1.5 text-left text-[12.5px] text-[var(--wd-mute)] [&>li]:break-keep [&>li]:flex [&>li]:items-start [&>li]:gap-1.5">
             <li>
               <Dot />
               하객의 축하 메시지 · 손글씨 서명 모음
+            </li>
+            <li>
+              <Dot />
+              갤러리 사진마다 하객이 누른 ♥ 좋아요 모아보기
             </li>
             <li>
               <Dot />

@@ -376,7 +376,9 @@ function OwnerGuestbookView({
       <div className="relative mx-auto w-full max-w-md" data-noswipe>
         <div
           key={clamped}
-          className={`relative aspect-[4/5] w-full origin-left rounded-md bg-white p-6 text-stone-900 shadow-xl ring-1 ring-stone-200 ${
+          // 고정 비율(aspect) 대신 min-height + 내용 높이 — 짧은 글은 스크롤 없이
+          // 한 화면에 담기고, 긴 글이 있을 때만 카드(책)가 아래로 늘어난다.
+          className={`relative flex min-h-[380px] w-full origin-left flex-col rounded-md bg-white p-6 pb-9 text-stone-900 shadow-xl ring-1 ring-stone-200 ${
             flipDir === 'next'
               ? 'animate-mw-page-flip-next'
               : flipDir === 'prev'
@@ -385,7 +387,7 @@ function OwnerGuestbookView({
           }`}
         >
           {current.kind === 'cover' && (
-            <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
               <p className="text-xs tracking-[0.4em] text-stone-500">VISITORS&apos; BOOK</p>
               <p className="text-2xl font-light">{entries.length}분의 마음</p>
               <p className="max-w-xs text-sm leading-relaxed text-stone-600">
@@ -463,7 +465,7 @@ function EntryCard({ e }: { e: GuestEntry }) {
   const sideLabel = e.side === 'groom' ? '신랑측' : e.side === 'bride' ? '신부측' : null;
   const sig = e.signature?.signature_data_url ?? null;
   return (
-    <div className="flex h-full flex-col gap-3">
+    <div className="flex flex-1 flex-col gap-3">
       <div className="flex items-baseline justify-between gap-2">
         <p className="truncate text-sm font-medium text-stone-700">
           {e.name ?? '익명'} 님
@@ -473,7 +475,8 @@ function EntryCard({ e }: { e: GuestEntry }) {
       </div>
 
       {e.message && (
-        <p className="mw-thin-scroll flex-1 overflow-y-auto whitespace-pre-line text-[15px] leading-relaxed text-stone-800">
+        // 스크롤 없이 글 길이만큼 자연 확장 — 긴 글이면 카드(책)가 함께 늘어난다.
+        <p className="whitespace-pre-line text-[15px] leading-relaxed text-stone-800">
           {e.message.message}
         </p>
       )}
