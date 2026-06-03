@@ -362,12 +362,22 @@ function VoteRow({ label, pct, highlight }: { label: string; pct: number; highli
   );
 }
 
+// 실제 소장용 URL 의 방명록 페이지(흰 책장 카드 — 한 사람의 메시지 + 손글씨 서명을
+// 한 장에, 넘기면 다음 사람)를 그대로 본떠 보여 준다. active 일 때 자동으로 다음 장으로.
 function MockGuestbook({ active }: { active: boolean }) {
-  const items = [
-    { name: '지원 누나', body: '드디어! 정말 축하해요 ❤︎', tag: '서명' },
-    { name: '재현 형', body: '두 사람 잘 어울려요. 오래 행복하길.' },
-    { name: '하은', body: '결혼식 못 가서 미안. 사진 잔뜩 부탁!' },
+  const entries = [
+    { name: '지원 누나', side: '신부측', date: '2026.06.02', body: '드디어! 정말 축하해요 ❤︎ 두 사람 오래오래 행복하게 잘 살아요.' },
+    { name: '재현 형', side: '신랑측', date: '2026.06.01', body: '두 사람 정말 잘 어울려요. 결혼 진심으로 축하합니다.' },
+    { name: '하은', side: '신부측', date: '2026.05.30', body: '결혼식 못 가서 미안해. 신혼여행 사진 잔뜩 보여줘!' },
   ];
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    const t = setInterval(() => setI((v) => (v + 1) % entries.length), 3200);
+    return () => clearInterval(t);
+  }, [active, entries.length]);
+  const cur = entries[i];
+
   return (
     <div
       className={`absolute inset-0 flex flex-col bg-[var(--wd-paper)] px-4 pb-4 pt-9 transition-opacity duration-500 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
@@ -375,26 +385,64 @@ function MockGuestbook({ active }: { active: boolean }) {
       <div className="font-italiana text-[10px] tracking-[0.3em] text-[var(--wd-coral)]">
         GUESTBOOK
       </div>
-      <div className="mt-1 text-[12px] text-[var(--wd-mute)]">축하 메시지 & 손글씨 서명</div>
-      <div className="mt-3 flex flex-1 flex-col gap-2 overflow-hidden">
-        {items.map((it, i) => (
-          <div
-            key={i}
-            className="rounded-xl bg-[var(--wd-cream)] px-3 py-2.5 text-[11px] text-[var(--wd-ink)]"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10.5px] font-medium">{it.name}</span>
-              {it.tag && (
-                <span className="rounded-full bg-[var(--wd-coral)]/15 px-1.5 py-px text-[8.5px] tracking-wider text-[var(--wd-coral)]">
-                  {it.tag}
-                </span>
-              )}
-            </div>
-            <div className="mt-1 text-[11px] leading-snug text-[var(--wd-mute)]">{it.body}</div>
+      <div className="mt-1 text-[12px] text-[var(--wd-mute)]">받은 메시지 · 손글씨 서명</div>
+
+      <div className="mt-3 flex flex-1 flex-col">
+        {/* 흰 책장 카드 — 한 사람분 (이름·날짜 / 메시지 / 손글씨 서명) */}
+        <div
+          key={i}
+          className="flex flex-1 flex-col gap-2 rounded-lg bg-white p-3 shadow-[0_8px_20px_rgba(31,27,23,0.12)] ring-1 ring-[var(--wd-line)]"
+          style={{ animation: 'wd-fade 0.5s ease' }}
+        >
+          <div className="flex items-baseline justify-between">
+            <span className="text-[11px] font-medium text-[var(--wd-ink)]">
+              {cur.name} <span className="text-[9px] font-normal text-[var(--wd-mute)]">· {cur.side}</span>
+            </span>
+            <span className="text-[9px] text-[var(--wd-mute)]">{cur.date}</span>
           </div>
-        ))}
+          <p className="text-[11px] leading-snug text-[var(--wd-ink)]/85">{cur.body}</p>
+          <div className="mt-auto border-t border-[var(--wd-line)] pt-1.5">
+            <p className="text-[8.5px] text-[var(--wd-mute)]">손글씨 서명</p>
+            <SignatureScribble seed={i} />
+          </div>
+        </div>
+
+        {/* 페이지 인디케이터 — 넘겨 보는 책 느낌 */}
+        <div className="mt-2 flex items-center justify-center gap-1.5">
+          {entries.map((_, di) => (
+            <span
+              key={di}
+              className="h-1 rounded-full transition-all"
+              style={{
+                width: di === i ? 12 : 4,
+                backgroundColor: di === i ? 'var(--wd-coral)' : 'var(--wd-line)',
+              }}
+            />
+          ))}
+        </div>
       </div>
     </div>
+  );
+}
+
+/** 손글씨 서명 느낌의 흘림 스크리블 — seed 로 약간씩 다른 모양. */
+function SignatureScribble({ seed }: { seed: number }) {
+  const paths = [
+    'M4 16 C12 4, 20 22, 30 10 S 48 6, 62 16 70 12, 82 14',
+    'M6 14 C16 6, 22 20, 34 12 S 50 18, 60 10 72 16, 82 12',
+    'M4 12 C14 20, 24 4, 36 14 S 52 8, 64 16 74 10, 82 15',
+  ];
+  return (
+    <svg viewBox="0 0 88 22" className="mt-0.5 h-6 w-[88px]" fill="none" aria-hidden>
+      <path
+        d={paths[seed % paths.length]}
+        stroke="var(--wd-ink)"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.72"
+      />
+    </svg>
   );
 }
 

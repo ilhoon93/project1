@@ -1113,6 +1113,7 @@ export function SnapGenerator({ catalog, adminTags, catalogStats }: Props) {
             <div className="grid grid-cols-2 gap-3">
               <FaceUploader
                 label="커플 사진"
+                uploadedLabel="등록완료"
                 face={couple}
                 disabled={isProgressing || isAnchorBusy}
                 onPick={() => coupleRef.current?.click()}
@@ -2452,12 +2453,15 @@ function FaceUploader({
   disabled,
   onPick,
   wide,
+  uploadedLabel,
 }: {
   label: string;
   face: FaceState;
   disabled?: boolean;
   onPick: () => void;
   wide?: boolean;
+  /** 업로드 완료 후 보여줄 하단 문구. 미지정 시 `${label} ✓ 변경`. */
+  uploadedLabel?: string;
 }) {
   return (
     <button
@@ -2492,7 +2496,13 @@ function FaceUploader({
         )}
       </div>
       <span className="text-xs font-medium text-[var(--wd-ink)]">
-        {face.uploading ? '업로드 중...' : face.preview ? `${label} ✓ 변경` : `${label} 업로드`}
+        {face.uploading
+          ? '업로드 중...'
+          : face.preview
+            ? uploadedLabel
+              ? `${uploadedLabel} · 변경`
+              : `${label} ✓ 변경`
+            : `${label} 업로드`}
       </span>
     </button>
   );
