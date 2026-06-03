@@ -875,6 +875,13 @@ function SnapResultCard({
   const [dlBusy, setDlBusy] = useState<boolean>(false);
   const isCompleted = job.status === 'completed' && !!job.result_url;
   const isCatalog = job.kind === 'catalog';
+  // 어떤 입력 모드로 만든 결과인지 (catalog_path 기준).
+  const modeLabel =
+    job.catalog_path === 'couple'
+      ? '커플 사진'
+      : job.catalog_path === 'selfies' || job.catalog_path === 'anchored'
+        ? '셀카'
+        : null;
 
   // 이미지 다운로드 — 외부(Supabase) URL 은 a[download] 만으로는 새 탭만 열리므로
   // blob 으로 받아 강제 저장. CORS 등 실패 시 새 탭으로 폴백.
@@ -948,9 +955,16 @@ function SnapResultCard({
       </a>
       <div className="flex flex-col gap-1.5 p-1.5">
         <div>
-          <p className="truncate text-[11px] font-medium text-[#3D2E1F]">
-            {catalogLabel(job.catalog_id)}
-          </p>
+          <div className="flex items-center gap-1">
+            <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-[#3D2E1F]">
+              {catalogLabel(job.catalog_id)}
+            </p>
+            {modeLabel && (
+              <span className="shrink-0 rounded bg-[#EFE6DC] px-1 py-0.5 text-[9px] font-medium text-[#5C4633]">
+                {modeLabel}
+              </span>
+            )}
+          </div>
           <p className="text-[10px] text-[#8B7355]">
             {formatRelative(job.completed_at ?? job.submitted_at)}
           </p>

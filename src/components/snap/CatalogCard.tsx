@@ -117,7 +117,8 @@ function BadgeStack({
   isRecommended: boolean;
 }) {
   const config = {
-    together: { label: '함께', color: 'bg-[var(--wd-coral)]' },
+    // '함께' — 신랑(파랑)·신부(분홍)·코랄과 구분되도록 보라 계열로.
+    together: { label: '함께', color: 'bg-violet-600' },
     'groom-solo': { label: '신랑 단독', color: 'bg-blue-600' },
     'bride-solo': { label: '신부 단독', color: 'bg-pink-600' },
   }[personality];

@@ -155,10 +155,8 @@ export function SnapGenerator({ catalog, adminTags, catalogStats, exampleFlow }:
   const [couple, setCouple] = useState<FaceState>(emptyFace);
   // 커플 사진 face 메타 — 업로드 직후 client-side MediaPipe 로 측정.
   // null = 미측정 / 측정 실패. 호환성 점수 계산에서 fallback 처리.
+  // (사용자에게 노출하던 '얼굴 감지' 배지는 제거 — 측정값만 내부 호환성 판정에 사용.)
   const [coupleFaceMeta, setCoupleFaceMeta] = useState<FaceMeta | null>(null);
-  const [coupleFaceMetaStatus, setCoupleFaceMetaStatus] = useState<
-    'idle' | 'measuring' | 'ready' | 'error'
-  >('idle');
   const [groomBody, setGroomBody] = useState<BodyForm>({ heightCm: '', weightKg: '' });
   const [brideBody, setBrideBody] = useState<BodyForm>({ heightCm: '', weightKg: '' });
 
@@ -325,29 +323,20 @@ export function SnapGenerator({ catalog, adminTags, catalogStats, exampleFlow }:
   // 커플 사진 업로드 → MediaPipe 로 face count + 얼굴 크기 비율 자동 측정.
   // preview (Object URL 또는 signed URL) 이 있을 때 한 번만 실행. 모드가 couple 아니면 skip.
   useEffect(() => {
-    if (mode !== 'couple') {
+    if (mode !== 'couple' || !couple.preview) {
       setCoupleFaceMeta(null);
-      setCoupleFaceMetaStatus('idle');
-      return;
-    }
-    if (!couple.preview) {
-      setCoupleFaceMeta(null);
-      setCoupleFaceMetaStatus('idle');
       return;
     }
     let canceled = false;
-    setCoupleFaceMetaStatus('measuring');
     detectFaces(couple.preview)
       .then((meta) => {
         if (canceled) return;
         setCoupleFaceMeta(meta);
-        setCoupleFaceMetaStatus('ready');
       })
       .catch(() => {
         if (canceled) return;
         // 모델 로드 실패 / 이미지 로드 실패 — 측정 없이 진행 (호환성은 default safe 로 fallback).
         setCoupleFaceMeta(null);
-        setCoupleFaceMetaStatus('error');
       });
     return () => {
       canceled = true;
@@ -1142,13 +1131,6 @@ export function SnapGenerator({ catalog, adminTags, catalogStats, exampleFlow }:
                 }}
               />
             </div>
-            {/* 커플 사진 face 측정 상태 — 카탈로그 호환성 판정에 사용. */}
-            {couple.url && coupleFaceMetaStatus !== 'idle' && (
-              <CoupleFaceMetaBadge
-                status={coupleFaceMetaStatus}
-                meta={coupleFaceMeta}
-              />
-            )}
           </div>
         )}
       </section>
@@ -2207,50 +2189,6 @@ function SubToggleButton({
 }
 
 /**
- * 커플 사진 face 측정 결과 작은 인디케이터 — 카탈로그 호환성에 어떻게 반영
- * 되는지 사용자에게 투명하게 노출. 측정 실패 시 "측정 못 함, 일반 규칙 적용" 안내.
- */
-function CoupleFaceMetaBadge({
-  status,
-  meta,
-}: {
-  status: 'measuring' | 'ready' | 'error';
-  meta: FaceMeta | null;
-}) {
-  if (status === 'measuring') {
-    return (
-      <p className="text-[10px] text-[var(--wd-mute)]">
-        ⏳ 사진 분석 중… (얼굴 크기 측정 후 호환 카탈로그 자동 추천)
-      </p>
-    );
-  }
-  if (status === 'error') {
-    return (
-      <p className="text-[10px] text-amber-700">
-        ⚠ 얼굴 자동 측정 실패 — 일반 호환성 규칙으로 진행됩니다.
-      </p>
-    );
-  }
-  if (status === 'ready' && meta) {
-    const r = meta.faceSizeRatio;
-    const sizeLabel =
-      meta.faceCount === 0
-        ? '얼굴을 못 찾았어요 — 정면 얼굴이 잘 보이는 사진을 권장합니다'
-        : r >= 0.25
-          ? '얼굴 크게 보이는 사진 — 대부분 카탈로그에 잘 맞아요'
-          : r >= 0.15
-            ? '보통 반신 사진 — 클로즈업 카탈로그는 살짝 주의'
-            : '얼굴 작은 전신 사진 — 클로즈업 카탈로그는 변형 위험이 있어요';
-    return (
-      <p className="text-[10px] text-[var(--wd-ink)]">
-        ✓ 얼굴 {meta.faceCount}개 감지 · {sizeLabel}
-      </p>
-    );
-  }
-  return null;
-}
-
-/**
  * 카탈로그 선택 가이드 — 사용자가 본인 입력 케이스에 맞춰 어떤 카탈로그를
  * 고르면 좋은지 한눈에 보여줌. 우측 검색 필터(CatalogFilterBar) 와 수평으로
  * 정렬되어 같은 row 의 좌측에 위치.
@@ -2506,14 +2444,20 @@ function FaceUploader({
           </>
         )}
       </div>
-      <span className="text-xs font-medium text-[var(--wd-ink)]">
-        {face.uploading
-          ? '업로드 중...'
-          : face.preview
-            ? uploadedLabel
-              ? `${uploadedLabel} · 변경`
-              : `${label} ✓ 변경`
-            : `${label} 업로드`}
+      <span className="flex flex-wrap items-center justify-center gap-1 text-xs font-medium text-[var(--wd-ink)]">
+        {face.uploading ? (
+          '업로드 중...'
+        ) : face.preview ? (
+          <>
+            <span>{uploadedLabel ? uploadedLabel : `${label} ✓`}</span>
+            {/* '변경' 을 링크/버튼처럼 보이는 pill 로 — 다시 눌러 사진 교체 가능함을 명확히. */}
+            <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--wd-coral)]/55 bg-white px-2 py-0.5 text-[10px] font-semibold text-[var(--wd-coral)]">
+              <span aria-hidden>↻</span> 변경
+            </span>
+          </>
+        ) : (
+          `${label} 업로드`
+        )}
       </span>
     </button>
   );
