@@ -698,6 +698,19 @@ export function SnapSamplesEditor({
         k === i ? { ...s, ...patch } : s,
       ),
     });
+  const addStyle = () =>
+    setBA({
+      ...config.beforeAfter,
+      styles: [
+        ...config.beforeAfter.styles,
+        { id: `style-${Date.now()}`, label: '새 예시', afterLabel: 'AI · 새 예시', afterImage: '' },
+      ],
+    });
+  const removeStyle = (i: number) =>
+    setBA({
+      ...config.beforeAfter,
+      styles: config.beforeAfter.styles.filter((_, k) => k !== i),
+    });
 
   const unusedCatalog = catalog.filter((c) => !snaps.includes(c.id));
 
@@ -786,9 +799,17 @@ export function SnapSamplesEditor({
               catalog={catalog}
               byId={byId}
               onPatch={(patch) => patchStyle(i, patch)}
+              onRemove={config.beforeAfter.styles.length > 1 ? () => removeStyle(i) : undefined}
             />
           ))}
         </div>
+        <button
+          type="button"
+          onClick={addStyle}
+          className="mt-3 rounded-full border border-[#8B7355]/40 px-3.5 py-1.5 text-[12px] font-medium text-[#5C4633] hover:bg-[#FAF7F2]"
+        >
+          + Before/After 예시 추가
+        </button>
       </section>
 
       {/* ───────────── AI 스냅 예시보기 팝업 ───────────── */}
@@ -941,12 +962,15 @@ function BeforeAfterStyleEditor({
   catalog,
   byId,
   onPatch,
+  onRemove,
 }: {
   style: BeforeAfterStyle;
   index: number;
   catalog: CatalogItem[];
   byId: Map<string, CatalogItem>;
   onPatch: (patch: Partial<BeforeAfterStyle>) => void;
+  /** 있으면 헤더에 제거 버튼 노출. (예시가 2개 이상일 때만 전달) */
+  onRemove?: () => void;
 }) {
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
@@ -997,6 +1021,16 @@ function BeforeAfterStyleEditor({
         <span className="text-[10px] uppercase tracking-wide text-[#8B7355]">
           스타일 {index + 1}
         </span>
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="ml-auto rounded px-1.5 py-0.5 text-[11px] font-medium text-[#B5614F] hover:bg-[#B5614F]/10"
+            aria-label="이 예시 제거"
+          >
+            ✕ 제거
+          </button>
+        )}
       </div>
 
       <Field label="카탈로그 스타일 (탭/After 라벨 자동)">
