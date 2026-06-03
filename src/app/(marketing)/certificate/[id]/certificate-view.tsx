@@ -416,23 +416,6 @@ export function CertificateView({
                 </span>
               </div>
             )}
-
-            {/* 브랜드 워터마크 — 하단에 아주 옅게. 출처 표기·홍보용, 증서 느낌은
-                해치지 않도록 중앙/대형이 아닌 하단 미니 텍스트 한 줄. */}
-            <p
-              style={{
-                margin: 0,
-                marginTop: `${px(1.5)}px`,
-                textAlign: 'center',
-                fontSize: `${px(1.9)}px`,
-                letterSpacing: '0.22em',
-                paddingLeft: '0.22em',
-                color: '#6E6862',
-                opacity: 0.5,
-              }}
-            >
-              우리다운 · wooridaun.com
-            </p>
           </div>
         </article>
       </div>
@@ -474,7 +457,11 @@ function ScriptSign({
           fontFamily: "var(--font-gabia-cheongyeon), serif",
           fontSize: `${px(7)}px`,
           color: '#1F1B17',
-          lineHeight: 1.1,
+          // html2canvas 캡처 시 청연체(필기) 글자의 실제 높이가 line box 보다 커서
+          // 아래 밑줄과 겹쳐 보였다. lineHeight 를 키우고 paddingBottom 으로
+          // 글자 아래 여백을 확보해 화면/다운로드 모두에서 겹치지 않게 한다.
+          lineHeight: 1.35,
+          paddingBottom: `${px(1.5)}px`,
         }}
       >
         {name}
@@ -483,7 +470,7 @@ function ScriptSign({
         style={{
           width: '70%',
           borderTop: '1px solid #1F1B17',
-          marginTop: `${px(0.5)}px`,
+          marginTop: `${px(1)}px`,
         }}
       />
     </div>
