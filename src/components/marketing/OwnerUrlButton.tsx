@@ -117,11 +117,11 @@ export function OwnerUrlModal({
             </li>
             <li>
               <Dot />
-              축하하기 카운트 + 방문 기록
+              축하하기 카운트
             </li>
             <li>
               <Dot />
-              혼인서약서 PDF · 메인 사진 영구 다운로드
+              혼인서약서 PDF · 사진 영구 다운로드
             </li>
           </ul>
 
