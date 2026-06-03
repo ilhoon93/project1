@@ -26,6 +26,8 @@ interface SnapJob {
   liked?: boolean;
   regen_used_free?: boolean;
   regen_to_job_id?: string | null;
+  // 합성 방식 — 'strict'=기본, 'prompt-only'=얼굴 강화. (구버전 job 은 null)
+  image_reference?: 'strict' | 'prompt-only' | null;
 }
 
 interface AnchorHistoryEntry {
@@ -875,13 +877,13 @@ function SnapResultCard({
   const [dlBusy, setDlBusy] = useState<boolean>(false);
   const isCompleted = job.status === 'completed' && !!job.result_url;
   const isCatalog = job.kind === 'catalog';
-  // 어떤 입력 모드로 만든 결과인지 (catalog_path 기준).
-  const modeLabel =
-    job.catalog_path === 'couple'
-      ? '커플 사진'
-      : job.catalog_path === 'selfies' || job.catalog_path === 'anchored'
-        ? '셀카'
-        : null;
+  // 합성 모드 — 기본(strict, 카탈로그 마스터 참조) / 얼굴 강화(prompt-only, 얼굴 보존 우선).
+  // image_reference 가 없는 구버전 catalog job 은 기본(strict) 으로 간주.
+  const modeLabel = !isCatalog
+    ? null
+    : job.image_reference === 'prompt-only'
+      ? '얼굴 강화 모드'
+      : '기본 모드';
 
   // 이미지 다운로드 — 외부(Supabase) URL 은 a[download] 만으로는 새 탭만 열리므로
   // blob 으로 받아 강제 저장. CORS 등 실패 시 새 탭으로 폴백.
