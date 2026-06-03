@@ -348,9 +348,13 @@ function VoteRow({ label, pct, highlight }: { label: string; pct: number; highli
         <span className="text-[var(--wd-ink)]">{label}</span>
         <span>{pct}%</span>
       </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--wd-line)]">
+      <div className="h-2.5 w-full overflow-hidden rounded-full bg-[var(--wd-line)]">
+        {/* 비강조 막대도 솔리드 색으로 — 기존 /60 반투명은 옅은 트랙 위에서 거의
+            안 보여 '안 채워진' 것처럼 보였다. 비율(width)만큼 또렷이 채운다. */}
         <div
-          className={`h-full rounded-full ${highlight ? 'bg-[var(--wd-coral)]' : 'bg-[var(--wd-ink)]/60'}`}
+          className={`h-full rounded-full transition-[width] duration-700 ${
+            highlight ? 'bg-[var(--wd-coral)]' : 'bg-[var(--wd-ink)]'
+          }`}
           style={{ width: `${pct}%` }}
         />
       </div>
