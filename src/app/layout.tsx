@@ -343,6 +343,8 @@ const SITE_DESCRIPTION =
 // 네이버 서치어드바이저 소유확인 코드. env 로 덮어쓸 수 있게 두되, 기본값은 발급받은 값.
 const NAVER_SITE_VERIFICATION =
   process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION || '7c40119dd978db4459642411d1798757c47aa286';
+const GOOGLE_SITE_VERIFICATION =
+  process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || 'k9bA5nUhoyBAO518OXQlCX5ZadHEjDZLJXFB9zvox0c';
 
 export const metadata: Metadata = {
   // 상대 경로(OG 이미지·canonical 등)를 절대 URL 로 해석할 기준. 공유 카드 이미지가
@@ -369,13 +371,11 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     images: ['/og.png'],
   },
-  // 네이버 서치어드바이저 소유확인 — 홈 <head> 에 <meta name="naver-site-verification">
-  // 출력. 구글은 NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION env 설정 시 함께 출력.
+  // 네이버 서치어드바이저 + 구글 서치 콘솔 소유확인 메타태그를 홈 <head> 에 출력.
+  // 각각 env 로 덮어쓸 수 있고, 미설정 시 발급받은 기본값 사용.
   verification: {
+    google: GOOGLE_SITE_VERIFICATION,
     other: { 'naver-site-verification': NAVER_SITE_VERIFICATION },
-    ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
-      ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
-      : {}),
   },
   // iOS / Android 가 "홈 화면에 추가" 시 standalone 모드 (브라우저 chrome 없이) 로 띄움.
   // 일반 브라우저 탭에선 무시되므로 부작용 없음.
