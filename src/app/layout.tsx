@@ -337,9 +337,45 @@ const koreanFontVariables = [
   pacifico.variable,
 ];
 
+const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://wooridaun.com';
+const SITE_DESCRIPTION =
+  '예식 없이도 우리의 소식을 전해요. 노웨딩·스몰웨딩 커플을 위한 감성 모바일 알림장 + AI 웨딩스냅.';
+
 export const metadata: Metadata = {
+  // 상대 경로(OG 이미지·canonical 등)를 절대 URL 로 해석할 기준. 공유 카드 이미지가
+  // 절대 URL 이어야 카카오/네이버/구글 미리보기가 정상 노출됨.
+  metadataBase: new URL(SITE_URL),
   title: '우리다운 — 우리 다운 결혼 알림장',
-  description: '우리 다운 결혼 알림장과 AI 화보를 한 곳에서',
+  description: SITE_DESCRIPTION,
+  // 사이트 기본 OG — 마케팅 페이지(/, /designs, /wedding-snap)는 자체 openGraph 가 없어
+  // 이 값을 상속한다. 공유 이미지는 public/og.png (1200×630).
+  openGraph: {
+    title: '우리다운 — 우리 다운 결혼 알림장',
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: '우리다운',
+    images: [
+      { url: '/og.png', width: 1200, height: 630, alt: '우리다운 — 모바일 알림장 + AI 웨딩스냅' },
+    ],
+    locale: 'ko_KR',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '우리다운 — 우리 다운 결혼 알림장',
+    description: SITE_DESCRIPTION,
+    images: ['/og.png'],
+  },
+  // 네이버 서치어드바이저 소유확인 — 발급받은 코드를 NEXT_PUBLIC_NAVER_SITE_VERIFICATION
+  // 환경변수에 넣으면 <meta name="naver-site-verification"> 가 자동 출력된다. (구글은 google)
+  verification: {
+    ...(process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION
+      ? { other: { 'naver-site-verification': process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION } }
+      : {}),
+    ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+      ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+      : {}),
+  },
   // iOS / Android 가 "홈 화면에 추가" 시 standalone 모드 (브라우저 chrome 없이) 로 띄움.
   // 일반 브라우저 탭에선 무시되므로 부작용 없음.
   appleWebApp: {

@@ -91,8 +91,12 @@ async function fetchInvitation(slug: string): Promise<FetchResult> {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  // ⚠️ 개인 알림장(하객용) — 신랑신부 이름·사진·계좌가 검색에 노출되면 안 되는
+  // 프라이버시 영역이므로 모든 경우에 색인/추적을 차단한다(robots: noindex,nofollow).
+  // 카카오/메신저 공유 카드(openGraph)는 그대로 동작 — noindex 는 검색 색인만 막는다.
+  const noindex = { robots: { index: false, follow: false } } as const;
   const result = await fetchInvitation(params.slug);
-  if (result.kind === 'missing') return { title: '우리다운' };
+  if (result.kind === 'missing') return { title: '우리다운', ...noindex };
   const { inv } = result;
   const title = `${inv.groom_name} ❤ ${inv.bride_name} 결혼합니다`;
   // 카카오톡 공유 카드에 보이는 한 줄 설명 — 인앱 뷰어 안내까지 같이 표기.
@@ -101,6 +105,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title,
     description,
+    ...noindex,
     openGraph: { title, description },
   };
 }
