@@ -340,6 +340,9 @@ const koreanFontVariables = [
 const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://wooridaun.com';
 const SITE_DESCRIPTION =
   '예식 없이도 우리의 소식을 전해요. 노웨딩·스몰웨딩 커플을 위한 감성 모바일 알림장 + AI 웨딩스냅.';
+// 네이버 서치어드바이저 소유확인 코드. env 로 덮어쓸 수 있게 두되, 기본값은 발급받은 값.
+const NAVER_SITE_VERIFICATION =
+  process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION || '7c40119dd978db4459642411d1798757c47aa286';
 
 export const metadata: Metadata = {
   // 상대 경로(OG 이미지·canonical 등)를 절대 URL 로 해석할 기준. 공유 카드 이미지가
@@ -366,12 +369,10 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     images: ['/og.png'],
   },
-  // 네이버 서치어드바이저 소유확인 — 발급받은 코드를 NEXT_PUBLIC_NAVER_SITE_VERIFICATION
-  // 환경변수에 넣으면 <meta name="naver-site-verification"> 가 자동 출력된다. (구글은 google)
+  // 네이버 서치어드바이저 소유확인 — 홈 <head> 에 <meta name="naver-site-verification">
+  // 출력. 구글은 NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION env 설정 시 함께 출력.
   verification: {
-    ...(process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION
-      ? { other: { 'naver-site-verification': process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION } }
-      : {}),
+    other: { 'naver-site-verification': NAVER_SITE_VERIFICATION },
     ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
       ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
       : {}),
