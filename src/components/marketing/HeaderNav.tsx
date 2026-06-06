@@ -56,6 +56,14 @@ export function HeaderNav({
       >
         알림장
       </Link>
+      <a
+        href="https://smartstore.naver.com/wooridaun"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="whitespace-nowrap text-[13px] text-[var(--wd-mute)] transition-colors hover:text-[var(--wd-ink)]"
+      >
+        스마트스토어
+      </a>
 
       {loggedIn ? (
         <div ref={ref} className="relative">

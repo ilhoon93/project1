@@ -46,13 +46,24 @@ export function CatalogTagsTable({
   tagMap: CatalogAdminTagMap;
 }) {
   const [filter, setFilter] = useState('');
-  const visible = filter
+  const filtered = filter
     ? catalog.filter(
         (c) =>
           c.id.toLowerCase().includes(filter.toLowerCase()) ||
           c.label.includes(filter),
       )
     : catalog;
+
+  // 두 입력 조건(셀카 / 커플 전신) 양쪽 모두 `hidden` 인 = 완전히 숨김 처리된
+  // 카탈로그는 운영 빈도가 낮으므로 맨 아래로 내린다. 그 외 순서는 코드 정의
+  // 순서를 그대로 유지 (Array.sort 는 stable).
+  const isFullyHidden = (id: string) => {
+    const t = tagMap[id];
+    return !!t && COLUMNS.every((col) => t[col.cond] === 'hidden');
+  };
+  const visible = [...filtered].sort(
+    (a, b) => Number(isFullyHidden(a.id)) - Number(isFullyHidden(b.id)),
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -92,6 +103,7 @@ export function CatalogTagsTable({
                 key={item.id}
                 item={item}
                 tags={tagMap[item.id] ?? {}}
+                dimmed={isFullyHidden(item.id)}
               />
             ))}
           </tbody>
@@ -104,13 +116,24 @@ export function CatalogTagsTable({
 function CatalogRow({
   item,
   tags,
+  dimmed = false,
 }: {
   item: SnapCatalogItem;
   tags: Partial<Record<CatalogInputCondition, CatalogAdminTag>>;
+  /** 두 조건 모두 hidden — 맨 아래로 정렬되며 흐리게 표시 */
+  dimmed?: boolean;
 }) {
   return (
-    <tr className="border-b border-[#F3EBD9] last:border-0">
-      <td className="sticky left-0 z-10 bg-white px-3 py-2">
+    <tr
+      className={`border-b border-[#F3EBD9] last:border-0 ${
+        dimmed ? 'opacity-55' : ''
+      }`}
+    >
+      <td
+        className={`sticky left-0 z-10 px-3 py-2 ${
+          dimmed ? 'bg-[#F7F3EC]' : 'bg-white'
+        }`}
+      >
         <div className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
