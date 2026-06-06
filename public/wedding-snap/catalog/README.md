@@ -6,9 +6,9 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 
 ## 현재 카탈로그 규모
 
-- **Together (커플) — 활성**: 61개 (스튜디오 / 한옥 / 도심 / 해외 풍경 포함)
-- **Solo (단독) — 활성**: 24개 (신랑 솔로 / 신부 솔로)
-- **총합**: 85개
+- **Together (커플) — 활성**: 86개 (스튜디오 / 한옥 / 도심 / 해외 풍경 포함)
+- **Solo (단독) — 활성**: 28개 (신랑 솔로 / 신부 솔로)
+- **총합**: 114개
 
 랜딩 페이지(`/wedding-snap`) 와 생성 페이지(`/wedding-snap/create`) 양쪽 모두
 카탈로그 그리드는 **24개/페이지 페이지네이션** 으로 표시되고, 검색 필터
@@ -98,6 +98,17 @@ reference 로 함께 전달됩니다 (Strategy B — multi-image edit).
 | `desert-vintage-convertible-couple` | 사막 빈티지 컨버터블 | `desert-vintage-convertible-couple.jpg` |
 | `wooden-stairs-bouquet-couple` | 우드 계단 안개꽃 부케 | `wooden-stairs-bouquet-couple.jpg` |
 | `countryside-sunflower-leather` | 시골길 해바라기 가죽자켓 | `countryside-sunflower-leather.jpg` |
+| `studio-organic-window-couple` | 오가닉 윈도우 스튜디오 | `studio-organic-window-couple.jpg` |
+| `paris-cafe-night-couple` | 파리 카페 야경 | `paris-cafe-night-couple.jpg` |
+| `kamakura-railway-crossing-couple` | 카마쿠라 철길 건널목 | `kamakura-railway-crossing-couple.jpg` |
+| `hanok-street-goldenhour-walk` | 한옥 거리 골든아워 워킹 | `hanok-street-goldenhour-walk.jpg` |
+| `garden-flower-arch-mountain` | 가든 플라워 아치 + 산 배경 | `garden-flower-arch-mountain.jpg` |
+| `studio-ring-closeup-couple` | 스튜디오 반지 클로즈업 | `studio-ring-closeup-couple.jpg` |
+| `nyc-subway-entrance-couple` | 뉴욕 지하철 입구 | `nyc-subway-entrance-couple.jpg` |
+| `yacht-coast-recline-couple` | 요트 해안 절벽 기댐 | `yacht-coast-recline-couple.jpg` |
+| `studio-backhug-closeup` | 화이트 스튜디오 백허그 클로즈업 | `studio-backhug-closeup.jpg` |
+| `studio-wildflower-sage-seated` | 와일드플라워 세이지 스튜디오 | `studio-wildflower-sage-seated.jpg` |
+| `studio-chandelier-parlor-couple` | 샹들리에 클래식 응접실 | `studio-chandelier-parlor-couple.jpg` |
 
 **Solo (단독) — 활성**
 | id | 라벨 | 파일 경로 |

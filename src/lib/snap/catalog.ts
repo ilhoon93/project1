@@ -1687,7 +1687,7 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
     framing: 'full',
     image: '/wedding-snap/catalog/hotel-corridor-couple-walk.jpg',
     promptHint:
-      'Indoor classic European-style luxury hotel corridor scene with rich warm wood-paneled walls and tall paneled doors on both sides, ornate gold-framed paintings hung along the walls at eye-level, brass-and-glass dome ceiling sconces softly glowing warm tungsten light from above, plush deep-red-and-gold patterned carpet runner stretching down the center of the corridor receding into the softly bokeh-blurred distance, warm mixed tungsten ambient lighting from camera-back-top. Shot on 35–50mm portrait lens for environmental feel, full-body framing in vertical aspect, eye-level camera, shallow depth of field with the corridor softly bokeh-blurred behind the couple. Groom: sharp black two-piece formal tuxedo with crisp white dress shirt and neat solid-black silk bow tie tied at the collar, polished black derby shoes, short neat dark side-swept hair, calm composed warm closed-mouth smile, walking close beside bride to camera-left with bride lightly holding his right arm. Bride: clean ivory champagne fitted off-shoulder mermaid wedding dress with delicate beaded sweetheart bodice and softly trailing tulle skirt, sheer cathedral veil softly draped behind her hair, long dark-brown softly waved hair flowing past her shoulders, dainty drop earrings, soft natural rosy makeup with warm gentle bright closed-mouth smile, holding a small fresh round bouquet of white spray roses and trailing fresh green eucalyptus in her right hand at her hip, walking close beside groom to camera-right. Pose: bride and groom walking slowly arm-in-arm down the corridor toward camera with calm warm composed soft bright smiles, intimate refined European hotel wedding moment. Color grade: warm tungsten interior glow on rich wood-and-carpet hotel corridor with warm cream skin midtones and saturated red-gold carpet focal accent, refined classic K-prewedding luxury hotel atmosphere — must clearly read as warm indoor luxury hotel corridor, NOT outdoor, NOT studio.',
+      'Indoor classic European-style luxury hotel corridor scene with rich warm wood-paneled walls and tall paneled doors on both sides, ornate gold-framed paintings hung along the walls at eye-level, brass-and-glass dome ceiling sconces softly glowing warm tungsten light from above, plush deep-red-and-gold patterned carpet runner stretching down the center of the corridor receding into the softly bokeh-blurred distance, warm mixed tungsten ambient lighting from camera-back-top. Shot on 35–50mm portrait lens for environmental feel, full-body framing in vertical aspect, eye-level camera, shallow depth of field with the corridor softly bokeh-blurred behind the couple. Groom: sharp black two-piece formal tuxedo with crisp white dress shirt and neat solid-black silk bow tie tied at the collar, polished black derby shoes, short neat dark side-swept hair, calm composed warm closed-mouth smile, walking close beside bride to camera-left with bride lightly holding his right arm. Bride: clean ivory champagne fitted strapless mermaid wedding dress with a delicate beaded sweetheart bodice and softly trailing lace-appliqued skirt, sheer long opera gloves, a delicate crystal drop necklace, dark hair pulled back into a sleek smooth low updo, dainty drop earrings, soft natural rosy makeup with a warm gentle bright closed-mouth smile, holding a small fresh round bouquet of white spray roses and trailing fresh green eucalyptus in her right hand at her hip, walking close beside groom to camera-right. Pose: bride and groom walking slowly arm-in-arm down the corridor toward camera with calm warm composed soft bright smiles, intimate refined European hotel wedding moment. Color grade: warm tungsten interior glow on rich wood-and-carpet hotel corridor with warm cream skin midtones and saturated red-gold carpet focal accent, refined classic K-prewedding luxury hotel atmosphere — must clearly read as warm indoor luxury hotel corridor, NOT outdoor, NOT studio.',
     manualKelvin: 3200,
     manualMoodHint:
       'warm tungsten luxury European hotel corridor walking shot with rich wood-paneled walls and red-gold patterned carpet runner, refined classic K-prewedding luxury hotel mood',
@@ -2010,6 +2010,117 @@ export const SNAP_CATALOG: SnapCatalogItem[] = [
       'Outdoor in Rome with the ancient Colosseum’s arched stone arcades filling the background, a warm low golden-hour sun flaring from camera-right creating a soft backlit rim glow on hair, a low stone wall in the foreground. Shot on 50–85mm portrait lens, waist-up / three-quarter framing, eye-level camera, shallow depth of field. Groom: black notch-lapel suit with white shirt and black tie, short neat dark hair, one hand in his pocket, calm confident gaze to camera. Bride: elegant ivory satin V-back ball gown, long flowing wind-blown wavy hair catching the golden backlight, diamond earrings, looking back over her shoulder toward the camera. Pose: bride turned with her back partly to camera glancing back, groom standing close behind facing camera — romantic intimate. Color grade: warm romantic golden-hour backlight with sun-flare glow, honey skin tones and warm stone — must clearly read as golden-hour sunset, NOT noon, NOT night.',
     manualMoodHint:
       'warm golden-hour sun-flare backlight at the Roman Colosseum, honey skin tones, romantic glow',
+  },
+  {
+    id: 'kamakura-railway-crossing-couple',
+    label: '카마쿠라 철길 건널목',
+    hint: '에노덴 철길 건널목 + 수국 + 캐주얼 데이트룩',
+    category: 'urban',
+    personality: 'together',
+    framing: 'full',
+    image: '/wedding-snap/catalog/kamakura-railway-crossing-couple.jpg',
+    promptHint:
+      'Outdoor Japanese seaside town railway crossing scene (Kamakura Enoden line "鎌倉高校前" style) — a yellow-and-black striped railway crossing barrier and signal on the left, a vintage green-and-cream local commuter train passing along the tracks behind, low Japanese suburban houses, power lines and blue hydrangea bushes in the background, bright clear warm early-summer daylight. Shot on 35–50mm lens, full-body framing, eye-level camera. Groom: crisp white dress shirt with a red tie, sleeves slightly relaxed, blue jeans and white sneakers, short neat dark hair, arms casually crossed, warm bright smile. Bride: a simple short white A-line summer dress with puff sleeves and white sneakers, long dark hair down, holding a small sunflower bouquet, bright cheerful smile. Pose: the couple standing together at the railway crossing facing camera in a relaxed candid casual-date mood. Color grade: bright fresh natural daylight with clean greens and blues — cheerful Japanese anime-pilgrimage prewedding mood, must clearly read as bright daytime outdoors, NOT studio.',
+  },
+  {
+    id: 'hanok-street-goldenhour-walk',
+    label: '한옥 거리 골든아워 워킹',
+    hint: '전통 한옥 상점 거리 + 골든아워 + 손잡고 워킹',
+    category: 'tradition',
+    personality: 'together',
+    framing: 'full',
+    image: '/wedding-snap/catalog/hanok-street-goldenhour-walk.jpg',
+    promptHint:
+      'Outdoor Korean traditional hanok shopping street at warm golden hour — low tiled-roof hanok shops with Korean signboards ("식당", "길목거리") and glowing warm string lights along both sides, a wide stone-paved pedestrian street receding into a soft sun-flared background, a bicycle parked to the side, blurred passersby in the distance. Soft warm low golden-hour sun flaring from the far end of the street. Shot on 50–85mm portrait lens, full-body framing, eye-level camera, shallow depth of field with the street softly bokeh-blurred behind. Groom: a light beige / oatmeal linen blazer over a lavender dress shirt, dark trousers and brown shoes, short neat dark hair, warm bright laughing smile. Bride: an ivory midi dress with a cream tweed cropped jacket and a delicate hair pin, white block heels, holding a small white bouquet, bright joyful laugh. Pose: the couple walking slowly toward camera holding hands, both laughing warmly mid-stride. Color grade: warm honey golden-hour glow with soft sun flare and warm cream skin midtones — refined romantic K-prewedding street editorial, must clearly read as warm golden hour outdoors, NOT noon, NOT night, NOT studio.',
+    manualKelvin: 3000,
+    manualMoodHint:
+      'warm golden-hour glow on a Korean hanok shopping street with soft sun flare and string-light warmth, romantic K-prewedding street editorial',
+  },
+  {
+    id: 'garden-flower-arch-mountain',
+    label: '가든 플라워 아치 + 산 배경',
+    hint: '파스텔 생화 아치 + 산 풍경 + 클래식 예식룩',
+    category: 'outdoor',
+    personality: 'together',
+    framing: 'full',
+    image: '/wedding-snap/catalog/garden-flower-arch-mountain.jpg',
+    promptHint:
+      'Outdoor garden wedding ceremony scene — the couple standing centered beneath a lush full floral arch built from soft pastel roses, blue delphinium, white hydrangea and fresh greenery, a stone-paved ceremony path beneath them, hazy layered green mountain ridges and a soft overcast pale sky filling the background, soft even natural daylight. Shot on 35–50mm lens, full-body framing, eye-level camera, gentle shallow depth of field. Groom: a classic black peak-lapel tuxedo with a black bow tie, white shirt and a white boutonniere, short neat dark hair, calm warm composed smile. Bride: an elegant ivory long-sleeve floral-lace A-line wedding gown with a long sheer veil, sleek low updo, holding a round white-and-cream rose bouquet. Pose: the couple standing close side by side at the center of the floral arch, both facing camera with calm warm composed smiles. Color grade: soft airy natural daylight with fresh pastel-floral and muted-green mountain tones — refined romantic outdoor garden wedding editorial, must clearly read as soft daylight outdoors, NOT golden hour, NOT studio.',
+  },
+  {
+    id: 'studio-ring-closeup-couple',
+    label: '스튜디오 반지 클로즈업',
+    hint: '웜 보케 스튜디오 + 반지 보여주기 + 진주 티아라',
+    category: 'studio',
+    personality: 'together',
+    framing: 'closeup',
+    image: '/wedding-snap/catalog/studio-ring-closeup-couple.jpg',
+    promptHint:
+      'Indoor warm studio close-up scene with a soft cream pleated-fabric backdrop, warm glowing string bokeh lights and a few dried floral branches softly blurred behind, soft warm key light on the couple from camera-front. Shot on 85mm portrait lens, tight chest-up closeup framing, eye-level camera, very shallow depth of field. Groom: a black peak-lapel tuxedo with a white bow tie, white shirt and a white rose boutonniere, short neat dark hair, bright playful smile with one eye winking, showing the wedding ring on his raised hand. Bride: an off-shoulder ivory satin gown, a pearl tiara headband and a soft veil, a sleek low updo, white floral drop earrings and elegant white opera gloves, bright delighted open-mouth smile, raising her gloved hand to show the ring. Pose: the couple leaning cheek-to-cheek both raising their hands toward camera to playfully show off their wedding rings, joyful candid celebration. Color grade: warm tungsten glow with soft golden bokeh and creamy skin highlights — intimate joyful K-prewedding studio close-up, must clearly read as warm indoor studio, NOT outdoor, NOT cool daylight.',
+    manualKelvin: 3000,
+    manualMoodHint:
+      'warm tungsten studio close-up with soft golden string-light bokeh and creamy highlights, intimate joyful ring-reveal moment',
+  },
+  {
+    id: 'nyc-subway-entrance-couple',
+    label: '뉴욕 지하철 입구',
+    hint: '뉴욕 거리 + 노란 택시 + SUBWAY 사인 + 캐주얼룩',
+    category: 'urban',
+    personality: 'together',
+    framing: 'full',
+    image: '/wedding-snap/catalog/nyc-subway-entrance-couple.jpg',
+    promptHint:
+      'Outdoor New York City street corner at warm late-afternoon — a classic green-domed lamp and a black "SUBWAY" sign on a sandstone building corner, a yellow taxi cab and traffic on the avenue behind, tall city buildings and a sidewalk receding into soft bokeh. Soft warm natural daylight. Shot on 35–50mm lens, full-body framing in vertical aspect, eye-level camera, shallow depth of field with the street softly behind. Groom: a relaxed black blazer over a plain white tee, black trousers and white sneakers, slightly wavy dark hair, hands in pockets, calm cool smile, leaning casually on the black railing. Bride: a simple white halter-neck midi dress with a short veil and white sneakers, holding a small white-and-green bouquet, bright natural smile. Pose: the couple standing relaxed by the subway entrance railing facing camera in a cool candid city-date mood. Color grade: warm natural city daylight with the iconic yellow-cab accent and soft cream skin tones — stylish urban NYC prewedding editorial, must clearly read as daytime outdoors, NOT studio, NOT night.',
+  },
+  {
+    id: 'yacht-coast-recline-couple',
+    label: '요트 해안 절벽 기댐',
+    hint: '요트 갑판 + 해안 절벽 + 화이트 새틴 + 무드 톤',
+    category: 'beach',
+    personality: 'together',
+    framing: 'full',
+    isSeated: true,
+    image: '/wedding-snap/catalog/yacht-coast-recline-couple.jpg',
+    promptHint:
+      'Outdoor scene on the wooden teak deck of a private yacht on calm deep-blue open sea with dramatic rugged coastal cliffs (Amalfi / Capri style) rising in the hazy background under a soft moody overcast sky, stainless steel deck railing softly visible. Soft cool diffused natural daylight. Shot on 50–85mm portrait lens, full-body framing, eye-level camera, shallow depth of field. Groom: a relaxed cream / off-white linen shirt and trousers, tousled dark wavy hair, calm composed gaze toward the sea in profile, seated upright with one knee raised. Bride: an elegant ivory satin halter-neck slip gown, a sleek low bun with a pearl earring, soft natural makeup, reclining back against the groom\'s chest with a calm serene gaze toward camera, a white rose-and-eucalyptus bouquet resting on the deck beside her. Pose: the bride reclining back into the groom who sits behind her with his arm draped around her, a calm intimate editorial moment against the sea cliffs. Color grade: cool muted cinematic tones with soft slate-blue sea and warm cream satin highlights — refined moody luxury yacht prewedding editorial, must clearly read as soft overcast daylight at sea, NOT golden hour, NOT studio.',
+    manualKelvin: 6000,
+    manualMoodHint:
+      'cool muted cinematic yacht deck against rugged sea cliffs, soft slate-blue overcast tones with warm cream satin highlights, refined moody luxury editorial',
+  },
+  {
+    id: 'studio-backhug-closeup',
+    label: '화이트 스튜디오 백허그 클로즈업',
+    hint: '미니멀 화이트 + 신부 백허그 + 클래식 정장',
+    category: 'studio',
+    personality: 'together',
+    framing: 'closeup',
+    image: '/wedding-snap/catalog/studio-backhug-closeup.jpg',
+    promptHint:
+      'Indoor minimalist studio scene with a clean soft white / pale-gray seamless backdrop and soft even natural-daylight studio lighting from camera-front. Shot on 85mm portrait lens, tight chest-up closeup framing, eye-level camera, shallow depth of field. Groom: a sharp navy / dark formal suit with a white shirt and a navy tie, short neat dark hair, calm soft gaze gently lifted upward, seated facing camera. Bride: an off-shoulder ivory satin gown, a soft low updo with loose face-framing strands, dainty earrings, soft natural rosy makeup with a gentle warm smile, embracing the groom from behind over his shoulder. Pose: the bride leaning in close behind the groom and wrapping both arms tenderly around his chest from behind, resting her cheek near his, both with calm serene expressions in an intimate refined studio portrait. Color grade: clean airy bright tones with soft creamy skin highlights and gentle shadows — timeless minimalist K-prewedding studio editorial, must clearly read as bright clean studio, NOT outdoor, NOT warm tungsten.',
+  },
+  {
+    id: 'studio-wildflower-sage-seated',
+    label: '와일드플라워 세이지 스튜디오',
+    hint: '들꽃 스튜디오 + 세이지 튤 볼가운 + 앉은 컷',
+    category: 'studio',
+    personality: 'together',
+    framing: 'full',
+    isSeated: true,
+    image: '/wedding-snap/catalog/studio-wildflower-sage-seated.jpg',
+    promptHint:
+      'Indoor bright studio scene styled as a soft wildflower garden against a clean warm-ivory wall — tall fresh delphinium, larkspur and mixed pastel wildflowers and a slender green tree branch arranged densely around the couple on the floor, soft natural-daylight studio lighting. Shot on 50mm lens, full-body framing, eye-level camera, shallow depth of field. Groom: a light beige / taupe suit with a brown tie and brown shoes, short neat dark hair, calm composed gaze to camera, seated on the floor with one knee up. Bride: a strapless dusty sage-green voluminous ruffled tulle ball gown, a sleek low updo, dainty earrings, soft natural makeup with a serene gaze, seated gracefully beside the groom with the tulle skirt fanned out, one hand resting against her cheek. Pose: the couple seated close together on the studio floor among the wildflowers, both with calm elegant expressions toward camera. Color grade: soft airy natural light with fresh pastel-floral and dusty-sage tones against warm ivory — refined editorial K-prewedding flower-studio mood, must clearly read as bright clean studio, NOT outdoor.',
+  },
+  {
+    id: 'studio-chandelier-parlor-couple',
+    label: '샹들리에 클래식 응접실',
+    hint: '유럽풍 응접실 + 샹들리에 + 풀튤 볼가운',
+    category: 'studio',
+    personality: 'together',
+    framing: 'full',
+    isSeated: true,
+    image: '/wedding-snap/catalog/studio-chandelier-parlor-couple.jpg',
+    promptHint:
+      'Indoor classic European parlor studio scene — a large sparkling crystal chandelier hanging above, cream wainscoted paneled walls, an antique carved-wood tufted beige settee, an antique side cabinet with a tall vase of soft pink blossoms, a patterned rug on a parquet floor, soft warm-neutral interior lighting. Shot on 35–50mm lens, full-body framing in vertical aspect, eye-level camera. Groom: a navy peak-lapel tuxedo with a black bow tie and white shirt, short neat dark hair, calm warm smile, perched casually on the arm of the settee. Bride: an off-shoulder ivory tulle ball gown with a voluminous full skirt pooling on the floor, a soft low updo, dainty earrings, bright gentle smile, seated gracefully on the settee with the skirt fanned out. Pose: the bride seated on the antique settee with the groom perched close beside her on the armrest, both facing camera with warm composed smiles in an elegant classic-parlor portrait. Color grade: soft warm-neutral classic-interior tones with creamy ivory highlights and gentle pink floral accents — refined timeless European K-prewedding studio editorial, must clearly read as an elegant indoor classic parlor studio, NOT outdoor.',
   },
 ];
 
