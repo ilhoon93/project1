@@ -91,12 +91,19 @@ export async function GET(request: NextRequest) {
         const emailToUse =
           profile.email ?? `naver_${profile.id}@users.minimum-wedding.local`;
 
+        // 이름/별명은 Naver 동의 항목에서 "선택" 으로 내려도 식별엔 영향 없음
+        // (식별 키는 naver_id). 다만 빈 문자열을 metadata.name 으로 넣으면
+        // public.profiles 트리거의 coalesce 가 '' 를 유효값으로 봐서 display_name
+        // 이 빈 문자열로 굳어진다 → 값이 있을 때만 name 키를 넣어 트리거가
+        // preferred_username → 이메일 local-part 순으로 폴백하도록 둔다.
+        const displayName = profile.name?.trim() || profile.nickname?.trim() || null;
+
         // Try createUser first; if email conflict, fall back to listUsers.
         const { data: created, error: createErr } = await admin.auth.admin.createUser({
           email: emailToUse,
           email_confirm: true,
           user_metadata: {
-            name: profile.name ?? profile.nickname ?? '',
+            ...(displayName ? { name: displayName } : {}),
             provider: 'naver',
             naver_id: profile.id,
           },
