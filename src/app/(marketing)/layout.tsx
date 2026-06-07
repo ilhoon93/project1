@@ -2,12 +2,19 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { BrandMark } from '@/components/shared/BrandMark';
 import { HeaderNav } from '@/components/marketing/HeaderNav';
+import { getNaverAccountEmail } from '@/lib/naver/account';
 
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // 헤더 표시값은 naver_accounts.email 우선. 없으면(비네이버 가입/데이터 누락)
+  // auth 이메일로 폴백.
+  const displayEmail = user
+    ? ((await getNaverAccountEmail(user.id)) ?? user.email ?? null)
+    : null;
 
   return (
     <div className="min-h-screen bg-[var(--wd-cream)] text-[var(--wd-ink)]">
@@ -26,7 +33,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
             <BrandMark size={24} />
             <span>우리다운</span>
           </Link>
-          <HeaderNav loggedIn={!!user} email={user?.email ?? null} />
+          <HeaderNav loggedIn={!!user} email={displayEmail} />
         </div>
       </header>
       {children}

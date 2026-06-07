@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getNaverAccountEmail } from '@/lib/naver/account';
 import { MyPageClient, type MyPageInvitation, type MyPagePublication } from './mypage-client';
 
 export const metadata = {
@@ -101,7 +102,7 @@ export default async function MyPage() {
 
   return (
     <MyPageClient
-      userEmail={user.email ?? null}
+      userEmail={(await getNaverAccountEmail(user.id)) ?? user.email ?? null}
       invitations={invitations}
       creditsBalance={typeof balance === 'number' ? balance : 0}
       archiveBalance={typeof archiveBalance === 'number' ? archiveBalance : 0}

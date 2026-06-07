@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { BrandMark } from '@/components/shared/BrandMark';
 import { HeaderNav } from '@/components/marketing/HeaderNav';
+import { getNaverAccountEmail } from '@/lib/naver/account';
 
 export default async function EditorLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -15,6 +16,9 @@ export default async function EditorLayout({ children }: { children: React.React
     // 않게 한다.
     redirect('/login?next=/');
   }
+
+  // 헤더 표시값은 naver_accounts.email 우선, 없으면 auth 이메일로 폴백.
+  const displayEmail = (await getNaverAccountEmail(user.id)) ?? user.email ?? null;
 
   return (
     <div className="min-h-screen bg-[var(--wd-cream)] text-[var(--wd-ink)]">
@@ -30,7 +34,7 @@ export default async function EditorLayout({ children }: { children: React.React
             <BrandMark size={24} />
             <span>우리다운</span>
           </Link>
-          <HeaderNav loggedIn email={user.email ?? null} />
+          <HeaderNav loggedIn email={displayEmail} />
         </div>
       </header>
       {children}
