@@ -16,13 +16,6 @@ export default async function EditorLayout({ children }: { children: React.React
     redirect('/login?next=/');
   }
 
-  // marketing layout 과 동일한 user name fallback (네이버 SSO 메타 우선).
-  const userName =
-    (user.user_metadata?.name as string | undefined) ??
-    (user.user_metadata?.preferred_username as string | undefined) ??
-    (user.user_metadata?.nickname as string | undefined) ??
-    null;
-
   return (
     <div className="min-h-screen bg-[var(--wd-cream)] text-[var(--wd-ink)]">
       {/* 마케팅 상단바와 동일한 sticky frosted glass — 에디터에서도 동일한
@@ -37,7 +30,7 @@ export default async function EditorLayout({ children }: { children: React.React
             <BrandMark size={24} />
             <span>우리다운</span>
           </Link>
-          <HeaderNav loggedIn name={userName} email={user.email ?? null} />
+          <HeaderNav loggedIn email={user.email ?? null} />
         </div>
       </header>
       {children}

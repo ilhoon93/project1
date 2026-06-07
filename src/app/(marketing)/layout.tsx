@@ -9,14 +9,6 @@ export default async function MarketingLayout({ children }: { children: React.Re
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 네이버 SSO 시 user_metadata 에 name/preferred_username/nickname 중 하나가 들어옴.
-  // 마이페이지/구매 페이지와 동일 fallback 체인 사용.
-  const userName =
-    (user?.user_metadata?.name as string | undefined) ??
-    (user?.user_metadata?.preferred_username as string | undefined) ??
-    (user?.user_metadata?.nickname as string | undefined) ??
-    null;
-
   return (
     <div className="min-h-screen bg-[var(--wd-cream)] text-[var(--wd-ink)]">
       {/* sticky top-0 + frosted glass (cream/65 + backdrop-blur) — 스크롤해도
@@ -34,11 +26,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
             <BrandMark size={24} />
             <span>우리다운</span>
           </Link>
-          <HeaderNav
-            loggedIn={!!user}
-            name={userName}
-            email={user?.email ?? null}
-          />
+          <HeaderNav loggedIn={!!user} email={user?.email ?? null} />
         </div>
       </header>
       {children}

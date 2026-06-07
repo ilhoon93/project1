@@ -102,12 +102,6 @@ export default async function MyPage() {
   return (
     <MyPageClient
       userEmail={user.email ?? null}
-      userName={
-        user.user_metadata?.name ??
-        user.user_metadata?.preferred_username ??
-        user.user_metadata?.nickname ??
-        null
-      }
       invitations={invitations}
       creditsBalance={typeof balance === 'number' ? balance : 0}
       archiveBalance={typeof archiveBalance === 'number' ? archiveBalance : 0}

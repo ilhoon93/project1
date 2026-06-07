@@ -101,7 +101,6 @@ export interface MyPageOrder {
 
 interface Props {
   userEmail: string | null;
-  userName: string | null;
   invitations: MyPageInvitation[];
   creditsBalance: number;
   archiveBalance: number;
@@ -123,7 +122,6 @@ const SOURCE_LABEL: Record<MyPageOrder['source'], string> = {
 
 export function MyPageClient({
   userEmail,
-  userName,
   invitations,
   creditsBalance,
   archiveBalance,
@@ -153,7 +151,7 @@ export function MyPageClient({
         <p className="text-xs tracking-[0.3em] text-[#8B7355]">MY PAGE</p>
         <h1 className="text-2xl font-semibold tracking-tight">마이페이지</h1>
         <p className="text-sm text-muted-foreground">
-          {userName ?? userEmail ?? '내 계정'}
+          {userEmail ?? '내 계정'}
         </p>
       </header>
 
