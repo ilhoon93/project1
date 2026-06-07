@@ -62,7 +62,10 @@
 ### 네이버 (`NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET`)
 - **설명**: [Naver Developers](https://developers.naver.com) 에서 발급. 자체 OAuth 브릿지로 Supabase 세션 발급.
 - **콜백 URL**: `<NEXT_PUBLIC_BASE_URL>/api/auth/naver/callback`
-- **필수 권한**: 회원이름·이메일·별명. 이메일 권한 없으면 가짜 이메일로 가입됨.
+- **동의 항목 (Naver Developers 콘솔에서 설정)**: **필수 = 이메일 주소 하나만**. 회원이름·별명은 "선택" 으로 둔다.
+  - 식별 키는 이메일이 아니라 Naver 고유 `id` (응답 필수값) 라서, 이름/별명/이메일 동의 여부와 무관하게 고객 식별·주문 매칭은 정상 동작한다.
+  - 이메일은 필수라 항상 내려오지만, 만약 비어 있어도 코드가 가짜 이메일(`naver_<id>@users.minimum-wedding.local`)로 가입을 이어간다 (방어용 폴백).
+  - 이름/별명이 비면 `display_name` 은 이메일 앞부분으로 자동 폴백된다.
 - **사용 코드**: `src/app/api/auth/naver/*`
 
 ### 카카오 (`KAKAO_CLIENT_ID` / `KAKAO_CLIENT_SECRET`) — 선택
