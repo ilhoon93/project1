@@ -8,19 +8,17 @@ import { createClient } from '@/lib/supabase/client';
  * 마케팅 헤더의 우측 메뉴.
  *
  * 비로그인: AI 스냅 / 알림장 / 로그인 pill.
- * 로그인:  AI 스냅 / 알림장 / [사용자 이름 콤보박스 — 마이페이지 / 로그아웃].
+ * 로그인:  AI 스냅 / 알림장 / [사용자 이메일 콤보박스 — 마이페이지 / 로그아웃].
  *
- * 콤보박스 트리거는 사용자 이름(없으면 이메일 앞부분), 드롭다운 헤더에는
- * 네이버 이메일 형식 그대로 노출. 바깥 클릭·Escape 시 닫힘.
+ * 콤보박스 트리거는 사용자 이메일 앞부분(공간 제약상 truncate), 드롭다운
+ * 헤더에는 전체 이메일을 그대로 노출. 바깥 클릭·Escape 시 닫힘.
  */
 export function HeaderNav({
   loggedIn,
-  name,
   email,
 }: {
   loggedIn: boolean;
-  name: string | null;
-  /** 트리거 label 폴백용 (이름 없을 때 앞부분). 드롭다운에 별도로 노출하지 않음. */
+  /** 로그인 사용자 식별 표시값 — 트리거/드롭다운 모두 이메일로 노출. */
   email: string | null;
 }) {
   const [open, setOpen] = useState(false);
@@ -75,8 +73,8 @@ export function HeaderNav({
             className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--wd-ink)]/15 bg-[var(--wd-paper)]/70 px-3 py-1.5 text-[12px] font-medium text-[var(--wd-ink)] backdrop-blur transition-colors hover:border-[var(--wd-ink)]/35"
           >
             <ProfileIcon />
-            <span className="max-w-[14ch] truncate">
-              {name ?? (email ? email.split('@')[0] : '프로필')}
+            <span className="max-w-[18ch] truncate">
+              {email ?? '프로필'}
             </span>
             <svg
               width="10"
@@ -100,9 +98,9 @@ export function HeaderNav({
               role="menu"
               className="absolute right-0 top-full z-50 mt-1.5 min-w-[180px] overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-paper)] shadow-[0_18px_40px_rgba(31,27,23,0.18)]"
             >
-              {name && (
-                <div className="border-b border-[var(--wd-line)] px-3 py-2 text-[12.5px] font-medium text-[var(--wd-ink)]">
-                  {name}
+              {email && (
+                <div className="truncate border-b border-[var(--wd-line)] px-3 py-2 text-[12.5px] font-medium text-[var(--wd-ink)]">
+                  {email}
                 </div>
               )}
               <Link
