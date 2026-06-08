@@ -18,6 +18,7 @@
  */
 
 import bcrypt from 'bcryptjs';
+import { ProxyAgent } from 'undici';
 
 const COMMERCE_BASE = 'https://api.commerce.naver.com/external';
 
@@ -25,6 +26,29 @@ const env = (key: string): string => {
   const v = process.env[key];
   if (!v) throw new Error(`Missing env: ${key}`);
   return v;
+};
+
+/**
+ * 커머스 API 는 "API호출 IP" 화이트리스트를 강제한다(등록한 IP 에서 온 요청만
+ * 허용). Vercel 서버리스는 고정 출발 IP 가 없으므로, NAVER_COMMERCE_PROXY 에
+ * 고정 IP VPS 의 정방향 프록시(예: http://user:pass@1.2.3.4:8888)를 지정하면
+ * 커머스 API 호출만 그 프록시를 경유해 IP 가 고정된다. 그 프록시 IP 를
+ * 커머스 API 센터에 등록하면 된다. 미설정이면 직접 호출(로컬 개발 등).
+ */
+let cachedDispatcher: ProxyAgent | null | undefined;
+const proxyDispatcher = (): ProxyAgent | null => {
+  if (cachedDispatcher !== undefined) return cachedDispatcher;
+  const url = process.env.NAVER_COMMERCE_PROXY;
+  cachedDispatcher = url ? new ProxyAgent(url) : null;
+  return cachedDispatcher;
+};
+
+// global fetch(undici) 에 dispatcher 를 주입하기 위한 래퍼. RequestInit 표준
+// 타입에는 dispatcher 가 없어 확장 타입으로 캐스팅한다.
+const commerceFetch = (url: string, init: RequestInit): Promise<Response> => {
+  const dispatcher = proxyDispatcher();
+  const opts = dispatcher ? { ...init, dispatcher } : init;
+  return fetch(url, opts as RequestInit);
 };
 
 export const isCommerceApiConfigured = () =>
@@ -67,7 +91,7 @@ export const getCommerceAccessToken = async (): Promise<string> => {
     type: 'SELF',
   });
 
-  const res = await fetch(`${COMMERCE_BASE}/v1/oauth2/token`, {
+  const res = await commerceFetch(`${COMMERCE_BASE}/v1/oauth2/token`, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: params.toString(),
@@ -108,7 +132,7 @@ export const lookupProductOrder = async (
   productOrderNo: string,
 ): Promise<{ raw: unknown; parsed: CommerceProductOrder | null }> => {
   const token = await getCommerceAccessToken();
-  const res = await fetch(
+  const res = await commerceFetch(
     `${COMMERCE_BASE}/v1/pay-order/seller/product-orders/${encodeURIComponent(productOrderNo)}`,
     {
       headers: { Authorization: `Bearer ${token}` },
