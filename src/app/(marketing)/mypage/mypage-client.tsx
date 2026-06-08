@@ -1717,16 +1717,17 @@ function NaverPullCard() {
   return (
     <div className="flex flex-col gap-3 rounded-lg bg-white p-5 ring-1 ring-[#D4C5B0]">
       <div className="flex flex-col gap-1">
-        <h3 className="text-sm font-medium">네이버 로그인으로 주문 가져오기</h3>
+        <h3 className="text-sm font-medium">네이버 계정 연결</h3>
         <p className="text-xs text-muted-foreground">
-          네이버 계정을 연결하면 스마트스토어 결제 내역을 자동으로 불러옵니다.
+          네이버 계정을 연결하면 다음부터 같은 계정으로 간편하게 로그인할 수 있어요.
+          스마트스토어 결제 크레딧은 위 <strong>상품주문번호</strong> 입력으로 적립됩니다.
         </p>
       </div>
       <Link
         href="/api/auth/naver/start?next=/mypage"
         className="inline-flex h-9 items-center justify-center self-start rounded-md bg-[#03C75A] px-4 text-xs font-medium text-white"
       >
-        네이버 연결 / 새로 고침
+        네이버 연결
       </Link>
     </div>
   );
