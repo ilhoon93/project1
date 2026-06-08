@@ -17,7 +17,7 @@
  * a friendly fallback so manual order entry still works in dev.
  */
 
-import { createHmac } from 'crypto';
+import bcrypt from 'bcryptjs';
 
 const COMMERCE_BASE = 'https://api.commerce.naver.com/external';
 
@@ -39,12 +39,13 @@ interface CommerceToken {
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
 const buildClientSecretSign = (clientId: string, secret: string, timestampMs: number) => {
-  // The Commerce API expects: bcrypt(clientId_timestamp, secret) base64.
-  // bcrypt isn't in node:crypto. The alternate accepted form is HMAC-SHA256
-  // of `${clientId}_${timestamp}` with secret as the key, base64-encoded.
-  // (See "Self-Signed Client Secret" — newer flow.)
-  const message = `${clientId}_${timestampMs}`;
-  return createHmac('sha256', secret).update(message).digest('base64');
+  // 네이버 커머스 API 전자서명:
+  //   sign = base64( bcrypt( "{clientId}_{timestamp}", clientSecret ) )
+  // 여기서 clientSecret(`$2a$10$...` 형태) 자체가 bcrypt salt 로 쓰인다.
+  // (HMAC-SHA256 등 다른 방식은 토큰 발급 단계에서 거부됨.)
+  const password = `${clientId}_${timestampMs}`;
+  const hashed = bcrypt.hashSync(password, secret);
+  return Buffer.from(hashed, 'utf-8').toString('base64');
 };
 
 export const getCommerceAccessToken = async (): Promise<string> => {
