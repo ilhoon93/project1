@@ -17,7 +17,8 @@
  * a friendly fallback so manual order entry still works in dev.
  */
 
-import { createHmac } from 'crypto';
+import bcrypt from 'bcryptjs';
+import { ProxyAgent } from 'undici';
 
 const COMMERCE_BASE = 'https://api.commerce.naver.com/external';
 
@@ -25,6 +26,29 @@ const env = (key: string): string => {
   const v = process.env[key];
   if (!v) throw new Error(`Missing env: ${key}`);
   return v;
+};
+
+/**
+ * 커머스 API 는 "API호출 IP" 화이트리스트를 강제한다(등록한 IP 에서 온 요청만
+ * 허용). Vercel 서버리스는 고정 출발 IP 가 없으므로, NAVER_COMMERCE_PROXY 에
+ * 고정 IP VPS 의 정방향 프록시(예: http://user:pass@1.2.3.4:8888)를 지정하면
+ * 커머스 API 호출만 그 프록시를 경유해 IP 가 고정된다. 그 프록시 IP 를
+ * 커머스 API 센터에 등록하면 된다. 미설정이면 직접 호출(로컬 개발 등).
+ */
+let cachedDispatcher: ProxyAgent | null | undefined;
+const proxyDispatcher = (): ProxyAgent | null => {
+  if (cachedDispatcher !== undefined) return cachedDispatcher;
+  const url = process.env.NAVER_COMMERCE_PROXY;
+  cachedDispatcher = url ? new ProxyAgent(url) : null;
+  return cachedDispatcher;
+};
+
+// global fetch(undici) 에 dispatcher 를 주입하기 위한 래퍼. RequestInit 표준
+// 타입에는 dispatcher 가 없어 확장 타입으로 캐스팅한다.
+const commerceFetch = (url: string, init: RequestInit): Promise<Response> => {
+  const dispatcher = proxyDispatcher();
+  const opts = dispatcher ? { ...init, dispatcher } : init;
+  return fetch(url, opts as RequestInit);
 };
 
 export const isCommerceApiConfigured = () =>
@@ -39,12 +63,13 @@ interface CommerceToken {
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
 const buildClientSecretSign = (clientId: string, secret: string, timestampMs: number) => {
-  // The Commerce API expects: bcrypt(clientId_timestamp, secret) base64.
-  // bcrypt isn't in node:crypto. The alternate accepted form is HMAC-SHA256
-  // of `${clientId}_${timestamp}` with secret as the key, base64-encoded.
-  // (See "Self-Signed Client Secret" — newer flow.)
-  const message = `${clientId}_${timestampMs}`;
-  return createHmac('sha256', secret).update(message).digest('base64');
+  // 네이버 커머스 API 전자서명:
+  //   sign = base64( bcrypt( "{clientId}_{timestamp}", clientSecret ) )
+  // 여기서 clientSecret(`$2a$10$...` 형태) 자체가 bcrypt salt 로 쓰인다.
+  // (HMAC-SHA256 등 다른 방식은 토큰 발급 단계에서 거부됨.)
+  const password = `${clientId}_${timestampMs}`;
+  const hashed = bcrypt.hashSync(password, secret);
+  return Buffer.from(hashed, 'utf-8').toString('base64');
 };
 
 export const getCommerceAccessToken = async (): Promise<string> => {
@@ -66,7 +91,7 @@ export const getCommerceAccessToken = async (): Promise<string> => {
     type: 'SELF',
   });
 
-  const res = await fetch(`${COMMERCE_BASE}/v1/oauth2/token`, {
+  const res = await commerceFetch(`${COMMERCE_BASE}/v1/oauth2/token`, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: params.toString(),
@@ -87,10 +112,12 @@ export const getCommerceAccessToken = async (): Promise<string> => {
 export interface CommerceProductOrder {
   productOrderId: string; // 상품주문번호
   orderId: string;        // 주문번호
-  productId?: string;
+  productId?: string;     // 상품번호 (스마트스토어 URL 의 products/숫자)
+  optionCode?: string;        // 옵션 ID (옵션 설정 시 자동 생성) — 옵션 단위 매칭 키
+  optionManageCode?: string;  // 판매자 옵션 관리 코드 (설정한 경우)
+  productOption?: string;     // 옵션 표시 텍스트 (예: "추가구성: 영구소장")
   productName?: string;
   totalPaymentAmount?: number;
-  productOption?: string;
   ordererName?: string;
   ordererTel?: string;
   productOrderStatus?: string; // PAYED / DELIVERING / DELIVERED ...
@@ -105,7 +132,7 @@ export const lookupProductOrder = async (
   productOrderNo: string,
 ): Promise<{ raw: unknown; parsed: CommerceProductOrder | null }> => {
   const token = await getCommerceAccessToken();
-  const res = await fetch(
+  const res = await commerceFetch(
     `${COMMERCE_BASE}/v1/pay-order/seller/product-orders/${encodeURIComponent(productOrderNo)}`,
     {
       headers: { Authorization: `Bearer ${token}` },
@@ -126,11 +153,15 @@ export const lookupProductOrder = async (
     productOrderId: String(productOrder.productOrderId ?? productOrderNo),
     orderId: String(productOrder.orderId ?? order.orderId ?? ''),
     productId: productOrder.productId ? String(productOrder.productId) : undefined,
+    optionCode: productOrder.optionCode ? String(productOrder.optionCode) : undefined,
+    optionManageCode: productOrder.optionManageCode
+      ? String(productOrder.optionManageCode)
+      : undefined,
+    productOption: productOrder.productOption ? String(productOrder.productOption) : undefined,
     productName: productOrder.productName ? String(productOrder.productName) : undefined,
     totalPaymentAmount: typeof productOrder.totalPaymentAmount === 'number'
       ? productOrder.totalPaymentAmount
       : undefined,
-    productOption: productOrder.productOption ? String(productOrder.productOption) : undefined,
     ordererName: order.ordererName ? String(order.ordererName) : undefined,
     ordererTel: order.ordererTel ? String(order.ordererTel) : undefined,
     productOrderStatus: productOrder.productOrderStatus

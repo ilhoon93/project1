@@ -1667,11 +1667,29 @@ function RegisterOrderCard() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
-      const granted = data?.result?.granted ?? 0;
-      setMsg({
-        kind: 'ok',
-        text: `발행권 ${granted}개가 추가되었습니다.`,
-      });
+      const r = (data?.result ?? {}) as {
+        idempotent?: boolean;
+        label?: string | null;
+        granted_publish?: number;
+        granted_archive?: number;
+        granted_snap?: number;
+        granted_regen?: number;
+      };
+      if (r.idempotent) {
+        setMsg({ kind: 'ok', text: '이미 적립된 주문입니다.' });
+      } else {
+        const parts: string[] = [];
+        if ((r.granted_publish ?? 0) > 0) parts.push(`발행권 ${r.granted_publish}개`);
+        if ((r.granted_archive ?? 0) > 0) parts.push(`영구소장권 ${r.granted_archive}개`);
+        if ((r.granted_snap ?? 0) > 0) parts.push(`웨딩스냅 ${r.granted_snap} 크레딧`);
+        if ((r.granted_regen ?? 0) > 0) parts.push(`무료 재생성 ${r.granted_regen}회`);
+        setMsg({
+          kind: 'ok',
+          text: parts.length
+            ? `${r.label ? `${r.label} — ` : ''}${parts.join(', ')} 적립되었습니다.`
+            : '적립이 완료되었습니다.',
+        });
+      }
       setOrderNo('');
       router.refresh();
     } catch (e) {
@@ -1713,25 +1731,6 @@ function RegisterOrderCard() {
   );
 }
 
-function NaverPullCard() {
-  return (
-    <div className="flex flex-col gap-3 rounded-lg bg-white p-5 ring-1 ring-[#D4C5B0]">
-      <div className="flex flex-col gap-1">
-        <h3 className="text-sm font-medium">네이버 로그인으로 주문 가져오기</h3>
-        <p className="text-xs text-muted-foreground">
-          네이버 계정을 연결하면 스마트스토어 결제 내역을 자동으로 불러옵니다.
-        </p>
-      </div>
-      <Link
-        href="/api/auth/naver/start?next=/mypage"
-        className="inline-flex h-9 items-center justify-center self-start rounded-md bg-[#03C75A] px-4 text-xs font-medium text-white"
-      >
-        네이버 연결 / 새로 고침
-      </Link>
-    </div>
-  );
-}
-
 // ── 주문 ─────────────────────────────────────────────────────
 
 /**
@@ -1747,11 +1746,11 @@ function OrdersTab({ orders }: { orders: MyPageOrder[] }) {
 
   return (
     <section className="flex flex-col gap-4">
-      {/* 주문 등록 액션 — 결혼알림장 탭에서 이동. */}
-      <div className="flex flex-col gap-3">
-        <RegisterOrderCard />
-        <NaverPullCard />
-      </div>
+      {/* 주문 등록 액션 — 결혼알림장 탭에서 이동.
+          로그인 자체가 네이버 OAuth 단독이라 모든 사용자는 이미 네이버 계정과
+          연동돼 있다 → 별도 "네이버 연결" 카드는 중복이라 제거. 크레딧은 아래
+          상품주문번호 입력으로 적립한다. */}
+      <RegisterOrderCard />
 
       {/* 결제 내역 */}
       {orders.length === 0 ? (

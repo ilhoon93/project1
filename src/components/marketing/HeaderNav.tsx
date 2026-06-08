@@ -12,6 +12,11 @@ import { createClient } from '@/lib/supabase/client';
  *
  * 콤보박스 트리거는 사용자 이메일 앞부분(공간 제약상 truncate), 드롭다운
  * 헤더에는 전체 이메일을 그대로 노출. 바깥 클릭·Escape 시 닫힘.
+ *
+ * 모바일(< sm)에서는 이메일 텍스트를 생략하고 프로필 아이콘만 노출한다.
+ * 메뉴 링크(AI 스냅/알림장/스마트스토어)와 이메일 pill 이 함께 있으면
+ * 트리거 폭이 뷰포트를 넘어 가로 스크롤(우측 흰 공백)이 생기기 때문. 전체
+ * 이메일은 드롭다운 헤더에서 확인할 수 있으므로 식별성도 유지된다.
  */
 export function HeaderNav({
   loggedIn,
@@ -73,7 +78,7 @@ export function HeaderNav({
             className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--wd-ink)]/15 bg-[var(--wd-paper)]/70 px-3 py-1.5 text-[12px] font-medium text-[var(--wd-ink)] backdrop-blur transition-colors hover:border-[var(--wd-ink)]/35"
           >
             <ProfileIcon />
-            <span className="max-w-[18ch] truncate">
+            <span className="hidden max-w-[18ch] truncate sm:inline">
               {email ?? '프로필'}
             </span>
             <svg

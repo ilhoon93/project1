@@ -741,6 +741,18 @@ export type Database = {
         };
         Returns: Json;
       };
+      grant_smartstore_order: {
+        Args: {
+          p_user_id: string;
+          p_product_no: string;
+          p_option_code: string;
+          p_amount: number;
+          p_naver_order_no?: string | null;
+          p_naver_product_order_no?: string | null;
+          p_raw?: Json;
+        };
+        Returns: Json;
+      };
       consume_free_regen: {
         Args: { p_user_id: string; p_amount?: number };
         Returns: Json;
