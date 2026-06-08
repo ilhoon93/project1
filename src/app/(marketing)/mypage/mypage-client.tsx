@@ -97,6 +97,15 @@ export interface MyPageOrder {
   portone_payment_id: string | null;
   status: string;
   created_at: string;
+  /** 스마트스토어 번들 주문의 사람용 옵션 라벨 (raw_data.option_label). */
+  optionLabel: string | null;
+  /** 적립 크레딧 breakdown (raw_data.granted). 구버전 주문은 null. */
+  granted: {
+    publish?: number;
+    archive?: number;
+    snap?: number;
+    regen?: number;
+  } | null;
 }
 
 interface Props {
@@ -119,6 +128,40 @@ const SOURCE_LABEL: Record<MyPageOrder['source'], string> = {
   naver_smartstore: '네이버 스마트스토어',
   manual: '수동 등록',
 };
+
+const PACKAGE_LABELS: Record<string, string> = {
+  basic: '발행권 패키지',
+  archive_basic: '영구소장권',
+  snap_5: '웨딩스냅 5장',
+  snap_10: '웨딩스냅 10장',
+  snap_10_bundle: '웨딩스냅 10장(번들)',
+  snap_20: '웨딩스냅 20장',
+  snap_40: '웨딩스냅 40장',
+  snap_50: '웨딩스냅 50장',
+  snap_100: '웨딩스냅 100장',
+};
+
+/** 주문 항목명 — 스마트스토어 옵션 라벨 우선, 없으면 패키지명, 그것도 없으면 '주문'. */
+function orderItemLabel(o: MyPageOrder): string {
+  if (o.optionLabel) return o.optionLabel;
+  if (o.package_code) return PACKAGE_LABELS[o.package_code] ?? o.package_code;
+  return '주문';
+}
+
+/** 적립 크레딧 요약 — breakdown(raw_data.granted) 있으면 종류별로, 없으면 발행권 폴백. */
+function orderCreditSummary(o: MyPageOrder): string {
+  const parts: string[] = [];
+  const g = o.granted;
+  if (g) {
+    if ((g.publish ?? 0) > 0) parts.push(`발행권 +${g.publish}`);
+    if ((g.archive ?? 0) > 0) parts.push(`영구소장 +${g.archive}`);
+    if ((g.snap ?? 0) > 0) parts.push(`스냅 +${g.snap}`);
+    if ((g.regen ?? 0) > 0) parts.push(`무료재생성 +${g.regen}`);
+  } else if (o.granted_credits > 0) {
+    parts.push(`발행권 +${o.granted_credits}`);
+  }
+  return parts.length > 0 ? parts.join(' · ') : '적립 완료';
+}
 
 export function MyPageClient({
   userEmail,
@@ -1773,9 +1816,10 @@ function OrdersTab({ orders }: { orders: MyPageOrder[] }) {
                   <p className="text-sm font-medium">
                     {SOURCE_LABEL[o.source]}{' '}
                     <span className="text-xs text-muted-foreground">
-                      · {o.package_code ?? 'unknown'} · 발행권 +{o.granted_credits}
+                      · {orderItemLabel(o)}
                     </span>
                   </p>
+                  <p className="text-xs text-muted-foreground">{orderCreditSummary(o)}</p>
                   <p className="text-xs text-muted-foreground">
                     {formatDate(o.created_at)}{' '}
                     {o.naver_product_order_no

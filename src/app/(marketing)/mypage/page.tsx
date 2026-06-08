@@ -44,7 +44,7 @@ export default async function MyPage() {
     supabase.rpc('archive_credits_balance', { uid: user.id }),
     supabase
       .from('purchase_orders')
-      .select('id, source, package_code, amount, granted_credits, naver_product_order_no, portone_payment_id, status, created_at')
+      .select('id, source, package_code, amount, granted_credits, naver_product_order_no, portone_payment_id, status, created_at, raw_data')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
     supabase.rpc('user_has_package', { uid: user.id, pkg_code: 'ai_snap' }),
@@ -107,7 +107,30 @@ export default async function MyPage() {
       creditsBalance={typeof balance === 'number' ? balance : 0}
       archiveBalance={typeof archiveBalance === 'number' ? archiveBalance : 0}
       snapCreditsBalance={typeof snapCreditsBalance === 'number' ? snapCreditsBalance : 0}
-      orders={orders ?? []}
+      orders={(orders ?? []).map((o) => {
+        const rd = (o.raw_data ?? null) as {
+          option_label?: string | null;
+          granted?: {
+            publish?: number;
+            archive?: number;
+            snap?: number;
+            regen?: number;
+          };
+        } | null;
+        return {
+          id: o.id,
+          source: o.source,
+          package_code: o.package_code,
+          amount: o.amount,
+          granted_credits: o.granted_credits,
+          naver_product_order_no: o.naver_product_order_no,
+          portone_payment_id: o.portone_payment_id,
+          status: o.status,
+          created_at: o.created_at,
+          optionLabel: rd?.option_label ?? null,
+          granted: rd?.granted ?? null,
+        };
+      })}
       entitlements={{
         aiSnap: !!aiSnap,
         aiVideo: !!aiVideo,
