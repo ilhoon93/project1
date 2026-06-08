@@ -4,13 +4,13 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
   isCommerceApiConfigured,
-  lookupProductOrder,
+  resolveProductOrder,
 } from '@/lib/naver/smartstore';
 
 const BodySchema = z.object({
   productOrderNo: z
     .string()
-    .min(4, '상품주문번호를 입력해주세요')
+    .min(4, '주문번호를 입력해주세요')
     .max(40)
     .regex(/^[A-Za-z0-9-]+$/, '숫자/영문/하이픈만 입력 가능합니다'),
 });
@@ -56,20 +56,8 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient();
 
-  // 1) 멱등성 사전 검사 — purchase_orders.naver_product_order_no 유니크.
-  const { data: existing } = await admin
-    .from('purchase_orders')
-    .select('id')
-    .eq('naver_product_order_no', body.productOrderNo)
-    .maybeSingle();
-  if (existing) {
-    return NextResponse.json(
-      { error: '이미 등록된 주문번호입니다.', orderId: existing.id },
-      { status: 409 },
-    );
-  }
-
-  // 2) 옵션 단위 적립은 커머스 API 로 상품/옵션을 식별해야만 가능.
+  // 1) 옵션 단위 적립은 커머스 API 로 상품/옵션을 식별해야만 가능.
+  //    입력값이 주문번호일 수도 상품주문번호일 수도 있어 API 조회로만 확정된다.
   if (!isCommerceApiConfigured()) {
     return NextResponse.json(
       {
@@ -80,10 +68,11 @@ export async function POST(req: Request) {
     );
   }
 
+  // 2) 입력값(상품주문번호 또는 주문번호)을 해석해 상품주문 상세 조회.
   let parsed;
   let raw: unknown = {};
   try {
-    const result = await lookupProductOrder(body.productOrderNo);
+    const result = await resolveProductOrder(body.productOrderNo);
     parsed = result.parsed;
     raw = result.raw;
   } catch (e) {
@@ -107,10 +96,26 @@ export async function POST(req: Request) {
     );
   }
 
+  // 해석된 상품주문번호 — 멱등 키이자 grant 의 기준값.
+  const productOrderNo = parsed.productOrderId;
+
+  // 3) 멱등성 사전 검사 — 해석된 상품주문번호 기준.
+  const { data: existing } = await admin
+    .from('purchase_orders')
+    .select('id')
+    .eq('naver_product_order_no', productOrderNo)
+    .maybeSingle();
+  if (existing) {
+    return NextResponse.json(
+      { error: '이미 등록된 주문입니다.', orderId: existing.id },
+      { status: 409 },
+    );
+  }
+
   // 옵션 없는 상품은 optionCode 가 비어있을 수 있어 '' 로 매칭한다.
   const optionCode = parsed.optionCode ?? parsed.optionManageCode ?? '';
 
-  // 3) 옵션 매핑대로 다중 크레딧 적립.
+  // 4) 옵션 매핑대로 다중 크레딧 적립.
   const { data: grantResult, error: grantErr } = await admin.rpc(
     'grant_smartstore_order',
     {
@@ -119,7 +124,7 @@ export async function POST(req: Request) {
       p_option_code: optionCode,
       p_amount: parsed.totalPaymentAmount ?? 0,
       p_naver_order_no: parsed.orderId ?? null,
-      p_naver_product_order_no: body.productOrderNo,
+      p_naver_product_order_no: productOrderNo,
       p_raw: raw as never,
     },
   );

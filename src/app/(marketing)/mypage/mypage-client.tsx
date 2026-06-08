@@ -1704,14 +1704,14 @@ function RegisterOrderCard() {
       <div className="flex flex-col gap-1">
         <h3 className="text-sm font-medium">스마트스토어 주문번호로 등록</h3>
         <p className="text-xs text-muted-foreground">
-          네이버 스마트스토어에서 결제하신 후 받은 <strong>상품주문번호</strong>를 입력해주세요.
+          네이버 스마트스토어 결제 내역의 <strong>주문번호</strong> 또는 <strong>상품주문번호</strong>를 입력해주세요.
         </p>
       </div>
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
           value={orderNo}
           onChange={(e) => setOrderNo(e.target.value)}
-          placeholder="예: 2026010100000001"
+          placeholder="예: 2026010112345678"
           className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
         <Button type="submit" size="sm" disabled={busy}>
