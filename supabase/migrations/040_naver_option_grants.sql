@@ -133,6 +133,6 @@ end;
 $$;
 
 comment on function public.grant_smartstore_order(
-  uuid, text, text, integer, text, text, text, jsonb
+  uuid, text, text, integer, text, text, jsonb
 ) is
   '스마트스토어 옵션 매핑(naver_option_grants)대로 다중 크레딧 적립 + purchase_orders 기록. 멱등(상품주문번호).';
