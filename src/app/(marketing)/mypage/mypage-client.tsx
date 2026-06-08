@@ -1667,11 +1667,29 @@ function RegisterOrderCard() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
-      const granted = data?.result?.granted ?? 0;
-      setMsg({
-        kind: 'ok',
-        text: `발행권 ${granted}개가 추가되었습니다.`,
-      });
+      const r = (data?.result ?? {}) as {
+        idempotent?: boolean;
+        label?: string | null;
+        granted_publish?: number;
+        granted_archive?: number;
+        granted_snap?: number;
+        granted_regen?: number;
+      };
+      if (r.idempotent) {
+        setMsg({ kind: 'ok', text: '이미 적립된 주문입니다.' });
+      } else {
+        const parts: string[] = [];
+        if ((r.granted_publish ?? 0) > 0) parts.push(`발행권 ${r.granted_publish}개`);
+        if ((r.granted_archive ?? 0) > 0) parts.push(`영구소장권 ${r.granted_archive}개`);
+        if ((r.granted_snap ?? 0) > 0) parts.push(`웨딩스냅 ${r.granted_snap} 크레딧`);
+        if ((r.granted_regen ?? 0) > 0) parts.push(`무료 재생성 ${r.granted_regen}회`);
+        setMsg({
+          kind: 'ok',
+          text: parts.length
+            ? `${r.label ? `${r.label} — ` : ''}${parts.join(', ')} 적립되었습니다.`
+            : '적립이 완료되었습니다.',
+        });
+      }
       setOrderNo('');
       router.refresh();
     } catch (e) {

@@ -88,10 +88,12 @@ export const getCommerceAccessToken = async (): Promise<string> => {
 export interface CommerceProductOrder {
   productOrderId: string; // 상품주문번호
   orderId: string;        // 주문번호
-  productId?: string;
+  productId?: string;     // 상품번호 (스마트스토어 URL 의 products/숫자)
+  optionCode?: string;        // 옵션 ID (옵션 설정 시 자동 생성) — 옵션 단위 매칭 키
+  optionManageCode?: string;  // 판매자 옵션 관리 코드 (설정한 경우)
+  productOption?: string;     // 옵션 표시 텍스트 (예: "추가구성: 영구소장")
   productName?: string;
   totalPaymentAmount?: number;
-  productOption?: string;
   ordererName?: string;
   ordererTel?: string;
   productOrderStatus?: string; // PAYED / DELIVERING / DELIVERED ...
@@ -127,11 +129,15 @@ export const lookupProductOrder = async (
     productOrderId: String(productOrder.productOrderId ?? productOrderNo),
     orderId: String(productOrder.orderId ?? order.orderId ?? ''),
     productId: productOrder.productId ? String(productOrder.productId) : undefined,
+    optionCode: productOrder.optionCode ? String(productOrder.optionCode) : undefined,
+    optionManageCode: productOrder.optionManageCode
+      ? String(productOrder.optionManageCode)
+      : undefined,
+    productOption: productOrder.productOption ? String(productOrder.productOption) : undefined,
     productName: productOrder.productName ? String(productOrder.productName) : undefined,
     totalPaymentAmount: typeof productOrder.totalPaymentAmount === 'number'
       ? productOrder.totalPaymentAmount
       : undefined,
-    productOption: productOrder.productOption ? String(productOrder.productOption) : undefined,
     ordererName: order.ordererName ? String(order.ordererName) : undefined,
     ordererTel: order.ordererTel ? String(order.ordererTel) : undefined,
     productOrderStatus: productOrder.productOrderStatus

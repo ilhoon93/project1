@@ -18,15 +18,21 @@ const BodySchema = z.object({
 /**
  * POST /api/orders/register
  *
- * Manual smart-store order registration. The user enters their
- * 상품주문번호; we either validate it against the Naver Commerce API
- * (if credentials are configured) or accept it on trust as a manual
- * record. In both cases credit grant is idempotent on the
- * (source, naver_product_order_no) pair, so a user can't double-claim.
+ * 스마트스토어 상품주문번호 수동 등록 → 옵션 매핑대로 크레딧 적립.
  *
- * The granted credits come from the addon_packages catalogue, matched
- * by naver_smartstore_product_no when the API returns a productId,
- * else falling back to the 'basic' package.
+ * 흐름:
+ *   1. 상품주문번호 중복 사전 검사 (멱등성 1차).
+ *   2. 커머스 API 로 상품주문 상세 조회 → productId(상품번호) + optionCode(옵션).
+ *   3. grant_smartstore_order(상품번호, 옵션코드) 로 다중 크레딧 적립.
+ *      매핑(naver_option_grants)이 없으면 422 로 안내.
+ *
+ * 적립량은 옵션마다 다르고(번들 포함) DB 의 naver_option_grants 가 단일
+ * source of truth 다. 상품에 옵션이 없으면 optionCode 가 비므로 '' 로 매칭한다.
+ *
+ * 보안 메모: 커머스 API 는 셀러 기준이라 주문번호만 알면 누구나 조회된다.
+ * 상품주문번호당 멱등(중복 적립 불가)이라 같은 주문을 두 번 타먹을 순 없지만,
+ * 타인의 주문번호를 먼저 등록하는 선점 위험은 남는다. 주문번호가 길고
+ * 추측이 어렵다는 점에 기대 1차 출시에선 별도 본인확인을 강제하지 않는다.
  */
 export async function POST(req: Request) {
   const supabase = createClient();
@@ -50,10 +56,10 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient();
 
-  // Idempotency: pre-check on the unique index in purchase_orders
+  // 1) 멱등성 사전 검사 — purchase_orders.naver_product_order_no 유니크.
   const { data: existing } = await admin
     .from('purchase_orders')
-    .select('id, granted_credits')
+    .select('id')
     .eq('naver_product_order_no', body.productOrderNo)
     .maybeSingle();
   if (existing) {
@@ -63,63 +69,85 @@ export async function POST(req: Request) {
     );
   }
 
-  // Optionally validate against Naver Commerce API
-  let productId: string | null = null;
-  let amount = 0;
-  let raw: unknown = { manual: true };
-  let orderNo: string | null = null;
-
-  if (isCommerceApiConfigured()) {
-    try {
-      const { raw: rawApi, parsed } = await lookupProductOrder(body.productOrderNo);
-      if (!parsed) {
-        return NextResponse.json(
-          { error: '주문번호를 찾을 수 없습니다. 결제 완료 후 다시 시도해주세요.' },
-          { status: 404 },
-        );
-      }
-      productId = parsed.productId ?? null;
-      amount = parsed.totalPaymentAmount ?? 0;
-      orderNo = parsed.orderId ?? null;
-      raw = rawApi;
-    } catch (e) {
-      console.error('[orders/register] commerce api error', e);
-      return NextResponse.json(
-        { error: '네이버 커머스 API 호출에 실패했습니다. 잠시 후 다시 시도해주세요.' },
-        { status: 502 },
-      );
-    }
+  // 2) 옵션 단위 적립은 커머스 API 로 상품/옵션을 식별해야만 가능.
+  if (!isCommerceApiConfigured()) {
+    return NextResponse.json(
+      {
+        error:
+          '네이버 스토어 연동이 아직 준비되지 않았습니다. 잠시 후 다시 시도하거나 고객센터로 문의해주세요.',
+      },
+      { status: 503 },
+    );
   }
 
-  // Pick the package: by productId match, else 'basic' as default
-  let packageCode = 'basic';
-  if (productId) {
-    const { data: pkg } = await admin
-      .from('addon_packages')
-      .select('code')
-      .eq('naver_smartstore_product_no', productId)
-      .eq('active', true)
-      .maybeSingle();
-    if (pkg) packageCode = pkg.code;
+  let parsed;
+  let raw: unknown = {};
+  try {
+    const result = await lookupProductOrder(body.productOrderNo);
+    parsed = result.parsed;
+    raw = result.raw;
+  } catch (e) {
+    console.error('[orders/register] commerce api error', e);
+    return NextResponse.json(
+      { error: '네이버 주문 조회에 실패했습니다. 잠시 후 다시 시도해주세요.' },
+      { status: 502 },
+    );
   }
 
-  const { data: grantResult, error: grantErr } = await admin.rpc('grant_purchase_credits', {
-    p_user_id: user.id,
-    p_source: 'naver_smartstore',
-    p_package_code: packageCode,
-    p_amount: amount,
-    p_portone_payment: null,
-    p_naver_order_no: orderNo,
-    p_naver_product_no: body.productOrderNo,
-    p_raw: raw as never,
-  });
+  if (!parsed) {
+    return NextResponse.json(
+      { error: '주문번호를 찾을 수 없습니다. 결제 완료 후 다시 시도해주세요.' },
+      { status: 404 },
+    );
+  }
+  if (!parsed.productId) {
+    return NextResponse.json(
+      { error: '주문에서 상품번호를 확인하지 못했습니다. 고객센터로 문의해주세요.' },
+      { status: 502 },
+    );
+  }
+
+  // 옵션 없는 상품은 optionCode 가 비어있을 수 있어 '' 로 매칭한다.
+  const optionCode = parsed.optionCode ?? parsed.optionManageCode ?? '';
+
+  // 3) 옵션 매핑대로 다중 크레딧 적립.
+  const { data: grantResult, error: grantErr } = await admin.rpc(
+    'grant_smartstore_order',
+    {
+      p_user_id: user.id,
+      p_product_no: parsed.productId,
+      p_option_code: optionCode,
+      p_amount: parsed.totalPaymentAmount ?? 0,
+      p_naver_order_no: parsed.orderId ?? null,
+      p_naver_product_order_no: body.productOrderNo,
+      p_raw: raw as never,
+    },
+  );
 
   if (grantErr) {
+    console.error('[orders/register] grant_smartstore_order failed', grantErr);
     return NextResponse.json({ error: grantErr.message }, { status: 500 });
   }
 
-  return NextResponse.json({
-    success: true,
-    result: grantResult,
-  });
+  const result = grantResult as {
+    error?: string;
+    product_no?: string;
+    option_code?: string;
+  } | null;
+
+  if (result?.error === 'option_not_mapped') {
+    console.error('[orders/register] option not mapped', {
+      product_no: result.product_no,
+      option_code: result.option_code,
+    });
+    return NextResponse.json(
+      {
+        error:
+          '등록되지 않은 상품 옵션입니다. 고객센터로 문의해주시면 적립해 드리겠습니다.',
+      },
+      { status: 422 },
+    );
+  }
+
+  return NextResponse.json({ success: true, result: grantResult });
 }
