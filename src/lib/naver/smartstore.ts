@@ -127,27 +127,39 @@ export interface CommerceProductOrder {
 /**
  * Look up a single 상품주문번호. Returns null if Naver couldn't find it.
  * Throws on transport / auth errors so the API route can 502.
+ *
+ * 네이버 커머스 API 는 단건 GET 이 아니라 POST query 로 조회한다:
+ *   POST /v1/pay-order/seller/product-orders/query  body: { productOrderIds: [...] }
+ * 응답 data 는 배열이며 각 원소에 productOrder / order / delivery 가 담긴다.
+ * (잘못된 GET /product-orders/{id} 는 게이트웨이가 GW.NOT_FOUND(404)로 응답한다.)
  */
 export const lookupProductOrder = async (
   productOrderNo: string,
 ): Promise<{ raw: unknown; parsed: CommerceProductOrder | null }> => {
   const token = await getCommerceAccessToken();
   const res = await commerceFetch(
-    `${COMMERCE_BASE}/v1/pay-order/seller/product-orders/${encodeURIComponent(productOrderNo)}`,
+    `${COMMERCE_BASE}/v1/pay-order/seller/product-orders/query`,
     {
-      headers: { Authorization: `Bearer ${token}` },
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ productOrderIds: [productOrderNo] }),
       cache: 'no-store',
     },
   );
-  if (res.status === 404) return { raw: null, parsed: null };
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Naver Commerce product-order lookup failed (${res.status}): ${text}`);
   }
   const raw = (await res.json()) as Record<string, unknown>;
-  const data = (raw.data ?? raw) as Record<string, unknown>;
-  const productOrder = (data.productOrder ?? data) as Record<string, unknown>;
-  const order = (data.order ?? {}) as Record<string, unknown>;
+  const list = (Array.isArray(raw.data) ? raw.data : []) as Array<Record<string, unknown>>;
+  if (list.length === 0) return { raw, parsed: null };
+
+  const entry = list[0];
+  const productOrder = (entry.productOrder ?? {}) as Record<string, unknown>;
+  const order = (entry.order ?? {}) as Record<string, unknown>;
 
   const parsed: CommerceProductOrder = {
     productOrderId: String(productOrder.productOrderId ?? productOrderNo),
@@ -169,4 +181,58 @@ export const lookupProductOrder = async (
       : undefined,
   };
   return { raw, parsed };
+};
+
+/**
+ * 주문번호(orderId)에 속한 상품주문번호(productOrderId) 목록을 조회한다.
+ * 하나의 주문에 여러 상품주문이 들어갈 수 있어 배열로 돌려준다.
+ * 엔드포인트/응답 형태가 환경에 따라 다를 수 있어 방어적으로 파싱하고,
+ * 실패(권한/404 등) 시 빈 배열을 돌려 호출부가 "주문 없음"으로 폴백하게 한다.
+ */
+export const getProductOrderIdsByOrder = async (orderNo: string): Promise<string[]> => {
+  const token = await getCommerceAccessToken();
+  const res = await commerceFetch(
+    `${COMMERCE_BASE}/v1/pay-order/seller/orders/${encodeURIComponent(orderNo)}/product-order-ids`,
+    { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' },
+  );
+  if (!res.ok) {
+    if (res.status !== 404) {
+      const text = await res.text().catch(() => '');
+      console.warn(`[smartstore] order→product-order-ids failed (${res.status}): ${text}`);
+    }
+    return [];
+  }
+  const raw = (await res.json()) as Record<string, unknown>;
+  const data = raw.data ?? (raw as { productOrderIds?: unknown }).productOrderIds;
+  if (Array.isArray(data)) return data.map((x) => String(x));
+  return [];
+};
+
+/**
+ * 사용자가 입력한 번호를 "상품주문번호 또는 주문번호"로 해석해 상품주문 상세를 돌려준다.
+ *   1) 상품주문번호로 바로 조회 → 있으면 사용.
+ *   2) 없으면 주문번호로 보고 상품주문번호 목록을 받아 첫 건을 조회.
+ * 둘 다 실패하면 parsed:null.
+ *
+ * (대부분의 주문은 상품주문 1건이라 첫 건만 처리. 한 주문에 여러 상품주문이
+ *  있으면 첫 건만 적립되며, 나머지는 각 상품주문번호로 따로 등록할 수 있다.)
+ */
+export const resolveProductOrder = async (
+  input: string,
+): Promise<{
+  raw: unknown;
+  parsed: CommerceProductOrder | null;
+  matchedBy: 'product_order' | 'order' | null;
+}> => {
+  // 1) 상품주문번호로 직접 조회
+  const direct = await lookupProductOrder(input);
+  if (direct.parsed) return { ...direct, matchedBy: 'product_order' };
+
+  // 2) 주문번호 → 상품주문번호 목록 → 첫 건 상세
+  const ids = await getProductOrderIdsByOrder(input);
+  if (ids.length > 0) {
+    const byOrder = await lookupProductOrder(ids[0]);
+    if (byOrder.parsed) return { ...byOrder, matchedBy: 'order' };
+  }
+  return { raw: direct.raw, parsed: null, matchedBy: null };
 };
