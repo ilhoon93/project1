@@ -224,15 +224,33 @@ export const resolveProductOrder = async (
   parsed: CommerceProductOrder | null;
   matchedBy: 'product_order' | 'order' | null;
 }> => {
-  // 1) 상품주문번호로 직접 조회
-  const direct = await lookupProductOrder(input);
+  // 1) 상품주문번호로 직접 조회. (주문번호를 넣으면 네이버가 빈 결과 또는 4xx 를
+  //    돌려줄 수 있어, 던져도 삼키고 2) 주문번호 경로로 넘어간다.)
+  let direct: { raw: unknown; parsed: CommerceProductOrder | null } = {
+    raw: null,
+    parsed: null,
+  };
+  try {
+    direct = await lookupProductOrder(input);
+  } catch (e) {
+    console.warn('[smartstore] 상품주문번호 직접 조회 실패 → 주문번호로 재시도', e);
+  }
   if (direct.parsed) return { ...direct, matchedBy: 'product_order' };
 
   // 2) 주문번호 → 상품주문번호 목록 → 첫 건 상세
-  const ids = await getProductOrderIdsByOrder(input);
+  let ids: string[] = [];
+  try {
+    ids = await getProductOrderIdsByOrder(input);
+  } catch (e) {
+    console.warn('[smartstore] 주문번호→상품주문번호 변환 실패', e);
+  }
   if (ids.length > 0) {
-    const byOrder = await lookupProductOrder(ids[0]);
-    if (byOrder.parsed) return { ...byOrder, matchedBy: 'order' };
+    try {
+      const byOrder = await lookupProductOrder(ids[0]);
+      if (byOrder.parsed) return { ...byOrder, matchedBy: 'order' };
+    } catch (e) {
+      console.warn('[smartstore] 변환된 상품주문번호 상세 조회 실패', e);
+    }
   }
   return { raw: direct.raw, parsed: null, matchedBy: null };
 };

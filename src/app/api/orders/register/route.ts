@@ -85,7 +85,10 @@ export async function POST(req: Request) {
 
   if (!parsed) {
     return NextResponse.json(
-      { error: '주문번호를 찾을 수 없습니다. 결제 완료 후 다시 시도해주세요.' },
+      {
+        error:
+          '주문을 찾지 못했습니다. 입력하신 번호(주문번호 또는 상품주문번호)가 맞는지, 결제가 완료되었는지 확인해주세요.',
+      },
       { status: 404 },
     );
   }
