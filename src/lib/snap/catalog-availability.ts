@@ -76,14 +76,34 @@ function filterCatalog(
     ) {
       return false;
     }
-    // 파일 존재 체크 — 마스터 jpg 가 없으면 자동 제외.
-    const rel = item.image.startsWith('/') ? item.image.slice(1) : item.image;
-    const abs = path.join(process.cwd(), 'public', rel);
-    try {
-      return fs.statSync(abs).isFile();
-    } catch {
-      return false;
-    }
+    // 파일 존재 체크 — 마스터 jpg 가 없으면 자동 제외. (모듈 수명 캐시)
+    return catalogImageExists(item.image);
   });
   return orderMap ? sortByCatalogOrder(filtered, orderMap) : filtered;
+}
+
+/**
+ * 카탈로그 마스터 이미지 존재 여부 캐시.
+ *
+ * public/ 의 카탈로그 jpg 는 빌드(배포) 단위로만 바뀌고 런타임에는 불변
+ * (Vercel lambda FS 는 read-only). 기존엔 filterCatalog 가 호출될 때마다
+ * 카탈로그 항목 수(~115)만큼 fs.statSync 를 동기 실행해 force-dynamic 인
+ * 랜딩/홈 페이지에서 요청당 ~115 블로킹 syscall 이 발생했다. 경로별 결과를
+ * 모듈 수명 동안 1회만 statSync 하고 캐시해 이를 제거한다. 결과값/필터 동작은
+ * 이전과 동일 (순수 메모이즈).
+ */
+const imageExistsCache = new Map<string, boolean>();
+function catalogImageExists(image: string): boolean {
+  const rel = image.startsWith('/') ? image.slice(1) : image;
+  const abs = path.join(process.cwd(), 'public', rel);
+  const cached = imageExistsCache.get(abs);
+  if (cached !== undefined) return cached;
+  let exists = false;
+  try {
+    exists = fs.statSync(abs).isFile();
+  } catch {
+    exists = false;
+  }
+  imageExistsCache.set(abs, exists);
+  return exists;
 }
