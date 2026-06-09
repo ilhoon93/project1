@@ -13,6 +13,10 @@ const BodySchema = z.object({
     .min(4, '주문번호를 입력해주세요')
     .max(40)
     .regex(/^[A-Za-z0-9-]+$/, '숫자/영문/하이픈만 입력 가능합니다'),
+  // 본인확인용 주문자 휴대폰 뒷 4자리. 네이버가 연락처를 마스킹 없이 줄 때 대조.
+  ordererTel4: z
+    .string()
+    .regex(/^\d{4}$/, '주문자 휴대폰 번호 뒷 4자리를 입력해주세요'),
 });
 
 /**
@@ -97,6 +101,31 @@ export async function POST(req: Request) {
       { error: '주문에서 상품번호를 확인하지 못했습니다. 고객센터로 문의해주세요.' },
       { status: 502 },
     );
+  }
+
+  // 본인확인 — 주문자 연락처 뒷 4자리 대조로 타인 주문 선점(탈취)을 차단.
+  // 네이버가 연락처를 마스킹 없이 내려줄 때만 검증 가능하므로:
+  //   - 사용 가능(숫자 4자리 이상 & '*' 없음) → 뒷 4자리 불일치면 403.
+  //   - 마스킹/누락 등 검증 불가 → 막지 않고 통과(기존 등록 흐름 보존) + 경고 로그.
+  const apiTel = parsed.ordererTel ?? '';
+  const apiDigits = apiTel.replace(/\D/g, '');
+  const apiTelUsable = !apiTel.includes('*') && apiDigits.length >= 4;
+  if (apiTelUsable) {
+    if (apiDigits.slice(-4) !== body.ordererTel4) {
+      return NextResponse.json(
+        {
+          error:
+            '주문자 휴대폰 번호 뒷 4자리가 일치하지 않습니다. 본인 주문이 맞는지 확인해주세요.',
+        },
+        { status: 403 },
+      );
+    }
+  } else {
+    console.warn('[orders/register] ordererTel not usable for verification', {
+      productOrderNo: parsed.productOrderId,
+      masked: apiTel.includes('*'),
+      digitLen: apiDigits.length,
+    });
   }
 
   // 해석된 상품주문번호 — 멱등 키이자 grant 의 기준값.

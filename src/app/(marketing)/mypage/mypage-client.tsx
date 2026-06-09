@@ -1694,19 +1694,24 @@ function CreditChip({ label, value }: { label: string; value: number }) {
 function RegisterOrderCard() {
   const router = useRouter();
   const [orderNo, setOrderNo] = useState('');
+  const [tel4, setTel4] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orderNo.trim() || busy) return;
+    if (tel4.length !== 4) {
+      setMsg({ kind: 'err', text: '주문자 휴대폰 번호 뒷 4자리를 입력해주세요.' });
+      return;
+    }
     setBusy(true);
     setMsg(null);
     try {
       const res = await fetch('/api/orders/register', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ productOrderNo: orderNo.trim() }),
+        body: JSON.stringify({ productOrderNo: orderNo.trim(), ordererTel4: tel4 }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
@@ -1734,6 +1739,7 @@ function RegisterOrderCard() {
         });
       }
       setOrderNo('');
+      setTel4('');
       router.refresh();
     } catch (e) {
       setMsg({ kind: 'err', text: e instanceof Error ? e.message : '등록 실패' });
@@ -1747,15 +1753,25 @@ function RegisterOrderCard() {
       <div className="flex flex-col gap-1">
         <h3 className="text-sm font-medium">스마트스토어 주문번호로 등록</h3>
         <p className="text-xs text-muted-foreground">
-          네이버 스마트스토어 결제 내역의 <strong>주문번호</strong> 또는 <strong>상품주문번호</strong>를 입력해주세요.
+          네이버 스마트스토어 결제 내역의 <strong>주문번호</strong> 또는 <strong>상품주문번호</strong>와,
+          본인 확인을 위한 <strong>주문자 휴대폰 번호 뒷 4자리</strong>를 입력해주세요.
         </p>
       </div>
-      <form onSubmit={handleSubmit} className="flex gap-2">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row">
         <input
           value={orderNo}
           onChange={(e) => setOrderNo(e.target.value)}
-          placeholder="예: 2026010112345678"
+          placeholder="주문번호 (예: 2026010112345678)"
           className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+        <input
+          value={tel4}
+          onChange={(e) => setTel4(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
+          inputMode="numeric"
+          maxLength={4}
+          placeholder="휴대폰 뒷 4자리"
+          aria-label="주문자 휴대폰 번호 뒷 4자리"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring sm:w-32"
         />
         <Button type="submit" size="sm" disabled={busy}>
           {busy ? '등록 중...' : '등록'}
