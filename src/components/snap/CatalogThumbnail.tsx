@@ -1,48 +1,57 @@
 'use client';
 
+import { useState } from 'react';
+
 /**
  * 카탈로그 마스터 샘플 썸네일.
  *
- * onError 핸들러가 들어 있어 Server Component 에서 직접 렌더할 수 없다 — 별도
- * client 컴포넌트로 분리해 랜딩 페이지(/wedding-snap) 와 생성 페이지의 카탈로그
- * 그리드(SnapGenerator) 양쪽에서 같은 폴백 동작을 공유한다.
+ * 표시는 작은 정적 썸네일(public/wedding-snap/catalog/thumb/{name}.webp)을
+ * 우선 사용해 대역폭을 크게 줄인다. 썸네일이 없으면(미생성/신규 카탈로그)
+ * 원본 jpg 로, 원본도 없으면 placeholder 박스로 단계적 폴백한다. 생성(fal)
+ * 레퍼런스는 원본 경로를 그대로 쓰므로 이 컴포넌트 변경은 표시에만 영향.
  *
- * 파일이 아직 업로드되지 않았으면(404) placeholder 박스를 보여주고 어떤 경로에
- * 어떤 파일을 두면 되는지 한눈에 식별 가능하게 표시.
+ * onError 핸들러가 들어 있어 Server Component 에서 직접 렌더할 수 없다 — 별도
+ * client 컴포넌트로 분리해 랜딩(/wedding-snap)·생성 페이지 양쪽에서 동일 폴백.
  */
-export function CatalogThumbnail({
-  src,
-  alt,
-}: {
-  src: string;
-  alt: string;
-}) {
-  // 박스: 항상 3:4 비율 + 베이지 배경 + flex center.
-  // 이미지: object-contain 으로 가로/세로 비율 유지하며 박스 안에 중앙 정렬.
-  //   가로형 마스터 → 위아래 여백,  세로형 → 좌우 여백 (모두 박스 가운데).
-  //   별도 `mx-auto my-auto` 없이도 flex center 부모가 처리.
+
+/** /wedding-snap/catalog/{name}.jpg → /wedding-snap/catalog/thumb/{name}.webp */
+function thumbPath(src: string): string | null {
+  const m = src.match(
+    /^(.*\/wedding-snap\/catalog)\/([^/]+)\.(?:jpe?g|png|webp)$/i,
+  );
+  return m ? `${m[1]}/thumb/${m[2]}.webp` : null;
+}
+
+// 단계: 0 = 썸네일, 1 = 원본, 2 = placeholder.
+type Stage = 0 | 1 | 2;
+
+export function CatalogThumbnail({ src, alt }: { src: string; alt: string }) {
+  const thumb = thumbPath(src);
+  const [stage, setStage] = useState<Stage>(thumb ? 0 : 1);
+
+  const currentSrc = stage === 0 && thumb ? thumb : src;
+
   return (
     <div className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden bg-[var(--wd-cream)]">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={alt}
-        className="block h-full w-full object-contain"
-        onError={(e) => {
-          const target = e.currentTarget;
-          target.style.display = 'none';
-          const fb = target.nextElementSibling as HTMLElement | null;
-          if (fb) fb.style.display = 'flex';
-        }}
-      />
-      <div
-        className="absolute inset-0 hidden flex-col items-center justify-center px-2 text-center text-[10px] text-[var(--wd-mute)]"
-        style={{ display: 'none' }}
-      >
-        <span className="mb-1">📷</span>
-        <span className="font-mono break-all">{src}</span>
-        <span className="mt-1 opacity-70">샘플 이미지 추가 필요</span>
-      </div>
+      {stage !== 2 && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          // key 로 src 가 바뀔 때 img 를 새로 마운트해 onError 재평가 보장.
+          key={currentSrc}
+          src={currentSrc}
+          alt={alt}
+          loading="lazy"
+          className="block h-full w-full object-contain"
+          onError={() => setStage((s) => (s === 0 ? 1 : 2))}
+        />
+      )}
+      {stage === 2 && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center px-2 text-center text-[10px] text-[var(--wd-mute)]">
+          <span className="mb-1">📷</span>
+          <span className="font-mono break-all">{src}</span>
+          <span className="mt-1 opacity-70">샘플 이미지 추가 필요</span>
+        </div>
+      )}
     </div>
   );
 }

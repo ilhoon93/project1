@@ -9,7 +9,8 @@
     "lint": "next lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "thumbs": "node scripts/generate-catalog-thumbs.mjs"
   },
   "dependencies": {
     "@fal-ai/client": "^1.10.0",
