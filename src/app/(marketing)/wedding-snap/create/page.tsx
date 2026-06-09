@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { SnapGenerator } from '@/components/snap/SnapGenerator';
 import { getAvailableCatalogWith } from '@/lib/snap/catalog-availability';
 import { fetchAllCatalogTags } from '@/lib/snap/catalog-admin-tags';
+import { fetchCatalogOrder } from '@/lib/snap/catalog-order';
 import { fetchCatalogStatsMap } from '@/lib/snap/catalog-stats';
 import { getExampleFlow } from '@/lib/marketing/home-samples';
 
@@ -26,21 +27,23 @@ export default async function WeddingSnapCreatePage() {
 
   // tagMap + stats + 잔액·재생성quota 병렬 fetch. 실패 시 0 으로 안전 fallback.
   const admin = createAdminClient();
-  const [adminTags, catalogStats, snapBalanceRes, quotaRes, exampleFlow] = await Promise.all([
-    fetchAllCatalogTags(),
-    fetchCatalogStatsMap(),
-    supabase.rpc('snap_credits_balance', { uid: user.id }),
-    admin
-      .from('snap_user_quota')
-      .select('free_regen_remaining')
-      .eq('user_id', user.id)
-      .maybeSingle(),
-    getExampleFlow(),
-  ]);
+  const [adminTags, catalogOrder, catalogStats, snapBalanceRes, quotaRes, exampleFlow] =
+    await Promise.all([
+      fetchAllCatalogTags(),
+      fetchCatalogOrder(),
+      fetchCatalogStatsMap(),
+      supabase.rpc('snap_credits_balance', { uid: user.id }),
+      admin
+        .from('snap_user_quota')
+        .select('free_regen_remaining')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      getExampleFlow(),
+    ]);
   const snapBalance =
     typeof snapBalanceRes.data === 'number' ? snapBalanceRes.data : 0;
   const freeRegen = quotaRes.data?.free_regen_remaining ?? 0;
-  const availableCatalog = getAvailableCatalogWith(adminTags);
+  const availableCatalog = getAvailableCatalogWith(adminTags, catalogOrder);
 
   return (
     <main className="mx-auto max-w-3xl px-4 pb-20 pt-8 sm:px-6">

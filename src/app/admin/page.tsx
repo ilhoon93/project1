@@ -29,6 +29,18 @@ interface AdminPage {
 
 const ADMIN_PAGES: AdminPage[] = [
   {
+    href: '/admin/users',
+    title: '가입자 / 크레딧',
+    description:
+      '가입자 목록 + 발행권·영구소장·스냅 잔액 + 결제 건수/총액 조회. 크레딧을 수동으로 지급/회수(admin_grant·admin_revoke).',
+  },
+  {
+    href: '/admin/snap-catalog-order',
+    title: '카탈로그 노출 순서',
+    description:
+      'AI 스냅 카탈로그 화면의 기본 정렬 순서를 위/아래로 직접 조정. 저장 즉시 사용자 카탈로그 화면에 반영.',
+  },
+  {
     href: '/admin/home-samples',
     title: '알림장 샘플 설정',
     description:

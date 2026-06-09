@@ -25,6 +25,11 @@ import {
   fetchAllCatalogTags,
   type CatalogAdminTagMap,
 } from './catalog-admin-tags';
+import {
+  fetchCatalogOrder,
+  sortByCatalogOrder,
+  type CatalogOrderMap,
+} from './catalog-order';
 
 /**
  * picker / landing 에 노출 가능한 카탈로그 항목 반환.
@@ -36,21 +41,31 @@ import {
  * 를 호출하면 dedup 되지 않아 두 번 가져오므로 둘 다 필요하면 `getAvailableCatalogWith` 사용.
  */
 export async function getAvailableCatalog(): Promise<SnapCatalogItem[]> {
-  const tagMap = await fetchAllCatalogTags();
-  return filterCatalog(tagMap);
+  const [tagMap, orderMap] = await Promise.all([
+    fetchAllCatalogTags(),
+    fetchCatalogOrder(),
+  ]);
+  return filterCatalog(tagMap, orderMap);
 }
 
 /**
  * tagMap 을 외부에서 받아 사용 — caller 가 tagMap 도 따로 필요할 때.
  * (예: SnapGenerator 가 adminTags props 로 받으려면 page 가 fetchAllCatalogTags
  * 를 한 번만 호출하고 양쪽에서 재사용해야 효율적.)
+ * orderMap 을 넘기면 운영자 지정 순서로 정렬, 미지정이면 코드 순서.
  */
-export function getAvailableCatalogWith(tagMap: CatalogAdminTagMap): SnapCatalogItem[] {
-  return filterCatalog(tagMap);
+export function getAvailableCatalogWith(
+  tagMap: CatalogAdminTagMap,
+  orderMap?: CatalogOrderMap,
+): SnapCatalogItem[] {
+  return filterCatalog(tagMap, orderMap);
 }
 
-function filterCatalog(tagMap: CatalogAdminTagMap): SnapCatalogItem[] {
-  return SNAP_CATALOG.filter((item) => {
+function filterCatalog(
+  tagMap: CatalogAdminTagMap,
+  orderMap?: CatalogOrderMap,
+): SnapCatalogItem[] {
+  const filtered = SNAP_CATALOG.filter((item) => {
     // admin: 양쪽 condition 모두 hidden 이면 baseline 에서 제외.
     // (한쪽만 hidden 이면 다른 mode 에서는 보여야 하므로 baseline 에는 노출 —
     //  SnapGenerator 의 mode 별 필터에서 추가 차단.)
@@ -70,4 +85,5 @@ function filterCatalog(tagMap: CatalogAdminTagMap): SnapCatalogItem[] {
       return false;
     }
   });
+  return orderMap ? sortByCatalogOrder(filtered, orderMap) : filtered;
 }
