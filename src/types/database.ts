@@ -440,6 +440,22 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['snap_catalog_tags']['Insert']>;
         Relationships: [];
       };
+      snap_catalog_order: {
+        Row: {
+          catalog_id: string;
+          sort_order: number;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          catalog_id: string;
+          sort_order: number;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['snap_catalog_order']['Insert']>;
+        Relationships: [];
+      };
       marketing_home_samples: {
         Row: {
           id: boolean;
@@ -750,6 +766,28 @@ export type Database = {
           p_naver_order_no?: string | null;
           p_naver_product_order_no?: string | null;
           p_raw?: Json;
+        };
+        Returns: Json;
+      };
+      admin_user_overview: {
+        Args: Record<string, never>;
+        Returns: {
+          user_id: string;
+          email: string | null;
+          created_at: string;
+          publish_balance: number;
+          archive_balance: number;
+          snap_balance: number;
+          order_count: number;
+          order_amount: number;
+        }[];
+      };
+      admin_adjust_credits: {
+        Args: {
+          p_user_id: string;
+          p_kind: string;
+          p_delta: number;
+          p_note?: string | null;
         };
         Returns: Json;
       };
