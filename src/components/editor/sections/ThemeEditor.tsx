@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { PortalPanel } from '@/components/editor/PortalPanel';
 import { useEditorStore } from '@/stores/editor';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from '@/lib/utils/nanoid';
@@ -351,27 +352,12 @@ export function Combobox<T extends string>({
   renderItem: (v: T) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', onDoc);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDoc);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <div ref={ref} className="relative w-full">
+    <div className="w-full">
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
@@ -386,11 +372,8 @@ export function Combobox<T extends string>({
           className={`flex-shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
-      {open && (
-        <div
-          role="listbox"
-          className="absolute left-0 right-0 top-full z-40 mt-1 max-h-[280px] overflow-y-auto rounded-md border border-input bg-background shadow-lg"
-        >
+      <PortalPanel anchorRef={buttonRef} open={open} onClose={() => setOpen(false)}>
+        <div role="listbox">
           {options.map((opt) => {
             const selected = opt === value;
             return (
@@ -412,7 +395,7 @@ export function Combobox<T extends string>({
             );
           })}
         </div>
-      )}
+      </PortalPanel>
     </div>
   );
 }

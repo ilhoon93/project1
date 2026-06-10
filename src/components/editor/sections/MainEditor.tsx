@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { PortalPanel } from '@/components/editor/PortalPanel';
 import {
   ILLUSTRATION_VARIANTS,
   FRAME_VARIANTS,
@@ -1261,14 +1262,16 @@ function TitleTextCombobox({
   onChange: (next: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  useClickOutside(wrapRef, () => setOpen(false));
+  const anchorRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="flex flex-col gap-1.5 text-sm">
       <span className="font-medium text-foreground">문구</span>
-      <div ref={wrapRef} className="relative">
-        <div className="flex items-stretch overflow-hidden rounded-md border border-input bg-background transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30">
+      <div className="relative">
+        <div
+          ref={anchorRef}
+          className="flex items-stretch overflow-hidden rounded-md border border-input bg-background transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30"
+        >
           <input
             value={value}
             maxLength={60}
@@ -1290,11 +1293,8 @@ function TitleTextCombobox({
             />
           </button>
         </div>
-        {open && (
-          <ul
-            role="listbox"
-            className="absolute left-0 right-0 top-full z-30 mt-1 max-h-none overflow-hidden rounded-md border border-input bg-background shadow-lg"
-          >
+        <PortalPanel anchorRef={anchorRef} open={open} onClose={() => setOpen(false)}>
+          <ul role="listbox">
             {TITLE_TEXT_PRESETS.map((preset) => {
               const selected = preset === value;
               return (
@@ -1319,7 +1319,7 @@ function TitleTextCombobox({
               );
             })}
           </ul>
-        )}
+        </PortalPanel>
       </div>
     </div>
   );
@@ -1340,8 +1340,7 @@ function FontPicker({
   previewText: string;
 }) {
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  useClickOutside(wrapRef, () => setOpen(false));
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // 제목 텍스트 언어에 따라 표시할 폰트 그룹을 결정.
   //   한글이면 한글 명조·고운바탕 계열만, 영문이면 기존 영문 장식 폰트만.
@@ -1371,8 +1370,9 @@ function FontPicker({
       <span className="font-medium text-foreground">
         폰트 <span className="text-xs font-normal text-muted-foreground">({isKorean ? '한글' : '영문'})</span>
       </span>
-      <div ref={wrapRef} className="relative">
+      <div className="relative">
         <button
+          ref={buttonRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-haspopup="listbox"
@@ -1387,72 +1387,49 @@ function FontPicker({
             className={`shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
           />
         </button>
-        {open && (
-          <ul
-            role="listbox"
-            className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-md border border-input bg-background shadow-lg"
-          >
-            {visibleKeys.map((key) => {
-              const opt = TITLE_FONT_OPTIONS[key];
-              const selected = key === value;
-              return (
-                <li key={key}>
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={selected}
-                    onClick={() => {
-                      onChange(key);
-                      setOpen(false);
-                    }}
-                    className={`flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left transition-colors ${
-                      selected
-                        ? 'bg-foreground text-background'
-                        : 'text-foreground hover:bg-muted'
+      </div>
+      <PortalPanel anchorRef={buttonRef} open={open} onClose={() => setOpen(false)}>
+        <ul role="listbox">
+          {visibleKeys.map((key) => {
+            const opt = TITLE_FONT_OPTIONS[key];
+            const selected = key === value;
+            return (
+              <li key={key}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  onClick={() => {
+                    onChange(key);
+                    setOpen(false);
+                  }}
+                  className={`flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left transition-colors ${
+                    selected
+                      ? 'bg-foreground text-background'
+                      : 'text-foreground hover:bg-muted'
+                  }`}
+                >
+                  <span
+                    className="truncate text-base leading-tight"
+                    style={{ fontFamily: opt.family }}
+                  >
+                    {previewText || opt.label}
+                  </span>
+                  <span
+                    className={`text-[11px] ${
+                      selected ? 'text-background/70' : 'text-muted-foreground'
                     }`}
                   >
-                    <span
-                      className="truncate text-base leading-tight"
-                      style={{ fontFamily: opt.family }}
-                    >
-                      {previewText || opt.label}
-                    </span>
-                    <span
-                      className={`text-[11px] ${
-                        selected ? 'text-background/70' : 'text-muted-foreground'
-                      }`}
-                    >
-                      {opt.label}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+                    {opt.label}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </PortalPanel>
     </div>
   );
-}
-
-function useClickOutside(
-  ref: React.RefObject<HTMLElement>,
-  handler: () => void,
-) {
-  useEffect(() => {
-    const onDown = (e: MouseEvent | TouchEvent) => {
-      const node = ref.current;
-      if (!node) return;
-      if (e.target instanceof Node && node.contains(e.target)) return;
-      handler();
-    };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('touchstart', onDown);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('touchstart', onDown);
-    };
-  }, [ref, handler]);
 }
 
 /**
@@ -1472,15 +1449,15 @@ function OptionCombobox<V extends string>({
   onChange: (next: V) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  useClickOutside(wrapRef, () => setOpen(false));
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const current = options.find((o) => o.value === value) ?? options[0];
 
   return (
     <div className="flex flex-col gap-1.5 text-sm">
       {label && <span className="font-medium text-foreground">{label}</span>}
-      <div ref={wrapRef} className="relative">
+      <div className="relative">
         <button
+          ref={buttonRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-haspopup="listbox"
@@ -1500,11 +1477,8 @@ function OptionCombobox<V extends string>({
             className={`shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
           />
         </button>
-        {open && (
-          <ul
-            role="listbox"
-            className="absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-md border border-input bg-background shadow-lg"
-          >
+        <PortalPanel anchorRef={buttonRef} open={open} onClose={() => setOpen(false)}>
+          <ul role="listbox">
             {options.map((opt) => {
               const selected = opt.value === value;
               return (
@@ -1536,7 +1510,7 @@ function OptionCombobox<V extends string>({
               );
             })}
           </ul>
-        )}
+        </PortalPanel>
       </div>
     </div>
   );

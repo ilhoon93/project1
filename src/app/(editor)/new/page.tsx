@@ -5,7 +5,7 @@ import { defaultInvitationContent, type InvitationContent } from '@/types/invita
 import { generateSlug } from '@/lib/utils/nanoid';
 import { PG_UNIQUE_VIOLATION } from '@/lib/utils/validation';
 import { MAX_INVITATIONS_PER_USER } from '@/lib/limits';
-import { DEFAULT_SAMPLE_CONFIGS } from '@/lib/marketing/sample-invitations';
+import { getHomeSamplesConfig } from '@/lib/marketing/home-samples';
 
 /**
  * 신랑·신부 이름과 날짜는 더 이상 별도의 사전 입력 페이지에서 받지 않는다.
@@ -53,7 +53,7 @@ export default async function NewInvitationPage({ searchParams }: PageProps) {
     );
   }
 
-  const initial = buildInitialState(searchParams.preset);
+  const initial = await buildInitialState(searchParams.preset);
 
   for (let attempt = 0; attempt < 3; attempt++) {
     const slug = generateSlug();
@@ -94,12 +94,22 @@ interface InitialState {
  * 사진(heroImage, gallery, story image) 은 사용자 업로드 자리로 비워둠 —
  * 카탈로그 샘플 사진 경로(/wedding-snap/catalog/*) 는 InvitationContent 의
  * z.string().url() 검증을 통과하지 못해 어차피 저장 불가.
+ *
+ * 디자인 소스는 운영자 설정(getHomeSamplesConfig)을 사용한다 — /designs 카탈로그가
+ * 같은 소스로 렌더되므로, 운영자가 admin 에서 디자인을 바꾸면 "비슷하게 만들기" 의
+ * 시작값도 그 변경분과 정확히 일치한다. (정적 SEED 를 보면 카탈로그와 달라져
+ * 선택한 것과 다른 디자인이 반영되던 문제를 해결.)
  */
-function buildInitialState(presetId: string | undefined): InitialState {
+async function buildInitialState(
+  presetId: string | undefined,
+): Promise<InitialState> {
   const content = defaultInvitationContent();
-  const preset = presetId
-    ? DEFAULT_SAMPLE_CONFIGS.find((c) => c.id === presetId)
-    : null;
+  if (!presetId) {
+    return { groomName: '', brideName: '', weddingDate: null, content };
+  }
+
+  const { designs } = await getHomeSamplesConfig();
+  const preset = designs.find((c) => c.id === presetId) ?? null;
   if (!preset) {
     return { groomName: '', brideName: '', weddingDate: null, content };
   }
@@ -107,7 +117,12 @@ function buildInitialState(presetId: string | undefined): InitialState {
   content.theme.colorTheme = preset.colorTheme;
   content.theme.petalType = preset.petalType;
   content.theme.font = preset.font;
+  // 표지(메인 슬라이드) 레이아웃·옵션 — 사진만 사용자 업로드 자리로 비움.
   content.main = { ...preset.main, heroImage: null };
+  // 샘플 배경음악이 켜져 있으면 함께 가져와 "비슷하게" 를 충실히 한다.
+  if (preset.bgm?.enabled && preset.bgm.url.trim()) {
+    content.theme.bgm = { enabled: true, url: preset.bgm.url.trim() };
+  }
 
   return {
     groomName: preset.groomName,
