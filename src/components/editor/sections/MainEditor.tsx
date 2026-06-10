@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import {
   ILLUSTRATION_VARIANTS,
@@ -1340,8 +1341,69 @@ function FontPicker({
   previewText: string;
 }) {
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  useClickOutside(wrapRef, () => setOpen(false));
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLUListElement>(null);
+  const [mounted, setMounted] = useState(false);
+  const [panelPos, setPanelPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+  } | null>(null);
+
+  useEffect(() => setMounted(true), []);
+
+  // 드롭다운을 body 로 portal 해 SectionEditor 의 overflow-hidden 클리핑을 피한다.
+  // (영문 폰트 목록이 길어 섹션 하단에서 잘려 안 보이던 문제 해결.) 버튼 위치
+  // 기준으로 fixed 배치하고, 아래 공간이 부족하면 위로 flip + maxHeight 내부 스크롤.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const recalc = () => {
+      const btn = buttonRef.current;
+      if (!btn) return;
+      const r = btn.getBoundingClientRect();
+      const GAP = 4;
+      const PADDING = 8;
+      const spaceBelow = window.innerHeight - r.bottom - GAP - PADDING;
+      const spaceAbove = r.top - GAP - PADDING;
+      const placeAbove = spaceBelow < 220 && spaceAbove > spaceBelow;
+      const maxHeight = Math.max(
+        160,
+        Math.min(384, placeAbove ? spaceAbove : spaceBelow),
+      );
+      const top = placeAbove ? r.top - GAP - maxHeight : r.bottom + GAP;
+      setPanelPos({ top, left: r.left, width: r.width, maxHeight });
+    };
+    recalc();
+    window.addEventListener('resize', recalc);
+    window.addEventListener('scroll', recalc, true);
+    return () => {
+      window.removeEventListener('resize', recalc);
+      window.removeEventListener('scroll', recalc, true);
+    };
+  }, [open]);
+
+  // 외부 클릭/ESC 로 닫기 — portal 패널은 버튼 wrapper 밖이라 버튼·패널 둘 다 예외.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent | TouchEvent) => {
+      const t = e.target instanceof Node ? e.target : null;
+      if (t && buttonRef.current?.contains(t)) return;
+      if (t && panelRef.current?.contains(t)) return;
+      setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('touchstart', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('touchstart', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
 
   // 제목 텍스트 언어에 따라 표시할 폰트 그룹을 결정.
   //   한글이면 한글 명조·고운바탕 계열만, 영문이면 기존 영문 장식 폰트만.
@@ -1371,8 +1433,9 @@ function FontPicker({
       <span className="font-medium text-foreground">
         폰트 <span className="text-xs font-normal text-muted-foreground">({isKorean ? '한글' : '영문'})</span>
       </span>
-      <div ref={wrapRef} className="relative">
+      <div className="relative">
         <button
+          ref={buttonRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-haspopup="listbox"
@@ -1387,10 +1450,21 @@ function FontPicker({
             className={`shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
           />
         </button>
-        {open && (
+      </div>
+      {mounted &&
+        open &&
+        panelPos &&
+        createPortal(
           <ul
+            ref={panelRef}
             role="listbox"
-            className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-md border border-input bg-background shadow-lg"
+            className="fixed z-[200] overflow-y-auto rounded-md border border-input bg-background shadow-lg"
+            style={{
+              top: panelPos.top,
+              left: panelPos.left,
+              width: panelPos.width,
+              maxHeight: panelPos.maxHeight,
+            }}
           >
             {visibleKeys.map((key) => {
               const opt = TITLE_FONT_OPTIONS[key];
@@ -1428,9 +1502,9 @@ function FontPicker({
                 </li>
               );
             })}
-          </ul>
+          </ul>,
+          document.body,
         )}
-      </div>
     </div>
   );
 }
