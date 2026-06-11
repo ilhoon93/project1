@@ -4,6 +4,7 @@ import { checkAdmin } from '@/lib/auth/admin';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
   createPrivateSignedUrlsBulk,
+  refreshPrivateSignedUrl,
   SIGNED_URL_TTL_SHORT,
 } from '@/lib/snap/private-storage';
 import { SnapJobsTable, type SnapJobRow } from './SnapJobsTable';
@@ -108,43 +109,55 @@ export default async function AdminSnapJobsPage({ searchParams }: PageProps) {
       });
     }
 
-    rows = pageRaw.map((r) => {
-      let inputUrl: string | null = null;
-      let inputKind: SnapJobRow['input_kind'] = null;
-      if (r.catalog_path === 'couple') {
-        inputKind = 'couple';
-        inputUrl =
-          (r.couple_photo_path && signedMap.get(r.couple_photo_path)) ||
-          r.couple_photo_url ||
-          null;
-      } else {
-        inputKind = 'selfie';
-        inputUrl = r.groom_selfie_url || r.bride_selfie_url || null;
-      }
-      return {
-        id: r.id,
-        user_id: r.user_id,
-        email: r.email,
-        catalog_id: r.catalog_id,
-        catalog_path: r.catalog_path,
-        status: r.status,
-        submitted_at: r.submitted_at,
-        completed_at: r.completed_at,
-        result_url: r.result_url,
-        input_url: inputUrl,
-        input_kind: inputKind,
-        image_reference: r.image_reference,
-        quality: r.quality,
-        credit_delta: r.credit_delta,
-        fal_cost_usd: r.fal_cost_usd,
-        liked: r.liked,
-        liked_at: r.liked_at,
-        regen_reason: r.regen_reason,
-        regen_reason_text: r.regen_reason_text,
-        regen_to_job_id: r.regen_to_job_id,
-        error_message: r.error_message,
-      };
-    });
+    rows = await Promise.all(
+      pageRaw.map(async (r) => {
+        // 입력 사진은 private-uploads 의 만료된 서명 URL 로 저장돼 있어 그대로
+        // 쓰면 깨진다. couple 은 path 로 재서명(signedMap), selfie 는 저장된
+        // 서명 URL 을 refreshPrivateSignedUrl 로 즉시 재서명해 살린다.
+        let inputUrl: string | null = null;
+        let inputKind: SnapJobRow['input_kind'] = null;
+        if (r.catalog_path === 'couple') {
+          inputKind = 'couple';
+          const fromPath = r.couple_photo_path
+            ? signedMap.get(r.couple_photo_path)
+            : undefined;
+          inputUrl =
+            fromPath ??
+            (r.couple_photo_url
+              ? await refreshPrivateSignedUrl(r.couple_photo_url)
+              : null);
+        } else {
+          inputKind = 'selfie';
+          const rawSelfie = r.groom_selfie_url || r.bride_selfie_url;
+          inputUrl = rawSelfie
+            ? await refreshPrivateSignedUrl(rawSelfie)
+            : null;
+        }
+        return {
+          id: r.id,
+          user_id: r.user_id,
+          email: r.email,
+          catalog_id: r.catalog_id,
+          catalog_path: r.catalog_path,
+          status: r.status,
+          submitted_at: r.submitted_at,
+          completed_at: r.completed_at,
+          result_url: r.result_url,
+          input_url: inputUrl,
+          input_kind: inputKind,
+          image_reference: r.image_reference,
+          quality: r.quality,
+          credit_delta: r.credit_delta,
+          fal_cost_usd: r.fal_cost_usd,
+          liked: r.liked,
+          liked_at: r.liked_at,
+          regen_reason: r.regen_reason,
+          regen_reason_text: r.regen_reason_text,
+          regen_to_job_id: r.regen_to_job_id,
+          error_message: r.error_message,
+        };
+      }),
+    );
   } catch (e) {
     errorMsg = e instanceof Error ? e.message : String(e);
     console.error('[admin/snap-jobs] load failed', e);
