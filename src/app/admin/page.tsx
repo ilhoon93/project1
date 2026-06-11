@@ -35,6 +35,12 @@ const ADMIN_PAGES: AdminPage[] = [
       '가입자 목록 + 발행권·영구소장·스냅 잔액 + 결제 건수/총액 조회. 크레딧을 수동으로 지급/회수(admin_grant·admin_revoke).',
   },
   {
+    href: '/admin/snap-jobs',
+    title: 'AI 스냅 생성내역',
+    description:
+      'AI 웨딩스냅(catalog) 생성 기록을 최신순으로 조회. 이메일 필터 + 입력/결과 이미지 클릭 확대 + 반응(좋아요·재생성 사유) 표시.',
+  },
+  {
     href: '/admin/snap-catalog-order',
     title: '카탈로그 노출 순서',
     description:

@@ -1,0 +1,161 @@
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { checkAdmin } from '@/lib/auth/admin';
+import { createAdminClient } from '@/lib/supabase/admin';
+import {
+  createPrivateSignedUrlsBulk,
+  SIGNED_URL_TTL_SHORT,
+} from '@/lib/snap/private-storage';
+import { SnapJobsTable, type SnapJobRow } from './SnapJobsTable';
+
+export const metadata: Metadata = {
+  title: 'Admin · AI 스냅 생성내역',
+  robots: { index: false, follow: false },
+};
+
+export const dynamic = 'force-dynamic';
+
+const PAGE_SIZE = 30;
+
+/** admin_snap_jobs RPC 가 돌려주는 raw row. */
+interface RpcRow {
+  id: string;
+  user_id: string;
+  email: string | null;
+  kind: string;
+  catalog_id: string | null;
+  catalog_path: string | null;
+  status: string;
+  submitted_at: string;
+  completed_at: string | null;
+  result_url: string | null;
+  couple_photo_url: string | null;
+  couple_photo_path: string | null;
+  groom_selfie_url: string | null;
+  bride_selfie_url: string | null;
+  image_reference: string | null;
+  quality: string | null;
+  credit_delta: number | null;
+  fal_cost_usd: number | null;
+  liked: boolean;
+  liked_at: string | null;
+  regen_reason: string | null;
+  regen_reason_text: string | null;
+  regen_to_job_id: string | null;
+  error_message: string | null;
+}
+
+interface PageProps {
+  searchParams: { email?: string; page?: string };
+}
+
+export default async function AdminSnapJobsPage({ searchParams }: PageProps) {
+  const admin = await checkAdmin();
+  if (!admin) notFound();
+
+  const email = (searchParams.email ?? '').trim();
+  const page = Math.max(0, Number.parseInt(searchParams.page ?? '0', 10) || 0);
+
+  const sb = createAdminClient();
+  // PAGE_SIZE + 1 로 요청해 다음 페이지 존재 여부를 판단.
+  // admin_snap_jobs 는 046 에서 추가된 RPC — 자동생성 Database 타입에 아직
+  // 없어 rpc 호출부를 느슨한 타입으로 캐스팅한다. (마이그 타입 재생성 전 호환)
+  const rpc = sb.rpc as unknown as (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await rpc('admin_snap_jobs', {
+    p_email: email || null,
+    p_limit: PAGE_SIZE + 1,
+    p_offset: page * PAGE_SIZE,
+  });
+
+  const raw = (Array.isArray(data) ? data : []) as RpcRow[];
+  const hasMore = raw.length > PAGE_SIZE;
+  const pageRaw = raw.slice(0, PAGE_SIZE);
+
+  // couple 모드 입력 사진은 private-uploads 의 만료 가능한 signed URL → path 로
+  // 현재 페이지 행만 재서명. (path 없으면 저장된 url 폴백.)
+  const couplePaths = Array.from(
+    new Set(
+      pageRaw
+        .filter((r) => r.catalog_path === 'couple' && r.couple_photo_path)
+        .map((r) => r.couple_photo_path as string),
+    ),
+  );
+  const signedMap = new Map<string, string>();
+  if (couplePaths.length > 0) {
+    const signed = await createPrivateSignedUrlsBulk(
+      couplePaths,
+      SIGNED_URL_TTL_SHORT,
+    );
+    couplePaths.forEach((p, i) => {
+      const url = signed[i];
+      if (url) signedMap.set(p, url);
+    });
+  }
+
+  const rows: SnapJobRow[] = pageRaw.map((r) => {
+    let inputUrl: string | null = null;
+    let inputKind: SnapJobRow['input_kind'] = null;
+    if (r.catalog_path === 'couple') {
+      inputKind = 'couple';
+      inputUrl =
+        (r.couple_photo_path && signedMap.get(r.couple_photo_path)) ||
+        r.couple_photo_url ||
+        null;
+    } else {
+      inputKind = 'selfie';
+      inputUrl = r.groom_selfie_url || r.bride_selfie_url || null;
+    }
+    return {
+      id: r.id,
+      user_id: r.user_id,
+      email: r.email,
+      catalog_id: r.catalog_id,
+      catalog_path: r.catalog_path,
+      status: r.status,
+      submitted_at: r.submitted_at,
+      completed_at: r.completed_at,
+      result_url: r.result_url,
+      input_url: inputUrl,
+      input_kind: inputKind,
+      image_reference: r.image_reference,
+      quality: r.quality,
+      credit_delta: r.credit_delta,
+      fal_cost_usd: r.fal_cost_usd,
+      liked: r.liked,
+      liked_at: r.liked_at,
+      regen_reason: r.regen_reason,
+      regen_reason_text: r.regen_reason_text,
+      regen_to_job_id: r.regen_to_job_id,
+      error_message: r.error_message,
+    };
+  });
+
+  return (
+    <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6">
+      <header className="mb-4">
+        <h1 className="text-xl font-semibold text-[#3D2E1F]">AI 스냅 생성내역</h1>
+        <p className="mt-1 text-xs leading-relaxed text-[#8B7355]">
+          웨딩스냅(catalog) 생성 기록을 최신순으로 조회합니다. 이메일로 필터링하고,
+          입력·결과 이미지를 클릭하면 크게 볼 수 있습니다.
+          <span className="ml-2">로그인 계정: {admin.email}</span>
+        </p>
+      </header>
+
+      {error ? (
+        <p className="rounded-md border border-red-200 bg-red-50 p-4 text-xs text-red-700">
+          생성내역을 불러오지 못했습니다: {error.message}
+        </p>
+      ) : (
+        <SnapJobsTable
+          rows={rows}
+          email={email}
+          page={page}
+          hasMore={hasMore}
+        />
+      )}
+    </main>
+  );
+}
