@@ -18,7 +18,16 @@ export default function ErrorBoundary({
       <p className="text-xs tracking-[0.3em] text-[#8B7355]">SOMETHING WENT WRONG</p>
       <h1 className="text-2xl font-semibold tracking-tight">잠시 후 다시 시도해주세요</h1>
       <p className="max-w-sm text-sm leading-relaxed text-[#5C4633]">
-        예상치 못한 오류가 발생했습니다. 문제가 계속되면 hello@example.com 으로 알려주세요.
+        예상치 못한 오류가 발생했습니다. 문제가 계속되면{' '}
+        <a
+          href="https://talk.naver.com/ct/wiq8nf0"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-[#3D2E1F]"
+        >
+          네이버 톡톡
+        </a>
+        으로 알려주세요.
       </p>
       {error.digest && (
         <p className="text-[10px] text-[#8B7355]/70">에러 코드: {error.digest}</p>

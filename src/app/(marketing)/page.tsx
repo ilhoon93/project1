@@ -508,8 +508,19 @@ function SnapPricingCard() {
 function Footer() {
   return (
     <footer className="mx-auto max-w-3xl px-6 pb-12 pt-8 text-center">
-      <p className="text-xs text-[var(--wd-mute)]">
-        © {new Date().getFullYear()} 우리다운 · 문의: hello@example.com
+      <p className="text-xs leading-relaxed text-[var(--wd-mute)]">
+        © {new Date().getFullYear()} 우리다운 · 대표 강일훈 · 사업자등록번호 431-07-03350
+      </p>
+      <p className="mt-1 text-xs text-[var(--wd-mute)]">
+        문의:{' '}
+        <a
+          href="https://talk.naver.com/ct/wiq8nf0"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-[var(--wd-ink)]"
+        >
+          네이버 톡톡
+        </a>
       </p>
     </footer>
   );
