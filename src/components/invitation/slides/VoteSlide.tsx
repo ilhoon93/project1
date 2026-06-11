@@ -63,6 +63,17 @@ export function VoteSlide({ vote, invitationId, isPreview, mode = 'guest', owner
 // owner 모드 — 보기별 응답 분포 막대 그래프.
 // ─────────────────────────────────────────────────────────────
 
+// 투표 결과 막대 색 — 항목별로 다르게 해 한눈에 구분. 어떤 컬러 테마에서도
+// 흰 막대 배경 위에서 읽히도록 부드러운 파스텔 톤으로 고정.
+const VOTE_BAR_COLORS = [
+  '#E2998F', // rose
+  '#E6C079', // gold
+  '#9FC59A', // sage
+  '#93B8D6', // sky
+  '#BCA3D1', // lavender
+  '#86C3BE', // teal
+];
+
 function QuestionStats({
   qi,
   question,
@@ -87,26 +98,34 @@ function QuestionStats({
           if (!opt.trim()) return null;
           const count = distribution[oi];
           const pct = total === 0 ? 0 : Math.round((count / total) * 100);
+          const color = VOTE_BAR_COLORS[oi % VOTE_BAR_COLORS.length];
           return (
             <div
               key={oi}
               className="relative overflow-hidden rounded-md border border-[var(--mw-dot)] bg-white px-3 py-2.5 text-sm text-stone-900"
             >
               {/* 진행바 — 선택 비율(전체 응답 대비 %)에 비례한 폭. 0%면 폭 0.
-                  ⚠️ Tailwind `bg-[var(--mw-accent)]/45` 는 --mw-accent 가 hex(#..)라
-                  `rgb(#.. / .45)` 같은 무효 CSS 가 되어 색이 아예 안 나온다. 그래서
-                  backgroundColor(var) + opacity 인라인으로 확실히 칠한다. */}
+                  항목별로 다른 색(VOTE_BAR_COLORS)을 인라인 backgroundColor 로
+                  칠해 구분한다. (Tailwind `bg-[var()]/45` 는 hex var 와 함께 쓰면
+                  무효 CSS 가 되므로 backgroundColor + opacity 인라인 사용.) */}
               <span
                 aria-hidden
                 className="absolute inset-y-0 left-0 transition-[width] duration-500"
                 style={{
                   width: `${pct}%`,
-                  backgroundColor: 'var(--mw-accent)',
-                  opacity: 0.5,
+                  backgroundColor: color,
+                  opacity: 0.55,
                 }}
               />
               <span className="relative flex items-center justify-between gap-2">
-                <span className="font-medium">{opt}</span>
+                <span className="flex items-center gap-2 font-medium">
+                  <span
+                    aria-hidden
+                    className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: color }}
+                  />
+                  {opt}
+                </span>
                 <span className="tabular-nums text-xs text-muted-foreground">
                   {count} ({pct}%)
                 </span>
