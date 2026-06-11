@@ -119,6 +119,7 @@ export function InvitationsTable({
           <thead>
             <tr className="bg-[#FAF7F2] text-[11px] text-[#8B7355]">
               <th className="px-3 py-2 text-left font-medium">생성일시</th>
+              <th className="px-3 py-2 text-left font-medium">최종 수정</th>
               <th className="px-3 py-2 text-left font-medium">이메일</th>
               <th className="px-3 py-2 text-left font-medium">신랑 · 신부</th>
               <th className="px-3 py-2 text-left font-medium">예식일</th>
@@ -133,6 +134,9 @@ export function InvitationsTable({
                 <tr key={r.id} className="border-t border-[#E8DCC9]">
                   <td className="whitespace-nowrap px-3 py-2 text-[11px] text-[#5C4633]">
                     {formatKstDateTime(r.created_at)}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-[11px] text-[#5C4633]">
+                    {formatKstDateTime(r.updated_at)}
                   </td>
                   <td className="px-3 py-2 text-[12px] text-[#3D2E1F]">
                     {r.email ?? (
@@ -180,7 +184,7 @@ export function InvitationsTable({
             })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-10 text-center text-xs text-[#8B7355]">
+                <td colSpan={7} className="px-3 py-10 text-center text-xs text-[#8B7355]">
                   알림장이 없습니다.
                 </td>
               </tr>
