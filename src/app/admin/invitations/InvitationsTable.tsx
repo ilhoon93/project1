@@ -30,10 +30,12 @@ export interface InvitationRow {
 
 function fmtDate(iso: string | null): string {
   if (!iso) return '-';
+  // timestamptz(UTC 저장)를 항상 KST 로 표시 (timeZone 고정 — SSR/클라 일치).
   return new Date(iso).toLocaleDateString('ko-KR', {
     year: '2-digit',
     month: '2-digit',
     day: '2-digit',
+    timeZone: 'Asia/Seoul',
   });
 }
 

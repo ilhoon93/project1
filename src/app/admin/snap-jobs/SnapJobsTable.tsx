@@ -60,12 +60,15 @@ function modeLabel(path: string | null): string {
 }
 
 function fmtTime(iso: string): string {
+  // timestamptz(UTC 저장)를 항상 KST 로 표시 — timeZone 미지정 시 SSR(서버 UTC)
+  // 과 클라이언트(브라우저)가 달라져 9시간 어긋나거나 hydration 불일치가 난다.
   return new Date(iso).toLocaleString('ko-KR', {
     year: '2-digit',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'Asia/Seoul',
   });
 }
 
