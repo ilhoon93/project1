@@ -7,6 +7,19 @@ const STATE_COOKIE = 'naver_oauth_state';
 const NEXT_COOKIE = 'naver_oauth_next';
 
 /**
+ * 외부 직접 진입용 state 마커 → 로그인 후 목적지.
+ *
+ * 스마트스토어 상세페이지 등은 외부 도메인 링크가 잘리므로, 네이버 도메인인
+ * `nid.naver.com/oauth2.0/authorize?...&state=ext-xxx` 링크를 그대로 쓴다.
+ * 이 경로는 우리 /api/auth/naver/start 를 거치지 않아 사전 state 쿠키가 없으므로,
+ * state 가 아래 마커일 때만 쿠키 기반 CSRF 검증을 생략하고 목적지를 결정한다.
+ */
+const EXTERNAL_STATES: Record<string, string> = {
+  'ext-invitation': '/new',
+  'ext-snap': '/wedding-snap/create',
+};
+
+/**
  * GET /api/auth/naver/callback?code=…&state=…
  *
  *   1. CSRF: state cookie must match.
@@ -33,7 +46,15 @@ export async function GET(request: NextRequest) {
   const errorDesc = url.searchParams.get('error_description');
 
   const stateCookie = request.cookies.get(STATE_COOKIE)?.value ?? null;
-  const nextRaw = request.cookies.get(NEXT_COOKIE)?.value ?? '/mypage';
+
+  // 외부 직접 진입(스마트스토어 등 → nid.naver.com/authorize 직링크)인지 판별.
+  // 마커면 목적지를 state 로 정하고, 쿠키 state 검증은 아래에서 생략한다.
+  const externalNext = stateParam ? EXTERNAL_STATES[stateParam] : undefined;
+  const isExternalEntry = !!externalNext;
+
+  const nextRaw = isExternalEntry
+    ? (externalNext as string)
+    : request.cookies.get(NEXT_COOKIE)?.value ?? '/mypage';
   const next = nextRaw.startsWith('/') && !nextRaw.startsWith('//') ? nextRaw : '/mypage';
 
   const failRedirect = (msg: string, log?: unknown) => {
@@ -57,7 +78,11 @@ export async function GET(request: NextRequest) {
 
   if (errorDesc) return failRedirect(`naver_${errorDesc}`);
   if (!code || !stateParam) return failRedirect('missing_code_or_state');
-  if (!stateCookie || stateCookie !== stateParam) return failRedirect('state_mismatch');
+  // 내부 일반 흐름은 쿠키 state 를 그대로 검증. 외부 직접 진입(마커)은 사전
+  // 쿠키가 없으므로 생략한다(마케팅 로그인 진입 용도, trade-off 수용).
+  if (!isExternalEntry && (!stateCookie || stateCookie !== stateParam)) {
+    return failRedirect('state_mismatch');
+  }
 
   // Wrap the entire dance so any unexpected throw still produces a friendly redirect.
   try {
