@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { formatKstDateTime } from '@/lib/utils/datetime';
 
 /**
  * AI 웨딩스냅 생성내역 + 반응 테이블 (운영자).
@@ -59,14 +60,9 @@ function modeLabel(path: string | null): string {
   return path ?? '-';
 }
 
+// 운영자 내역은 초까지 상세 표시 (항상 KST).
 function fmtTime(iso: string): string {
-  return new Date(iso).toLocaleString('ko-KR', {
-    year: '2-digit',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatKstDateTime(iso, { second: '2-digit' });
 }
 
 export function SnapJobsTable({
