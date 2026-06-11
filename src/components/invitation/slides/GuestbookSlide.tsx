@@ -378,7 +378,7 @@ function OwnerGuestbookView({
           key={clamped}
           // 고정 비율(aspect) 대신 min-height + 내용 높이 — 짧은 글은 스크롤 없이
           // 한 화면에 담기고, 긴 글이 있을 때만 카드(책)가 아래로 늘어난다.
-          className={`relative flex min-h-[300px] w-full origin-left flex-col rounded-md bg-white p-6 pb-9 text-stone-900 shadow-xl ring-1 ring-stone-200 ${
+          className={`relative flex min-h-[300px] w-full origin-left flex-col rounded-md bg-white p-6 text-stone-900 shadow-xl ring-1 ring-stone-200 ${
             flipDir === 'next'
               ? 'animate-mw-page-flip-next'
               : flipDir === 'prev'
@@ -398,32 +398,33 @@ function OwnerGuestbookView({
             </div>
           )}
           {current.kind === 'entry' && <EntryCard e={current.e} />}
-
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[10px] text-stone-400">
-            {clamped + 1} / {total}
-          </div>
         </div>
 
-        {/* 좌우 페이지 넘기기 버튼 — 흰 종이 톤에 어울리는 화이트 원형 +
-            테마 액센트색 셰브론(어느 컬러 테마에서도 자동 적용). */}
-        <button
-          type="button"
-          aria-label="이전 페이지"
-          onClick={() => go('prev')}
-          disabled={clamped === 0}
-          className="absolute left-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-base leading-none text-[var(--mw-accent)] shadow-sm ring-1 ring-[var(--mw-dot)] transition-colors hover:bg-white disabled:opacity-40"
-        >
-          ‹
-        </button>
-        <button
-          type="button"
-          aria-label="다음 페이지"
-          onClick={() => go('next')}
-          disabled={clamped === total - 1}
-          className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-base leading-none text-[var(--mw-accent)] shadow-sm ring-1 ring-[var(--mw-dot)] transition-colors hover:bg-white disabled:opacity-40"
-        >
-          ›
-        </button>
+        {/* 페이지 넘기기 컨트롤 — 카드 아래로 분리해 방명록 글을 가리지 않는다.
+            버튼은 흰 종이 톤 + 테마 액센트색 셰브론(어느 컬러 테마에서도 자동). */}
+        <div className="mt-3 flex items-center justify-center gap-4">
+          <button
+            type="button"
+            aria-label="이전 페이지"
+            onClick={() => go('prev')}
+            disabled={clamped === 0}
+            className="grid h-8 w-8 place-items-center rounded-full bg-white/95 text-base leading-none text-[var(--mw-accent)] shadow-sm ring-1 ring-[var(--mw-dot)] transition-colors hover:bg-white disabled:opacity-40"
+          >
+            ‹
+          </button>
+          <span className="min-w-[3rem] text-center text-[11px] tabular-nums opacity-60">
+            {clamped + 1} / {total}
+          </span>
+          <button
+            type="button"
+            aria-label="다음 페이지"
+            onClick={() => go('next')}
+            disabled={clamped === total - 1}
+            className="grid h-8 w-8 place-items-center rounded-full bg-white/95 text-base leading-none text-[var(--mw-accent)] shadow-sm ring-1 ring-[var(--mw-dot)] transition-colors hover:bg-white disabled:opacity-40"
+          >
+            ›
+          </button>
+        </div>
 
         <style jsx global>{`
           @keyframes mw-page-flip-next {
