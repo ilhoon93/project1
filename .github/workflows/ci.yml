@@ -40,7 +40,21 @@ jobs:
         run: npm run typecheck
 
       - name: Build (no secrets)
-        run: npm run build
+        # next/font/google 가 빌드 타임에 Google Fonts 를 받는데, GitHub 러너에서
+        # 간헐적 ETIMEDOUT/rate-limit 이 발생해 빌드가 실패하는 알려진 이슈가 있다.
+        # 일시적 네트워크 실패를 흡수하도록 최대 3회 재시도한다. (실제 컴파일 에러는
+        # 3회 모두 실패해 step 이 실패하므로 안전.)
+        run: |
+          n=0
+          until npm run build; do
+            n=$((n+1))
+            if [ "$n" -ge 3 ]; then
+              echo "build failed after $n attempts"
+              exit 1
+            fi
+            echo "build attempt $n failed — retrying in $((n*20))s (likely Google Fonts fetch timeout)"
+            sleep $((n*20))
+          done
         env:
           # next build 는 secret 없이도 통과해야 한다.
           # 만약 어떤 라우트가 build 시점에 실제 외부 호출을 시도한다면

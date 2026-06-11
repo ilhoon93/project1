@@ -404,13 +404,14 @@ function OwnerGuestbookView({
           </div>
         </div>
 
-        {/* 좌우 페이지 넘기기 버튼 */}
+        {/* 좌우 페이지 넘기기 버튼 — 흰 종이 톤에 어울리는 화이트 원형 +
+            테마 액센트색 셰브론(어느 컬러 테마에서도 자동 적용). */}
         <button
           type="button"
           aria-label="이전 페이지"
           onClick={() => go('prev')}
           disabled={clamped === 0}
-          className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 px-2 py-1 text-base text-white transition-opacity hover:bg-black/60 disabled:opacity-30"
+          className="absolute left-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-base leading-none text-[var(--mw-accent)] shadow-sm ring-1 ring-[var(--mw-dot)] transition-colors hover:bg-white disabled:opacity-40"
         >
           ‹
         </button>
@@ -419,7 +420,7 @@ function OwnerGuestbookView({
           aria-label="다음 페이지"
           onClick={() => go('next')}
           disabled={clamped === total - 1}
-          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 px-2 py-1 text-base text-white transition-opacity hover:bg-black/60 disabled:opacity-30"
+          className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-base leading-none text-[var(--mw-accent)] shadow-sm ring-1 ring-[var(--mw-dot)] transition-colors hover:bg-white disabled:opacity-40"
         >
           ›
         </button>
