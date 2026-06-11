@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { adjustCredits } from './actions';
+import { formatKstDate } from '@/lib/utils/datetime';
 
 export interface AdminUserRow {
   user_id: string;
@@ -24,9 +25,7 @@ const KIND_LABEL: Record<CreditKind, string> = {
 };
 
 function fmtDate(iso: string): string {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' });
+  return formatKstDate(iso, { year: '2-digit', month: '2-digit', day: '2-digit' });
 }
 
 export function UsersTable({ rows }: { rows: AdminUserRow[] }) {

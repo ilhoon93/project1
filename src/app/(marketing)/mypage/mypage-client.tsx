@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { COLOR_THEME_LABELS, type ColorTheme } from '@/lib/theme';
 import { SNAP_CATALOG } from '@/lib/snap/catalog';
+import { formatKstDate } from '@/lib/utils/datetime';
 import { computePageItems } from '@/lib/utils/pagination';
 
 // snap_jobs / snap_anchor_history 응답 타입 — API 가 돌려주는 raw shape.
@@ -1136,7 +1137,7 @@ function formatRelative(iso: string | null | undefined): string {
   if (diffSec < 3600) return `${Math.floor(diffSec / 60)}분 전`;
   if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}시간 전`;
   if (diffSec < 7 * 86400) return `${Math.floor(diffSec / 86400)}일 전`;
-  return new Date(iso).toLocaleDateString('ko-KR');
+  return formatKstDate(iso);
 }
 
 function TabButton({
@@ -1912,9 +1913,7 @@ function ConfirmDialog({
 // ── helpers ─────────────────────────────────────────────────
 
 function formatDate(isoOrDate: string): string {
-  const d = new Date(isoOrDate);
-  if (isNaN(d.getTime())) return isoOrDate;
-  return d.toLocaleDateString('ko-KR', {
+  return formatKstDate(isoOrDate, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',

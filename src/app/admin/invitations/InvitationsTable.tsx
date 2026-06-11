@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { formatKstDateTime } from '@/lib/utils/datetime';
 
 /**
  * 알림장 목록 테이블 (운영자).
@@ -26,17 +27,6 @@ export interface InvitationRow {
   total_price: number | null;
   created_at: string;
   updated_at: string;
-}
-
-function fmtDate(iso: string | null): string {
-  if (!iso) return '-';
-  // timestamptz(UTC 저장)를 항상 KST 로 표시 (timeZone 고정 — SSR/클라 일치).
-  return new Date(iso).toLocaleDateString('ko-KR', {
-    year: '2-digit',
-    month: '2-digit',
-    day: '2-digit',
-    timeZone: 'Asia/Seoul',
-  });
 }
 
 function statusOf(r: InvitationRow): {
@@ -128,7 +118,7 @@ export function InvitationsTable({
         <table className="w-full min-w-[820px] border-collapse text-sm">
           <thead>
             <tr className="bg-[#FAF7F2] text-[11px] text-[#8B7355]">
-              <th className="px-3 py-2 text-left font-medium">생성일</th>
+              <th className="px-3 py-2 text-left font-medium">생성일시</th>
               <th className="px-3 py-2 text-left font-medium">이메일</th>
               <th className="px-3 py-2 text-left font-medium">신랑 · 신부</th>
               <th className="px-3 py-2 text-left font-medium">예식일</th>
@@ -142,7 +132,7 @@ export function InvitationsTable({
               return (
                 <tr key={r.id} className="border-t border-[#E8DCC9]">
                   <td className="whitespace-nowrap px-3 py-2 text-[11px] text-[#5C4633]">
-                    {fmtDate(r.created_at)}
+                    {formatKstDateTime(r.created_at)}
                   </td>
                   <td className="px-3 py-2 text-[12px] text-[#3D2E1F]">
                     {r.email ?? (
@@ -163,18 +153,27 @@ export function InvitationsTable({
                     </span>
                   </td>
                   <td className="px-3 py-2 text-[12px]">
-                    {r.is_published ? (
+                    <div className="flex flex-col gap-0.5">
+                      {/* 미발행 포함 모든 알림장을 운영자 미리보기로 열람 */}
                       <a
-                        href={`/${r.slug}`}
+                        href={`/admin/invitations/${r.id}/preview`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-mono text-[#8B7355] underline hover:text-[#5C4633]"
+                        className="text-[#8B7355] underline hover:text-[#5C4633]"
                       >
-                        /{r.slug} ↗
+                        미리보기 ↗
                       </a>
-                    ) : (
-                      <span className="font-mono text-[#B0A088]">/{r.slug}</span>
-                    )}
+                      {r.is_published && (
+                        <a
+                          href={`/${r.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono text-[11px] text-[#8B7355] hover:text-[#5C4633]"
+                        >
+                          공개링크 /{r.slug} ↗
+                        </a>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
