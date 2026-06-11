@@ -66,12 +66,17 @@ export default async function AdminSnapJobsPage({ searchParams }: PageProps) {
     const sb = createAdminClient();
     // PAGE_SIZE + 1 로 요청해 다음 페이지 존재 여부를 판단.
     // admin_snap_jobs 는 046 에서 추가된 RPC — 자동생성 Database 타입에 아직
-    // 없어 rpc 호출부를 느슨한 타입으로 캐스팅한다. (마이그 타입 재생성 전 호환)
-    const rpc = sb.rpc as unknown as (
-      fn: string,
-      args: Record<string, unknown>,
-    ) => Promise<{ data: unknown; error: { message: string } | null }>;
-    const { data, error } = await rpc('admin_snap_jobs', {
+    // 없어 호출부를 느슨한 타입으로 캐스팅한다. (마이그 타입 재생성 전 호환)
+    // 주의: sb.rpc 를 변수로 떼어내 호출하면 this 바인딩이 끊겨 supabase
+    // 내부에서 "Cannot read properties of undefined (reading 'rest')" 가 난다.
+    // 반드시 객체 메서드(adminRpc.rpc(...)) 로 호출해 this(=sb) 를 보존한다.
+    const adminRpc = sb as unknown as {
+      rpc: (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    };
+    const { data, error } = await adminRpc.rpc('admin_snap_jobs', {
       p_email: email || null,
       p_limit: PAGE_SIZE + 1,
       p_offset: page * PAGE_SIZE,
