@@ -30,7 +30,7 @@ interface BaseProps {
   overlay?: ReactNode;
   /** 카드 우상단 추가 인디케이터 (예: ✓ 체크). picker 에서만 사용. */
   topRight?: ReactNode;
-  /** 운영자가 '추천' 태그를 단 카탈로그면 좌상단 personality 배지 아래에 ★ 추천 chip 표시. */
+  /** 운영자가 '추천' 태그를 단 카탈로그면 좌상단 personality 배지 아래에 '추천' chip 표시. */
   isRecommended?: boolean;
 }
 
@@ -131,7 +131,7 @@ function BadgeStack({
       </span>
       {isRecommended && (
         <span className="rounded bg-emerald-600/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow-sm">
-          ★ 추천
+          추천
         </span>
       )}
     </div>
