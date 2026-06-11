@@ -56,82 +56,107 @@ export default async function AdminSnapJobsPage({ searchParams }: PageProps) {
   const email = (searchParams.email ?? '').trim();
   const page = Math.max(0, Number.parseInt(searchParams.page ?? '0', 10) || 0);
 
-  const sb = createAdminClient();
-  // PAGE_SIZE + 1 로 요청해 다음 페이지 존재 여부를 판단.
-  // admin_snap_jobs 는 046 에서 추가된 RPC — 자동생성 Database 타입에 아직
-  // 없어 rpc 호출부를 느슨한 타입으로 캐스팅한다. (마이그 타입 재생성 전 호환)
-  const rpc = sb.rpc as unknown as (
-    fn: string,
-    args: Record<string, unknown>,
-  ) => Promise<{ data: unknown; error: { message: string } | null }>;
-  const { data, error } = await rpc('admin_snap_jobs', {
-    p_email: email || null,
-    p_limit: PAGE_SIZE + 1,
-    p_offset: page * PAGE_SIZE,
-  });
+  // 데이터 조회를 통째로 try/catch — RPC 미적용/환경변수 누락/서명 실패 등 어떤
+  // 예외든 500 대신 화면에 실제 원인 메시지를 띄워 진단 가능하게 한다.
+  let rows: SnapJobRow[] = [];
+  let hasMore = false;
+  let errorMsg: string | null = null;
 
-  const raw = (Array.isArray(data) ? data : []) as RpcRow[];
-  const hasMore = raw.length > PAGE_SIZE;
-  const pageRaw = raw.slice(0, PAGE_SIZE);
-
-  // couple 모드 입력 사진은 private-uploads 의 만료 가능한 signed URL → path 로
-  // 현재 페이지 행만 재서명. (path 없으면 저장된 url 폴백.)
-  const couplePaths = Array.from(
-    new Set(
-      pageRaw
-        .filter((r) => r.catalog_path === 'couple' && r.couple_photo_path)
-        .map((r) => r.couple_photo_path as string),
-    ),
-  );
-  const signedMap = new Map<string, string>();
-  if (couplePaths.length > 0) {
-    const signed = await createPrivateSignedUrlsBulk(
-      couplePaths,
-      SIGNED_URL_TTL_SHORT,
-    );
-    couplePaths.forEach((p, i) => {
-      const url = signed[i];
-      if (url) signedMap.set(p, url);
+  try {
+    const sb = createAdminClient();
+    // PAGE_SIZE + 1 로 요청해 다음 페이지 존재 여부를 판단.
+    // admin_snap_jobs 는 046 에서 추가된 RPC — 자동생성 Database 타입에 아직
+    // 없어 호출부를 느슨한 타입으로 캐스팅한다. (마이그 타입 재생성 전 호환)
+    // 주의: sb.rpc 를 변수로 떼어내 호출하면 this 바인딩이 끊겨 supabase
+    // 내부에서 "Cannot read properties of undefined (reading 'rest')" 가 난다.
+    // 반드시 객체 메서드(adminRpc.rpc(...)) 로 호출해 this(=sb) 를 보존한다.
+    const adminRpc = sb as unknown as {
+      rpc: (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    };
+    const { data, error } = await adminRpc.rpc('admin_snap_jobs', {
+      p_email: email || null,
+      p_limit: PAGE_SIZE + 1,
+      p_offset: page * PAGE_SIZE,
     });
+    if (error) throw new Error(error.message);
+
+    const raw = (Array.isArray(data) ? data : []) as RpcRow[];
+    hasMore = raw.length > PAGE_SIZE;
+    const pageRaw = raw.slice(0, PAGE_SIZE);
+
+    // couple 모드 입력 사진은 private-uploads 의 만료 가능한 signed URL → path 로
+    // 현재 페이지 행만 재서명. (path 없으면 저장된 url 폴백.)
+    const couplePaths = Array.from(
+      new Set(
+        pageRaw
+          .filter((r) => r.catalog_path === 'couple' && r.couple_photo_path)
+          .map((r) => r.couple_photo_path as string),
+      ),
+    );
+    const signedMap = new Map<string, string>();
+    if (couplePaths.length > 0) {
+      const signed = await createPrivateSignedUrlsBulk(
+        couplePaths,
+        SIGNED_URL_TTL_SHORT,
+      );
+      couplePaths.forEach((p, i) => {
+        const url = signed[i];
+        if (url) signedMap.set(p, url);
+      });
+    }
+
+    rows = pageRaw.map((r) => {
+      let inputUrl: string | null = null;
+      let inputKind: SnapJobRow['input_kind'] = null;
+      if (r.catalog_path === 'couple') {
+        inputKind = 'couple';
+        inputUrl =
+          (r.couple_photo_path && signedMap.get(r.couple_photo_path)) ||
+          r.couple_photo_url ||
+          null;
+      } else {
+        inputKind = 'selfie';
+        inputUrl = r.groom_selfie_url || r.bride_selfie_url || null;
+      }
+      return {
+        id: r.id,
+        user_id: r.user_id,
+        email: r.email,
+        catalog_id: r.catalog_id,
+        catalog_path: r.catalog_path,
+        status: r.status,
+        submitted_at: r.submitted_at,
+        completed_at: r.completed_at,
+        result_url: r.result_url,
+        input_url: inputUrl,
+        input_kind: inputKind,
+        image_reference: r.image_reference,
+        quality: r.quality,
+        credit_delta: r.credit_delta,
+        fal_cost_usd: r.fal_cost_usd,
+        liked: r.liked,
+        liked_at: r.liked_at,
+        regen_reason: r.regen_reason,
+        regen_reason_text: r.regen_reason_text,
+        regen_to_job_id: r.regen_to_job_id,
+        error_message: r.error_message,
+      };
+    });
+  } catch (e) {
+    errorMsg = e instanceof Error ? e.message : String(e);
+    console.error('[admin/snap-jobs] load failed', e);
   }
 
-  const rows: SnapJobRow[] = pageRaw.map((r) => {
-    let inputUrl: string | null = null;
-    let inputKind: SnapJobRow['input_kind'] = null;
-    if (r.catalog_path === 'couple') {
-      inputKind = 'couple';
-      inputUrl =
-        (r.couple_photo_path && signedMap.get(r.couple_photo_path)) ||
-        r.couple_photo_url ||
-        null;
-    } else {
-      inputKind = 'selfie';
-      inputUrl = r.groom_selfie_url || r.bride_selfie_url || null;
-    }
-    return {
-      id: r.id,
-      user_id: r.user_id,
-      email: r.email,
-      catalog_id: r.catalog_id,
-      catalog_path: r.catalog_path,
-      status: r.status,
-      submitted_at: r.submitted_at,
-      completed_at: r.completed_at,
-      result_url: r.result_url,
-      input_url: inputUrl,
-      input_kind: inputKind,
-      image_reference: r.image_reference,
-      quality: r.quality,
-      credit_delta: r.credit_delta,
-      fal_cost_usd: r.fal_cost_usd,
-      liked: r.liked,
-      liked_at: r.liked_at,
-      regen_reason: r.regen_reason,
-      regen_reason_text: r.regen_reason_text,
-      regen_to_job_id: r.regen_to_job_id,
-      error_message: r.error_message,
-    };
-  });
+  // RPC 함수 미적용으로 보이는 경우 안내 힌트.
+  const looksMissingRpc =
+    !!errorMsg &&
+    (/admin_snap_jobs/i.test(errorMsg) ||
+      /PGRST202/i.test(errorMsg) ||
+      /could not find the function/i.test(errorMsg) ||
+      /does not exist/i.test(errorMsg));
 
   return (
     <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6">
@@ -144,10 +169,17 @@ export default async function AdminSnapJobsPage({ searchParams }: PageProps) {
         </p>
       </header>
 
-      {error ? (
-        <p className="rounded-md border border-red-200 bg-red-50 p-4 text-xs text-red-700">
-          생성내역을 불러오지 못했습니다: {error.message}
-        </p>
+      {errorMsg ? (
+        <div className="rounded-md border border-red-200 bg-red-50 p-4 text-xs text-red-700">
+          <p>생성내역을 불러오지 못했습니다: {errorMsg}</p>
+          {looksMissingRpc && (
+            <p className="mt-2 text-[#8B7355]">
+              DB 마이그레이션이 아직 적용되지 않은 것 같습니다. 다음을 실행해
+              주세요: <code className="font-mono">npx supabase db push</code>{' '}
+              (046_admin_snap_jobs.sql)
+            </p>
+          )}
+        </div>
       ) : (
         <SnapJobsTable
           rows={rows}
