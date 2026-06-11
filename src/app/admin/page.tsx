@@ -41,6 +41,12 @@ const ADMIN_PAGES: AdminPage[] = [
       'AI 웨딩스냅(catalog) 생성 기록을 최신순으로 조회. 이메일 필터 + 입력/결과 이미지 클릭 확대 + 반응(좋아요·재생성 사유) 표시.',
   },
   {
+    href: '/admin/invitations',
+    title: '알림장 목록',
+    description:
+      '알림장을 최신순으로 조회. 생성자 이메일 필터 + 발행된 것만 보기 + 발행 알림장 링크 바로 열람.',
+  },
+  {
     href: '/admin/snap-catalog-order',
     title: '카탈로그 노출 순서',
     description:
