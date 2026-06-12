@@ -68,7 +68,7 @@ export default async function AdminInvitationsPage({ searchParams }: PageProps) 
       <header className="mb-4">
         <h1 className="text-xl font-semibold text-[#3D2E1F]">알림장 목록</h1>
         <p className="mt-1 text-xs leading-relaxed text-[#8B7355]">
-          알림장을 최신순으로 조회합니다. 생성자 이메일로 필터링하고, 발행된 것만
+          알림장을 최종 수정일시순으로 조회합니다. 생성자 이메일로 필터링하고, 발행된 것만
           볼 수 있으며, 발행된 알림장은 링크로 바로 열람할 수 있습니다.
           <span className="ml-2">로그인 계정: {admin.email}</span>
         </p>
