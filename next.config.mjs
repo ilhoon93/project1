@@ -5,8 +5,8 @@ const nextConfig = {
   // AI 웨딩스냅 약관/개인정보 문서로 연결.)
   async redirects() {
     return [
-      { source: '/terms', destination: '/legal/snap-terms', permanent: true },
-      { source: '/privacy', destination: '/legal/snap-privacy', permanent: true },
+      { source: '/terms', destination: '/legal/terms', permanent: true },
+      { source: '/privacy', destination: '/legal/privacy', permanent: true },
     ];
   },
   webpack: (config, { isServer }) => {

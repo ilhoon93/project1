@@ -512,11 +512,11 @@ function Footer() {
         © {new Date().getFullYear()} 우리다운 · 대표 강일훈 · 사업자등록번호 431-07-03350
       </p>
       <p className="mt-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-[var(--wd-mute)]">
-        <a href="/legal/snap-terms" className="underline hover:text-[var(--wd-ink)]">
+        <a href="/legal/terms" className="underline hover:text-[var(--wd-ink)]">
           이용약관
         </a>
         <span aria-hidden>·</span>
-        <a href="/legal/snap-privacy" className="underline hover:text-[var(--wd-ink)]">
+        <a href="/legal/privacy" className="underline hover:text-[var(--wd-ink)]">
           개인정보처리방침
         </a>
         <span aria-hidden>·</span>
