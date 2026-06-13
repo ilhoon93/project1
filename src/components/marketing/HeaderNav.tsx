@@ -116,6 +116,14 @@ export function HeaderNav({
               >
                 마이페이지
               </Link>
+              <Link
+                href="/faq"
+                onClick={() => setOpen(false)}
+                role="menuitem"
+                className="block px-3 py-2.5 text-[13px] text-[var(--wd-ink)] transition-colors hover:bg-[var(--wd-cream)]"
+              >
+                도움말 · FAQ
+              </Link>
               <LogoutMenuItem />
             </div>
           )}

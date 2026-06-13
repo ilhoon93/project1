@@ -45,7 +45,7 @@ async function fetchInvitation(slug: string): Promise<FetchResult> {
   // 1) New world: publications snapshot
   const { data: pub } = await supabase
     .from('publications')
-    .select('invitation_id, slug, groom_name, bride_name, wedding_date, content, expires_at, revoked_at')
+    .select('invitation_id, slug, groom_name, bride_name, wedding_date, content, expires_at, revoked_at, archived')
     .eq('slug', slug)
     .maybeSingle();
 
@@ -60,7 +60,8 @@ async function fetchInvitation(slug: string): Promise<FetchResult> {
       content: pub.content,
       expires_at: pub.expires_at,
     };
-    if (pub.expires_at && new Date(pub.expires_at) < new Date()) {
+    // 영구소장(archived=true) 이면 만료 무시 — 하객용도 영구 유지(소장용과 동일).
+    if (!pub.archived && pub.expires_at && new Date(pub.expires_at) < new Date()) {
       return { kind: 'expired', inv: view };
     }
     return { kind: 'ok', inv: view };
