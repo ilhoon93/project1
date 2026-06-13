@@ -147,10 +147,10 @@ export function BasicInfoEditor() {
                   value={meta.weddingDate}
                   onChange={(iso) => setMeta({ weddingDate: iso })}
                 />
-                <label className="flex flex-col gap-1.5 text-sm">
+                <label className="flex min-w-0 flex-col gap-1.5 text-sm">
                   <span className="text-xs text-muted-foreground">출력 형식</span>
                   <select
-                    className="rounded border border-input bg-background px-2 py-1.5 text-sm"
+                    className="w-full min-w-0 rounded border border-input bg-background px-2 py-1.5 text-sm"
                     value={basic.dateFormat}
                     onChange={(e) =>
                       set({ ...basic, dateFormat: e.target.value as DateFormat })
@@ -361,7 +361,7 @@ function SideBlock({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-dashed border-muted-foreground/30 p-3">
+    <div className="flex min-w-0 flex-col gap-2 rounded-md border border-dashed border-muted-foreground/30 p-3">
       <h4 className="text-xs font-semibold tracking-wide text-muted-foreground">
         {title}
       </h4>
@@ -446,7 +446,7 @@ function DateInput({
   onChange: (iso: string | null) => void;
 }) {
   return (
-    <label className="flex flex-col gap-1.5">
+    <label className="flex min-w-0 flex-col gap-1.5">
       <span className="text-xs text-muted-foreground">
         결혼식 날짜{' '}
         <span className="text-[10px]">(YYYYMMDD · 숫자만 입력해도 됨)</span>
@@ -476,7 +476,7 @@ function DateInput({
             e.target.value = value ?? '';
           }
         }}
-        className="rounded border border-input bg-background px-2 py-1.5 text-sm"
+        className="w-full min-w-0 rounded border border-input bg-background px-2 py-1.5 text-sm"
       />
     </label>
   );

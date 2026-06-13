@@ -1549,7 +1549,7 @@ function Group({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-input bg-background p-3">
+    <div className="flex min-w-0 flex-col gap-2 rounded-md border border-input bg-background p-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-foreground">{label}</span>
         {toggle && <Switch checked={toggle.checked} onChange={toggle.onChange} label={label} />}
