@@ -47,11 +47,9 @@ export default function PrivacyPage() {
             <strong>게스트 콘텐츠</strong>: 하객이 입력한 이름·메시지·서명 등(작성자 동의에 기반)
           </li>
           <li>
-            <strong>결제</strong>: 결제 수단·승인 내역(카드정보 등 민감 결제정보는 PG사가 처리)
-          </li>
-          <li>
-            <strong>주문 연동</strong>: 네이버 스마트스토어 주문 확인 시 주문번호·주문자
-            연락처 등 적립 검증에 필요한 정보
+            <strong>결제·주문</strong>: 결제는 <strong>네이버 스마트스토어</strong>에서
+            이루어지며 회사는 카드 등 결제정보를 수집하지 않습니다. 크레딧 적립을 위해
+            주문번호·주문자 연락처 등 주문 확인에 필요한 정보만 처리합니다.
           </li>
           <li>
             <strong>자동 수집</strong>: 접속 IP, 브라우저·기기 정보, 이용 기록, 동의 시점
@@ -63,7 +61,7 @@ export default function PrivacyPage() {
       <Section title="3. 개인정보의 수집·이용 목적">
         <ul className="ml-5 list-disc space-y-1">
           <li>회원 식별·인증 및 서비스 제공(알림장 제작·발행, AI 스냅 생성)</li>
-          <li>크레딧 결제·환불 및 주문 적립 검증</li>
+          <li>크레딧 적립·환불 처리 및 네이버 스마트스토어 주문 검증</li>
           <li>고객 문의 대응 및 분쟁 처리</li>
           <li>부정 이용 방지·보안·서비스 품질 개선(식별 정보 제거 후 통계 분석)</li>
           <li>법령상 의무 이행</li>
@@ -119,14 +117,9 @@ export default function PrivacyPage() {
               <td className="py-2">웹 애플리케이션 호스팅</td>
               <td className="py-2">미국</td>
             </tr>
-            <tr className="border-b border-[#E8DCC9]">
-              <td className="py-2">결제대행사(PG)</td>
-              <td className="py-2">결제 처리</td>
-              <td className="py-2">대한민국</td>
-            </tr>
             <tr>
               <td className="py-2">네이버(주)</td>
-              <td className="py-2">소셜 로그인·스마트스토어 주문 확인</td>
+              <td className="py-2">소셜 로그인·스마트스토어 결제/주문 확인</td>
               <td className="py-2">대한민국</td>
             </tr>
           </tbody>
