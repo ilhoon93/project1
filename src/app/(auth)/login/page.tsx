@@ -20,8 +20,8 @@ export default function LoginPage() {
       </Suspense>
 
       <p className="text-xs text-muted-foreground">
-        로그인 시 <a className="underline" href="/terms">이용약관</a> 및{' '}
-        <a className="underline" href="/privacy">개인정보처리방침</a>에 동의합니다.
+        로그인 시 <a className="underline" href="/legal/snap-terms">이용약관</a> 및{' '}
+        <a className="underline" href="/legal/snap-privacy">개인정보처리방침</a>에 동의합니다.
       </p>
     </main>
   );
