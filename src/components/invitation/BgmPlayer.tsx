@@ -44,6 +44,9 @@ export function BgmPlayer({ url }: Props) {
 
     window.addEventListener('pointerdown', tryPlay, { once: false });
     window.addEventListener('keydown', tryPlay, { once: false });
+    // 처음 열었을 때 바로 재생 시도 (기본값 = 재생). 브라우저 자동재생 정책이
+    // 막으면 위 제스처 리스너가 첫 탭/키 입력에서 다시 시도한다.
+    tryPlay();
     return () => {
       window.removeEventListener('pointerdown', tryPlay);
       window.removeEventListener('keydown', tryPlay);
