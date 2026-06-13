@@ -512,6 +512,10 @@ function Footer() {
         © {new Date().getFullYear()} 우리다운 · 대표 강일훈 · 사업자등록번호 431-07-03350
       </p>
       <p className="mt-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-[var(--wd-mute)]">
+        <a href="/faq" className="underline hover:text-[var(--wd-ink)]">
+          자주 묻는 질문
+        </a>
+        <span aria-hidden>·</span>
         <a href="/legal/terms" className="underline hover:text-[var(--wd-ink)]">
           이용약관
         </a>
