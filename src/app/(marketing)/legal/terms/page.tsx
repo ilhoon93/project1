@@ -200,7 +200,7 @@ export default function TermsPage() {
           <li>상호: 우리다운 · 대표: 강일훈</li>
           <li>사업자등록번호: 431-07-03350</li>
           <li>주소: 인천광역시 서구 크리스탈로 100, 708-씨 51호</li>
-          <li>이메일: kohkhj902@google.com</li>
+          <li>이메일: kohkhj902@gmail.com</li>
           <li>
             문의:{' '}
             <a

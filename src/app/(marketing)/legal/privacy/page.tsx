@@ -159,7 +159,7 @@ export default function PrivacyPage() {
       <Section title="10. 개인정보 보호책임자 및 문의">
         <ul className="ml-5 list-disc space-y-1">
           <li>개인정보 보호책임자: 강일훈(대표)</li>
-          <li>이메일: kohkhj902@google.com</li>
+          <li>이메일: kohkhj902@gmail.com</li>
           <li>사업장 주소: 인천광역시 서구 크리스탈로 100, 708-씨 51호</li>
           <li>
             문의 채널:{' '}
