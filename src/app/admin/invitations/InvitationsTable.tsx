@@ -27,6 +27,10 @@ export interface InvitationRow {
   total_price: number | null;
   created_at: string;
   updated_at: string;
+  /** 활성 publication 의 공개 slug (하객용/소장용 URL 기준). 발행 안 했으면 null. */
+  pub_slug: string | null;
+  owner_token: string | null;
+  archived: boolean | null;
 }
 
 function statusOf(r: InvitationRow): {
@@ -35,6 +39,9 @@ function statusOf(r: InvitationRow): {
 } {
   if (!r.is_published) {
     return { label: '미발행', cls: 'bg-stone-100 text-stone-600 ring-stone-200' };
+  }
+  if (r.archived) {
+    return { label: '발행중(영구)', cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200' };
   }
   const expired = r.expires_at != null && new Date(r.expires_at) < new Date();
   return expired
@@ -167,14 +174,24 @@ export function InvitationsTable({
                       >
                         미리보기 ↗
                       </a>
-                      {r.is_published && (
+                      {r.is_published && r.pub_slug && (
                         <a
-                          href={`/${r.slug}`}
+                          href={`/${r.pub_slug}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-mono text-[11px] text-[#8B7355] hover:text-[#5C4633]"
+                          className="text-[11px] text-[#8B7355] hover:text-[#5C4633]"
                         >
-                          공개링크 /{r.slug} ↗
+                          하객용 ↗
+                        </a>
+                      )}
+                      {r.is_published && r.pub_slug && r.owner_token && (
+                        <a
+                          href={`/${r.pub_slug}/o/${r.owner_token}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-[#8B7355] hover:text-[#5C4633]"
+                        >
+                          소장용 ↗
                         </a>
                       )}
                     </div>
