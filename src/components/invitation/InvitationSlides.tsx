@@ -162,8 +162,9 @@ export function InvitationSlides({
     closing: (
       <ClosingSlide
         message={content.closing}
-        // 발행용 하객 뷰에서만 공유 버튼 노출 (미리보기/소장용 제외).
-        showShare={mode === 'guest' && !isPreview}
+        // 공유 버튼은 기본 노출(샘플·미리보기 포함). 사용자가 closingShare 를
+        // 끄면 숨김.
+        showShare={content.closingShare !== false}
       />
     ),
   };

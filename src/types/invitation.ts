@@ -660,6 +660,8 @@ export const InvitationContentSchema = z.object({
   guestbook: GuestbookSectionSchema,
   account: AccountSectionSchema,
   closing: z.string().max(300).default('와주셔서 진심으로 감사합니다'),
+  // 마무리 인사 슬라이드의 '공유하기' 버튼 노출 여부. 기본 노출, 사용자가 끌 수 있음.
+  closingShare: z.boolean().default(true),
 });
 
 export type InvitationContent = z.infer<typeof InvitationContentSchema>;
