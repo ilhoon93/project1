@@ -1,9 +1,6 @@
 /**
- * 우리다운 통합 개인정보처리방침 (초안 v1).
- *
- * ⚠️ 전체 서비스(알림장 + AI 웨딩스냅)를 포괄하는 표준 초안. 시행 전 변호사 검토 권장.
- *    개인정보 보호책임자 연락처(이메일/전화)·사업장 주소 등 [대괄호] 항목은
- *    사업자가 확정·기재해야 한다. PIPA(개인정보보호법) 기준 필수 항목 반영.
+ * 우리다운 통합 개인정보처리방침 (전체 서비스: 알림장 + AI 웨딩스냅).
+ * PIPA(개인정보보호법) 기준 항목 반영.
  */
 
 export const metadata = {
@@ -14,12 +11,7 @@ export default function PrivacyPage() {
   return (
     <div className="mx-auto max-w-2xl px-5 py-10 text-[#3D2E1F]">
       <h1 className="mb-2 text-2xl font-semibold">개인정보처리방침</h1>
-      <p className="mb-4 text-xs text-[#8B7355]">시행일: 2026-06-13 · 버전 v1 (초안)</p>
-
-      <div className="mb-6 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-3 text-xs leading-relaxed text-[#8B7355]">
-        본 방침은 표준 초안입니다. 시행 전 변호사 검토를 권장하며, [대괄호] 항목(보호책임자
-        연락처·주소 등)은 확정 후 채워야 합니다.
-      </div>
+      <p className="mb-6 text-xs text-[#8B7355]">시행일: 2026-06-01</p>
 
       <Section title="1. 총칙">
         <p>
@@ -167,7 +159,8 @@ export default function PrivacyPage() {
       <Section title="10. 개인정보 보호책임자 및 문의">
         <ul className="ml-5 list-disc space-y-1">
           <li>개인정보 보호책임자: 강일훈(대표)</li>
-          <li>연락처: [이메일 기재] / 사업장 주소: [주소 기재]</li>
+          <li>이메일: kohkhj902@gmail.com</li>
+          <li>사업장 주소: 인천광역시 서구 크리스탈로 100, 708-씨 51호</li>
           <li>
             문의 채널:{' '}
             <a
