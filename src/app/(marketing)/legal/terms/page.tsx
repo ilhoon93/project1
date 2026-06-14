@@ -1,9 +1,5 @@
 /**
- * 우리다운 통합 서비스 이용약관 (초안 v1).
- *
- * ⚠️ 본 문서는 전체 서비스(알림장 + AI 웨딩스냅)를 포괄하는 표준 초안이며,
- *    시행 전 반드시 변호사 검토가 필요하다. 사업장 주소·연락처(이메일/전화)·
- *    개인정보 보호책임자 등 [대괄호] 항목은 사업자가 채워야 한다.
+ * 우리다운 통합 서비스 이용약관 (전체 서비스: 알림장 + AI 웨딩스냅).
  * AI 웨딩스냅 단독 약관(동의 버전 관리)은 /legal/snap-terms 를 함께 유지한다.
  */
 
@@ -15,12 +11,7 @@ export default function TermsPage() {
   return (
     <div className="mx-auto max-w-2xl px-5 py-10 text-[#3D2E1F]">
       <h1 className="mb-2 text-2xl font-semibold">우리다운 서비스 이용약관</h1>
-      <p className="mb-4 text-xs text-[#8B7355]">시행일: 2026-06-13 · 버전 v1 (초안)</p>
-
-      <div className="mb-6 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-3 text-xs leading-relaxed text-[#8B7355]">
-        본 약관은 표준 초안입니다. 시행 전 변호사 검토를 권장하며, [대괄호]로 표시된
-        사업자 정보(주소·연락처 등)는 확정 후 채워야 합니다.
-      </div>
+      <p className="mb-6 text-xs text-[#8B7355]">시행일: 2026-06-01</p>
 
       <Section title="제1조 (목적)">
         <p>
@@ -208,7 +199,8 @@ export default function TermsPage() {
         <ul className="ml-5 list-disc space-y-1">
           <li>상호: 우리다운 · 대표: 강일훈</li>
           <li>사업자등록번호: 431-07-03350</li>
-          <li>주소: [사업장 주소 기재]</li>
+          <li>주소: 인천광역시 서구 크리스탈로 100, 708-씨 51호</li>
+          <li>이메일: kohkhj902@google.com</li>
           <li>
             문의:{' '}
             <a
@@ -225,7 +217,7 @@ export default function TermsPage() {
 
       <div className="mt-10 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-4 text-xs text-[#5C4633]">
         <p className="font-medium">부칙</p>
-        <p className="mt-1">본 약관은 2026-06-13부터 시행합니다.</p>
+        <p className="mt-1">본 약관은 2026-06-01부터 시행합니다.</p>
         <p className="mt-2">관련 문서:</p>
         <ul className="ml-5 list-disc">
           <li>
