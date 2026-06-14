@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { PETAL_GLYPHS, PETAL_IS_TEXTURE, type PetalType } from '@/lib/theme';
 
 const PETAL_COUNT = 14;
@@ -77,6 +77,13 @@ export function FallingPetals({
       })),
     [count, palette],
   );
+
+  // 첫 페인트(SSR/hydration) 시 컨테이너 쿼리 단위(cqw/cqh)·랜덤 위치가 잠깐
+  // 어긋나 배경효과가 크게 번쩍였다 사라지는 현상을 막기 위해, 컨테이너 크기가
+  // 확정된 마운트 이후에만 렌더한다. (장식 오버레이라 SSR 미출력 무방.)
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
 
   if (type === 'none') return null;
   if (type === 'starlight') {

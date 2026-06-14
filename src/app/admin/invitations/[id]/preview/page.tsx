@@ -40,8 +40,8 @@ export default async function AdminInvitationPreview({ params }: PageProps) {
   const parsed = InvitationContentSchema.safeParse(data.content ?? {});
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-hidden bg-black">
-      <div className="absolute left-0 right-0 top-0 z-[70] flex items-center justify-between gap-2 bg-black/80 px-4 py-2 text-[11px] text-white">
+    <div className="fixed inset-0 z-[60] flex flex-col bg-[#15110E]">
+      <div className="flex shrink-0 items-center justify-between gap-2 bg-black/80 px-4 py-2 text-[11px] text-white">
         <span className="truncate">
           운영자 미리보기 · {data.groom_name} · {data.bride_name} ·{' '}
           <span
@@ -58,21 +58,28 @@ export default async function AdminInvitationPreview({ params }: PageProps) {
         </Link>
       </div>
 
-      {parsed.success ? (
-        <InvitationSlides
-          invitationId={data.id}
-          groomName={data.groom_name}
-          brideName={data.bride_name}
-          weddingDate={data.wedding_date}
-          content={parsed.data}
-          isPreview
-        />
-      ) : (
-        <div className="flex h-full items-center justify-center px-6 text-center text-xs text-white">
-          저장된 콘텐츠가 현재 스키마와 호환되지 않아 미리보기를 렌더할 수
-          없습니다. (구버전 데이터일 수 있음)
-        </div>
-      )}
+      {/* 모바일: 전체 채움 / 데스크톱: 가운데 폰 프레임(9:18 비율). scoped 로
+          뷰포트 단위 대신 프레임 박스 기준으로 렌더된다. */}
+      <div className="flex flex-1 justify-center overflow-hidden sm:items-center sm:p-6">
+        {parsed.success ? (
+          <div className="relative h-full w-full overflow-hidden bg-background sm:h-[min(86vh,880px)] sm:w-auto sm:aspect-[1/2] sm:rounded-[2.2rem] sm:border-[3px] sm:border-black sm:shadow-2xl">
+            <InvitationSlides
+              invitationId={data.id}
+              groomName={data.groom_name}
+              brideName={data.bride_name}
+              weddingDate={data.wedding_date}
+              content={parsed.data}
+              isPreview
+              scoped
+            />
+          </div>
+        ) : (
+          <div className="flex h-full items-center justify-center px-6 text-center text-xs text-white">
+            저장된 콘텐츠가 현재 스키마와 호환되지 않아 미리보기를 렌더할 수
+            없습니다. (구버전 데이터일 수 있음)
+          </div>
+        )}
+      </div>
     </div>
   );
 }
