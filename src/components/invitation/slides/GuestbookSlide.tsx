@@ -172,7 +172,7 @@ function GuestGuestbookForm({
       <GuestbookDivider />
 
       <p className="whitespace-nowrap text-center text-[10px] opacity-70">
-        남기시는 메시지는 신랑신부에게만 전달되며, 다른 분들에게는 보이지 않습니다.
+        남기신 메시지는 신랑신부에게만 전달되며, 다른 분들에게 보이지 않습니다.
       </p>
 
       {submitted ? (
