@@ -103,11 +103,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // 카카오톡 공유 카드에 보이는 한 줄 설명 — 인앱 뷰어 안내까지 같이 표기.
   const description =
     '저희 두 사람의 결혼을 알립니다. 전체 화면으로 보시려면 외부 브라우저로 열어주세요.';
+  // 표지(hero) 사진이 있으면 공유 카드 이미지로 사용. 표지 사진은 public-images
+  // 버킷의 공개 영구 URL 이라 카카오/메신저 OG 봇이 가져갈 수 있다. 없으면 사이트
+  // 기본 og.png 를 상속(이미지 미지정).
+  const heroRaw = (inv.content as { main?: { heroImage?: unknown } } | null)?.main
+    ?.heroImage;
+  const ogImage =
+    typeof heroRaw === 'string' && /^https?:\/\//.test(heroRaw) ? heroRaw : null;
   return {
     title,
     description,
     ...noindex,
-    openGraph: { title, description },
+    openGraph: {
+      title,
+      description,
+      ...(ogImage ? { images: [{ url: ogImage, alt: title }] } : {}),
+    },
   };
 }
 
