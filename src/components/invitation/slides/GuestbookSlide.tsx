@@ -171,7 +171,7 @@ function GuestGuestbookForm({
       {/* 신랑신부 메시지와 입력부 사이 디바이더 — 가는 라인 + 가운데 ✦ */}
       <GuestbookDivider />
 
-      <p className="text-center text-xs opacity-70">
+      <p className="whitespace-nowrap text-center text-[10px] opacity-70">
         남기시는 메시지는 신랑신부에게만 전달되며, 다른 분들에게는 보이지 않습니다.
       </p>
 
@@ -244,9 +244,7 @@ function GuestGuestbookForm({
               onChange={(e) => setConsent(e.target.checked)}
               className="mt-0.5"
             />
-            <span>
-              개인정보(이름·메시지·서명) 수집에 동의합니다. 결혼식 후 30일간 보관됩니다.
-            </span>
+            <span>개인정보(이름·메시지·서명) 수집에 동의합니다.</span>
           </label>
 
           {errorMsg && (
