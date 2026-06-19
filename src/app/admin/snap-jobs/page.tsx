@@ -112,26 +112,32 @@ export default async function AdminSnapJobsPage({ searchParams }: PageProps) {
     rows = await Promise.all(
       pageRaw.map(async (r) => {
         // 입력 사진은 private-uploads 의 만료된 서명 URL 로 저장돼 있어 그대로
-        // 쓰면 깨진다. couple 은 path 로 재서명(signedMap), selfie 는 저장된
-        // 서명 URL 을 refreshPrivateSignedUrl 로 즉시 재서명해 살린다.
-        let inputUrl: string | null = null;
+        // 쓰면 깨진다. couple 은 path 로 재서명(signedMap), selfie 는 신랑·신부
+        // 셀카 양쪽을 refreshPrivateSignedUrl 로 즉시 재서명해 둘 다 보여준다.
+        let inputUrls: string[] = [];
         let inputKind: SnapJobRow['input_kind'] = null;
         if (r.catalog_path === 'couple') {
           inputKind = 'couple';
           const fromPath = r.couple_photo_path
             ? signedMap.get(r.couple_photo_path)
             : undefined;
-          inputUrl =
+          const u =
             fromPath ??
             (r.couple_photo_url
               ? await refreshPrivateSignedUrl(r.couple_photo_url)
               : null);
+          if (u) inputUrls = [u];
         } else {
           inputKind = 'selfie';
-          const rawSelfie = r.groom_selfie_url || r.bride_selfie_url;
-          inputUrl = rawSelfie
-            ? await refreshPrivateSignedUrl(rawSelfie)
-            : null;
+          const both = await Promise.all([
+            r.groom_selfie_url
+              ? refreshPrivateSignedUrl(r.groom_selfie_url)
+              : Promise.resolve(null),
+            r.bride_selfie_url
+              ? refreshPrivateSignedUrl(r.bride_selfie_url)
+              : Promise.resolve(null),
+          ]);
+          inputUrls = both.filter((x): x is string => !!x);
         }
         return {
           id: r.id,
@@ -143,7 +149,7 @@ export default async function AdminSnapJobsPage({ searchParams }: PageProps) {
           submitted_at: r.submitted_at,
           completed_at: r.completed_at,
           result_url: r.result_url,
-          input_url: inputUrl,
+          input_urls: inputUrls,
           input_kind: inputKind,
           image_reference: r.image_reference,
           quality: r.quality,
