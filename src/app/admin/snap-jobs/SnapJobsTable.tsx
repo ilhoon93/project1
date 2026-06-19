@@ -25,7 +25,8 @@ export interface SnapJobRow {
   completed_at: string | null;
   result_url: string | null;
   /** 서버에서 모드별로 해석한 입력 이미지 URL (couple=재서명, selfie=셀카). */
-  input_url: string | null;
+  /** 입력 사진들 — 셀카 모드는 신랑·신부 둘 다, 커플 모드는 1장. */
+  input_urls: string[];
   input_kind: 'couple' | 'selfie' | null;
   image_reference: string | null;
   quality: string | null;
@@ -168,8 +169,18 @@ export function SnapJobsTable({
                     {r.status}
                   </span>
                 </td>
-                <td className="px-2 py-2 text-center">
-                  <Thumb url={r.input_url} onOpen={setLightbox} label="입력 없음" />
+                <td className="px-2 py-2">
+                  {r.input_urls.length > 0 ? (
+                    <div className="flex items-center justify-center gap-1">
+                      {r.input_urls.map((u, i) => (
+                        <Thumb key={i} url={u} onOpen={setLightbox} label="입력 없음" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <Thumb url={null} onOpen={setLightbox} label="입력 없음" />
+                    </div>
+                  )}
                 </td>
                 <td className="px-2 py-2 text-center">
                   <Thumb url={r.result_url} onOpen={setLightbox} label="결과 없음" />
