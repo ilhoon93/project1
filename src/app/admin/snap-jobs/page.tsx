@@ -26,6 +26,8 @@ interface RpcRow {
   kind: string;
   catalog_id: string | null;
   catalog_path: string | null;
+  anchor_slot: string | null;
+  anchor_framing: string | null;
   status: string;
   submitted_at: string;
   completed_at: string | null;
@@ -34,6 +36,8 @@ interface RpcRow {
   couple_photo_path: string | null;
   groom_selfie_url: string | null;
   bride_selfie_url: string | null;
+  groom_anchor_url: string | null;
+  bride_anchor_url: string | null;
   image_reference: string | null;
   quality: string | null;
   credit_delta: number | null;
@@ -116,7 +120,7 @@ export default async function AdminSnapJobsPage({ searchParams }: PageProps) {
         // 셀카 양쪽을 refreshPrivateSignedUrl 로 즉시 재서명해 둘 다 보여준다.
         let inputUrls: string[] = [];
         let inputKind: SnapJobRow['input_kind'] = null;
-        if (r.catalog_path === 'couple') {
+        if (r.kind !== 'anchor' && r.catalog_path === 'couple') {
           inputKind = 'couple';
           const fromPath = r.couple_photo_path
             ? signedMap.get(r.couple_photo_path)
@@ -128,6 +132,7 @@ export default async function AdminSnapJobsPage({ searchParams }: PageProps) {
               : null);
           if (u) inputUrls = [u];
         } else {
+          // 셀카 카탈로그 + 앵커 생성 잡 모두 입력은 신랑·신부 셀카.
           inputKind = 'selfie';
           const both = await Promise.all([
             r.groom_selfie_url
@@ -139,18 +144,44 @@ export default async function AdminSnapJobsPage({ searchParams }: PageProps) {
           ]);
           inputUrls = both.filter((x): x is string => !!x);
         }
+
+        // 셀카 카탈로그가 "사용한 앵커"(입력→앵커→결과). 앵커 잡은 결과 자체가
+        // 앵커이므로 별도 표시 안 함. 커플 모드도 앵커 미사용.
+        let anchorUrls: string[] = [];
+        if (r.kind === 'catalog' && inputKind === 'selfie') {
+          const both = await Promise.all([
+            r.groom_anchor_url
+              ? refreshPrivateSignedUrl(r.groom_anchor_url)
+              : Promise.resolve(null),
+            r.bride_anchor_url
+              ? refreshPrivateSignedUrl(r.bride_anchor_url)
+              : Promise.resolve(null),
+          ]);
+          anchorUrls = both.filter((x): x is string => !!x);
+        }
+
+        // 앵커 잡 결과는 private-uploads signed → 재서명. 카탈로그 결과는
+        // public-images publicUrl 이라 refresh 가 원본 그대로 반환(no-op).
+        const resultUrl = r.result_url
+          ? await refreshPrivateSignedUrl(r.result_url)
+          : null;
+
         return {
           id: r.id,
           user_id: r.user_id,
           email: r.email,
+          kind: r.kind,
           catalog_id: r.catalog_id,
           catalog_path: r.catalog_path,
+          anchor_slot: r.anchor_slot,
+          anchor_framing: r.anchor_framing,
           status: r.status,
           submitted_at: r.submitted_at,
           completed_at: r.completed_at,
-          result_url: r.result_url,
+          result_url: resultUrl,
           input_urls: inputUrls,
           input_kind: inputKind,
+          anchor_urls: anchorUrls,
           image_reference: r.image_reference,
           quality: r.quality,
           credit_delta: r.credit_delta,
@@ -182,8 +213,8 @@ export default async function AdminSnapJobsPage({ searchParams }: PageProps) {
       <header className="mb-4">
         <h1 className="text-xl font-semibold text-[#3D2E1F]">AI 스냅 생성내역</h1>
         <p className="mt-1 text-xs leading-relaxed text-[#8B7355]">
-          웨딩스냅(catalog) 생성 기록을 최신순으로 조회합니다. 이메일로 필터링하고,
-          입력·결과 이미지를 클릭하면 크게 볼 수 있습니다.
+          웨딩스냅(catalog)과 앵커 생성 기록을 최신순으로 조회합니다. 이메일로
+          필터링하고, 입력·사용 앵커·결과 이미지를 클릭하면 크게 볼 수 있습니다.
           <span className="ml-2">로그인 계정: {admin.email}</span>
         </p>
       </header>
@@ -195,7 +226,7 @@ export default async function AdminSnapJobsPage({ searchParams }: PageProps) {
             <p className="mt-2 text-[#8B7355]">
               DB 마이그레이션이 아직 적용되지 않은 것 같습니다. 다음을 실행해
               주세요: <code className="font-mono">npx supabase db push</code>{' '}
-              (046_admin_snap_jobs.sql)
+              (050_admin_snap_jobs_anchors.sql)
             </p>
           )}
         </div>

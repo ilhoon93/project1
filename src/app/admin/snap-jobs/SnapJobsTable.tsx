@@ -18,8 +18,13 @@ export interface SnapJobRow {
   id: string;
   user_id: string;
   email: string | null;
+  /** 'catalog'(웨딩스냅) 또는 'anchor'(앵커 생성). */
+  kind: string;
   catalog_id: string | null;
   catalog_path: string | null;
+  /** 앵커 잡일 때 슬롯(groom/bride)·프레이밍. catalog 잡은 null. */
+  anchor_slot: string | null;
+  anchor_framing: string | null;
   status: string;
   submitted_at: string;
   completed_at: string | null;
@@ -28,6 +33,8 @@ export interface SnapJobRow {
   /** 입력 사진들 — 셀카 모드는 신랑·신부 둘 다, 커플 모드는 1장. */
   input_urls: string[];
   input_kind: 'couple' | 'selfie' | null;
+  /** 셀카 카탈로그가 사용한 앵커(신랑·신부) — 입력→앵커→결과 표시용. */
+  anchor_urls: string[];
   image_reference: string | null;
   quality: string | null;
   credit_delta: number | null;
@@ -59,6 +66,12 @@ function modeLabel(path: string | null): string {
   if (path === 'couple') return '커플사진';
   if (path === 'anchored' || path === 'selfies') return '셀카';
   return path ?? '-';
+}
+
+function anchorSlotLabel(slot: string | null): string {
+  if (slot === 'groom') return '신랑';
+  if (slot === 'bride') return '신부';
+  return slot ?? '-';
 }
 
 // 운영자 내역은 초까지 상세 표시 (항상 KST).
@@ -134,9 +147,10 @@ export function SnapJobsTable({
             <tr className="bg-[#FAF7F2] text-[11px] text-[#8B7355]">
               <th className="px-3 py-2 text-left font-medium">일시</th>
               <th className="px-3 py-2 text-left font-medium">이메일</th>
-              <th className="px-3 py-2 text-left font-medium">카탈로그 / 모드</th>
+              <th className="px-3 py-2 text-left font-medium">종류 / 카탈로그 / 모드</th>
               <th className="px-2 py-2 text-center font-medium">상태</th>
               <th className="px-2 py-2 text-center font-medium">입력</th>
+              <th className="px-2 py-2 text-center font-medium">사용 앵커</th>
               <th className="px-2 py-2 text-center font-medium">결과</th>
               <th className="px-3 py-2 text-left font-medium">반응</th>
               <th className="px-2 py-2 text-right font-medium">비용($)</th>
@@ -154,11 +168,25 @@ export function SnapJobsTable({
                   )}
                 </td>
                 <td className="px-3 py-2 text-[12px] text-[#5C4633]">
-                  <div className="font-medium">{r.catalog_id ?? '-'}</div>
-                  <div className="text-[11px] text-[#8B7355]">
-                    {modeLabel(r.catalog_path)}
-                    {r.image_reference ? ` · ${r.image_reference}` : ''}
-                  </div>
+                  {r.kind === 'anchor' ? (
+                    <>
+                      <span className="inline-block rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-medium text-violet-700 ring-1 ring-violet-200">
+                        앵커
+                      </span>
+                      <div className="mt-1 text-[11px] text-[#8B7355]">
+                        {anchorSlotLabel(r.anchor_slot)}
+                        {r.anchor_framing ? ` · ${r.anchor_framing}` : ''}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="font-medium">{r.catalog_id ?? '-'}</div>
+                      <div className="text-[11px] text-[#8B7355]">
+                        {modeLabel(r.catalog_path)}
+                        {r.image_reference ? ` · ${r.image_reference}` : ''}
+                      </div>
+                    </>
+                  )}
                 </td>
                 <td className="px-2 py-2 text-center">
                   <span
@@ -180,6 +208,17 @@ export function SnapJobsTable({
                     <div className="text-center">
                       <Thumb url={null} onOpen={setLightbox} label="입력 없음" />
                     </div>
+                  )}
+                </td>
+                <td className="px-2 py-2">
+                  {r.anchor_urls.length > 0 ? (
+                    <div className="flex items-center justify-center gap-1">
+                      {r.anchor_urls.map((u, i) => (
+                        <Thumb key={i} url={u} onOpen={setLightbox} label="앵커 없음" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-[11px] text-[#B0A088]">-</div>
                   )}
                 </td>
                 <td className="px-2 py-2 text-center">
@@ -216,7 +255,7 @@ export function SnapJobsTable({
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-10 text-center text-xs text-[#8B7355]">
+                <td colSpan={9} className="px-3 py-10 text-center text-xs text-[#8B7355]">
                   생성내역이 없습니다.
                 </td>
               </tr>
