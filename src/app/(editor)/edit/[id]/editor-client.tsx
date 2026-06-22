@@ -134,107 +134,235 @@ export function EditorClient({
  * 재배치한다. 메인은 항상 맨 위, 엔딩은 항상 맨 아래로 고정하며 그 사이 섹션만
  * 순서를 바꿀 수 있다. (카드가 닫혀 있을 때만 드래그 가능 — SectionEditor 처리.)
  */
+/** 드래그 중 화면에 떠서 포인터를 따라다니는 카드 클론의 상태. */
+interface DragState {
+  from: SectionKey;
+  /** 포인터를 잡은 지점의 카드 내부 오프셋 — 클론이 손가락에 붙어 움직이도록. */
+  offsetX: number;
+  offsetY: number;
+  width: number;
+  /** 원본 카드의 outerHTML 스냅샷 — 그대로 떠 있는 클론으로 렌더. */
+  html: string;
+  /** 클론 첫 렌더 시 깜빡임 방지를 위한 초기 위치. */
+  startLeft: number;
+  startTop: number;
+}
+
 function SectionList() {
   const theme = useEditorStore((s) => s.content?.theme);
   const patch = useEditorStore((s) => s.patchSection);
   const [dragKey, setDragKey] = useState<SectionKey | null>(null);
-  const [overKey, setOverKey] = useState<SectionKey | null>(null);
+  // 드래그 중인 카드가 들어갈 위치 표시줄의 화면 좌표. null=드래그 안 함/표시 안 함.
+  const [indicator, setIndicator] = useState<{ top: number; left: number; width: number } | null>(
+    null,
+  );
 
   const order = theme ? reconcilePageOrder(theme.pageOrder) : [];
   // 메인 고정 최상단 · 엔딩 고정 최하단. 그 사이만 이동 대상.
   const movable = order.filter((k) => !FIXED_SECTIONS.has(k));
 
   // window 포인터 리스너는 안정적인 함수로 한 번만 붙이므로, 최신 순서/패치를
-  // ref 로 들고 있어 stale closure 없이 드롭 시점의 값으로 재배치한다.
-  const reorderRef = useRef<(from: SectionKey, to: SectionKey) => void>(() => {});
-  reorderRef.current = (from, to) => {
-    if (from === to || !theme || FIXED_SECTIONS.has(from) || FIXED_SECTIONS.has(to)) return;
-    const next = [...movable];
-    const fi = next.indexOf(from);
-    if (fi < 0) return;
-    next.splice(fi, 1);
-    const ti = next.indexOf(to);
-    if (ti < 0) return;
-    next.splice(ti, 0, from);
-    patch('theme', { ...theme, pageOrder: ['main', ...next, 'closing'] });
+  // ref 로 들고 있어 stale closure 없이 드롭 시점의 값으로 동작한다.
+  const reorderRef = useRef<(from: SectionKey, index: number) => void>(() => {});
+  reorderRef.current = (from, index) => {
+    if (!theme) return;
+    const cur = [...movable];
+    const fromIdx = cur.indexOf(from);
+    if (fromIdx < 0) return;
+    cur.splice(fromIdx, 1);
+    // 앞쪽 항목을 빼냈으면 목표 인덱스가 하나 당겨진다.
+    let target = fromIdx < index ? index - 1 : index;
+    target = Math.max(0, Math.min(cur.length, target));
+    cur.splice(target, 0, from);
+    const nextOrder: SectionKey[] = ['main', ...cur, 'closing'];
+    if (nextOrder.join() === order.join()) return; // 제자리 드롭 — 변경 없음.
+    patch('theme', { ...theme, pageOrder: nextOrder });
   };
 
-  const dragKeyRef = useRef<SectionKey | null>(null);
+  const dragRef = useRef<DragState | null>(null);
+  const cloneRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const insertIndexRef = useRef<number | null>(null);
 
-  // 화면 좌표 아래에 있는 (이동 가능한) 섹션 키. 고정 섹션/카드 밖은 null.
-  const sectionAtPoint = (x: number, y: number): SectionKey | null => {
-    const el = document.elementFromPoint(x, y);
-    const card = el?.closest('[data-section-key]');
-    const key = (card?.getAttribute('data-section-key') as SectionKey | null) ?? null;
-    return key && !FIXED_SECTIONS.has(key) ? key : null;
-  };
-
-  const handleMove = useCallback((e: globalThis.PointerEvent) => {
-    if (!dragKeyRef.current) return;
-    setOverKey(sectionAtPoint(e.clientX, e.clientY));
+  // 클론 transform 은 style prop 이 아니라 ref 로 직접 제어한다(매 re-render 마다
+  // React 가 style prop 값으로 되돌리는 것을 피함). 첫 마운트 시 콜백 ref 가
+  // 시작 위치를 한 번 세팅 → 깜빡임 없음. 이후 pointermove 가 직접 갱신.
+  const cloneCallbackRef = useCallback((node: HTMLDivElement | null) => {
+    cloneRef.current = node;
+    const st = dragRef.current;
+    if (node && st) {
+      node.style.transform = `translate(${st.startLeft}px, ${st.startTop}px)`;
+    }
   }, []);
+
+  // 포인터 Y 가 떨어질 movable 인덱스와, 그 자리에 그릴 표시줄의 화면 좌표를 함께
+  // 계산. 표시줄은 fixed 로 띄워(레이아웃에 영향 X) 카드가 밀리며 인덱스가 떨리는
+  // 현상을 막는다. main/closing 은 data-section-key 가 없어 자동 제외된다.
+  const computePlacement = useCallback(
+    (y: number): { idx: number; top: number; left: number; width: number } | null => {
+      const root = listRef.current;
+      if (!root) return null;
+      const cards = Array.from(root.querySelectorAll<HTMLElement>('[data-section-key]'));
+      if (cards.length === 0) return null;
+      const rects = cards.map((c) => c.getBoundingClientRect());
+      let idx = rects.length;
+      for (let i = 0; i < rects.length; i++) {
+        if (y < rects[i].top + rects[i].height / 2) {
+          idx = i;
+          break;
+        }
+      }
+      const { left, width } = rects[0];
+      let top: number;
+      if (idx === 0) top = rects[0].top - 6;
+      else if (idx === rects.length) top = rects[rects.length - 1].bottom + 6;
+      else top = (rects[idx - 1].bottom + rects[idx].top) / 2;
+      return { idx, top, left, width };
+    },
+    [],
+  );
+
+  const updateIndicator = useCallback(
+    (y: number) => {
+      const p = computePlacement(y);
+      if (!p) return;
+      // 인덱스가 바뀔 때만 표시줄 위치 갱신(레이아웃 불변이라 같은 인덱스면 위치도 동일).
+      if (p.idx !== insertIndexRef.current) {
+        insertIndexRef.current = p.idx;
+        setIndicator({ top: p.top, left: p.left, width: p.width });
+      }
+    },
+    [computePlacement],
+  );
+
+  const handleMove = useCallback(
+    (e: globalThis.PointerEvent) => {
+      const st = dragRef.current;
+      if (!st) return;
+      if (cloneRef.current) {
+        cloneRef.current.style.transform = `translate(${e.clientX - st.offsetX}px, ${
+          e.clientY - st.offsetY
+        }px)`;
+      }
+      updateIndicator(e.clientY);
+    },
+    [updateIndicator],
+  );
+
+  const cleanupListeners = useCallback(
+    (move: typeof handleMove, up: (e: globalThis.PointerEvent) => void) => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    },
+    [],
+  );
 
   const handleUp = useCallback(
     (e: globalThis.PointerEvent) => {
-      const from = dragKeyRef.current;
-      if (from) {
-        const to = sectionAtPoint(e.clientX, e.clientY);
-        if (to) reorderRef.current(from, to);
+      const st = dragRef.current;
+      if (st) {
+        const p = computePlacement(e.clientY);
+        if (p) reorderRef.current(st.from, p.idx);
       }
-      dragKeyRef.current = null;
+      dragRef.current = null;
+      insertIndexRef.current = null;
       setDragKey(null);
-      setOverKey(null);
-      window.removeEventListener('pointermove', handleMove);
-      window.removeEventListener('pointerup', handleUp);
-      window.removeEventListener('pointercancel', handleUp);
+      setIndicator(null);
+      cleanupListeners(handleMove, handleUp);
     },
-    [handleMove],
+    [handleMove, computePlacement, cleanupListeners],
   );
 
   const startDrag = useCallback(
-    (key: SectionKey) => {
-      dragKeyRef.current = key;
+    (key: SectionKey, clientX: number, clientY: number) => {
+      const el = listRef.current?.querySelector<HTMLElement>(
+        `[data-section-key="${key}"]`,
+      );
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      dragRef.current = {
+        from: key,
+        offsetX: clientX - rect.left,
+        offsetY: clientY - rect.top,
+        width: rect.width,
+        html: el.outerHTML,
+        startLeft: rect.left,
+        startTop: rect.top,
+      };
       setDragKey(key);
+      updateIndicator(clientY);
       window.addEventListener('pointermove', handleMove);
       window.addEventListener('pointerup', handleUp);
       window.addEventListener('pointercancel', handleUp);
     },
-    [handleMove, handleUp],
+    [handleMove, handleUp, updateIndicator],
   );
 
   // 드래그 도중 언마운트되면 리스너 정리.
-  useEffect(
-    () => () => {
-      window.removeEventListener('pointermove', handleMove);
-      window.removeEventListener('pointerup', handleUp);
-      window.removeEventListener('pointercancel', handleUp);
-    },
-    [handleMove, handleUp],
-  );
+  useEffect(() => () => cleanupListeners(handleMove, handleUp), [handleMove, handleUp, cleanupListeners]);
 
   if (!theme) return null;
 
-  const rendered: SectionKey[] = ['main', ...movable, 'closing'];
+  const renderSection = (key: SectionKey) => {
+    const Editor = SECTION_EDITORS[key];
+    const fixed = FIXED_SECTIONS.has(key);
+    return (
+      <Editor
+        key={key}
+        drag={{
+          enabled: !fixed,
+          sectionKey: key,
+          dragging: dragKey === key,
+          onDragStart: (x, y) => startDrag(key, x, y),
+        }}
+      />
+    );
+  };
+
+  const drag = dragRef.current;
 
   return (
     <>
-      {rendered.map((key) => {
-        const Editor = SECTION_EDITORS[key];
-        const fixed = FIXED_SECTIONS.has(key);
-        return (
-          <Editor
-            key={key}
-            drag={{
-              enabled: !fixed,
-              sectionKey: key,
-              dragging: dragKey === key,
-              dragOver: overKey === key && dragKey !== null && dragKey !== key,
-              onDragStart: () => startDrag(key),
-            }}
-          />
-        );
-      })}
+      {/* display:contents — 래퍼가 박스를 만들지 않아 카드들이 부모 flex 의 gap 을
+          그대로 받는다. 동시에 querySelector 범위를 카드 목록으로 한정해 클론을 제외. */}
+      <div ref={listRef} className="contents">
+        {renderSection('main')}
+        {movable.map((key) => renderSection(key))}
+        {renderSection('closing')}
+      </div>
+
+      {/* 들어갈 위치 표시줄 — fixed 로 띄워 카드 레이아웃을 건드리지 않는다(떨림 방지). */}
+      {dragKey && indicator && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed z-40 -translate-y-1/2"
+          style={{ top: indicator.top, left: indicator.left, width: indicator.width }}
+        >
+          <DropLine />
+        </div>
+      )}
+
+      {/* 포인터를 따라 떠다니는 카드 클론 — 원본은 자리에서 흐려진 placeholder 로 남는다. */}
+      {dragKey && drag && (
+        <div
+          ref={cloneCallbackRef}
+          aria-hidden
+          className="pointer-events-none fixed left-0 top-0 z-50 rotate-1 opacity-95 drop-shadow-xl"
+          style={{ width: drag.width }}
+          dangerouslySetInnerHTML={{ __html: drag.html }}
+        />
+      )}
     </>
+  );
+}
+
+/** 카드가 들어갈 위치를 보여주는 가로 인디케이터 라인(좌측 점 + 바). */
+function DropLine() {
+  return (
+    <div className="relative h-0.5 rounded-full bg-primary">
+      <span className="absolute -left-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-primary shadow-sm" />
+    </div>
   );
 }
 
