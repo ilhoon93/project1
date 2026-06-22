@@ -1,18 +1,18 @@
 'use client';
 
 import { useEditorStore } from '@/stores/editor';
-import { SectionEditor } from '../SectionEditor';
+import { SectionEditor, type SectionDragProps } from '../SectionEditor';
 import { PresetTextArea } from '../PresetTextArea';
 import { CLOSING_PRESETS } from '@/lib/presets';
 
-export function ClosingEditor() {
+export function ClosingEditor({ drag }: { drag?: SectionDragProps }) {
   const closing = useEditorStore((s) => s.content?.closing);
   const closingShare = useEditorStore((s) => s.content?.closingShare);
   const patch = useEditorStore((s) => s.patchSection);
   if (closing === undefined) return null;
 
   return (
-    <SectionEditor title="마무리 인사" description="마지막 슬라이드에 보일 메시지">
+    <SectionEditor drag={drag} title="마무리 인사" description="마지막 슬라이드에 보일 메시지">
       <PresetTextArea
         label="마무리 메시지"
         value={closing}

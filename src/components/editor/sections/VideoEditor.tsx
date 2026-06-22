@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { useEditorStore } from '@/stores/editor';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from '@/lib/utils/nanoid';
-import { SectionEditor } from '../SectionEditor';
+import { SectionEditor, type SectionDragProps } from '../SectionEditor';
 import { TextField } from '../form-fields';
 import { Button } from '@/components/ui/button';
 import { VIDEO_LIMITS, validateVideoFile } from '@/lib/uploads';
@@ -13,7 +13,7 @@ function isYouTubeUrl(url: string) {
   return /(?:youtube\.com|youtu\.be)/i.test(url);
 }
 
-export function VideoEditor() {
+export function VideoEditor({ drag }: { drag?: SectionDragProps }) {
   const video = useEditorStore((s) => s.content?.video);
   const invitationId = useEditorStore((s) => s.invitationId);
   const patch = useEditorStore((s) => s.patchSection);
@@ -59,6 +59,7 @@ export function VideoEditor() {
 
   return (
     <SectionEditor
+      drag={drag}
       title="영상"
       description="유튜브 링크 또는 영상 파일 업로드"
       toggle={{

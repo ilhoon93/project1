@@ -1,7 +1,7 @@
 'use client';
 
 import { useEditorStore } from '@/stores/editor';
-import { SectionEditor } from '../SectionEditor';
+import { SectionEditor, type SectionDragProps } from '../SectionEditor';
 import { TextField } from '../form-fields';
 import { Button } from '@/components/ui/button';
 import type { QuizQuestion } from '@/types/invitation';
@@ -12,7 +12,7 @@ const EMPTY_QUESTION: QuizQuestion = {
   answer: 0,
 };
 
-export function QuizEditor() {
+export function QuizEditor({ drag }: { drag?: SectionDragProps }) {
   const quiz = useEditorStore((s) => s.content?.quiz);
   const patch = useEditorStore((s) => s.patchSection);
   if (!quiz) return null;
@@ -34,6 +34,7 @@ export function QuizEditor() {
 
   return (
     <SectionEditor
+      drag={drag}
       title="퀴즈"
       description="하객이 풀 수 있는 4지선다 퀴즈 (최대 2문항)"
       toggle={{

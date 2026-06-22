@@ -1,7 +1,7 @@
 'use client';
 
 import { useEditorStore } from '@/stores/editor';
-import { SectionEditor } from '../SectionEditor';
+import { SectionEditor, type SectionDragProps } from '../SectionEditor';
 import { TextField, TextAreaField } from '../form-fields';
 import { Button } from '@/components/ui/button';
 import { ImageUploader } from '../ImageUploader';
@@ -9,7 +9,7 @@ import type { StoryChapter } from '@/types/invitation';
 
 const PLACEHOLDERS = ['첫 만남', '고백', '프로포즈', '프로필', '특별한 순간'];
 
-export function StoryEditor() {
+export function StoryEditor({ drag }: { drag?: SectionDragProps }) {
   const story = useEditorStore((s) => s.content?.story);
   const invitationId = useEditorStore((s) => s.invitationId);
   const patch = useEditorStore((s) => s.patchSection);
@@ -42,6 +42,7 @@ export function StoryEditor() {
 
   return (
     <SectionEditor
+      drag={drag}
       title="우리 이야기"
       description="제목 · 사진 · 내용을 자유롭게 (최대 5개)"
       toggle={{

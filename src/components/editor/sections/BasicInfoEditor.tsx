@@ -1,7 +1,7 @@
 'use client';
 
 import { useEditorStore } from '@/stores/editor';
-import { SectionEditor } from '../SectionEditor';
+import { SectionEditor, type SectionDragProps } from '../SectionEditor';
 import { TextAreaField } from '../form-fields';
 import { PresetPickerButton } from '../PresetTextArea';
 import { BASIC_GREETING_PRESETS, QUOTE_PRESETS } from '@/lib/presets';
@@ -24,7 +24,7 @@ const SUB_LABELS: Record<BasicSubKey, string> = {
   quote: '글귀',
 };
 
-export function BasicInfoEditor() {
+export function BasicInfoEditor({ drag }: { drag?: SectionDragProps }) {
   const basic = useEditorStore((s) => s.content?.basic);
   const meta = useEditorStore((s) => s.meta);
   const patch = useEditorStore((s) => s.patchSection);
@@ -214,6 +214,7 @@ export function BasicInfoEditor() {
 
   return (
     <SectionEditor
+      drag={drag}
       title="기본 정보"
       description="신랑·신부와 가족 · 날짜 · 인사말 · 글귀 (↑ ↓ 로 순서 변경)"
     >

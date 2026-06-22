@@ -5,7 +5,7 @@ import { useEditorStore } from '@/stores/editor';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from '@/lib/utils/nanoid';
 import { GALLERY_LAYOUTS } from '@/types/invitation';
-import { SectionEditor } from '../SectionEditor';
+import { SectionEditor, type SectionDragProps } from '../SectionEditor';
 import { Button } from '@/components/ui/button';
 import {
   IMAGE_LIMITS,
@@ -18,7 +18,7 @@ const LAYOUT_LABEL: Record<(typeof GALLERY_LAYOUTS)[number], { name: string; hin
   slide: { name: '슬라이드', hint: '가로 스크롤' },
 };
 
-export function GalleryEditor() {
+export function GalleryEditor({ drag }: { drag?: SectionDragProps }) {
   const gallery = useEditorStore((s) => s.content?.gallery);
   const invitationId = useEditorStore((s) => s.invitationId);
   const patch = useEditorStore((s) => s.patchSection);
@@ -87,6 +87,7 @@ export function GalleryEditor() {
 
   return (
     <SectionEditor
+      drag={drag}
       title="갤러리"
       description="둘이 함께한 사진들 (최대 20장)"
       toggle={{

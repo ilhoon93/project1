@@ -1,7 +1,7 @@
 'use client';
 
 import { useEditorStore } from '@/stores/editor';
-import { SectionEditor } from '../SectionEditor';
+import { SectionEditor, type SectionDragProps } from '../SectionEditor';
 import { TextField } from '../form-fields';
 import { Button } from '@/components/ui/button';
 import type { VoteQuestion } from '@/types/invitation';
@@ -11,7 +11,7 @@ const EMPTY_QUESTION: VoteQuestion = {
   options: ['', ''],
 };
 
-export function VoteEditor() {
+export function VoteEditor({ drag }: { drag?: SectionDragProps }) {
   const vote = useEditorStore((s) => s.content?.vote);
   const patch = useEditorStore((s) => s.patchSection);
   if (!vote) return null;
@@ -33,6 +33,7 @@ export function VoteEditor() {
 
   return (
     <SectionEditor
+      drag={drag}
       title="투표"
       description="A/B 양자택일 (최대 2문항)"
       toggle={{
