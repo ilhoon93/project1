@@ -13,12 +13,12 @@ import { ChevronDown, GripVertical } from 'lucide-react';
  */
 export interface SectionDragProps {
   enabled: boolean;
+  /** 이 카드가 지금 드래그 중인 원본인지 — 원본은 자리만 비워두는 placeholder 로 흐려진다. */
   dragging: boolean;
-  dragOver: boolean;
-  /** elementFromPoint 으로 드롭 대상을 찾기 위한 식별자(섹션 키). */
+  /** getBoundingClientRect / 드롭 위치 계산을 위한 식별자(섹션 키). */
   sectionKey: string;
-  /** 그립 핸들에 포인터가 눌렸을 때(마우스/터치 공통) 드래그 시작. */
-  onDragStart: () => void;
+  /** 그립 핸들에 포인터가 눌렸을 때(마우스/터치 공통) 드래그 시작 — 시작 좌표 전달. */
+  onDragStart: (clientX: number, clientY: number) => void;
 }
 
 interface Props {
@@ -47,15 +47,15 @@ export function SectionEditor({ title, description, toggle, defaultOpen = false,
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     // 텍스트 선택/스크롤 시작 방지(그립의 touch-action:none 과 함께 동작).
     e.preventDefault();
-    drag?.onDragStart();
+    drag?.onDragStart(e.clientX, e.clientY);
   };
 
   return (
     <section
       data-section-key={drag?.enabled ? drag.sectionKey : undefined}
       className={`overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm transition-all ${
-        drag?.dragging ? 'opacity-50' : ''
-      } ${drag?.dragOver ? 'border-primary ring-2 ring-primary/40' : ''}`}
+        drag?.dragging ? 'opacity-40' : ''
+      }`}
     >
       <header className="flex items-center justify-between gap-3 px-4 py-3">
         {showGrip && (
