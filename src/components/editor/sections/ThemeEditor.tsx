@@ -15,12 +15,9 @@ import {
   PETAL_IS_TEXTURE,
   PETAL_LABELS,
   PETAL_TYPES,
-  SECTION_LABELS,
   THEME_PALETTES,
-  reconcilePageOrder,
   type ColorTheme,
   type PetalType,
-  type SectionKey,
 } from '@/lib/theme';
 import { PetalShape } from '@/components/shared/FallingPetals';
 import { Button } from '@/components/ui/button';
@@ -39,19 +36,9 @@ export function ThemeEditor() {
   const bgm = theme.bgm ?? { enabled: false, url: null };
 
   const setTheme = (next: typeof theme) => patch('theme', next);
-  const order = reconcilePageOrder(theme.pageOrder);
-
-  const moveSection = (key: SectionKey, dir: -1 | 1) => {
-    const i = order.indexOf(key);
-    const j = i + dir;
-    if (i < 0 || j < 0 || j >= order.length) return;
-    const nextOrder = [...order];
-    [nextOrder[i], nextOrder[j]] = [nextOrder[j], nextOrder[i]];
-    setTheme({ ...theme, pageOrder: nextOrder });
-  };
 
   return (
-    <SectionEditor title="디자인" description="색상, 효과, 폰트, 페이지 순서">
+    <SectionEditor title="디자인" description="색상, 효과, 폰트">
       <div className="flex flex-col gap-5">
         {/* 색상 / 배경 효과 / 폰트 — 한 줄(sm:grid-cols-3) 콤보박스. 모바일은 stack. */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -102,39 +89,6 @@ export function ThemeEditor() {
             />
           </Field>
         </div>
-
-        {/* 페이지 순서 */}
-        <Field label="페이지 순서" hint="↑ ↓ 버튼으로 순서를 바꿀 수 있어요">
-          <ul className="flex flex-col gap-1.5">
-            {order.map((key, i) => (
-              <li
-                key={key}
-                className="flex items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="w-5 text-xs text-muted-foreground">{i + 1}</span>
-                  <span>{SECTION_LABELS[key]}</span>
-                </span>
-                <span className="flex gap-1">
-                  <ArrowButton
-                    label={`${SECTION_LABELS[key]} 위로`}
-                    disabled={i === 0}
-                    onClick={() => moveSection(key, -1)}
-                  >
-                    ↑
-                  </ArrowButton>
-                  <ArrowButton
-                    label={`${SECTION_LABELS[key]} 아래로`}
-                    disabled={i === order.length - 1}
-                    onClick={() => moveSection(key, 1)}
-                  >
-                    ↓
-                  </ArrowButton>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Field>
 
         {/* 배경 음악 */}
         <BgmField
@@ -495,30 +449,5 @@ export function PetalIcon({ type, accent }: { type: PetalType; accent: string })
     );
   }
   return <span className="text-base">{PETAL_GLYPHS[type]}</span>;
-}
-
-
-function ArrowButton({
-  label,
-  disabled,
-  onClick,
-  children,
-}: {
-  label: string;
-  disabled: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      disabled={disabled}
-      onClick={onClick}
-      className="grid h-7 w-7 place-items-center rounded border border-input bg-background text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-30"
-    >
-      {children}
-    </button>
-  );
 }
 

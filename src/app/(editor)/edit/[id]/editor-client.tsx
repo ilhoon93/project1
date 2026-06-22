@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEditorStore } from '@/stores/editor';
 import { InvitationContentSchema, type InvitationContent } from '@/types/invitation';
+import { reconcilePageOrder, type SectionKey } from '@/lib/theme';
 import { Button } from '@/components/ui/button';
+import type { SectionDragProps } from '@/components/editor/SectionEditor';
 import { MainEditor } from '@/components/editor/sections/MainEditor';
 import { StoryEditor } from '@/components/editor/sections/StoryEditor';
 import { GalleryEditor } from '@/components/editor/sections/GalleryEditor';
@@ -17,6 +19,24 @@ import { ClosingEditor } from '@/components/editor/sections/ClosingEditor';
 import { ThemeEditor } from '@/components/editor/sections/ThemeEditor';
 import { BasicInfoEditor } from '@/components/editor/sections/BasicInfoEditor';
 import { EditorLivePreview } from '@/components/editor/EditorLivePreview';
+
+type SectionEditorComponent = ComponentType<{ drag?: SectionDragProps }>;
+
+const SECTION_EDITORS: Record<SectionKey, SectionEditorComponent> = {
+  main: MainEditor,
+  basic: BasicInfoEditor,
+  story: StoryEditor,
+  gallery: GalleryEditor,
+  video: VideoEditor,
+  quiz: QuizEditor,
+  vote: VoteEditor,
+  guestbook: GuestbookEditor,
+  account: AccountEditor,
+  closing: ClosingEditor,
+};
+
+// 메인/엔딩은 위치 고정 — 드래그앤드롭으로 옮길 수 없다.
+const FIXED_SECTIONS: ReadonlySet<SectionKey> = new Set<SectionKey>(['main', 'closing']);
 
 interface Props {
   invitationId: string;
@@ -101,20 +121,120 @@ export function EditorClient({
 
           <main className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-4 py-6 pb-32 lg:max-w-none lg:px-0 lg:py-4">
             <ThemeEditor />
-            <MainEditor />
-            <BasicInfoEditor />
-            <StoryEditor />
-            <GalleryEditor />
-            <VideoEditor />
-            <QuizEditor />
-            <VoteEditor />
-            <GuestbookEditor />
-            <AccountEditor />
-            <ClosingEditor />
+            <SectionList />
           </main>
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * 섹션 카드 목록 — 저장된 pageOrder 순서대로 렌더하고, 카드를 드래그앤드롭으로
+ * 재배치한다. 메인은 항상 맨 위, 엔딩은 항상 맨 아래로 고정하며 그 사이 섹션만
+ * 순서를 바꿀 수 있다. (카드가 닫혀 있을 때만 드래그 가능 — SectionEditor 처리.)
+ */
+function SectionList() {
+  const theme = useEditorStore((s) => s.content?.theme);
+  const patch = useEditorStore((s) => s.patchSection);
+  const [dragKey, setDragKey] = useState<SectionKey | null>(null);
+  const [overKey, setOverKey] = useState<SectionKey | null>(null);
+
+  const order = theme ? reconcilePageOrder(theme.pageOrder) : [];
+  // 메인 고정 최상단 · 엔딩 고정 최하단. 그 사이만 이동 대상.
+  const movable = order.filter((k) => !FIXED_SECTIONS.has(k));
+
+  // window 포인터 리스너는 안정적인 함수로 한 번만 붙이므로, 최신 순서/패치를
+  // ref 로 들고 있어 stale closure 없이 드롭 시점의 값으로 재배치한다.
+  const reorderRef = useRef<(from: SectionKey, to: SectionKey) => void>(() => {});
+  reorderRef.current = (from, to) => {
+    if (from === to || !theme || FIXED_SECTIONS.has(from) || FIXED_SECTIONS.has(to)) return;
+    const next = [...movable];
+    const fi = next.indexOf(from);
+    if (fi < 0) return;
+    next.splice(fi, 1);
+    const ti = next.indexOf(to);
+    if (ti < 0) return;
+    next.splice(ti, 0, from);
+    patch('theme', { ...theme, pageOrder: ['main', ...next, 'closing'] });
+  };
+
+  const dragKeyRef = useRef<SectionKey | null>(null);
+
+  // 화면 좌표 아래에 있는 (이동 가능한) 섹션 키. 고정 섹션/카드 밖은 null.
+  const sectionAtPoint = (x: number, y: number): SectionKey | null => {
+    const el = document.elementFromPoint(x, y);
+    const card = el?.closest('[data-section-key]');
+    const key = (card?.getAttribute('data-section-key') as SectionKey | null) ?? null;
+    return key && !FIXED_SECTIONS.has(key) ? key : null;
+  };
+
+  const handleMove = useCallback((e: globalThis.PointerEvent) => {
+    if (!dragKeyRef.current) return;
+    setOverKey(sectionAtPoint(e.clientX, e.clientY));
+  }, []);
+
+  const handleUp = useCallback(
+    (e: globalThis.PointerEvent) => {
+      const from = dragKeyRef.current;
+      if (from) {
+        const to = sectionAtPoint(e.clientX, e.clientY);
+        if (to) reorderRef.current(from, to);
+      }
+      dragKeyRef.current = null;
+      setDragKey(null);
+      setOverKey(null);
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+      window.removeEventListener('pointercancel', handleUp);
+    },
+    [handleMove],
+  );
+
+  const startDrag = useCallback(
+    (key: SectionKey) => {
+      dragKeyRef.current = key;
+      setDragKey(key);
+      window.addEventListener('pointermove', handleMove);
+      window.addEventListener('pointerup', handleUp);
+      window.addEventListener('pointercancel', handleUp);
+    },
+    [handleMove, handleUp],
+  );
+
+  // 드래그 도중 언마운트되면 리스너 정리.
+  useEffect(
+    () => () => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+      window.removeEventListener('pointercancel', handleUp);
+    },
+    [handleMove, handleUp],
+  );
+
+  if (!theme) return null;
+
+  const rendered: SectionKey[] = ['main', ...movable, 'closing'];
+
+  return (
+    <>
+      {rendered.map((key) => {
+        const Editor = SECTION_EDITORS[key];
+        const fixed = FIXED_SECTIONS.has(key);
+        return (
+          <Editor
+            key={key}
+            drag={{
+              enabled: !fixed,
+              sectionKey: key,
+              dragging: dragKey === key,
+              dragOver: overKey === key && dragKey !== null && dragKey !== key,
+              onDragStart: () => startDrag(key),
+            }}
+          />
+        );
+      })}
+    </>
   );
 }
 

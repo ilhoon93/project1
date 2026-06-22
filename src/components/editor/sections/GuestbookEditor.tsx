@@ -1,17 +1,18 @@
 'use client';
 
 import { useEditorStore } from '@/stores/editor';
-import { SectionEditor } from '../SectionEditor';
+import { SectionEditor, type SectionDragProps } from '../SectionEditor';
 import { PresetTextArea } from '../PresetTextArea';
 import { GUESTBOOK_GREETING_PRESETS } from '@/lib/presets';
 
-export function GuestbookEditor() {
+export function GuestbookEditor({ drag }: { drag?: SectionDragProps }) {
   const guestbook = useEditorStore((s) => s.content?.guestbook);
   const patch = useEditorStore((s) => s.patchSection);
   if (!guestbook) return null;
 
   return (
     <SectionEditor
+      drag={drag}
       title="방명록"
       description="하객 메시지는 신랑신부에게만 전달됩니다"
       toggle={{

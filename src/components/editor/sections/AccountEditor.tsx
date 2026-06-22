@@ -2,7 +2,7 @@
 
 import { useEditorStore } from '@/stores/editor';
 import { type AccountPartyKey } from '@/types/invitation';
-import { SectionEditor } from '../SectionEditor';
+import { SectionEditor, type SectionDragProps } from '../SectionEditor';
 import { PresetTextArea } from '../PresetTextArea';
 import { ACCOUNT_GUIDE_PRESETS } from '@/lib/presets';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,7 @@ const PARTY_LABELS: Record<AccountPartyKey, string> = {
   brideMother: '신부 어머니',
 };
 
-export function AccountEditor() {
+export function AccountEditor({ drag }: { drag?: SectionDragProps }) {
   const account = useEditorStore((s) => s.content?.account);
   const meta = useEditorStore((s) => s.meta);
   const basic = useEditorStore((s) => s.content?.basic);
@@ -54,6 +54,7 @@ export function AccountEditor() {
 
   return (
     <SectionEditor
+      drag={drag}
       title="축의금 계좌"
       description="안내문구 + 신랑·신부·부모님별 계좌 (각 최대 3개)"
       toggle={{

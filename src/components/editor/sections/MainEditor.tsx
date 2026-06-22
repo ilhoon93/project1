@@ -31,7 +31,7 @@ import {
   isKoreanTitleText,
   type TitleFontKey,
 } from '@/lib/theme';
-import { SectionEditor } from '../SectionEditor';
+import { SectionEditor, type SectionDragProps } from '../SectionEditor';
 import { PresetTextArea } from '../PresetTextArea';
 import { MAIN_GREETING_PRESETS } from '@/lib/presets';
 import { ImageUploader } from '../ImageUploader';
@@ -77,7 +77,7 @@ const TITLE_COLOR_PRESETS = [
   '#F8F1E5', // 아이보리
 ];
 
-export function MainEditor() {
+export function MainEditor({ drag }: { drag?: SectionDragProps }) {
   const main = useEditorStore((s) => s.content?.main);
   const invitationId = useEditorStore((s) => s.invitationId);
   const patch = useEditorStore((s) => s.patchSection);
@@ -101,7 +101,7 @@ export function MainEditor() {
   const patchFrame = (next: FrameDesign) => patch('main', { ...main, frameDesign: next });
 
   return (
-    <SectionEditor title="메인 화면" description="첫 슬라이드의 레이아웃과 인사말">
+    <SectionEditor drag={drag} title="메인 화면" description="첫 슬라이드의 레이아웃과 인사말">
       <div className="flex flex-col gap-4">
         {/* 레이아웃 선택 + 메인 사진 미리보기 — 좌(콤보박스 컴팩트 + 안내) / 우(미리보기).
             좌측 콤보박스는 max-w 로 좁게 두고, 그 아래 안내 박스로 빈 공간을 채워

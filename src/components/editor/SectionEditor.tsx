@@ -1,13 +1,32 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { useState, type PointerEvent, type ReactNode } from 'react';
+import { ChevronDown, GripVertical } from 'lucide-react';
+
+/**
+ * 섹션 카드를 드래그앤드롭으로 재배치하기 위한 props.
+ * 부모(에디터 클라이언트)가 pageOrder 를 관리한다. 마우스·터치를 모두 지원하기
+ * 위해 네이티브 HTML5 DnD 대신 Pointer Events 를 쓴다 — 카드가 닫혀 있을 때만
+ * 그립 핸들을 눌러 드래그를 시작하고(부모가 window 리스너로 이동/드롭 추적),
+ * 카드 element 의 `data-section-key` 로 드롭 대상을 식별한다. 메인/엔딩처럼
+ * 위치 고정 섹션은 `enabled: false` 로 내려와 핸들이 표시되지 않는다.
+ */
+export interface SectionDragProps {
+  enabled: boolean;
+  dragging: boolean;
+  dragOver: boolean;
+  /** elementFromPoint 으로 드롭 대상을 찾기 위한 식별자(섹션 키). */
+  sectionKey: string;
+  /** 그립 핸들에 포인터가 눌렸을 때(마우스/터치 공통) 드래그 시작. */
+  onDragStart: () => void;
+}
 
 interface Props {
   title: string;
   description?: string;
   toggle?: { enabled: boolean; onChange: (next: boolean) => void };
   defaultOpen?: boolean;
+  drag?: SectionDragProps;
   children: ReactNode;
 }
 
@@ -16,13 +35,40 @@ interface Props {
  * The optional `toggle` prop wires up an enabled/disabled switch
  * (sections like quiz/vote/video are off by default).
  */
-export function SectionEditor({ title, description, toggle, defaultOpen = false, children }: Props) {
+export function SectionEditor({ title, description, toggle, defaultOpen = false, drag, children }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   const enabled = toggle?.enabled ?? true;
 
+  // 카드가 닫혀 있을 때만 그립을 노출 — 열려 있으면 입력 폼과 충돌하지 않도록 숨긴다.
+  const showGrip = !!drag?.enabled && !open;
+
+  const handleGripPointerDown = (e: PointerEvent) => {
+    // 마우스는 좌클릭만. 터치/펜은 그대로 시작.
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    // 텍스트 선택/스크롤 시작 방지(그립의 touch-action:none 과 함께 동작).
+    e.preventDefault();
+    drag?.onDragStart();
+  };
+
   return (
-    <section className="overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm">
+    <section
+      data-section-key={drag?.enabled ? drag.sectionKey : undefined}
+      className={`overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm transition-all ${
+        drag?.dragging ? 'opacity-50' : ''
+      } ${drag?.dragOver ? 'border-primary ring-2 ring-primary/40' : ''}`}
+    >
       <header className="flex items-center justify-between gap-3 px-4 py-3">
+        {showGrip && (
+          <button
+            type="button"
+            aria-label={`${title} 순서 변경 핸들 — 길게 눌러 드래그하세요`}
+            title="드래그해서 순서 변경"
+            onPointerDown={handleGripPointerDown}
+            className="-ml-1 touch-none cursor-grab text-muted-foreground/60 active:cursor-grabbing"
+          >
+            <GripVertical size={16} />
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
