@@ -61,7 +61,8 @@ security definer
 set search_path = public
 as $$
   with eligible as (
-    select id from public.admin_stats_eligible_users()
+    -- setof uuid 는 스칼라 집합이라 반환 컬럼명이 없다 → as t(id) 로 별칭.
+    select id from public.admin_stats_eligible_users() as t(id)
   )
   select
     (select count(*) from eligible)::int,
@@ -112,7 +113,9 @@ as $$
   select i.content
   from public.invitations i
   where i.is_published
-    and i.user_id in (select id from public.admin_stats_eligible_users());
+    and i.user_id in (
+      select id from public.admin_stats_eligible_users() as t(id)
+    );
 $$;
 
 revoke execute on function public.admin_published_contents() from anon, authenticated;
