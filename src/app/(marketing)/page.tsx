@@ -20,7 +20,7 @@ import {
   freeRegenSummary,
 } from '@/lib/snap/packages';
 import { getHomeSamples } from '@/lib/marketing/home-samples';
-import { getSocialProof } from '@/lib/marketing/social-proof';
+import { getSocialProof, getMakerPaymentRate } from '@/lib/marketing/social-proof';
 import { SocialProof } from '@/components/marketing/SocialProof';
 import type {
   AiSnapItem,
@@ -38,18 +38,19 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function LandingPage() {
-  const [catalog, home, socialProof] = await Promise.all([
+  const [catalog, home, socialProof, makerPaymentRate] = await Promise.all([
     getAvailableCatalog(),
     getHomeSamples(),
     getSocialProof(),
+    getMakerPaymentRate(),
   ]);
   const catalogCount = catalog.length;
 
   return (
     <>
       <Hero aiSnaps={home.aiSnaps} designs={home.designs} />
+      <SocialProof config={socialProof} makerPaymentRate={makerPaymentRate} />
       <DesignAndValues designs={home.designs} ownerUrlExample={home.ownerUrlExample} />
-      <SocialProof config={socialProof} />
       <AiSnapPreview
         catalogCount={catalogCount}
         aiSnaps={home.aiSnaps}
