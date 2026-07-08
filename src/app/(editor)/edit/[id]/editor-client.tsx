@@ -127,8 +127,8 @@ export function EditorClient({
         </div>
       </div>
 
-      {/* 모바일/태블릿 전용 실시간 미리보기 (플로팅 버튼 + 전체화면 오버레이).
-          데스크톱은 좌측 고정 패널이 담당하므로 컴포넌트 내부에서 lg:hidden 처리. */}
+      {/* 모바일/태블릿 전용 실시간 미리보기 (하단 고정 접이식 시트 — 펼친 채로 위에서
+          편집하면 즉시 반영). 데스크톱은 좌측 고정 패널이 담당하므로 lg:hidden 처리. */}
       <EditorMobilePreview invitationId={invitationId} />
     </div>
   );
