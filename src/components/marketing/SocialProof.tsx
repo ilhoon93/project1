@@ -11,18 +11,12 @@ import type { SocialProofConfig } from '@/lib/marketing/social-proof';
  * - 코랄 톤 배경 밴드로 앞뒤 섹션과 구분.
  * - 리뷰 카드는 좌→우로 끊김 없이 흐르는 마퀴(자동 스크롤). prefers-reduced-motion
  *   에서는 정지.
- * - 커플 수·평균 별점·결제 전환율 수치는 뷰포트 진입 시 랜덤하게 흔들리다가 최종
- *   값으로 수렴하는 카운트업 효과.
+ * - 커플 수·평균 별점 수치는 뷰포트 진입 시 랜덤하게 흔들리다가 최종 값으로
+ *   수렴하는 카운트업 효과.
  *
  * enabled 가 꺼져 있거나 보여줄 내용이 없으면 렌더하지 않는다.
  */
-export function SocialProof({
-  config,
-  makerPaymentRate,
-}: {
-  config: SocialProofConfig;
-  makerPaymentRate: number;
-}) {
+export function SocialProof({ config }: { config: SocialProofConfig }) {
   if (!config.enabled) return null;
 
   const reviews = config.reviews.filter((r) => r.imageUrl.trim());
@@ -64,8 +58,8 @@ export function SocialProof({
           </FadeUp>
         )}
 
-        {/* 수치 타일 — 커플 수 / 평균 별점 / 결제 전환. 값이 있는 것만 노출하고
-            개수에 맞춰 그리드 열 수를 잡는다. */}
+        {/* 수치 타일 — 커플 수 / 평균 별점. 값이 있는 것만 노출하고 개수에 맞춰
+            그리드 열 수를 잡는다. */}
         {(() => {
           const tiles = [
             hasCount && (
@@ -85,15 +79,6 @@ export function SocialProof({
                 suffix=" / 5"
                 label="평균 별점"
                 stars={avgRating}
-              />
-            ),
-            makerPaymentRate > 0 && (
-              <StatTile
-                key="rate"
-                value={makerPaymentRate}
-                suffix="%"
-                max={100}
-                label="제작 후 결제 전환"
               />
             ),
           ].filter(Boolean);

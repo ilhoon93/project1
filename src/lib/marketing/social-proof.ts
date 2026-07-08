@@ -123,21 +123,3 @@ export async function saveSocialProof(
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
-
-/**
- * 랜딩 사회적 증거용 — 알림장을 제작한 고객 중 결제(발행권 구매) 고객 비율(%).
- * public_maker_payment_rate() RPC(053, anon 실행 허용)로 집계 결과(정수 %)만 읽는다.
- * 실패 시 0 폴백.
- */
-export async function getMakerPaymentRate(): Promise<number> {
-  try {
-    const supabase = createClient();
-    // 053 미적용 환경 호환 위해 캐스팅 — 없으면 catch 로 0 폴백.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any).rpc('public_maker_payment_rate');
-    if (error || typeof data !== 'number') return 0;
-    return data;
-  } catch {
-    return 0;
-  }
-}
