@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { useEditorStore } from '@/stores/editor';
 import {
@@ -12,33 +12,59 @@ import { InvitationSlides } from '@/components/invitation/InvitationSlides';
 
 interface Props {
   invitationId: string;
+  /** 펼침 상태 — 부모(EditorClient)가 소유해 상단 편집 바 숨김과 동기화한다. */
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 // 접힘 상태 핸들 바 높이(px). 펼침 높이는 뷰포트 비율(아래 OPEN_VH).
 const BAR_H = 52;
 const OPEN_VH = 58;
+// 미리보기 영역 안쪽 여백(px) — 미니 폰이 시트 가장자리에 딱 붙지 않도록.
+const AREA_PAD = 12;
 
 /**
  * 모바일/태블릿(lg 미만) 전용 실시간 미리보기 — 하단 고정 접이식 시트.
  *
- * 데스크톱은 좌측 고정 패널(EditorLivePreview)이 편집 중인 값을 실시간으로
- * 보여준다. 좁은 화면에는 그 공간이 없어, 화면 하단에 항상 붙어 있는 시트를
- * 두고 탭으로 펼치면 미니 미리보기가 나온다. 펼친 채로 위쪽 편집 폼을 수정하면
- * Zustand 스토어를 직접 구독하는 이 미리보기가 즉시 갱신된다 — /preview 페이지나
- * 전체화면 오버레이처럼 편집 화면을 떠나거나 가리지 않고 "보면서 편집"이 된다.
+ * 핵심: 실제 뷰포트 크기(window.innerWidth × innerHeight)로 전체화면 미리보기와
+ * "완전히 동일하게" 렌더한 stage 를 만든 뒤 `transform: scale()` 로 균일 축소한다.
+ * 슬라이드가 쓰는 컨테이너 쿼리 단위(cqw/cqh)는 레이아웃 크기(=축소 전 뷰포트
+ * 크기) 기준으로 계산되므로, 글자 크기·화면 비율이 전체화면과 픽셀 단위로 같고
+ * 시각적으로만 작아진다. (9:18 같은 고정 비율 박스는 기기 실제 화면비와 달라
+ * 요소 비율이 어긋나던 문제를 해결.)
  *
- * lg 이상에서는 좌측 패널과 중복되므로 숨긴다(lg:hidden).
+ * lg 이상에서는 좌측 패널(EditorLivePreview)과 중복되므로 숨긴다(lg:hidden).
  */
-export function EditorMobilePreview({ invitationId }: Props) {
-  const [open, setOpen] = useState(false);
-
+export function EditorMobilePreview({ invitationId, open, onOpenChange }: Props) {
   const storeId = useEditorStore((s) => s.invitationId);
   const storeContent = useEditorStore((s) => s.content);
   const storeMeta = useEditorStore((s) => s.meta);
 
-  // 시트가 가리는 만큼 에디터(=window 스크롤) 하단에 여백을 확보 → 마지막 입력칸이
-  // 시트 뒤에 숨지 않는다. 데스크톱은 이 컴포넌트가 시각적으로 숨겨지므로(lg:hidden)
-  // 여백을 넣지 않는다.
+  // 실제 모바일 뷰포트 크기 — 전체화면과 동일 렌더의 기준.
+  const [vp, setVp] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const measure = () => setVp({ w: window.innerWidth, h: window.innerHeight });
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+
+  // 미리보기 영역(시트 내부 가용 공간) 크기 — 여기에 stage 를 맞춰 축소·중앙정렬.
+  const areaRef = useRef<HTMLDivElement>(null);
+  const [area, setArea] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    if (!open) return;
+    const el = areaRef.current;
+    if (!el) return;
+    const sync = () => setArea({ w: el.clientWidth, h: el.clientHeight });
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [open]);
+
+  // 시트가 가리는 만큼 에디터(=window 스크롤) 하단 여백 확보 → 마지막 입력칸이
+  // 시트 뒤에 숨지 않는다. 데스크톱은 lg:hidden 이라 여백 불필요.
   useEffect(() => {
     const apply = () => {
       const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
@@ -72,6 +98,19 @@ export function EditorMobilePreview({ invitationId }: Props) {
     }
   }
 
+  // 전체화면(vp) 렌더를 미리보기 영역(area)에 맞게 균일 축소하는 배율.
+  const fits = vp.w > 0 && vp.h > 0 && area.w > 0 && area.h > 0;
+  const scale = fits
+    ? Math.max(
+        0,
+        Math.min((area.h - AREA_PAD * 2) / vp.h, (area.w - AREA_PAD * 2) / vp.w),
+      )
+    : 0;
+  const stageW = vp.w * scale;
+  const stageH = vp.h * scale;
+  const left = (area.w - stageW) / 2;
+  const top = (area.h - stageH) / 2;
+
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 lg:hidden">
       <div
@@ -82,7 +121,7 @@ export function EditorMobilePreview({ invitationId }: Props) {
         {/* 핸들 바 — 탭해서 펼치기/접기 */}
         <button
           type="button"
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => onOpenChange(!open)}
           aria-expanded={open}
           aria-label={open ? '미리보기 접기' : '미리보기 펼치기'}
           className="flex shrink-0 items-center justify-between gap-2 px-4"
@@ -98,15 +137,23 @@ export function EditorMobilePreview({ invitationId }: Props) {
           </span>
         </button>
 
-        {/* 펼침 영역 — 남는 높이를 미니 폰 미리보기가 채운다. scoped 로 이 박스 안에서만 렌더. */}
+        {/* 펼침 영역 — 실제 뷰포트 크기로 렌더한 stage 를 축소해 중앙 배치. */}
         {open && (
-          <div className="relative min-h-0 flex-1 bg-[var(--wd-cream)] p-3">
-            <div className="flex h-full w-full items-center justify-center">
+          <div ref={areaRef} className="relative min-h-0 flex-1 overflow-hidden bg-[var(--wd-cream)]">
+            {ready && scale > 0 ? (
               <div
-                className="relative h-full max-w-full overflow-hidden rounded-[1.25rem] border-[3px] border-foreground/80 bg-background shadow-md"
-                style={{ aspectRatio: '9 / 18' }}
+                className="absolute overflow-hidden rounded-[1.1rem] bg-background shadow-md ring-1 ring-black/5"
+                style={{ left, top, width: stageW, height: stageH }}
               >
-                {ready ? (
+                {/* stage: 전체화면과 동일한 px 크기 → 축소 전 레이아웃이 곧 컨테이너 쿼리 기준. */}
+                <div
+                  style={{
+                    width: vp.w,
+                    height: vp.h,
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'top left',
+                  }}
+                >
                   <InvitationSlides
                     invitationId={invitationId}
                     groomName={groomName}
@@ -116,13 +163,13 @@ export function EditorMobilePreview({ invitationId }: Props) {
                     isPreview
                     scoped
                   />
-                ) : (
-                  <div className="grid h-full w-full place-items-center text-xs text-muted-foreground">
-                    로딩 중...
-                  </div>
-                )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="grid h-full w-full place-items-center text-xs text-muted-foreground">
+                로딩 중...
+              </div>
+            )}
           </div>
         )}
       </div>

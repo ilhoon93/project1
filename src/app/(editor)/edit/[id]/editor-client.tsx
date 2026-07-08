@@ -56,6 +56,10 @@ export function EditorClient({
   const init = useEditorStore((s) => s.init);
   const status = useEditorStore((s) => s.status);
 
+  // 모바일 실시간 미리보기 펼침 상태 — 펼치면 상단 편집/저장 바를 숨겨 미리보기에
+  // 화면을 온전히 내준다(EditorMobilePreview 와 공유).
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
+
   // Hydrate the store with server-provided data on first mount.
   //
   // 정책 (사용자 요청 — "저장된 게 있으면 무조건 그걸 우선"):
@@ -113,7 +117,11 @@ export function EditorClient({
         {/* ── 우측 (mobile: 단일 컬럼): "기본 편집" 단일 모드 헤더 + 컨트롤 ─── */}
         <div className="flex min-w-0 flex-col">
           {/* AI 이미지 탭 제거 — 좌측에 라벨, 우측에 액션(저장/미리보기) 만. */}
-          <div className="sticky top-[57px] z-10 -mx-0 border-b border-[var(--wd-line)] bg-[var(--wd-paper)]/85 backdrop-blur lg:top-0 lg:rounded-md lg:border lg:border-[var(--wd-line)] lg:bg-[var(--wd-paper)]">
+          <div
+            className={`sticky top-[57px] z-10 -mx-0 border-b border-[var(--wd-line)] bg-[var(--wd-paper)]/85 backdrop-blur lg:top-0 lg:rounded-md lg:border lg:border-[var(--wd-line)] lg:bg-[var(--wd-paper)] ${
+              mobilePreviewOpen ? 'hidden lg:block' : ''
+            }`}
+          >
             <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-3 py-2 lg:max-w-none">
               <span className="text-sm font-medium text-[var(--wd-ink)]">기본 편집</span>
               <EditorActions />
@@ -129,7 +137,11 @@ export function EditorClient({
 
       {/* 모바일/태블릿 전용 실시간 미리보기 (하단 고정 접이식 시트 — 펼친 채로 위에서
           편집하면 즉시 반영). 데스크톱은 좌측 고정 패널이 담당하므로 lg:hidden 처리. */}
-      <EditorMobilePreview invitationId={invitationId} />
+      <EditorMobilePreview
+        invitationId={invitationId}
+        open={mobilePreviewOpen}
+        onOpenChange={setMobilePreviewOpen}
+      />
     </div>
   );
 }
