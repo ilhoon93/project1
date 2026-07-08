@@ -48,8 +48,8 @@ export default async function LandingPage() {
   return (
     <>
       <Hero aiSnaps={home.aiSnaps} designs={home.designs} />
-      <DesignAndValues designs={home.designs} ownerUrlExample={home.ownerUrlExample} />
       <SocialProof config={socialProof} />
+      <DesignAndValues designs={home.designs} ownerUrlExample={home.ownerUrlExample} />
       <AiSnapPreview
         catalogCount={catalogCount}
         aiSnaps={home.aiSnaps}

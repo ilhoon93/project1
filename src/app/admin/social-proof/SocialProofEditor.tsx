@@ -177,14 +177,22 @@ export function SocialProofEditor({
               />
               <div className="flex min-w-0 flex-1 flex-col gap-2">
                 <label className="flex flex-col gap-1">
-                  <span className={labelCls}>설명 문구</span>
-                  <input
-                    className={inputCls}
+                  <span className={labelCls}>별점</span>
+                  <RatingPicker
+                    value={review.rating}
+                    onChange={(rating) => updateReview(review.id, { rating })}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className={labelCls}>리뷰 문구</span>
+                  <textarea
+                    className={`${inputCls} min-h-[72px] resize-y leading-relaxed`}
+                    rows={3}
                     value={review.caption}
                     onChange={(e) =>
                       updateReview(review.id, { caption: e.target.value })
                     }
-                    placeholder="예: 신부님 후기 · ○○○"
+                    placeholder={'예: 하객들이 신선하다고 칭찬 많이 받았어요!\n제작도 정말 간편했습니다 :)'}
                   />
                 </label>
                 <div className="mt-auto flex items-center gap-1.5">
@@ -213,7 +221,7 @@ export function SocialProofEditor({
         <button
           type="button"
           onClick={() =>
-            addReview({ id: nanoid(10), imageUrl: '', caption: '' })
+            addReview({ id: nanoid(10), imageUrl: '', caption: '', rating: 5 })
           }
           className="self-start rounded border border-[#8B7355] px-3 py-1.5 text-[12px] font-medium text-[#8B7355] transition-colors hover:bg-[#8B7355] hover:text-white"
         >
@@ -239,6 +247,35 @@ export function SocialProofEditor({
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+/** 별점 선택기 — 1~5 클릭. 같은 별을 다시 누르면 0(별점 없음)으로 토글. */
+function RatingPicker({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          aria-label={`${n}점`}
+          onClick={() => onChange(value === n ? 0 : n)}
+          className="text-[18px] leading-none"
+          style={{ color: n <= value ? '#B5614F' : 'rgba(61,46,31,0.22)' }}
+        >
+          ★
+        </button>
+      ))}
+      <span className="ml-1 text-[11px] text-[#8B7355]">
+        {value > 0 ? `${value} / 5` : '별점 없음'}
+      </span>
     </div>
   );
 }

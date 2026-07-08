@@ -16,6 +16,8 @@ export interface SocialProofReview {
   id: string;
   imageUrl: string;
   caption: string;
+  /** 별점 (0~5). 0 이면 별점 없음으로 간주(평균에서 제외). */
+  rating: number;
 }
 
 export interface SocialProofConfig {
@@ -42,6 +44,8 @@ const ReviewSchema = z.object({
   id: z.string(),
   imageUrl: z.string(),
   caption: z.string().default(''),
+  // 구버전(별점 없던 저장본) 호환 — 기본 5점.
+  rating: z.number().min(0).max(5).default(5),
 });
 
 const ConfigSchema = z.object({
