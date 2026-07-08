@@ -47,6 +47,18 @@ const ADMIN_PAGES: AdminPage[] = [
       '알림장을 최신순으로 조회. 생성자 이메일 필터 + 발행된 것만 보기 + 발행 알림장 링크 바로 열람.',
   },
   {
+    href: '/admin/invitation-stats',
+    title: '알림장 통계',
+    description:
+      '가입자·제작·결제 고객 수와 발행된 알림장의 테마·레이아웃·폰트·슬라이드 선택 분포를 집계.',
+  },
+  {
+    href: '/admin/social-proof',
+    title: '사회적 증거 설정',
+    description:
+      '메인 알림장 섹션 하단 사회적 증거(리뷰 이미지 + 커플 수 등)를 세팅. 현재는 저장만 되고 메인에는 아직 미노출.',
+  },
+  {
     href: '/admin/snap-catalog-order',
     title: '카탈로그 노출 순서',
     description:
