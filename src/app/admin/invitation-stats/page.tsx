@@ -161,9 +161,12 @@ export default async function InvitationStatsAdminPage() {
         </p>
       )}
 
-      <p className="mb-3 text-[11px] text-[#B09B80]">
+      <p className="mb-3 text-[11px] leading-relaxed text-[#B09B80]">
         운영자 계정(sayoung5·kohkhj902 및 admin 권한)과 카카오 등 예전 테스트 계정은
         집계에서 제외됩니다.
+        <br />
+        발행 후 30일이 지나 만료된 건, 그리고 제작 후 삭제된 미발행 건도 누적으로
+        포함됩니다(삭제 아카이브 기준 — 054 적용 이전에 이미 삭제된 건은 이력이 없어 제외).
       </p>
 
       {/* ── 핵심 지표 카드 (고객 수) ─────────────────────── */}
