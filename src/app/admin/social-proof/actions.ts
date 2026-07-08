@@ -3,8 +3,8 @@
 /**
  * /admin/social-proof server actions — admin role 만 통과.
  *
- * 저장은 랜딩에 아직 연결하지 않았으므로 revalidate 대상은 admin 페이지뿐.
- * (메인 렌더 연결 시 revalidatePath('/') 추가 예정.)
+ * 사회적 증거는 메인(랜딩)에 연결돼 있으므로 저장 후 '/' 도 revalidate 해
+ * 토글/문구/이미지 변경이 즉시 반영되게 한다.
  */
 
 import { revalidatePath } from 'next/cache';
@@ -22,6 +22,7 @@ export async function saveSocialProofAction(
   }
   const res = await saveSocialProof(config);
   if (!res.ok) return res;
+  revalidatePath('/');
   revalidatePath('/admin/social-proof');
   return { ok: true };
 }

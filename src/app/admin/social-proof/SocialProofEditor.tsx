@@ -59,7 +59,7 @@ export function SocialProofEditor({
           <div>
             <div className="text-[13px] font-semibold text-[#3D2E1F]">메인 노출</div>
             <p className="mt-0.5 text-[11px] text-[#8B7355]">
-              지금은 저장만 되고 실제 랜딩에는 아직 반영되지 않습니다.
+              켜면 메인 알림장 소개 섹션 하단에 바로 노출됩니다.
             </p>
           </div>
           <button
