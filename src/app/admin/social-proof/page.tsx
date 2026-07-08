@@ -32,8 +32,8 @@ export default async function SocialProofAdminPage() {
           <span className="ml-2">로그인 계정: {ctx.email}</span>
         </p>
         <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-[11px] leading-relaxed text-amber-800">
-          아직 실제 메인 화면에는 노출되지 않습니다. 여기서 저장한 내용은 이후 랜딩
-          연결 작업에서 그대로 사용됩니다.
+          아래 &lsquo;메인 노출&rsquo; 토글을 켜면 메인 화면 알림장 소개 섹션 하단에 바로
+          노출됩니다. (커플 수·리뷰가 모두 비어 있으면 노출되지 않습니다.)
         </p>
       </header>
 

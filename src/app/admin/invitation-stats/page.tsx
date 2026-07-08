@@ -26,9 +26,17 @@ interface StatsRow {
   signup_count: number;
   made_customer_count: number;
   paid_customer_count: number;
+  archive_customer_count: number;
   invitation_count: number;
   made_invitation_count: number;
   published_count: number;
+  archived_count: number;
+}
+
+/** a / b 를 정수 퍼센트로. 분모 0 이면 null(표기 생략). */
+function ratePct(a: number, b: number): number | null {
+  if (!b) return null;
+  return Math.round((a / b) * 100);
 }
 
 /** 메인 표지 레이아웃 라벨 (content.main.layout). polaroid 는 frame 으로 흡수. */
@@ -79,11 +87,12 @@ export default async function InvitationStatsAdminPage() {
     ? ((statsData[0] as StatsRow | undefined) ?? null)
     : null;
 
-  // ── 2. 발행 알림장 content 로 분포 집계 ──────────────────────────
-  const { data: pubRows, error: pubError } = await sb
-    .from('invitations')
-    .select('content')
-    .eq('is_published', true);
+  // ── 2. 발행 알림장 content 로 분포 집계 (eligible 필터 동일 적용) ─────
+  // admin_published_contents 는 setof jsonb → 각 원소가 content 객체 그 자체.
+  const { data: pubRows, error: pubError } = await sb.rpc(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'admin_published_contents' as any,
+  );
 
   const colorCounts = new Map<string, number>();
   const layoutCounts = new Map<string, number>();
@@ -92,10 +101,14 @@ export default async function InvitationStatsAdminPage() {
   const sectionCounts = new Map<string, number>();
   let parsedPublished = 0;
 
-  for (const row of pubRows ?? []) {
-    const parsed = InvitationContentSchema.safeParse(
-      (row as { content: unknown }).content ?? {},
-    );
+  for (const row of (Array.isArray(pubRows) ? pubRows : []) as unknown[]) {
+    // setof jsonb 는 보통 값이 그대로 오지만, PostgREST 버전에 따라
+    // { admin_published_contents: {...} } 로 감싸질 수 있어 방어적으로 언랩.
+    const raw =
+      row && typeof row === 'object' && 'admin_published_contents' in row
+        ? (row as Record<string, unknown>).admin_published_contents
+        : row;
+    const parsed = InvitationContentSchema.safeParse(raw ?? {});
     if (!parsed.success) continue;
     parsedPublished += 1;
     const c = parsed.data;
@@ -148,12 +161,17 @@ export default async function InvitationStatsAdminPage() {
         </p>
       )}
 
-      {/* ── 핵심 지표 카드 ─────────────────────────────── */}
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <p className="mb-3 text-[11px] text-[#B09B80]">
+        운영자 계정(sayoung5·kohkhj902 및 admin 권한)과 카카오 등 예전 테스트 계정은
+        집계에서 제외됩니다.
+      </p>
+
+      {/* ── 핵심 지표 카드 (고객 수) ─────────────────────── */}
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard
           label="가입자 수"
           value={stats?.signup_count ?? 0}
-          hint="전체 가입 계정"
+          hint="네이버 연동 가입 계정"
         />
         <StatCard
           label="알림장 제작 고객"
@@ -165,13 +183,49 @@ export default async function InvitationStatsAdminPage() {
           value={stats?.paid_customer_count ?? 0}
           hint="발행권(알림장) 구매"
         />
+        <StatCard
+          label="영구소장 결제 고객"
+          value={stats?.archive_customer_count ?? 0}
+          hint="영구소장 구매"
+        />
       </section>
 
-      {/* ── 보조 지표 ─────────────────────────────── */}
+      {/* ── 전환율 ─────────────────────────────── */}
       <section className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <StatCard label="전체 알림장" value={stats?.invitation_count ?? 0} small />
-        <StatCard label="제작(수정)된 알림장" value={stats?.made_invitation_count ?? 0} small />
-        <StatCard label="발행된 알림장" value={stats?.published_count ?? 0} small />
+        <ConversionCard
+          label="가입 → 제작 전환율"
+          pct={ratePct(stats?.made_customer_count ?? 0, stats?.signup_count ?? 0)}
+          from={stats?.signup_count ?? 0}
+          to={stats?.made_customer_count ?? 0}
+        />
+        <ConversionCard
+          label="제작 → 결제 전환율"
+          pct={ratePct(stats?.paid_customer_count ?? 0, stats?.made_customer_count ?? 0)}
+          from={stats?.made_customer_count ?? 0}
+          to={stats?.paid_customer_count ?? 0}
+        />
+        <ConversionCard
+          label="결제 → 영구소장 전환율"
+          pct={ratePct(
+            stats?.archive_customer_count ?? 0,
+            stats?.paid_customer_count ?? 0,
+          )}
+          from={stats?.paid_customer_count ?? 0}
+          to={stats?.archive_customer_count ?? 0}
+        />
+      </section>
+
+      {/* ── 보조 지표 (알림장 수) ─────────────────────── */}
+      <section className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="전체 알림장" value={stats?.invitation_count ?? 0} small unit="건" />
+        <StatCard
+          label="제작(수정)된 알림장"
+          value={stats?.made_invitation_count ?? 0}
+          small
+          unit="건"
+        />
+        <StatCard label="발행된 알림장" value={stats?.published_count ?? 0} small unit="건" />
+        <StatCard label="영구소장 적용" value={stats?.archived_count ?? 0} small unit="건" />
       </section>
 
       {/* ── 발행 알림장 디자인 분포 ─────────────────────── */}
@@ -219,11 +273,13 @@ function StatCard({
   value,
   hint,
   small,
+  unit = '명',
 }: {
   label: string;
   value: number;
   hint?: string;
   small?: boolean;
+  unit?: string;
 }) {
   return (
     <div className="rounded-md border border-[#E8DCC9] bg-white p-4">
@@ -232,9 +288,34 @@ function StatCard({
         className={`mt-1 font-semibold text-[#3D2E1F] ${small ? 'text-xl' : 'text-2xl'}`}
       >
         {value.toLocaleString('ko-KR')}
-        <span className="ml-1 text-xs font-normal text-[#8B7355]">명</span>
+        <span className="ml-1 text-xs font-normal text-[#8B7355]">{unit}</span>
       </div>
       {hint && <div className="mt-1 text-[10.5px] text-[#B09B80]">{hint}</div>}
+    </div>
+  );
+}
+
+/** 전환율 카드 — 큰 퍼센트 + "from → to" 보조 표기. */
+function ConversionCard({
+  label,
+  pct,
+  from,
+  to,
+}: {
+  label: string;
+  pct: number | null;
+  from: number;
+  to: number;
+}) {
+  return (
+    <div className="rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-4">
+      <div className="text-[11px] font-medium text-[#8B7355]">{label}</div>
+      <div className="mt-1 text-2xl font-semibold text-[#8B5E34]">
+        {pct === null ? '—' : `${pct}%`}
+      </div>
+      <div className="mt-1 text-[10.5px] text-[#B09B80]">
+        {from.toLocaleString('ko-KR')}명 → {to.toLocaleString('ko-KR')}명
+      </div>
     </div>
   );
 }

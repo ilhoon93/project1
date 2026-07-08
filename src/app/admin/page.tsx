@@ -27,19 +27,16 @@ interface AdminPage {
   description: string;
 }
 
+// 탭 순서: 가입자 → 알림장 관련 → 스냅 관련.
 const ADMIN_PAGES: AdminPage[] = [
+  // ── 가입자 ──
   {
     href: '/admin/users',
     title: '가입자 / 크레딧',
     description:
       '가입자 목록 + 발행권·영구소장·스냅 잔액 + 결제 건수/총액 조회. 크레딧을 수동으로 지급/회수(admin_grant·admin_revoke).',
   },
-  {
-    href: '/admin/snap-jobs',
-    title: 'AI 스냅 생성내역',
-    description:
-      'AI 웨딩스냅(catalog) 생성 기록을 최신순으로 조회. 이메일 필터 + 입력/결과 이미지 클릭 확대 + 반응(좋아요·재생성 사유) 표시.',
-  },
+  // ── 알림장 관련 ──
   {
     href: '/admin/invitations',
     title: '알림장 목록',
@@ -50,19 +47,7 @@ const ADMIN_PAGES: AdminPage[] = [
     href: '/admin/invitation-stats',
     title: '알림장 통계',
     description:
-      '가입자·제작·결제 고객 수와 발행된 알림장의 테마·레이아웃·폰트·슬라이드 선택 분포를 집계.',
-  },
-  {
-    href: '/admin/social-proof',
-    title: '사회적 증거 설정',
-    description:
-      '메인 알림장 섹션 하단 사회적 증거(리뷰 이미지 + 커플 수 등)를 세팅. 현재는 저장만 되고 메인에는 아직 미노출.',
-  },
-  {
-    href: '/admin/snap-catalog-order',
-    title: '카탈로그 노출 순서',
-    description:
-      'AI 스냅 카탈로그 화면의 기본 정렬 순서를 위/아래로 직접 조정. 저장 즉시 사용자 카탈로그 화면에 반영.',
+      '가입·제작·결제·영구소장 고객 수와 전환율, 발행 알림장의 테마·레이아웃·폰트·슬라이드 선택 분포를 집계(운영자·테스트 계정 제외).',
   },
   {
     href: '/admin/home-samples',
@@ -71,10 +56,29 @@ const ADMIN_PAGES: AdminPage[] = [
       '알림장 디자인 표지(레이아웃·테마·효과·폰트·사진·이름·날짜)와 공유 본문 템플릿을 세팅. 저장 즉시 메인/디자인 샘플 페이지에 반영.',
   },
   {
+    href: '/admin/social-proof',
+    title: '사회적 증거 설정',
+    description:
+      '메인 알림장 섹션 하단 사회적 증거(리뷰 이미지 + 커플 수 등)를 세팅. 메인 노출 토글로 즉시 반영.',
+  },
+  // ── 스냅 관련 ──
+  {
+    href: '/admin/snap-jobs',
+    title: 'AI 스냅 생성내역',
+    description:
+      'AI 웨딩스냅(catalog) 생성 기록을 최신순으로 조회. 이메일 필터 + 입력/결과 이미지 클릭 확대 + 반응(좋아요·재생성 사유) 표시.',
+  },
+  {
     href: '/admin/snap-samples',
     title: 'AI 스냅 샘플 설정',
     description:
       '메인 화면의 샘플 AI스냅(폴라로이드·썸네일 스트립)과 Before/After 슬라이더를 세팅. 저장 즉시 메인 페이지에 반영.',
+  },
+  {
+    href: '/admin/snap-catalog-order',
+    title: '카탈로그 노출 순서',
+    description:
+      'AI 스냅 카탈로그 화면의 기본 정렬 순서를 위/아래로 직접 조정. 저장 즉시 사용자 카탈로그 화면에 반영.',
   },
   {
     href: '/admin/snap-catalog-tags',
