@@ -41,9 +41,20 @@ export function EditorMobilePreview({ invitationId, open, onOpenChange }: Props)
   const storeMeta = useEditorStore((s) => s.meta);
 
   // 실제 모바일 뷰포트 크기 — 전체화면과 동일 렌더의 기준.
+  //
+  // 주의: 모바일에서 에디터를 스크롤하면 주소창이 접히거나 펴지며 innerHeight 가
+  // 바뀐다. 이때마다 stage 화면비(vp.w/vp.h)·배율을 다시 잡으면 미리보기 비율이
+  // 출렁인다. 그래서 "너비가 바뀐" 변화(= 실제 방향 전환/리사이즈)일 때만 기준을
+  // 갱신하고, 높이만 달라지는 주소창 토글은 무시해 비율을 고정한다.
   const [vp, setVp] = useState({ w: 0, h: 0 });
+  const lastWidthRef = useRef(0);
   useEffect(() => {
-    const measure = () => setVp({ w: window.innerWidth, h: window.innerHeight });
+    const measure = () => {
+      const w = window.innerWidth;
+      if (w === lastWidthRef.current) return; // 높이만 변한 스크롤(주소창) — 무시.
+      lastWidthRef.current = w;
+      setVp({ w, h: window.innerHeight });
+    };
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
