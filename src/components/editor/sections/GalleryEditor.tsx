@@ -1,6 +1,13 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
+import { GripVertical } from 'lucide-react';
 import { useEditorStore } from '@/stores/editor';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from '@/lib/utils/nanoid';
@@ -26,7 +33,150 @@ export function GalleryEditor({ drag }: { drag?: SectionDragProps }) {
   const [busy, setBusy] = useState<{ done: number; total: number } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // ── 사진 드래그앤드롭 재정렬 (마우스·터치 공통, 포인터 이벤트) ─────────────
+  // 섹션 카드 재배치와 같은 철학: 원본은 자리에서 흐려지고, 포인터를 따라다니는
+  // 클론이 떠 있으며, 드롭 대상 타일은 링으로 강조. 실제 순서 변경은 드롭 시점에
+  // 한 번만 commit 해 드래그 중 레이아웃이 흔들리지 않게 한다.
+  const gridRef = useRef<HTMLUListElement>(null);
+  const cloneRef = useRef<HTMLDivElement | null>(null);
+  const dragMetaRef = useRef<{
+    from: number;
+    offsetX: number;
+    offsetY: number;
+    width: number;
+    height: number;
+    startLeft: number;
+    startTop: number;
+  } | null>(null);
+  const overIndexRef = useRef<number | null>(null);
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+
+  // 드롭 시점의 최신 이미지/patch 를 stale closure 없이 참조 (window 리스너는
+  // 안정적인 함수라 한 번만 붙는다).
+  const reorderRef = useRef<(from: number, to: number) => void>(() => {});
+  reorderRef.current = (from, to) => {
+    const cur = useEditorStore.getState().content?.gallery;
+    if (!cur) return;
+    if (from === to || from < 0 || to < 0) return;
+    if (from >= cur.images.length || to >= cur.images.length) return;
+    const list = [...cur.images];
+    const [moved] = list.splice(from, 1);
+    list.splice(to, 0, moved);
+    patch('gallery', { ...cur, images: list });
+  };
+
+  // 포인터가 얹힌 타일 인덱스(여백이면 중심이 가장 가까운 타일).
+  const computeOver = useCallback((x: number, y: number): number | null => {
+    const root = gridRef.current;
+    if (!root) return null;
+    const tiles = Array.from(root.querySelectorAll<HTMLElement>('[data-tile]'));
+    if (tiles.length === 0) return null;
+    for (let i = 0; i < tiles.length; i++) {
+      const r = tiles[i].getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return i;
+    }
+    let best: number | null = null;
+    let bestD = Infinity;
+    for (let i = 0; i < tiles.length; i++) {
+      const r = tiles[i].getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const d = (x - cx) ** 2 + (y - cy) ** 2;
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    return best;
+  }, []);
+
+  const handleMove = useCallback(
+    (e: globalThis.PointerEvent) => {
+      const meta = dragMetaRef.current;
+      if (!meta) return;
+      if (cloneRef.current) {
+        cloneRef.current.style.transform = `translate(${e.clientX - meta.offsetX}px, ${
+          e.clientY - meta.offsetY
+        }px)`;
+      }
+      const idx = computeOver(e.clientX, e.clientY);
+      if (idx !== overIndexRef.current) {
+        overIndexRef.current = idx;
+        setOverIndex(idx);
+      }
+    },
+    [computeOver],
+  );
+
+  const handleUp = useCallback(
+    (e: globalThis.PointerEvent) => {
+      const meta = dragMetaRef.current;
+      if (meta) {
+        const idx = computeOver(e.clientX, e.clientY);
+        if (idx !== null) reorderRef.current(meta.from, idx);
+      }
+      dragMetaRef.current = null;
+      overIndexRef.current = null;
+      setDragFrom(null);
+      setOverIndex(null);
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+      window.removeEventListener('pointercancel', handleUp);
+    },
+    [computeOver, handleMove],
+  );
+
+  const startDrag = useCallback(
+    (index: number, el: HTMLElement, clientX: number, clientY: number) => {
+      const rect = el.getBoundingClientRect();
+      dragMetaRef.current = {
+        from: index,
+        offsetX: clientX - rect.left,
+        offsetY: clientY - rect.top,
+        width: rect.width,
+        height: rect.height,
+        startLeft: rect.left,
+        startTop: rect.top,
+      };
+      overIndexRef.current = index;
+      setDragFrom(index);
+      setOverIndex(index);
+      window.addEventListener('pointermove', handleMove);
+      window.addEventListener('pointerup', handleUp);
+      window.addEventListener('pointercancel', handleUp);
+    },
+    [handleMove, handleUp],
+  );
+
+  // 클론 첫 렌더 위치를 즉시 세팅해 깜빡임 방지 — 이후 pointermove 가 직접 갱신.
+  const cloneCallbackRef = useCallback((node: HTMLDivElement | null) => {
+    cloneRef.current = node;
+    const meta = dragMetaRef.current;
+    if (node && meta) {
+      node.style.transform = `translate(${meta.startLeft}px, ${meta.startTop}px)`;
+    }
+  }, []);
+
+  // 드래그 도중 언마운트되면 리스너 정리.
+  useEffect(
+    () => () => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+      window.removeEventListener('pointercancel', handleUp);
+    },
+    [handleMove, handleUp],
+  );
+
   if (!gallery || !invitationId) return null;
+
+  const handleGripDown = (index: number) => (e: ReactPointerEvent) => {
+    // 마우스는 좌클릭만. 터치/펜은 그대로 시작.
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+    const tile = (e.currentTarget as HTMLElement).closest<HTMLElement>('[data-tile]');
+    if (tile) startDrag(index, tile, e.clientX, e.clientY);
+  };
 
   const handleFiles = async (files: FileList) => {
     setErrorMsg(null);
@@ -75,14 +225,6 @@ export function GalleryEditor({ drag }: { drag?: SectionDragProps }) {
   const removeAt = (i: number) => {
     const next = gallery.images.filter((_, idx) => idx !== i);
     patch('gallery', { ...gallery, images: next });
-  };
-
-  const move = (i: number, dir: -1 | 1) => {
-    const j = i + dir;
-    if (j < 0 || j >= gallery.images.length) return;
-    const list = [...gallery.images];
-    [list[i], list[j]] = [list[j], list[i]];
-    patch('gallery', { ...gallery, images: list });
   };
 
   return (
@@ -159,46 +301,79 @@ export function GalleryEditor({ drag }: { drag?: SectionDragProps }) {
 
         {errorMsg && <p className="text-xs text-destructive">{errorMsg}</p>}
 
+        {gallery.images.length > 1 && (
+          <p className="text-xs text-muted-foreground">
+            좌측 상단 손잡이를 잡고 드래그해 순서를 바꿀 수 있어요.
+          </p>
+        )}
+
         {gallery.images.length > 0 && (
-          <ul className="grid grid-cols-3 gap-2">
-            {gallery.images.map((url, i) => (
-              <li
-                key={`${url}-${i}`}
-                className="relative aspect-square overflow-hidden rounded-md"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="" className="h-full w-full object-cover" />
-                <div className="absolute right-1 top-1 flex gap-1">
-                  <button
-                    type="button"
-                    aria-label="앞으로"
-                    disabled={i === 0}
-                    onClick={() => move(i, -1)}
-                    className="grid h-6 w-6 place-items-center rounded-full bg-black/60 text-xs text-white disabled:opacity-30"
-                  >
-                    ‹
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="뒤로"
-                    disabled={i === gallery.images.length - 1}
-                    onClick={() => move(i, 1)}
-                    className="grid h-6 w-6 place-items-center rounded-full bg-black/60 text-xs text-white disabled:opacity-30"
-                  >
-                    ›
-                  </button>
+          <ul ref={gridRef} className="grid grid-cols-3 gap-2">
+            {gallery.images.map((url, i) => {
+              const isDragging = dragFrom === i;
+              const isOver =
+                dragFrom !== null && overIndex === i && overIndex !== dragFrom;
+              return (
+                <li
+                  key={`${url}-${i}`}
+                  data-tile
+                  className={`relative aspect-square overflow-hidden rounded-md transition-[opacity,box-shadow] ${
+                    isDragging ? 'opacity-30' : ''
+                  } ${isOver ? 'ring-2 ring-primary ring-offset-1' : ''}`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={url}
+                    alt=""
+                    draggable={false}
+                    className="h-full w-full object-cover"
+                  />
+                  {/* 드래그 손잡이 (좌상단) — touch-none 으로 터치 스크롤과 충돌 방지 */}
+                  {gallery.images.length > 1 && (
+                    <button
+                      type="button"
+                      aria-label={`${i + 1}번째 사진 순서 변경 손잡이 — 드래그하세요`}
+                      title="드래그해서 순서 변경"
+                      onPointerDown={handleGripDown(i)}
+                      className="absolute left-1 top-1 grid h-6 w-6 touch-none cursor-grab place-items-center rounded-full bg-black/60 text-white active:cursor-grabbing"
+                    >
+                      <GripVertical size={14} />
+                    </button>
+                  )}
+                  {/* 삭제 (우상단) */}
                   <button
                     type="button"
                     onClick={() => removeAt(i)}
                     aria-label="삭제"
-                    className="grid h-6 w-6 place-items-center rounded-full bg-black/60 text-xs text-white"
+                    className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-xs text-white"
                   >
                     ×
                   </button>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
+        )}
+
+        {/* 포인터를 따라 떠다니는 사진 클론 — 원본은 자리에서 흐려진 placeholder 로 남는다. */}
+        {dragFrom !== null && gallery.images[dragFrom] && (
+          <div
+            ref={cloneCallbackRef}
+            aria-hidden
+            className="pointer-events-none fixed left-0 top-0 z-50 overflow-hidden rounded-md opacity-95 shadow-xl ring-2 ring-primary"
+            style={{
+              width: dragMetaRef.current?.width,
+              height: dragMetaRef.current?.height,
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={gallery.images[dragFrom]}
+              alt=""
+              draggable={false}
+              className="h-full w-full object-cover"
+            />
+          </div>
         )}
       </div>
     </SectionEditor>

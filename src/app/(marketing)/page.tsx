@@ -233,21 +233,12 @@ function DesignAndValues({
         <FadeUp scroll delay={0.22}>
           <ul className="mb-7 flex flex-wrap gap-1.5">
             <KeyChip>⇄ 가로 스와이프</KeyChip>
-            <KeyChip>14가지 컬러 테마</KeyChip>
-            <KeyChip>9가지 움직이는 배경효과</KeyChip>
-            <KeyChip>메인화면 축하폭죽</KeyChip>
-            <KeyChip>텍스트 애니메이션</KeyChip>
-            <KeyChip>14가지 레이아웃 디자인</KeyChip>
-            <KeyChip>19가지 폰트</KeyChip>
+            <KeyChip>움직이는 디자인</KeyChip>
+            <KeyChip>200가지의 테마와 레이아웃 조합</KeyChip>
+            <KeyChip>투표와 퀴즈 등 참여형 컨텐츠</KeyChip>
             <KeyChip>좋아요 가능한 갤러리</KeyChip>
-            <KeyChip>퀴즈·A/B 투표</KeyChip>
-            <KeyChip>손글씨를 담은 소장용 방명록</KeyChip>
-            <KeyChip>혼인서약서</KeyChip>
-            <KeyChip>영상 슬라이드</KeyChip>
-            <KeyChip>배경음악</KeyChip>
-            <KeyChip>계좌 정보</KeyChip>
-            <KeyChip>슬라이드 순서변경</KeyChip>
-            <KeyChip>무료 제작</KeyChip>
+            <KeyChip>손글씨를 담은 방명록</KeyChip>
+            <KeyChip>신랑 신부를 위한 소장용 페이지</KeyChip>
           </ul>
         </FadeUp>
 
