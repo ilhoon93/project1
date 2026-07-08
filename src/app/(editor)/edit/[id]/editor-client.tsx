@@ -19,6 +19,7 @@ import { ClosingEditor } from '@/components/editor/sections/ClosingEditor';
 import { ThemeEditor } from '@/components/editor/sections/ThemeEditor';
 import { BasicInfoEditor } from '@/components/editor/sections/BasicInfoEditor';
 import { EditorLivePreview } from '@/components/editor/EditorLivePreview';
+import { EditorMobilePreview } from '@/components/editor/EditorMobilePreview';
 
 type SectionEditorComponent = ComponentType<{ drag?: SectionDragProps }>;
 
@@ -115,7 +116,7 @@ export function EditorClient({
           <div className="sticky top-[57px] z-10 -mx-0 border-b border-[var(--wd-line)] bg-[var(--wd-paper)]/85 backdrop-blur lg:top-0 lg:rounded-md lg:border lg:border-[var(--wd-line)] lg:bg-[var(--wd-paper)]">
             <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-3 py-2 lg:max-w-none">
               <span className="text-sm font-medium text-[var(--wd-ink)]">기본 편집</span>
-              <EditorActions invitationId={invitationId} />
+              <EditorActions />
             </div>
           </div>
 
@@ -125,6 +126,10 @@ export function EditorClient({
           </main>
         </div>
       </div>
+
+      {/* 모바일/태블릿 전용 실시간 미리보기 (플로팅 버튼 + 전체화면 오버레이).
+          데스크톱은 좌측 고정 패널이 담당하므로 컴포넌트 내부에서 lg:hidden 처리. */}
+      <EditorMobilePreview invitationId={invitationId} />
     </div>
   );
 }
@@ -402,28 +407,14 @@ const STATUS_COLOR = {
  * 탭 strip 우측에 정렬되는 에디터 액션 — 상태 / 저장 / 미리보기.
  * 기존 EditorToolbar 의 로직(저장 race, preview 캐시 무효화) 그대로 이식.
  */
-function EditorActions({ invitationId }: { invitationId: string }) {
+function EditorActions() {
   const status = useEditorStore((s) => s.status);
   const save = useEditorStore((s) => s.save);
   const lastError = useEditorStore((s) => s.lastError);
   const router = useRouter();
-  const [navigating, setNavigating] = useState(false);
 
-  const handlePreview = async () => {
-    if (navigating) return;
-    if (status === 'dirty') {
-      const ok = window.confirm(
-        '저장하지 않은 변경사항이 있어요. 미리보기에는 저장된 내용만 반영됩니다. 그래도 미리보기로 이동할까요?',
-      );
-      if (!ok) return;
-    }
-    setNavigating(true);
-    while (useEditorStore.getState().status === 'saving') {
-      await new Promise((r) => setTimeout(r, 50));
-    }
-    router.refresh();
-    router.push(`/preview/${invitationId}?t=${Date.now()}`);
-  };
+  // 모바일 미리보기는 EditorMobilePreview 의 플로팅 버튼 + 실시간 오버레이가
+  // 담당한다 (저장본으로 이동하던 기존 버튼을 대체 — 편집 중 변경분을 즉시 확인).
 
   return (
     <div className="flex flex-shrink-0 items-center gap-2">
@@ -445,15 +436,6 @@ function EditorActions({ invitationId }: { invitationId: string }) {
         disabled={status === 'saving' || status === 'idle' || status === 'saved'}
       >
         저장
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => void handlePreview()}
-        disabled={navigating || status === 'saving'}
-        className="lg:hidden"
-      >
-        {navigating ? '이동 중...' : '미리보기'}
       </Button>
     </div>
   );
