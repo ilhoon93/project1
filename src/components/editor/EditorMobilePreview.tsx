@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Eye, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { useEditorStore } from '@/stores/editor';
 import {
   InvitationContentSchema,
@@ -14,13 +14,18 @@ interface Props {
   invitationId: string;
 }
 
+// 접힘 상태 핸들 바 높이(px). 펼침 높이는 뷰포트 비율(아래 OPEN_VH).
+const BAR_H = 52;
+const OPEN_VH = 58;
+
 /**
- * 모바일/태블릿(lg 미만) 전용 실시간 미리보기.
+ * 모바일/태블릿(lg 미만) 전용 실시간 미리보기 — 하단 고정 접이식 시트.
  *
  * 데스크톱은 좌측 고정 패널(EditorLivePreview)이 편집 중인 값을 실시간으로
- * 보여주지만, 좁은 화면에는 그 공간이 없다. 그래서 우하단 플로팅 버튼을 눌러
- * 전체화면 오버레이로 같은 실시간 미리보기를 띄운다 — /preview 페이지(저장본만
- * 반영)와 달리 Zustand 스토어를 직접 구독하므로 저장 전 변경분도 즉시 보인다.
+ * 보여준다. 좁은 화면에는 그 공간이 없어, 화면 하단에 항상 붙어 있는 시트를
+ * 두고 탭으로 펼치면 미니 미리보기가 나온다. 펼친 채로 위쪽 편집 폼을 수정하면
+ * Zustand 스토어를 직접 구독하는 이 미리보기가 즉시 갱신된다 — /preview 페이지나
+ * 전체화면 오버레이처럼 편집 화면을 떠나거나 가리지 않고 "보면서 편집"이 된다.
  *
  * lg 이상에서는 좌측 패널과 중복되므로 숨긴다(lg:hidden).
  */
@@ -31,24 +36,24 @@ export function EditorMobilePreview({ invitationId }: Props) {
   const storeContent = useEditorStore((s) => s.content);
   const storeMeta = useEditorStore((s) => s.meta);
 
-  // 오버레이가 열려 있는 동안 배경(에디터) 스크롤 잠금.
+  // 시트가 가리는 만큼 에디터(=window 스크롤) 하단에 여백을 확보 → 마지막 입력칸이
+  // 시트 뒤에 숨지 않는다. 데스크톱은 이 컴포넌트가 시각적으로 숨겨지므로(lg:hidden)
+  // 여백을 넣지 않는다.
   useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const apply = () => {
+      const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+      document.body.style.paddingBottom = isDesktop
+        ? ''
+        : open
+          ? `${OPEN_VH}vh`
+          : `${BAR_H}px`;
+    };
+    apply();
+    window.addEventListener('resize', apply);
     return () => {
-      document.body.style.overflow = prev;
+      window.removeEventListener('resize', apply);
+      document.body.style.paddingBottom = '';
     };
-  }, [open]);
-
-  // Escape 로 닫기.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
   const ready = storeId === invitationId && storeContent && storeMeta;
@@ -68,60 +73,59 @@ export function EditorMobilePreview({ invitationId }: Props) {
   }
 
   return (
-    <>
-      {/* 플로팅 버튼 — 우하단 고정, lg 미만 only. 오버레이가 열리면 숨긴다. */}
-      {!open && (
+    <div className="fixed inset-x-0 bottom-0 z-40 lg:hidden">
+      <div
+        className={`flex w-full flex-col overflow-hidden rounded-t-2xl border border-b-0 border-[var(--wd-line)] bg-[var(--wd-paper)] shadow-[0_-8px_30px_rgba(31,27,23,0.16)] transition-[height] duration-300 ease-out ${
+          open ? 'h-[58vh]' : 'h-[52px]'
+        }`}
+      >
+        {/* 핸들 바 — 탭해서 펼치기/접기 */}
         <button
           type="button"
-          onClick={() => setOpen(true)}
-          aria-label="실시간 미리보기 열기"
-          className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-1.5 rounded-full bg-[var(--wd-ink)] px-4 py-3 text-[13px] font-medium text-[var(--wd-cream)] shadow-lg transition-transform active:scale-[0.97] lg:hidden"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-label={open ? '미리보기 접기' : '미리보기 펼치기'}
+          className="flex shrink-0 items-center justify-between gap-2 px-4"
+          style={{ height: BAR_H }}
         >
-          <Eye size={16} />
-          미리보기
+          <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--wd-ink)]">
+            <Eye size={15} />
+            실시간 미리보기
+          </span>
+          <span className="inline-flex items-center gap-1 text-[12px] text-[var(--wd-mute)]">
+            {open ? '접기' : '펼쳐서 보며 편집'}
+            {open ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+          </span>
         </button>
-      )}
 
-      {/* 전체화면 오버레이 — 편집 중인 값을 실시간 반영. */}
-      {open && (
-        <div className="fixed inset-0 z-[60] flex flex-col bg-black lg:hidden">
-          <div className="flex items-center justify-between gap-2 bg-black/80 px-4 py-2 text-white backdrop-blur">
-            <span className="inline-flex items-center gap-1.5 text-[12px] font-medium">
-              <Eye size={14} />
-              실시간 미리보기
-              <span className="text-white/50">· 편집 내용 즉시 반영</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="미리보기 닫기"
-              className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-white/25"
-            >
-              <X size={14} />
-              닫기
-            </button>
-          </div>
-
-          {/* 남는 영역을 알림장이 가득 채우도록 — scoped 로 이 박스 안에서만 렌더. */}
-          <div className="relative min-h-0 flex-1 overflow-hidden bg-background">
-            {ready ? (
-              <InvitationSlides
-                invitationId={invitationId}
-                groomName={groomName}
-                brideName={brideName}
-                weddingDate={weddingDate}
-                content={content}
-                isPreview
-                scoped
-              />
-            ) : (
-              <div className="grid h-full w-full place-items-center text-xs text-muted-foreground">
-                로딩 중...
+        {/* 펼침 영역 — 남는 높이를 미니 폰 미리보기가 채운다. scoped 로 이 박스 안에서만 렌더. */}
+        {open && (
+          <div className="relative min-h-0 flex-1 bg-[var(--wd-cream)] p-3">
+            <div className="flex h-full w-full items-center justify-center">
+              <div
+                className="relative h-full max-w-full overflow-hidden rounded-[1.25rem] border-[3px] border-foreground/80 bg-background shadow-md"
+                style={{ aspectRatio: '9 / 18' }}
+              >
+                {ready ? (
+                  <InvitationSlides
+                    invitationId={invitationId}
+                    groomName={groomName}
+                    brideName={brideName}
+                    weddingDate={weddingDate}
+                    content={content}
+                    isPreview
+                    scoped
+                  />
+                ) : (
+                  <div className="grid h-full w-full place-items-center text-xs text-muted-foreground">
+                    로딩 중...
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
-        </div>
-      )}
-    </>
+        )}
+      </div>
+    </div>
   );
 }
