@@ -1816,6 +1816,9 @@ function ReviewEventNotice() {
         포토리뷰 사진 첨부가 안 되는 경우, 텍스트만 작성해 저장한 뒤 수정해서 사진을
         추가해 주세요.
       </p>
+      <p className="text-[12px] leading-relaxed text-[#8A6B36]">
+        네이버 포인트 <strong>1,000P</strong>는 네이버에서 별도로 적립해 드려요.
+      </p>
       <a
         href="https://talk.naver.com/ct/wiq8nf0"
         target="_blank"
