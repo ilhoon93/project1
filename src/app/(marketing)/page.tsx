@@ -29,7 +29,7 @@ import type {
 } from '@/lib/marketing/sample-invitations';
 
 export const metadata: Metadata = {
-  title: '우리다운 — 우리 다운 결혼 알림장',
+  title: '우리다운 — 노웨딩·스몰웨딩 커플을 위한 결혼 알림장',
   description:
     '예식 없이도 우리의 소식을 전해요. 노웨딩·스몰웨딩 커플을 위한 감성 모바일 알림장 + AI 웨딩스냅.',
 };

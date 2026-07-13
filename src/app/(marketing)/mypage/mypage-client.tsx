@@ -1794,6 +1794,41 @@ function RegisterOrderCard() {
 // ── 주문 ─────────────────────────────────────────────────────
 
 /**
+ * 포토리뷰 이벤트 안내 — 포토리뷰 작성 후 네이버 톡톡으로 별점 리뷰 스크린샷을
+ * 보내면 영구소장을 무료 지급하는 이벤트. 주문 탭 상단에 노출.
+ */
+function ReviewEventNotice() {
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-[#E4B95F]/50 bg-[#FBF3E1] p-5">
+      <div className="flex items-center gap-2">
+        <span className="text-base" aria-hidden>
+          📸
+        </span>
+        <h3 className="text-sm font-semibold text-[#8A5A12]">
+          포토리뷰 이벤트 · 영구소장 무료 지급
+        </h3>
+      </div>
+      <p className="text-[13px] leading-relaxed text-[#6B4E1E]">
+        포토리뷰를 작성한 뒤 <strong>네이버 톡톡</strong>으로 별점 리뷰 스크린샷을
+        보내주시면, 확인 후 <strong>영구소장을 무료로 지급</strong>해 드려요.
+      </p>
+      <p className="text-[12px] leading-relaxed text-[#8A6B36]">
+        포토리뷰 사진 첨부가 안 되는 경우, 텍스트만 작성해 저장한 뒤 수정해서 사진을
+        추가해 주세요.
+      </p>
+      <a
+        href="https://talk.naver.com/ct/wiq8nf0"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-1 inline-flex w-fit items-center gap-1 rounded-md bg-[#03C75A] px-3 py-1.5 text-[12px] font-medium text-white transition-opacity hover:opacity-90"
+      >
+        네이버 톡톡으로 리뷰 보내기 →
+      </a>
+    </div>
+  );
+}
+
+/**
  * 주문 탭 — 과거 결제 내역 + 주문 등록 액션.
  *
  * 이전엔 "스마트스토어 주문번호 등록" 과 "네이버 로그인 주문 가져오기" 가 결혼
@@ -1806,6 +1841,9 @@ function OrdersTab({ orders }: { orders: MyPageOrder[] }) {
 
   return (
     <section className="flex flex-col gap-4">
+      {/* 포토리뷰 이벤트 안내 — 주문번호 등록 카드 상단. */}
+      <ReviewEventNotice />
+
       {/* 주문 등록 액션 — 결혼알림장 탭에서 이동.
           로그인 자체가 네이버 OAuth 단독이라 모든 사용자는 이미 네이버 계정과
           연동돼 있다 → 별도 "네이버 연결" 카드는 중복이라 제거. 크레딧은 아래

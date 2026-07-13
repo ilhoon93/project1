@@ -350,12 +350,12 @@ export const metadata: Metadata = {
   // 상대 경로(OG 이미지·canonical 등)를 절대 URL 로 해석할 기준. 공유 카드 이미지가
   // 절대 URL 이어야 카카오/네이버/구글 미리보기가 정상 노출됨.
   metadataBase: new URL(SITE_URL),
-  title: '우리다운 — 우리 다운 결혼 알림장',
+  title: '우리다운 — 노웨딩·스몰웨딩 커플을 위한 결혼 알림장',
   description: SITE_DESCRIPTION,
   // 사이트 기본 OG — 마케팅 페이지(/, /designs, /wedding-snap)는 자체 openGraph 가 없어
   // 이 값을 상속한다. 공유 이미지는 public/og.png (1200×630).
   openGraph: {
-    title: '우리다운 — 우리 다운 결혼 알림장',
+    title: '우리다운 — 노웨딩·스몰웨딩 커플을 위한 결혼 알림장',
     description: SITE_DESCRIPTION,
     url: SITE_URL,
     siteName: '우리다운',
@@ -367,7 +367,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: '우리다운 — 우리 다운 결혼 알림장',
+    title: '우리다운 — 노웨딩·스몰웨딩 커플을 위한 결혼 알림장',
     description: SITE_DESCRIPTION,
     images: ['/og.png'],
   },

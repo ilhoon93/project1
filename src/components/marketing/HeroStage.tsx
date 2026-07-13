@@ -93,9 +93,6 @@ function PolaroidCta({ snap, className }: { snap: AiSnapItem; className?: string
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/65" />
-        <div className="absolute right-2 top-2 z-[2] rounded-full bg-white/95 px-2 py-[2px] text-[8px] font-medium tracking-wider text-[var(--wd-ink)]">
-          AI
-        </div>
         <div className="absolute inset-x-2 bottom-2 z-[2] text-[10px] font-medium text-white opacity-0 transition-all group-hover:opacity-95">
           우리 얼굴로 만들기 →
         </div>
