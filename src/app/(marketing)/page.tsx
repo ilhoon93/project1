@@ -367,8 +367,16 @@ function Pricing() {
 
 function InvitationPricingCard() {
   return (
-    <div className="flex h-full flex-col rounded-2xl bg-[var(--wd-paper)] p-7 shadow-sm ring-1 ring-[var(--wd-line)]">
-      <div className="text-center">
+    <div className="relative flex h-full flex-col overflow-hidden rounded-2xl bg-[var(--wd-paper)] p-7 shadow-sm ring-1 ring-[var(--wd-line)]">
+      {/* 이벤트 띠 — AI 스냅 카드와 동일 형식. 포토리뷰 작성 시 영구소장 무료 지급. */}
+      <div className="absolute inset-x-0 top-0 flex items-center justify-center gap-2 bg-[var(--wd-cream)] py-1.5 text-[11px] font-medium text-[var(--wd-ink)]">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--wd-coral)]" />
+        <span className="font-italiana text-[10px] tracking-[0.26em] text-[var(--wd-coral)]">
+          OPEN EVENT
+        </span>
+        <span>포토리뷰 작성 시 영구소장 무료</span>
+      </div>
+      <div className="mt-7 text-center">
         <p className="font-italiana text-xs tracking-[0.3em] text-[var(--wd-coral)]">
           INVITATION
         </p>
@@ -386,12 +394,12 @@ function InvitationPricingCard() {
         <li>· 혼인서약서 PDF·이미지 영구 소장</li>
       </ul>
 
-      {/* 알림장 상품 전체 옵션 조합 — 총액 표기(스마트스토어 옵션과 동일 구성). */}
+      {/* 알림장 옵션 조합 — 총액 표기. AI 스냅 번들 옵션(snapBundle)은 알림장 카드에서 제외. */}
       <div className="mt-4 flex flex-col gap-1.5 rounded-xl border border-[var(--wd-line)] bg-[var(--wd-cream)] p-3 text-[12px] text-[var(--wd-mute)]">
         <p className="text-[10.5px] font-medium uppercase tracking-[0.18em] text-[var(--wd-coral)]">
           옵션별 가격
         </p>
-        {INVITATION_OPTIONS.map((opt, i) => (
+        {INVITATION_OPTIONS.filter((o) => !o.snapBundle).map((opt, i) => (
           <div
             key={opt.optionCode}
             className={i > 0 ? 'mt-1 border-t border-[var(--wd-line)] pt-2' : ''}
