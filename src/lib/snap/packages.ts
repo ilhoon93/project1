@@ -129,3 +129,15 @@ export const INVITATION_PRICE = 9900;
  * (DB code: archive_basic — 016 이전 14,900 → 035 에서 3,000 으로 인하.)
  */
 export const ARCHIVE_PRICE = 3000;
+
+/**
+ * 알림장 "1+1" 옵션 — 알림장 2건 발행(발행권 2). 스마트스토어 옵션 59246230104.
+ * 기본가(INVITATION_PRICE) 대비 추가금.
+ */
+export const INVITATION_1PLUS1_ADDON = 5000;
+
+/**
+ * 알림장 "1+1 + 영구소장" 옵션 — 발행권 2 + 영구소장권 2. 스마트스토어 옵션 59246230105.
+ * 기본가 대비 추가금.
+ */
+export const INVITATION_1PLUS1_ARCHIVE_ADDON = 8000;

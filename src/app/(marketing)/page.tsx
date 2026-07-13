@@ -13,6 +13,8 @@ import { catalogCountStat } from '@/lib/snap/catalog-display';
 import {
   ARCHIVE_PRICE,
   INVITATION_PRICE,
+  INVITATION_1PLUS1_ADDON,
+  INVITATION_1PLUS1_ARCHIVE_ADDON,
   SNAP_BUNDLE_PACKAGE,
   SNAP_PACKAGES,
   SNAP_STARTING_PRICE,
@@ -411,6 +413,24 @@ function InvitationPricingCard() {
         </div>
         <p className="text-[10.5px] leading-relaxed">
           단독 10장({formatKRW(12900)}) 대비 3,000원 할인 — 알림장 결제와 묶음 한정.
+        </p>
+        <div className="mt-1 flex items-center justify-between gap-2 border-t border-[var(--wd-line)] pt-2">
+          <span className="text-[var(--wd-ink)]">알림장 1+1</span>
+          <span className="font-semibold text-[var(--wd-ink)]">
+            +{formatKRW(INVITATION_1PLUS1_ADDON)}
+          </span>
+        </div>
+        <p className="text-[10.5px] leading-relaxed">
+          알림장 2건 발행 — 두 번의 소식을 나눠 전할 때.
+        </p>
+        <div className="mt-1 flex items-center justify-between gap-2 border-t border-[var(--wd-line)] pt-2">
+          <span className="text-[var(--wd-ink)]">알림장 1+1 + 영구소장</span>
+          <span className="font-semibold text-[var(--wd-ink)]">
+            +{formatKRW(INVITATION_1PLUS1_ARCHIVE_ADDON)}
+          </span>
+        </div>
+        <p className="text-[10.5px] leading-relaxed">
+          알림장 2건 발행 + 두 건 모두 영구소장.
         </p>
       </div>
 

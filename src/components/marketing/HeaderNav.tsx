@@ -48,16 +48,16 @@ export function HeaderNav({
   return (
     <nav className="flex flex-shrink-0 items-center gap-3 sm:gap-5">
       <Link
-        href="/wedding-snap"
-        className="whitespace-nowrap text-[13px] text-[var(--wd-mute)] transition-colors hover:text-[var(--wd-ink)]"
-      >
-        AI 스냅
-      </Link>
-      <Link
         href="/designs"
         className="whitespace-nowrap text-[13px] text-[var(--wd-mute)] transition-colors hover:text-[var(--wd-ink)]"
       >
         알림장
+      </Link>
+      <Link
+        href="/wedding-snap"
+        className="whitespace-nowrap text-[13px] text-[var(--wd-mute)] transition-colors hover:text-[var(--wd-ink)]"
+      >
+        AI 스냅
       </Link>
       <a
         href="https://smartstore.naver.com/wooridaun"
