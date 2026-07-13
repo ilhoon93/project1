@@ -11,11 +11,8 @@ import { SideCaption } from '@/components/marketing/SideMarginalia';
 import { getAvailableCatalog } from '@/lib/snap/catalog-availability';
 import { catalogCountStat } from '@/lib/snap/catalog-display';
 import {
-  ARCHIVE_PRICE,
   INVITATION_PRICE,
-  INVITATION_1PLUS1_ADDON,
-  INVITATION_1PLUS1_ARCHIVE_ADDON,
-  SNAP_BUNDLE_PACKAGE,
+  INVITATION_OPTIONS,
   SNAP_PACKAGES,
   SNAP_STARTING_PRICE,
   formatKRW,
@@ -389,49 +386,25 @@ function InvitationPricingCard() {
         <li>· 혼인서약서 PDF·이미지 영구 소장</li>
       </ul>
 
-      {/* 알림장과 함께 결제할 수 있는 부가 상품 — 영구소장 / 스냅 번들. */}
+      {/* 알림장 상품 전체 옵션 조합 — 총액 표기(스마트스토어 옵션과 동일 구성). */}
       <div className="mt-4 flex flex-col gap-1.5 rounded-xl border border-[var(--wd-line)] bg-[var(--wd-cream)] p-3 text-[12px] text-[var(--wd-mute)]">
         <p className="text-[10.5px] font-medium uppercase tracking-[0.18em] text-[var(--wd-coral)]">
-          함께 결제 시
+          옵션별 가격
         </p>
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[var(--wd-ink)]">영구소장 추가</span>
-          <span className="font-semibold text-[var(--wd-ink)]">
-            +{formatKRW(ARCHIVE_PRICE)}
-          </span>
-        </div>
-        <p className="text-[10.5px] leading-relaxed">
-          공개 30일 만료를 영구로 전환 — 하객 메시지·서명·통계가 그대로 보존.
-        </p>
-        <div className="mt-1 flex items-center justify-between gap-2 border-t border-[var(--wd-line)] pt-2">
-          <span className="text-[var(--wd-ink)]">
-            {SNAP_BUNDLE_PACKAGE.name}
-          </span>
-          <span className="font-semibold text-[var(--wd-ink)]">
-            +{formatKRW(SNAP_BUNDLE_PACKAGE.price)}
-          </span>
-        </div>
-        <p className="text-[10.5px] leading-relaxed">
-          단독 10장({formatKRW(12900)}) 대비 3,000원 할인 — 알림장 결제와 묶음 한정.
-        </p>
-        <div className="mt-1 flex items-center justify-between gap-2 border-t border-[var(--wd-line)] pt-2">
-          <span className="text-[var(--wd-ink)]">알림장 1+1</span>
-          <span className="font-semibold text-[var(--wd-ink)]">
-            +{formatKRW(INVITATION_1PLUS1_ADDON)}
-          </span>
-        </div>
-        <p className="text-[10.5px] leading-relaxed">
-          알림장 2건 발행 — 두 번의 소식을 나눠 전할 때.
-        </p>
-        <div className="mt-1 flex items-center justify-between gap-2 border-t border-[var(--wd-line)] pt-2">
-          <span className="text-[var(--wd-ink)]">알림장 1+1 + 영구소장</span>
-          <span className="font-semibold text-[var(--wd-ink)]">
-            +{formatKRW(INVITATION_1PLUS1_ARCHIVE_ADDON)}
-          </span>
-        </div>
-        <p className="text-[10.5px] leading-relaxed">
-          알림장 2건 발행 + 두 건 모두 영구소장.
-        </p>
+        {INVITATION_OPTIONS.map((opt, i) => (
+          <div
+            key={opt.optionCode}
+            className={i > 0 ? 'mt-1 border-t border-[var(--wd-line)] pt-2' : ''}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <span className="break-keep text-[var(--wd-ink)]">{opt.label}</span>
+              <span className="whitespace-nowrap font-semibold text-[var(--wd-ink)]">
+                {formatKRW(INVITATION_PRICE + opt.addonPrice)}
+              </span>
+            </div>
+            <p className="text-[10.5px] leading-relaxed">{opt.note}</p>
+          </div>
+        ))}
       </div>
 
       <Link

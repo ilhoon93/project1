@@ -131,13 +131,55 @@ export const INVITATION_PRICE = 9900;
 export const ARCHIVE_PRICE = 3000;
 
 /**
- * 알림장 "1+1" 옵션 — 알림장 2건 발행(발행권 2). 스마트스토어 옵션 59246230104.
- * 기본가(INVITATION_PRICE) 대비 추가금.
+ * 알림장 상품(스마트스토어 13622908142)의 전체 옵션 조합 — 홈 가격 카드 단일 소스.
+ * addonPrice 는 기본가(INVITATION_PRICE) 대비 추가금이며, 총액 = INVITATION_PRICE + addonPrice.
+ * 지급 크레딧 매핑은 supabase/migrations 의 naver_option_grants(041/055)와 일치해야 한다.
  */
-export const INVITATION_1PLUS1_ADDON = 5000;
+export interface InvitationOption {
+  /** 스마트스토어 옵션코드 (참고용). */
+  optionCode: string;
+  label: string;
+  /** 기본가 대비 추가금 (원). 0 = 기본 옵션. */
+  addonPrice: number;
+  /** 한 줄 설명. */
+  note: string;
+}
 
-/**
- * 알림장 "1+1 + 영구소장" 옵션 — 발행권 2 + 영구소장권 2. 스마트스토어 옵션 59246230105.
- * 기본가 대비 추가금.
- */
-export const INVITATION_1PLUS1_ARCHIVE_ADDON = 8000;
+export const INVITATION_OPTIONS: InvitationOption[] = [
+  {
+    optionCode: '58929908992',
+    label: '알림장 기본',
+    addonPrice: 0,
+    note: '알림장 1건 발행 · 하객용 + 소장용 URL',
+  },
+  {
+    optionCode: '58929908993',
+    label: '알림장 + 영구소장',
+    addonPrice: ARCHIVE_PRICE,
+    note: '공개 30일 만료를 영구로 — 메시지·서명·통계 보존',
+  },
+  {
+    optionCode: '58929908994',
+    label: '알림장 + AI 웨딩스냅 10+2장',
+    addonPrice: 9900,
+    note: 'AI 스냅 10장(+무료 재생성 2) · 단독 대비 3,000원 할인',
+  },
+  {
+    optionCode: '58929916256',
+    label: '알림장 + 영구소장 & AI 웨딩스냅 5+1장',
+    addonPrice: 9900,
+    note: '영구소장 + AI 스냅 5장(+무료 재생성 1)',
+  },
+  {
+    optionCode: '59246230104',
+    label: '알림장 1+1',
+    addonPrice: 5000,
+    note: '알림장 2건 발행',
+  },
+  {
+    optionCode: '59246230105',
+    label: '알림장 1+1 + 영구소장',
+    addonPrice: 8000,
+    note: '알림장 2건 발행 + 두 건 모두 영구소장',
+  },
+];
