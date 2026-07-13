@@ -143,6 +143,8 @@ export interface InvitationOption {
   addonPrice: number;
   /** 한 줄 설명. */
   note: string;
+  /** AI 스냅이 포함된 번들 옵션 — 홈 알림장 가격 카드에는 노출하지 않는다. */
+  snapBundle?: boolean;
 }
 
 export const INVITATION_OPTIONS: InvitationOption[] = [
@@ -163,12 +165,14 @@ export const INVITATION_OPTIONS: InvitationOption[] = [
     label: '알림장 + AI 웨딩스냅 10+2장',
     addonPrice: 9900,
     note: 'AI 스냅 10장(+무료 재생성 2) · 단독 대비 3,000원 할인',
+    snapBundle: true,
   },
   {
     optionCode: '58929916256',
     label: '알림장 + 영구소장 & AI 웨딩스냅 5+1장',
     addonPrice: 9900,
     note: '영구소장 + AI 스냅 5장(+무료 재생성 1)',
+    snapBundle: true,
   },
   {
     optionCode: '59246230104',
