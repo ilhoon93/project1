@@ -142,7 +142,7 @@ export function SocialProof({
                           <Stars rating={review.rating} size={12} />
                         )}
                         {review.caption && (
-                          <p className="mt-1 line-clamp-3 break-keep text-[11.5px] leading-relaxed text-[var(--wd-mute)]">
+                          <p className="mt-1 line-clamp-[10] break-keep text-[11.5px] leading-relaxed text-[var(--wd-mute)]">
                             {review.caption}
                           </p>
                         )}
