@@ -30,11 +30,8 @@ export function SocialProof({
   const hasCount = coupleCount > 0;
   if (!hasCount && reviews.length === 0) return null;
 
-  const rated = reviews.filter((r) => (r.rating ?? 0) > 0);
-  const avgRating =
-    rated.length > 0
-      ? rated.reduce((s, r) => s + (r.rating ?? 0), 0) / rated.length
-      : 0;
+  // 평균 별점은 운영자가 관리자에서 직접 세팅한 값(0 이면 미노출).
+  const avgRating = config.averageRating;
 
   // 마퀴가 끊김 없이 이어지도록 리뷰를 2배로 복제(-50% 이동 시 이음매 없음).
   const marqueeItems = reviews.length > 0 ? [...reviews, ...reviews] : [];
@@ -77,7 +74,7 @@ export function SocialProof({
                 label={config.coupleCountCaption || '누적 커플'}
               />
             ),
-            rated.length > 0 && (
+            avgRating > 0 && (
               <StatTile
                 key="rating"
                 value={avgRating}
@@ -121,7 +118,7 @@ export function SocialProof({
                 className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-[var(--wd-cream)] to-transparent"
               />
               <ul
-                className="wd-sp-marquee-track flex w-max gap-3"
+                className="wd-sp-marquee-track flex w-max items-start gap-3"
                 style={{ ['--wd-sp-dur' as string]: `${marqueeDuration}s` }}
               >
                 {marqueeItems.map((review, i) => (
@@ -130,24 +127,22 @@ export function SocialProof({
                     className="w-[160px] flex-shrink-0 sm:w-[176px]"
                   >
                     <div className="overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-paper)]">
-                      {/* object-contain — 리뷰 스크린샷이 잘리지 않고 전체가 보이도록.
-                          비율이 안 맞는 여백은 크림 배경으로 채운다. */}
-                      <div className="aspect-[3/4] w-full overflow-hidden bg-[var(--wd-cream)]">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={review.imageUrl}
-                          alt={review.caption || '고객 리뷰'}
-                          loading="lazy"
-                          draggable={false}
-                          className="h-full w-full object-contain"
-                        />
-                      </div>
+                      {/* 카드 너비를 꽉 채우고 세로는 원본 비율 그대로 — 좌우 여백 없이
+                          잘림 없이 전체 노출. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={review.imageUrl}
+                        alt={review.caption || '고객 리뷰'}
+                        loading="lazy"
+                        draggable={false}
+                        className="block w-full"
+                      />
                       <div className="px-2.5 py-2">
                         {(review.rating ?? 0) > 0 && (
                           <Stars rating={review.rating} size={12} />
                         )}
                         {review.caption && (
-                          <p className="mt-1 whitespace-pre-line break-keep text-[11.5px] leading-relaxed text-[var(--wd-mute)]">
+                          <p className="mt-1 line-clamp-3 break-keep text-[11.5px] leading-relaxed text-[var(--wd-mute)]">
                             {review.caption}
                           </p>
                         )}
@@ -171,8 +166,11 @@ export function SocialProof({
           animation: wd-sp-marquee var(--wd-sp-dur, 30s) linear infinite;
           will-change: transform;
         }
-        .wd-sp-marquee:hover .wd-sp-marquee-track {
-          animation-play-state: paused;
+        /* 마우스(hover 가능 기기)에서만 일시정지 — 터치 기기는 손을 대도 계속 흐른다. */
+        @media (hover: hover) {
+          .wd-sp-marquee:hover .wd-sp-marquee-track {
+            animation-play-state: paused;
+          }
         }
         @media (prefers-reduced-motion: reduce) {
           .wd-sp-marquee-track { animation: none; }

@@ -27,6 +27,8 @@ export interface SocialProofConfig {
   coupleCount: number;
   coupleCountSuffix: string;
   coupleCountCaption: string;
+  /** 사회적 증거에 노출할 평균 별점(0~5). 0 이면 평점 타일 미노출. */
+  averageRating: number;
   reviews: SocialProofReview[];
 }
 
@@ -37,6 +39,7 @@ export const DEFAULT_SOCIAL_PROOF: SocialProofConfig = {
   coupleCount: 0,
   coupleCountSuffix: '쌍',
   coupleCountCaption: '누적 알림장 제작',
+  averageRating: 5.0,
   reviews: [],
 };
 
@@ -55,6 +58,7 @@ const ConfigSchema = z.object({
   coupleCount: z.number().int().min(0).default(0),
   coupleCountSuffix: z.string().default('쌍'),
   coupleCountCaption: z.string().default(''),
+  averageRating: z.number().min(0).max(5).default(5),
   reviews: z.array(ReviewSchema).default([]),
 });
 
@@ -80,6 +84,7 @@ export async function getSocialProof(): Promise<SocialProofConfig> {
       couple_count?: number;
       couple_count_suffix?: string;
       couple_count_caption?: string;
+      average_rating?: number | string;
       reviews?: unknown;
     };
     const parsed = ConfigSchema.safeParse({
@@ -89,6 +94,8 @@ export async function getSocialProof(): Promise<SocialProofConfig> {
       coupleCount: row.couple_count ?? 0,
       coupleCountSuffix: row.couple_count_suffix ?? '쌍',
       coupleCountCaption: row.couple_count_caption ?? '',
+      // numeric 컬럼은 드라이버에 따라 문자열로 올 수 있어 Number() 로 정규화.
+      averageRating: row.average_rating != null ? Number(row.average_rating) : 5,
       reviews: row.reviews ?? [],
     });
     if (!parsed.success) return DEFAULT_SOCIAL_PROOF;
@@ -113,6 +120,7 @@ export async function saveSocialProof(
     couple_count: parsed.data.coupleCount,
     couple_count_suffix: parsed.data.coupleCountSuffix,
     couple_count_caption: parsed.data.coupleCountCaption,
+    average_rating: parsed.data.averageRating,
     reviews: parsed.data.reviews,
   };
   // marketing_social_proof 는 자동생성 DB 타입(051 미반영)에 아직 없어 캐스팅.

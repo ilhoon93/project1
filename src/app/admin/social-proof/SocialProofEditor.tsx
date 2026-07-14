@@ -143,6 +143,47 @@ export function SocialProofEditor({
         </p>
       </section>
 
+      {/* ── 평균 별점 ─────────────────────────────── */}
+      <section className="flex flex-col gap-3 rounded-md border border-[#E8DCC9] bg-white p-4">
+        <h2 className="text-[13px] font-semibold text-[#3D2E1F]">평균 별점</h2>
+        <p className="text-[11px] text-[#8B7355]">
+          사회적 증거에 &lsquo;X / 5&rsquo; 로 노출됩니다. 0 으로 두면 평점 타일이 숨겨집니다.
+        </p>
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            min={0}
+            max={5}
+            step={0.1}
+            className={`${inputCls} w-24`}
+            value={config.averageRating}
+            onChange={(e) =>
+              patch({
+                averageRating: Math.min(5, Math.max(0, Number(e.target.value) || 0)),
+              })
+            }
+          />
+          <span className="text-[13px] font-semibold text-[#3D2E1F]">
+            {config.averageRating.toFixed(1)} / 5
+          </span>
+          <span className="text-[16px]" aria-hidden>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <span
+                key={n}
+                style={{
+                  color:
+                    n <= Math.round(config.averageRating)
+                      ? '#B5614F'
+                      : 'rgba(61,46,31,0.22)',
+                }}
+              >
+                ★
+              </span>
+            ))}
+          </span>
+        </div>
+      </section>
+
       {/* ── 리뷰 이미지 ─────────────────────────────── */}
       <section className="flex flex-col gap-3 rounded-md border border-[#E8DCC9] bg-white p-4">
         <div className="flex items-center justify-between">

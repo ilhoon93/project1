@@ -26,8 +26,8 @@ interface StatsRow {
   signup_count: number;
   made_customer_count: number;
   paid_customer_count: number;
-  made_matured_customer_count: number;
-  paid_matured_customer_count: number;
+  conversion_paid_count: number;
+  conversion_base_count: number;
   archive_customer_count: number;
   invitation_count: number;
   made_invitation_count: number;
@@ -206,12 +206,12 @@ export default async function InvitationStatsAdminPage() {
         <ConversionCard
           label="제작 → 결제 전환율"
           pct={ratePct(
-            stats?.paid_matured_customer_count ?? 0,
-            stats?.made_matured_customer_count ?? 0,
+            stats?.conversion_paid_count ?? 0,
+            stats?.conversion_base_count ?? 0,
           )}
-          from={stats?.made_matured_customer_count ?? 0}
-          to={stats?.paid_matured_customer_count ?? 0}
-          note="최종 수정 후 2주 지난 건만 집계"
+          from={stats?.conversion_base_count ?? 0}
+          to={stats?.conversion_paid_count ?? 0}
+          note="미결제 & 최종수정 2주 미만 건 제외"
         />
         <ConversionCard
           label="결제 → 영구소장 전환율"
