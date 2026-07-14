@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
+import { toCanvas } from 'html-to-image';
 import { createClient } from '@/lib/supabase/client';
 import {
   InvitationContentSchema,
@@ -9,16 +10,17 @@ import {
 } from '@/types/invitation';
 import { CoverCapture } from '@/components/invitation/CoverCapture';
 
-// 출력: 세로 9:16 한 장(1080×1920). 디자인은 ~405px 네이티브(폰 기준 보정값)로
-// 렌더한 뒤 html2canvas scale 로 확대 → 고정 px 텍스트/일러스트가 제 비율로 크게.
+// 표지는 실제 메인 디자인과 동일하게 9:18(폰) 비율로 네이티브 렌더하고, 출력은
+// 세로 9:16 으로 위·아래를 잘라낸다(사진은 잘려도 프레임/구성 비율은 그대로 유지).
 const BASE_W = 405;
-const BASE_H = 720; // 9:16
+const BASE_H = 810; // 9:18 (실제 메인 표지 비율)
 const OUTPUT_W = 1080;
-const CAPTURE_SCALE = OUTPUT_W / BASE_W; // → 1080×1920
+const OUTPUT_H = 1920; // 9:16
+const PIXEL_RATIO = OUTPUT_W / BASE_W; // 네이티브 → 고해상도
 
 const STORAGE_BUCKET = 'public-images';
-const storagePath = (invitationId: string) =>
-  `invitations/${invitationId}/image-card/9x16.png`;
+const folderPath = (invitationId: string) =>
+  `invitations/${invitationId}/image-card`;
 
 interface Loaded {
   content: InvitationContent;
@@ -27,6 +29,7 @@ interface Loaded {
   weddingDate: string | null;
 }
 
+/** el 하위 img 들이 모두 로드될 때까지 대기(캡처 전 안정화). */
 async function waitImages(el: HTMLElement): Promise<void> {
   const imgs = Array.from(el.querySelectorAll('img'));
   await Promise.all(
@@ -42,13 +45,15 @@ async function waitImages(el: HTMLElement): Promise<void> {
 }
 
 /**
- * 이미지 알림장 생성 모달.
+ * 알림장 이미지 생성 모달.
  *
- * - 현재 저장된 메인 디자인을 세로 9:16 이미지 한 장으로 만든다(중요 요소는
- *   중앙에 오도록 표지 디자인을 그대로 렌더).
- * - 생성 결과는 storage(invitations/{id}/image-card/9x16.png)에 저장 → 다음에
- *   다시 열면 저장본을 바로 다운로드.
- * - "재생성"은 같은 경로에 덮어써(upsert) 이전 파일이 orphan 으로 남지 않는다.
+ * - 현재 저장된 메인 디자인을 실제 표지와 동일하게 렌더(html-to-image = 브라우저
+ *   네이티브 렌더라 하트 clip-path·스크린 aspect-ratio·필터가 그대로 재현)한 뒤
+ *   세로 9:16 로 잘라 한 장의 PNG 로 저장한다.
+ * - 결과는 storage 에 매번 고유 파일명으로 저장하고 이전 파일은 삭제 → 새 URL 이라
+ *   CDN 캐시로 옛 이미지가 남지 않고, orphan 리소스도 남지 않는다.
+ * - 재생성은 content 를 다시 불러오고(cache:'no-store') 이미지도 cacheBust 로 새로
+ *   받아 편집 내용이 즉시 반영된다.
  */
 export function ImageCardGenerator({
   invitationId,
@@ -64,9 +69,8 @@ export function ImageCardGenerator({
   );
   const [error, setError] = useState<string | null>(null);
   const captureRef = useRef<HTMLDivElement | null>(null);
-  const blobRef = useRef<Blob | null>(null); // 방금 생성한 blob(즉시 다운로드용)
+  const blobRef = useRef<Blob | null>(null);
 
-  // 배경 스크롤 잠금.
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -75,37 +79,40 @@ export function ImageCardGenerator({
     };
   }, []);
 
-  // content 로드 + 기존 저장본 존재 확인(병렬).
+  // content 로드(no-store) + 기존 저장본 확인.
+  const loadContent = useCallback(async (): Promise<Loaded> => {
+    const res = await fetch(`/api/invitations/${invitationId}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) throw new Error(`불러오기 실패 (HTTP ${res.status})`);
+    const json = await res.json();
+    const inv = json.invitation;
+    return {
+      content: InvitationContentSchema.parse(inv.content ?? {}),
+      groomName: inv.groom_name ?? '',
+      brideName: inv.bride_name ?? '',
+      weddingDate: inv.wedding_date ?? null,
+    };
+  }, [invitationId]);
+
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
         const supabase = createClient();
-        const [invRes, listRes] = await Promise.all([
-          // no-store — 편집 후 재생성 시 브라우저 캐시된 옛 content 를 쓰지 않도록.
-          fetch(`/api/invitations/${invitationId}`, { cache: 'no-store' }),
-          supabase.storage
-            .from(STORAGE_BUCKET)
-            .list(`invitations/${invitationId}/image-card`, {
-              search: '9x16.png',
-            }),
+        const [loaded, listRes] = await Promise.all([
+          loadContent(),
+          supabase.storage.from(STORAGE_BUCKET).list(folderPath(invitationId)),
         ]);
-        if (!invRes.ok) throw new Error(`불러오기 실패 (HTTP ${invRes.status})`);
-        const json = await invRes.json();
-        const inv = json.invitation;
-        const content = InvitationContentSchema.parse(inv.content ?? {});
         if (!alive) return;
-        setData({
-          content,
-          groomName: inv.groom_name ?? '',
-          brideName: inv.bride_name ?? '',
-          weddingDate: inv.wedding_date ?? null,
-        });
-        const exists = (listRes.data ?? []).some((f) => f.name === '9x16.png');
-        if (exists) {
+        setData(loaded);
+        const latest = (listRes.data ?? [])
+          .filter((f) => f.name.endsWith('.png'))
+          .sort((a, b) => b.name.localeCompare(a.name))[0];
+        if (latest) {
           const { data: pub } = supabase.storage
             .from(STORAGE_BUCKET)
-            .getPublicUrl(storagePath(invitationId));
+            .getPublicUrl(`${folderPath(invitationId)}/${latest.name}`);
           setSavedUrl(pub.publicUrl);
         }
         setPhase('idle');
@@ -118,53 +125,71 @@ export function ImageCardGenerator({
     return () => {
       alive = false;
     };
-  }, [invitationId]);
+  }, [invitationId, loadContent]);
 
   const generate = useCallback(async () => {
-    if (!captureRef.current) return;
     setPhase('working');
     setError(null);
     try {
-      const html2canvas = (await import('html2canvas')).default;
+      // 최신 저장 디자인으로 재-렌더 (편집 후 즉시 반영).
+      const fresh = await loadContent();
+      setData(fresh);
+      // CoverCapture 가 새 content 로 리렌더될 시간 + 폰트/이미지 안정화 대기.
+      await new Promise((r) => setTimeout(r, 250));
       if (document.fonts?.ready) await document.fonts.ready;
-      await new Promise((r) => setTimeout(r, 200));
-      await waitImages(captureRef.current);
+      const el = captureRef.current;
+      if (!el) throw new Error('렌더 준비 실패');
+      await waitImages(el);
 
-      const canvas = await html2canvas(captureRef.current, {
-        useCORS: true,
-        backgroundColor: null,
-        scale: CAPTURE_SCALE,
+      // 네이티브 9:18 렌더 → 고해상도 캔버스(cacheBust 로 옛 사진 캐시 우회).
+      const srcCanvas = await toCanvas(el, {
+        pixelRatio: PIXEL_RATIO,
+        cacheBust: true,
         width: BASE_W,
         height: BASE_H,
-        imageTimeout: 20000,
-        logging: false,
       });
+
+      // 9:16 으로 중앙 크롭(위·아래 잘라냄, 비율 유지).
+      const out = document.createElement('canvas');
+      out.width = OUTPUT_W;
+      out.height = OUTPUT_H;
+      const ctx = out.getContext('2d');
+      if (!ctx) throw new Error('캔버스 생성 실패');
+      const sy = Math.max(0, Math.round((srcCanvas.height - OUTPUT_H) / 2));
+      ctx.drawImage(srcCanvas, 0, sy, OUTPUT_W, OUTPUT_H, 0, 0, OUTPUT_W, OUTPUT_H);
+
       const blob: Blob | null = await new Promise((res) =>
-        canvas.toBlob((b) => res(b), 'image/png'),
+        out.toBlob((b) => res(b), 'image/png'),
       );
       if (!blob) throw new Error('이미지 인코딩 실패');
       blobRef.current = blob;
 
-      // 같은 경로에 덮어써(upsert) 이전 파일을 대체 → orphan 없음.
+      // 이전 파일 삭제(orphan·캐시 방지) 후 고유 파일명으로 업로드.
       const supabase = createClient();
+      const folder = folderPath(invitationId);
+      const { data: existing } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .list(folder);
+      if (existing && existing.length > 0) {
+        await supabase.storage
+          .from(STORAGE_BUCKET)
+          .remove(existing.map((f) => `${folder}/${f.name}`));
+      }
+      const path = `${folder}/cover-${Date.now()}.png`;
       const { error: upErr } = await supabase.storage
         .from(STORAGE_BUCKET)
-        .upload(storagePath(invitationId), blob, {
-          contentType: 'image/png',
-          upsert: true,
-        });
+        .upload(path, blob, { contentType: 'image/png', upsert: false });
       if (upErr) throw new Error(`저장 실패: ${upErr.message}`);
       const { data: pub } = supabase.storage
         .from(STORAGE_BUCKET)
-        .getPublicUrl(storagePath(invitationId));
-      // 캐시 무효화 — 덮어쓴 새 이미지를 즉시 반영.
-      setSavedUrl(`${pub.publicUrl}?v=${Date.now()}`);
+        .getPublicUrl(path);
+      setSavedUrl(pub.publicUrl);
       setPhase('idle');
     } catch (e) {
       setError(e instanceof Error ? e.message : '이미지 생성 실패');
       setPhase('error');
     }
-  }, [invitationId]);
+  }, [invitationId, loadContent]);
 
   const download = useCallback(async () => {
     try {
@@ -221,16 +246,13 @@ export function ImageCardGenerator({
             <p className="py-8 text-center text-xs text-[#8B7355]">불러오는 중…</p>
           )}
 
-          {/* 미리보기 (저장본이 있으면 표시) */}
           {savedUrl ? (
             <div className="mx-auto w-40">
               <div className="overflow-hidden rounded-lg border border-[#E8DCC9] bg-[#FAF7F2]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={savedUrl} alt="알림장 이미지 미리보기" className="w-full" />
               </div>
-              <p className="mt-1.5 text-center text-[11px] text-[#8B7355]">
-                세로 9:16
-              </p>
+              <p className="mt-1.5 text-center text-[11px] text-[#8B7355]">세로 9:16</p>
             </div>
           ) : (
             phase !== 'loading' && (
@@ -241,7 +263,6 @@ export function ImageCardGenerator({
           )}
         </div>
 
-        {/* 액션 */}
         {phase !== 'loading' && (
           <div className="flex gap-2 border-t border-[#E8DCC9] p-3">
             {savedUrl ? (
@@ -260,7 +281,7 @@ export function ImageCardGenerator({
                   disabled={busy}
                   className="flex-1 rounded-md border border-[#8B7355] px-3 py-2.5 text-[13px] font-medium text-[#8B7355] disabled:opacity-40"
                 >
-                  {busy ? '재생성 중…' : '재생성'}
+                  {busy ? '재생성 중…' : '최신 디자인으로 재생성'}
                 </button>
               </>
             ) : (
@@ -277,7 +298,7 @@ export function ImageCardGenerator({
         )}
       </div>
 
-      {/* 캡처용 offscreen 렌더 — 네이티브 크기(405×720). html2canvas scale 로 확대. */}
+      {/* 캡처용 offscreen 렌더 — 네이티브 9:18. html-to-image 로 캡처 후 9:16 크롭. */}
       {data && (
         <div
           aria-hidden
