@@ -123,3 +123,21 @@ export async function saveSocialProof(
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
+
+/**
+ * 랜딩 사회적 증거 "커플 수" — 발행된 알림장 건수를 10단위로 올림한 값.
+ * public_published_couple_count() RPC(056)로 건수를 읽어 Math.ceil(n/10)*10.
+ * 실패 시 0 폴백(0 이면 커플 수 타일은 미노출).
+ */
+export async function getPublishedCoupleCount(): Promise<number> {
+  try {
+    const supabase = createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc('public_published_couple_count');
+    const n = typeof data === 'number' ? data : 0;
+    if (error || n <= 0) return 0;
+    return Math.ceil(n / 10) * 10;
+  } catch {
+    return 0;
+  }
+}

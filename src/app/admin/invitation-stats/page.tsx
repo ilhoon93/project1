@@ -26,6 +26,7 @@ interface StatsRow {
   signup_count: number;
   made_customer_count: number;
   paid_customer_count: number;
+  paid_within_2w_customer_count: number;
   archive_customer_count: number;
   invitation_count: number;
   made_invitation_count: number;
@@ -203,9 +204,13 @@ export default async function InvitationStatsAdminPage() {
         />
         <ConversionCard
           label="제작 → 결제 전환율"
-          pct={ratePct(stats?.paid_customer_count ?? 0, stats?.made_customer_count ?? 0)}
+          pct={ratePct(
+            stats?.paid_within_2w_customer_count ?? 0,
+            stats?.made_customer_count ?? 0,
+          )}
           from={stats?.made_customer_count ?? 0}
-          to={stats?.paid_customer_count ?? 0}
+          to={stats?.paid_within_2w_customer_count ?? 0}
+          note="최종 수정 후 14일 이내 결제 기준"
         />
         <ConversionCard
           label="결제 → 영구소장 전환율"
@@ -304,11 +309,13 @@ function ConversionCard({
   pct,
   from,
   to,
+  note,
 }: {
   label: string;
   pct: number | null;
   from: number;
   to: number;
+  note?: string;
 }) {
   return (
     <div className="rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-4">
@@ -319,6 +326,7 @@ function ConversionCard({
       <div className="mt-1 text-[10.5px] text-[#B09B80]">
         {from.toLocaleString('ko-KR')}명 → {to.toLocaleString('ko-KR')}명
       </div>
+      {note && <div className="mt-0.5 text-[10px] text-[#B09B80]">{note}</div>}
     </div>
   );
 }
