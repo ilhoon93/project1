@@ -8,6 +8,7 @@ import { COLOR_THEME_LABELS, type ColorTheme } from '@/lib/theme';
 import { SNAP_CATALOG } from '@/lib/snap/catalog';
 import { formatKstDate } from '@/lib/utils/datetime';
 import { computePageItems } from '@/lib/utils/pagination';
+import { ImageCardGenerator } from '@/components/mypage/ImageCardGenerator';
 
 // snap_jobs / snap_anchor_history 응답 타입 — API 가 돌려주는 raw shape.
 interface SnapJob {
@@ -118,6 +119,8 @@ interface Props {
   snapCreditsBalance: number;
   orders: MyPageOrder[];
   entitlements: MyPageEntitlements;
+  /** 관리자 여부 — 테스트 중인 관리자 전용 기능(이미지 알림장) 노출용. */
+  isAdmin: boolean;
 }
 
 type Tab = 'saves' | 'orders' | 'snap';
@@ -172,6 +175,7 @@ export function MyPageClient({
   snapCreditsBalance,
   orders,
   entitlements,
+  isAdmin,
 }: Props) {
   const searchParams = useSearchParams();
   // ?tab=credits 는 과거 탭 — 통합된 '결혼알림장' 탭으로 폴백.
@@ -216,6 +220,7 @@ export function MyPageClient({
           invitations={invitations}
           creditsBalance={creditsBalance}
           archiveBalance={archiveBalance}
+          isAdmin={isAdmin}
         />
       )}
       {tab === 'snap' && (
@@ -1182,10 +1187,12 @@ function SavedTab({
   invitations,
   creditsBalance,
   archiveBalance,
+  isAdmin,
 }: {
   invitations: MyPageInvitation[];
   creditsBalance: number;
   archiveBalance: number;
+  isAdmin: boolean;
 }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -1300,6 +1307,7 @@ function SavedTab({
           <SavedRow
             key={inv.id}
             inv={inv}
+            isAdmin={isAdmin}
             busy={busyId === inv.id || inv.publications.some((p) => busyId === p.id)}
             archiveBalance={archiveBalance}
             onArchive={handleArchive}
@@ -1344,6 +1352,7 @@ function SavedTab({
 
 function SavedRow({
   inv,
+  isAdmin,
   busy,
   archiveBalance,
   onArchive,
@@ -1351,12 +1360,24 @@ function SavedRow({
   onDelete,
 }: {
   inv: MyPageInvitation;
+  isAdmin: boolean;
   busy: boolean;
   archiveBalance: number;
   onArchive: (publicationId: string) => void;
   onPublish: () => void;
   onDelete: () => void;
 }) {
+  // 이미지 알림장(관리자 테스트) 모달 표시 여부.
+  const [showImageCard, setShowImageCard] = useState(false);
+
+  const handleImageCard = () => {
+    const ok = window.confirm(
+      '현재 저장된 메인 디자인 기준으로 이미지가 생성됩니다.\n' +
+        '(생성 후 이미지 안에서 디자인 수정은 불가하며, 디자인을 바꾸려면 에디터에서 수정 후 다시 생성해주세요.)\n\n' +
+        '인스타그램·카카오톡 프로필용 이미지를 생성할까요?',
+    );
+    if (ok) setShowImageCard(true);
+  };
   // 영구소장된 publication 은 expires_at 무시 (소장용 URL 영구).
   const activePublications = inv.publications.filter(
     (p) => !p.revoked_at && (p.archived || new Date(p.expires_at) > new Date()),
@@ -1458,6 +1479,12 @@ function SavedRow({
         </Button>
         {/* 혼인서약서 PDF — 발행 후에만 활성화. 발행 전엔 비활성. */}
         <CertificatePdfButton invitationId={inv.id} disabled={!hasEverPublished} />
+        {/* 이미지 알림장 — 관리자 테스트 전용(현재는 admin 에게만 노출). */}
+        {isAdmin && (
+          <Button variant="outline" size="sm" onClick={handleImageCard}>
+            이미지 알림장
+          </Button>
+        )}
         {/* 한 번 발행되면 URL 이 고정됨 → "발행" 버튼은 미발행 상태에서만 노출.
             발행 후 편집은 에디터에서 저장 시 publications.content 가 자동 갱신됨. */}
         {!latest && (
@@ -1480,6 +1507,13 @@ function SavedRow({
           삭제
         </Button>
       </div>
+
+      {showImageCard && (
+        <ImageCardGenerator
+          invitationId={inv.id}
+          onClose={() => setShowImageCard(false)}
+        />
+      )}
 
       {activePublications.length > 1 && (
         <details className="text-xs text-muted-foreground">
