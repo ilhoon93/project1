@@ -36,6 +36,22 @@ export const CoverCapture = forwardRef<HTMLDivElement, Props>(function CoverCapt
     ? formatWeddingDate(weddingDate, content.basic.dateFormat)
     : null;
 
+  // 캡처는 정지 이미지라 진입 애니메이션이 완료되기 전 상태(투명/미완성)로 찍힐 수
+  // 있다. 제목의 필기/클립 애니메이션을 꺼(평문으로) 확실히 렌더되게 한다.
+  // (이름·날짜·인사말의 mw-pos-fade 페이드는 아래 <style> 로 최종 상태 강제.)
+  const captureContent = JSON.parse(JSON.stringify(content)) as InvitationContent;
+  for (const key of [
+    'posterDesign',
+    'illustrationDesign',
+    'textDesign',
+    'frameDesign',
+  ] as const) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const d = (captureContent.main as any)[key];
+    if (d?.title && typeof d.title.animate === 'boolean') d.title.animate = false;
+  }
+  const main = captureContent.main;
+
   const themeVars: Record<string, string> = {
     '--mw-bg': palette.bg,
     '--mw-fg': palette.fg,
@@ -63,15 +79,24 @@ export const CoverCapture = forwardRef<HTMLDivElement, Props>(function CoverCapt
           : {}),
       }}
     >
-      {/* 이미지에 불필요한 UI 크롬 제거 — 축하하기 등 버튼 숨김. */}
-      <style>{`.wd-cover-capture button{display:none!important}`}</style>
+      {/* 캡처 정지 이미지용 오버라이드:
+          - 축하하기 등 버튼 숨김.
+          - 텍스트 fade(mw-pos-fade)·제목 wipe(mw-title-wipe)·배경 켄번스(mw-kenburns)
+            를 최종 상태로 강제(애니메이션 미완성으로 텍스트가 안 보이는 문제 해결).
+            reduced-motion 규칙과 동일한 처리. */}
+      <style>{`
+        .wd-cover-capture button{display:none!important}
+        .wd-cover-capture .mw-pos-fade{animation:none!important;opacity:1!important;transform:translate(-50%,-50%)!important;max-width:90%!important}
+        .wd-cover-capture .mw-title-wipe{animation:none!important;clip-path:none!important}
+        .wd-cover-capture .mw-kenburns{animation:none!important}
+      `}</style>
       <div className="wd-cover-capture absolute inset-0">
         <MainSlide
           invitationId="capture"
           groomName={groomName}
           brideName={brideName}
           weddingDate={formattedDate}
-          main={content.main}
+          main={main}
           isPreview
         />
       </div>
