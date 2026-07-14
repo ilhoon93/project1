@@ -130,6 +130,8 @@ export function SocialProof({
                     className="w-[160px] flex-shrink-0 sm:w-[176px]"
                   >
                     <div className="overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-paper)]">
+                      {/* object-contain — 리뷰 스크린샷이 잘리지 않고 전체가 보이도록.
+                          비율이 안 맞는 여백은 크림 배경으로 채운다. */}
                       <div className="aspect-[3/4] w-full overflow-hidden bg-[var(--wd-cream)]">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
@@ -137,7 +139,7 @@ export function SocialProof({
                           alt={review.caption || '고객 리뷰'}
                           loading="lazy"
                           draggable={false}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain"
                         />
                       </div>
                       <div className="px-2.5 py-2">
@@ -198,9 +200,10 @@ function StatTile({
 }) {
   return (
     <div className="px-2">
-      <div className="font-italiana text-[34px] leading-none tracking-wide text-[var(--wd-ink)] sm:text-[40px]">
+      {/* 볼드 산세리프 — '+' 등 기호도 또렷하게 보이도록(장식용 italiana 대신). */}
+      <div className="text-[34px] font-bold leading-none tracking-tight text-[var(--wd-ink)] sm:text-[40px]">
         <FlickerNumber value={value} decimals={decimals} max={max} />
-        {suffix && <span className="text-[20px] sm:text-[22px]">{suffix}</span>}
+        {suffix && <span className="text-[22px] font-bold sm:text-[24px]">{suffix}</span>}
       </div>
       {typeof stars === 'number' && (
         <div className="mt-1.5 flex justify-center">
