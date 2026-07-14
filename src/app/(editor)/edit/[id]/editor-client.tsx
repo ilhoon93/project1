@@ -428,6 +428,22 @@ function EditorActions() {
   // 모바일 미리보기는 EditorMobilePreview 의 플로팅 버튼 + 실시간 오버레이가
   // 담당한다 (저장본으로 이동하던 기존 버튼을 대체 — 편집 중 변경분을 즉시 확인).
 
+  // 저장 내역(마이페이지)으로 이동 — 미저장 변경이 있으면 확인 후 로컬 스토어를
+  // reset 해 다음 진입 시 서버 저장본이 보이게 한다. 저장 진행 중이면 완료 대기.
+  const handleGoMypage = async () => {
+    if (status === 'dirty') {
+      const ok = window.confirm(
+        '저장하지 않은 변경사항이 있어요. 저장 내역으로 이동하면 변경사항이 사라집니다. 이동할까요?',
+      );
+      if (!ok) return;
+      useEditorStore.getState().reset();
+    }
+    while (useEditorStore.getState().status === 'saving') {
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    router.push('/mypage');
+  };
+
   return (
     <div className="flex flex-shrink-0 items-center gap-2">
       <span
@@ -436,6 +452,9 @@ function EditorActions() {
       >
         {STATUS_LABEL[status]}
       </span>
+      <Button variant="outline" size="sm" onClick={() => void handleGoMypage()}>
+        저장 내역
+      </Button>
       <Button
         variant="default"
         size="sm"

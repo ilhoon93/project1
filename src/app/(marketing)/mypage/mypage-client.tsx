@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { COLOR_THEME_LABELS, type ColorTheme } from '@/lib/theme';
 import { SNAP_CATALOG } from '@/lib/snap/catalog';
+import { ARCHIVE_PRICE, formatKRW } from '@/lib/snap/packages';
 import { formatKstDate } from '@/lib/utils/datetime';
 import { computePageItems } from '@/lib/utils/pagination';
 import { ImageCardGenerator } from '@/components/mypage/ImageCardGenerator';
@@ -1271,6 +1272,9 @@ function SavedTab({
 
   return (
     <section className="flex flex-col gap-3">
+      {/* 포토리뷰 이벤트 안내 — 결혼알림장 탭 상단. */}
+      <ReviewEventNotice />
+
       <CreditsSummary balance={creditsBalance} archiveBalance={archiveBalance} />
 
       <div className="flex items-center justify-between">
@@ -1473,7 +1477,7 @@ function SavedRow({
         {/* 이미지 알림장 — 관리자 테스트 전용 + 발행된 알림장만 생성 가능. */}
         {isAdmin && hasEverPublished && (
           <Button variant="outline" size="sm" onClick={() => setShowImageCard(true)}>
-            이미지 알림장
+            알림장 이미지
           </Button>
         )}
         {/* 한 번 발행되면 URL 이 고정됨 → "발행" 버튼은 미발행 상태에서만 노출.
@@ -1818,37 +1822,62 @@ function RegisterOrderCard() {
 
 // ── 주문 ─────────────────────────────────────────────────────
 
+// 포토리뷰 이벤트 총 혜택 = 영구소장 무료(정가 상당) + 네이버 포인트 적립.
+const REVIEW_EVENT_NAVER_POINT = 1000;
+const REVIEW_EVENT_TOTAL = ARCHIVE_PRICE + REVIEW_EVENT_NAVER_POINT;
+
 /**
- * 포토리뷰 이벤트 안내 — 포토리뷰 작성 후 네이버 톡톡으로 별점 리뷰 스크린샷을
- * 보내면 영구소장을 무료 지급하는 이벤트. 주문 탭 상단에 노출.
+ * 포토리뷰 이벤트 안내 — 별점+사진 리뷰 작성 후 네이버 톡톡으로 스크린샷을 보내면
+ * 영구소장 무료 + 네이버 포인트를 지급. 결혼알림장 탭 상단에 노출.
  */
 function ReviewEventNotice() {
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-[#E4B95F]/50 bg-[#FBF3E1] p-5">
+    <div className="flex flex-col gap-3 rounded-xl border border-[#E4B95F]/60 bg-[#FBF3E1] p-5">
       <div className="flex items-center gap-2">
         <span className="text-base" aria-hidden>
           📸
         </span>
-        <h3 className="text-sm font-semibold text-[#8A5A12]">
-          포토리뷰 이벤트 · 영구소장 무료 지급
-        </h3>
+        <h3 className="text-sm font-semibold text-[#8A5A12]">포토리뷰 이벤트</h3>
       </div>
+
+      {/* 총 혜택 강조 배지 */}
+      <div className="flex items-center justify-between gap-3 rounded-lg bg-white/70 px-4 py-3 ring-1 ring-[#E4B95F]/50">
+        <div>
+          <div className="text-[11px] font-medium text-[#8A6B36]">지금 참여하면</div>
+          <div className="mt-0.5 text-[15px] font-bold text-[#8A5A12]">
+            총 {formatKRW(REVIEW_EVENT_TOTAL)} 상당 혜택
+          </div>
+        </div>
+        <ul className="text-right text-[11px] leading-relaxed text-[#6B4E1E]">
+          <li>영구소장 무료 ({formatKRW(ARCHIVE_PRICE)} 상당)</li>
+          <li>네이버 포인트 {REVIEW_EVENT_NAVER_POINT.toLocaleString('ko-KR')}P</li>
+        </ul>
+      </div>
+
       <p className="text-[13px] leading-relaxed text-[#6B4E1E]">
-        포토리뷰를 작성한 뒤 <strong>네이버 톡톡</strong>으로 별점 리뷰 스크린샷을
-        보내주시면, 확인 후 <strong>영구소장을 무료로 지급</strong>해 드려요.
+        <strong>별점 + 사진</strong>이 담긴 포토리뷰를 작성한 뒤{' '}
+        <strong>네이버 톡톡</strong>으로 리뷰 스크린샷을 보내주시면, 확인 후{' '}
+        <strong>영구소장을 무료로 지급</strong>해 드려요. (네이버 포인트 1,000P는
+        네이버에서 별도 적립)
       </p>
-      <p className="text-[12px] leading-relaxed text-[#8A6B36]">
-        포토리뷰 사진 첨부가 안 되는 경우, 텍스트만 작성해 저장한 뒤 수정해서 사진을
-        추가해 주세요.
-      </p>
-      <p className="text-[12px] leading-relaxed text-[#8A6B36]">
-        네이버 포인트 <strong>1,000P</strong>는 네이버에서 별도로 적립해 드려요.
-      </p>
+
+      {/* 사진 첨부 안내 — 눈에 띄게 강조 */}
+      <div className="flex items-start gap-2 rounded-lg border border-[#E4B95F]/50 bg-white/60 px-3 py-2.5">
+        <span aria-hidden className="text-[13px]">
+          💡
+        </span>
+        <p className="text-[12px] leading-relaxed text-[#6B4E1E]">
+          <strong className="text-[#8A5A12]">사진 첨부는 필수</strong>예요. 리뷰 작성 시
+          사진이 바로 첨부되지 않는다면, <strong>텍스트만 먼저 저장</strong>한 뒤{' '}
+          <strong>리뷰 수정</strong>에서 사진을 추가하면 됩니다.
+        </p>
+      </div>
+
       <a
         href="https://talk.naver.com/ct/wiq8nf0"
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-1 inline-flex w-fit items-center gap-1 rounded-md bg-[#03C75A] px-3 py-1.5 text-[12px] font-medium text-white transition-opacity hover:opacity-90"
+        className="inline-flex w-fit items-center gap-1 rounded-md bg-[#03C75A] px-3.5 py-2 text-[12.5px] font-medium text-white transition-opacity hover:opacity-90"
       >
         네이버 톡톡으로 리뷰 보내기 →
       </a>
@@ -1869,9 +1898,6 @@ function OrdersTab({ orders }: { orders: MyPageOrder[] }) {
 
   return (
     <section className="flex flex-col gap-4">
-      {/* 포토리뷰 이벤트 안내 — 주문번호 등록 카드 상단. */}
-      <ReviewEventNotice />
-
       {/* 주문 등록 액션 — 결혼알림장 탭에서 이동.
           로그인 자체가 네이버 OAuth 단독이라 모든 사용자는 이미 네이버 계정과
           연동돼 있다 → 별도 "네이버 연결" 카드는 중복이라 제거. 크레딧은 아래
