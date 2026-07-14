@@ -82,7 +82,8 @@ export function ImageCardGenerator({
       try {
         const supabase = createClient();
         const [invRes, listRes] = await Promise.all([
-          fetch(`/api/invitations/${invitationId}`),
+          // no-store — 편집 후 재생성 시 브라우저 캐시된 옛 content 를 쓰지 않도록.
+          fetch(`/api/invitations/${invitationId}`, { cache: 'no-store' }),
           supabase.storage
             .from(STORAGE_BUCKET)
             .list(`invitations/${invitationId}/image-card`, {
@@ -192,7 +193,7 @@ export function ImageCardGenerator({
     <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 sm:items-center">
       <div className="flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white sm:rounded-2xl">
         <div className="flex items-center justify-between border-b border-[#E8DCC9] px-4 py-3">
-          <h2 className="text-sm font-semibold text-[#3D2E1F]">이미지 알림장</h2>
+          <h2 className="text-sm font-semibold text-[#3D2E1F]">알림장 이미지</h2>
           <button
             type="button"
             onClick={onClose}
@@ -225,7 +226,7 @@ export function ImageCardGenerator({
             <div className="mx-auto w-40">
               <div className="overflow-hidden rounded-lg border border-[#E8DCC9] bg-[#FAF7F2]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={savedUrl} alt="이미지 알림장 미리보기" className="w-full" />
+                <img src={savedUrl} alt="알림장 이미지 미리보기" className="w-full" />
               </div>
               <p className="mt-1.5 text-center text-[11px] text-[#8B7355]">
                 세로 9:16
