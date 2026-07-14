@@ -1470,8 +1470,8 @@ function SavedRow({
         </Button>
         {/* 혼인서약서 PDF — 발행 후에만 활성화. 발행 전엔 비활성. */}
         <CertificatePdfButton invitationId={inv.id} disabled={!hasEverPublished} />
-        {/* 이미지 알림장 — 관리자 테스트 전용(현재는 admin 에게만 노출). */}
-        {isAdmin && (
+        {/* 이미지 알림장 — 관리자 테스트 전용 + 발행된 알림장만 생성 가능. */}
+        {isAdmin && hasEverPublished && (
           <Button variant="outline" size="sm" onClick={() => setShowImageCard(true)}>
             이미지 알림장
           </Button>
