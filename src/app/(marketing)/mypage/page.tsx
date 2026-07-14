@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getDisplayEmail } from '@/lib/naver/account';
+import { checkAdmin } from '@/lib/auth/admin';
 import { MyPageClient, type MyPageInvitation, type MyPagePublication } from './mypage-client';
 
 export const metadata = {
@@ -100,10 +101,13 @@ export default async function MyPage() {
     };
   });
 
+  const isAdmin = !!(await checkAdmin());
+
   return (
     <MyPageClient
       userEmail={await getDisplayEmail(user.id, user.email ?? null)}
       invitations={invitations}
+      isAdmin={isAdmin}
       creditsBalance={typeof balance === 'number' ? balance : 0}
       archiveBalance={typeof archiveBalance === 'number' ? archiveBalance : 0}
       snapCreditsBalance={typeof snapCreditsBalance === 'number' ? snapCreditsBalance : 0}
