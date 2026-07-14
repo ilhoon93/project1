@@ -16,11 +16,18 @@ import type { SocialProofConfig } from '@/lib/marketing/social-proof';
  *
  * enabled 가 꺼져 있거나 보여줄 내용이 없으면 렌더하지 않는다.
  */
-export function SocialProof({ config }: { config: SocialProofConfig }) {
+export function SocialProof({
+  config,
+  coupleCount,
+}: {
+  config: SocialProofConfig;
+  /** 발행 건수 기반 자동 계산된 커플 수(10단위 올림). 0 이면 커플 수 타일 미노출. */
+  coupleCount: number;
+}) {
   if (!config.enabled) return null;
 
   const reviews = config.reviews.filter((r) => r.imageUrl.trim());
-  const hasCount = config.coupleCount > 0;
+  const hasCount = coupleCount > 0;
   if (!hasCount && reviews.length === 0) return null;
 
   const rated = reviews.filter((r) => (r.rating ?? 0) > 0);
@@ -65,7 +72,7 @@ export function SocialProof({ config }: { config: SocialProofConfig }) {
             hasCount && (
               <StatTile
                 key="count"
-                value={config.coupleCount}
+                value={coupleCount}
                 suffix={config.coupleCountSuffix}
                 label={config.coupleCountCaption || '누적 커플'}
               />
@@ -191,16 +198,16 @@ function StatTile({
 }) {
   return (
     <div className="px-2">
-      <div className="font-italiana text-[22px] leading-none tracking-wide text-[var(--wd-ink)]">
+      <div className="font-italiana text-[34px] leading-none tracking-wide text-[var(--wd-ink)] sm:text-[40px]">
         <FlickerNumber value={value} decimals={decimals} max={max} />
-        {suffix && <span className="text-[15px]">{suffix}</span>}
+        {suffix && <span className="text-[20px] sm:text-[22px]">{suffix}</span>}
       </div>
       {typeof stars === 'number' && (
-        <div className="mt-1 flex justify-center">
-          <Stars rating={stars} size={11} />
+        <div className="mt-1.5 flex justify-center">
+          <Stars rating={stars} size={13} />
         </div>
       )}
-      <div className="mt-1 text-[10.5px] tracking-[0.06em] text-[var(--wd-mute)]">
+      <div className="mt-1.5 text-[11px] tracking-[0.06em] text-[var(--wd-mute)]">
         {label}
       </div>
     </div>

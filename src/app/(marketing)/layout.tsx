@@ -2,7 +2,9 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { BrandMark } from '@/components/shared/BrandMark';
 import { HeaderNav } from '@/components/marketing/HeaderNav';
+import { NoticeBar } from '@/components/marketing/NoticeBar';
 import { getDisplayEmail } from '@/lib/naver/account';
+import { getNoticeBar } from '@/lib/marketing/notice-bar';
 
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -15,8 +17,12 @@ export default async function MarketingLayout({ children }: { children: React.Re
     ? await getDisplayEmail(user.id, user.email ?? null)
     : null;
 
+  const notice = await getNoticeBar();
+
   return (
     <div className="min-h-screen bg-[var(--wd-cream)] text-[var(--wd-ink)]">
+      {/* 운영자 설정 상단 공지바 — 헤더 위, 전체폭. 기본 비노출. */}
+      <NoticeBar config={notice} />
       {/* sticky top-0 + frosted glass (cream/65 + backdrop-blur) — 스크롤해도
           상단에 고정. 히어로 보케 배경이 헤더 뒤로 끌어올려져 있어도 frosted
           처리로 자연스럽게 비치고, cream 섹션 위에서는 동일 톤으로 흡수돼

@@ -107,19 +107,12 @@ export function SocialProofEditor({
       {/* ── 커플 수 ─────────────────────────────── */}
       <section className="flex flex-col gap-3 rounded-md border border-[#E8DCC9] bg-white p-4">
         <h2 className="text-[13px] font-semibold text-[#3D2E1F]">커플 수</h2>
+        <p className="rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-2.5 text-[11px] leading-relaxed text-[#8B7355]">
+          커플 수는 <strong className="text-[#3D2E1F]">발행된 알림장 건수를 10단위로
+          올림</strong>해 자동 계산됩니다(예: 47건 → 50). 여기서는 단위와 보조 문구만
+          설정합니다.
+        </p>
         <div className="grid grid-cols-2 gap-3">
-          <label className="flex flex-col gap-1">
-            <span className={labelCls}>수치</span>
-            <input
-              type="number"
-              min={0}
-              className={inputCls}
-              value={config.coupleCount}
-              onChange={(e) =>
-                patch({ coupleCount: Math.max(0, Number(e.target.value) || 0) })
-              }
-            />
-          </label>
           <label className="flex flex-col gap-1">
             <span className={labelCls}>단위</span>
             <input
@@ -129,21 +122,20 @@ export function SocialProofEditor({
               placeholder="쌍"
             />
           </label>
+          <label className="flex flex-col gap-1">
+            <span className={labelCls}>보조 문구</span>
+            <input
+              className={inputCls}
+              value={config.coupleCountCaption}
+              onChange={(e) => patch({ coupleCountCaption: e.target.value })}
+              placeholder="예: 누적 알림장 제작"
+            />
+          </label>
         </div>
-        <label className="flex flex-col gap-1">
-          <span className={labelCls}>보조 문구</span>
-          <input
-            className={inputCls}
-            value={config.coupleCountCaption}
-            onChange={(e) => patch({ coupleCountCaption: e.target.value })}
-            placeholder="예: 누적 알림장 제작"
-          />
-        </label>
         <p className="text-[11px] text-[#8B7355]">
           미리보기:{' '}
           <span className="font-semibold text-[#3D2E1F]">
-            {config.coupleCount.toLocaleString('ko-KR')}
-            {config.coupleCountSuffix}
+            (발행 건수){config.coupleCountSuffix}
           </span>{' '}
           {config.coupleCountCaption && (
             <span className="text-[#8B7355]">· {config.coupleCountCaption}</span>
