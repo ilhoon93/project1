@@ -1367,17 +1367,8 @@ function SavedRow({
   onPublish: () => void;
   onDelete: () => void;
 }) {
-  // 이미지 알림장(관리자 테스트) 모달 표시 여부.
+  // 이미지 알림장(관리자 테스트) 모달 표시 여부. 안내는 모달 내부에서 처리.
   const [showImageCard, setShowImageCard] = useState(false);
-
-  const handleImageCard = () => {
-    const ok = window.confirm(
-      '현재 저장된 메인 디자인 기준으로 세로(9:16) 이미지가 생성됩니다.\n' +
-        '(이미지 안에서 디자인 수정은 불가하며, 디자인을 바꾸려면 에디터에서 수정 후 재생성해주세요.)\n\n' +
-        '이미지 알림장을 만들까요?',
-    );
-    if (ok) setShowImageCard(true);
-  };
   // 영구소장된 publication 은 expires_at 무시 (소장용 URL 영구).
   const activePublications = inv.publications.filter(
     (p) => !p.revoked_at && (p.archived || new Date(p.expires_at) > new Date()),
@@ -1481,7 +1472,7 @@ function SavedRow({
         <CertificatePdfButton invitationId={inv.id} disabled={!hasEverPublished} />
         {/* 이미지 알림장 — 관리자 테스트 전용(현재는 admin 에게만 노출). */}
         {isAdmin && (
-          <Button variant="outline" size="sm" onClick={handleImageCard}>
+          <Button variant="outline" size="sm" onClick={() => setShowImageCard(true)}>
             이미지 알림장
           </Button>
         )}
