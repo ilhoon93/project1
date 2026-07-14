@@ -86,7 +86,14 @@ export const CoverCapture = forwardRef<HTMLDivElement, Props>(function CoverCapt
             reduced-motion 규칙과 동일한 처리. */}
       <style>{`
         .wd-cover-capture button{display:none!important}
-        .wd-cover-capture .mw-pos-fade{animation:none!important;opacity:1!important;transform:translate(-50%,-50%)!important;max-width:90%!important}
+        /* 텍스트 박스: html2canvas 가 퍼센트 X translate 를 제대로 못 그려 좌우로
+           쏠리므로, 캡처에서는 left/right 인셋 + width:auto 로 가로 중앙 정렬하고
+           세로 앵커만 translateY 로 유지. 텍스트도 강제 중앙 정렬. */
+        .wd-cover-capture .mw-pos-fade{
+          animation:none!important;opacity:1!important;
+          left:6%!important;right:6%!important;width:auto!important;max-width:none!important;
+          transform:translateY(-50%)!important;text-align:center!important;
+        }
         .wd-cover-capture .mw-title-wipe{animation:none!important;clip-path:none!important}
         .wd-cover-capture .mw-kenburns{animation:none!important}
       `}</style>
