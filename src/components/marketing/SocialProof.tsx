@@ -12,7 +12,7 @@ import type {
 /**
  * 메인 "알림장 소개" 섹션 상단 사회적 증거 — 리뷰(별점·문구) + 커플 수/평점/결제율.
  *
- * - 코랄 톤 배경 밴드로 앞뒤 섹션과 구분.
+ * - AI 웨딩스냅 섹션과 동일한 페이퍼 톤 배경 밴드.
  * - 리뷰 카드는 좌→우로 끊김 없이 흐르는 마퀴(자동 스크롤). prefers-reduced-motion
  *   에서는 정지.
  * - 커플 수·평균 별점 수치는 뷰포트 진입 시 랜덤하게 흔들리다가 최종 값으로
@@ -52,7 +52,7 @@ export function SocialProof({
   );
 
   return (
-    <section className="relative border-y border-[var(--wd-line)] bg-[var(--wd-coral)]/[0.07] px-6 py-14 sm:py-16">
+    <section className="relative border-y border-[var(--wd-line)] bg-[var(--wd-paper)] px-6 py-14 sm:py-16">
       <SideCaption text="REAL COUPLES" side="left" topPct={44} />
 
       <div className="mx-auto max-w-3xl">
@@ -127,7 +127,7 @@ export function SocialProof({
           return (
             <FadeUp scroll delay={0.2}>
               <div
-                className={`mt-6 grid ${cols} divide-x divide-[var(--wd-line)] overflow-hidden rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)] py-4 text-center`}
+                className={`mt-6 grid ${cols} divide-x divide-[var(--wd-line)] overflow-hidden rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-cream)] py-4 text-center`}
               >
                 {tiles}
               </div>
@@ -151,7 +151,7 @@ export function SocialProof({
                   ...designImages.map((d) => ({
                     key: `img-${d.id}`,
                     node: (
-                      <div className="overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-paper)]">
+                      <div className="overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-cream)]">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={d.imageUrl}
@@ -186,7 +186,7 @@ export function SocialProof({
                   key={`${review.id}-${i}`}
                   className="w-[230px] flex-shrink-0 sm:w-[250px]"
                 >
-                  <div className="flex h-full flex-col rounded-xl border border-[var(--wd-line)] bg-[var(--wd-paper)] px-3.5 py-3">
+                  <div className="flex h-full flex-col rounded-xl border border-[var(--wd-line)] bg-[var(--wd-cream)] px-3.5 py-3">
                     {(review.rating ?? 0) > 0 && (
                       <Stars rating={review.rating} size={13} />
                     )}
@@ -238,7 +238,7 @@ export function SocialProof({
 /** showcase 커버 — 실제 고객 디자인을 config 렌더로 9:18 카드에 표시(익명화 상태). */
 function CoverCard({ cover }: { cover: ShowcaseCover }) {
   return (
-    <div className="aspect-[1/2] w-full overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-paper)]">
+    <div className="aspect-[1/2] w-full overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-cream)]">
       <InvitationPreview
         design={{
           id: cover.id,
@@ -269,11 +269,11 @@ function Marquee({
     <div className="wd-sp-marquee relative mt-6 overflow-hidden">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-[var(--wd-cream)] to-transparent"
+        className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-[var(--wd-paper)] to-transparent"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-[var(--wd-cream)] to-transparent"
+        className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-[var(--wd-paper)] to-transparent"
       />
       <ul
         className={`wd-sp-marquee-track flex w-max items-stretch gap-3 ${reverse ? 'wd-sp-marquee-track--rev' : ''}`}

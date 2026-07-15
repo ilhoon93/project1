@@ -4,7 +4,7 @@ import {
   type InvitationContent,
   type ResolvedSectionHeader,
 } from '@/types/invitation';
-import { formatWeddingDate, elapsedYMD } from '@/lib/utils/format-date';
+import { elapsedYMD } from '@/lib/utils/format-date';
 import { SectionHeader } from './SectionHeader';
 
 interface Props {
@@ -92,11 +92,8 @@ export function BasicInfoSlide({ basic, groomName, brideName, weddingDate, heade
       if (!elapsed) return null;
       return (
         <div key={key} className="flex flex-col items-center gap-1">
-          <p className="text-xs tracking-[0.3em] opacity-70">WITH YOU</p>
-          <p className="text-base tracking-wide">함께한 지 {elapsed}</p>
-          <p className="text-xs opacity-70">
-            {formatWeddingDate(basic.together.sinceDate, basic.dateFormat)}부터
-          </p>
+          <p className="text-sm opacity-70">함께한 시간</p>
+          <p className="text-base tracking-wide">{elapsed}</p>
         </div>
       );
     }
