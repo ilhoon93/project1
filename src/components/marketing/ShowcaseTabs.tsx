@@ -264,6 +264,7 @@ function MockProfileImage({ active }: { active: boolean }) {
     <div
       className={`absolute inset-0 transition-opacity duration-500 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
     >
+      {/* 이미지만 노출 — 설명은 오른쪽 탭 텍스트에 있으므로 위에 겹치지 않게 오버레이 제거. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/marketing/profile-image-sample.png"
@@ -272,15 +273,6 @@ function MockProfileImage({ active }: { active: boolean }) {
         loading="lazy"
         draggable={false}
       />
-      {/* 하단 그라데이션 + 안내 pill */}
-      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-1.5 bg-gradient-to-t from-black/55 via-black/25 to-transparent px-3 pb-3.5 pt-10 text-center">
-        <span className="inline-flex items-center gap-1 rounded-full bg-white/92 px-2.5 py-1 text-[9.5px] font-medium text-[var(--wd-ink)] shadow-sm">
-          📷 인스타·카카오 프로필용 · 세로 9:16
-        </span>
-        <span className="text-[9px] leading-tight text-white/90">
-          발행하면 메인 디자인을 이미지 한 장으로 저장
-        </span>
-      </div>
     </div>
   );
 }

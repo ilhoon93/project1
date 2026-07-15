@@ -1993,107 +1993,117 @@ function ReviewEventSubmit({
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-[#7FB8A6]/50 bg-[#E7F1EC] p-4">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-[#245C48]">
-          <span aria-hidden>📸</span> 포토리뷰 이벤트
-        </h3>
-        <span className="whitespace-nowrap rounded-full bg-[#2E7D5B] px-2.5 py-1 text-[11px] font-bold text-white">
+    <div className="overflow-hidden rounded-2xl border border-[#7FB8A6]/50 bg-[#E7F1EC]">
+      {/* 헤더 — 리워드를 먼저, 크게. */}
+      <div className="flex items-start justify-between gap-3 px-4 pt-4">
+        <div>
+          <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-[#245C48]">
+            <span aria-hidden>📸</span> 포토리뷰 이벤트
+          </h3>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-[#3A6B57]">
+            리뷰 한 번이면{' '}
+            <strong className="text-[#245C48]">
+              영구소장 무료 + 네이버포인트 {REVIEW_EVENT_NAVER_POINT.toLocaleString('ko-KR')}P
+            </strong>
+          </p>
+        </div>
+        <span className="mt-0.5 shrink-0 whitespace-nowrap rounded-full bg-[#2E7D5B] px-2.5 py-1 text-[11px] font-bold text-white">
           총 {formatKRW(REVIEW_EVENT_TOTAL)} 혜택
         </span>
       </div>
 
-      {/* 참여 자격 안내 — 발행된 알림장이 있어야 참여 가능. */}
-      <div className="rounded-lg bg-white/70 p-2.5 text-[11px] leading-relaxed text-[#3A6B57] ring-1 ring-[#7FB8A6]/50">
-        <p>
-          · <strong className="text-[#245C48]">발행된 알림장이 있는 고객</strong>만 참여할
-          수 있어요.
-        </p>
-        <p>
-          · 참여 시 해당 계정의 <strong className="text-[#245C48]">발행된 알림장은 모두
-          사례 소개에 동의</strong>한 것으로 간주됩니다.
-        </p>
-        <p>
-          · 사례에는 <strong className="text-[#245C48]">메인 화면만</strong> 쓰이고,
-          <strong className="text-[#245C48]"> 얼굴·이름은 식별되지 않게 마스킹</strong> 처리
-          후 사용됩니다.
-        </p>
-        <p>· 확인에는 영업일 기준 1~2일 소요될 수 있어요.</p>
-      </div>
-
-      {/* 현재 상태 */}
-      {state && (
-        <div className="flex items-center gap-3 rounded-lg bg-white/70 p-2.5 ring-1 ring-[#7FB8A6]/50">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={state.imageUrl}
-            alt="제출한 리뷰 캡처"
-            className="h-14 w-14 flex-shrink-0 rounded object-cover ring-1 ring-black/5"
-          />
-          <div className="min-w-0">
-            <p className="text-[12.5px] font-semibold text-[#245C48]">
-              {confirmed ? '✅ 확인완료' : '🕓 입력완료'}
-            </p>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-[#3A6B57]">
-              {confirmed
-                ? '확인되어 영구소장권이 적립되었어요. 감사합니다!'
-                : '제출이 접수되었어요. 확인에 영업일 기준 1~2일 소요될 수 있으며, 확인 후 영구소장권이 적립됩니다.'}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {locked ? (
-        <p className="rounded-lg bg-white/70 p-2.5 text-[11.5px] leading-relaxed text-[#3A6B57] ring-1 ring-[#7FB8A6]/50">
-          아직 발행된 알림장이 없어요. 알림장을 발행한 뒤 참여할 수 있습니다.
-        </p>
-      ) : (
-        !confirmed && (
-          <>
-            <p className="text-[11.5px] leading-relaxed text-[#3A6B57]">
-              포토리뷰 작성 후 <strong className="text-[#245C48]">리뷰 내용과 아이디가
-              보이게 캡처</strong>한 이미지를 첨부해주세요.
-            </p>
-
-            <label className="flex items-start gap-2 text-[11.5px] leading-relaxed text-[#3A6B57]">
-              <input
-                type="checkbox"
-                checked={consent}
-                onChange={(e) => setConsent(e.target.checked)}
-                className="mt-0.5 h-4 w-4 accent-[#2E7D5B]"
-              />
-              <span>
-                내 <strong className="text-[#245C48]">리뷰와 (발행된) 알림장 메인 화면이
-                마스킹 처리되어 사례로 소개</strong>될 수 있음에 동의합니다. (참여 필수)
-              </span>
-            </label>
-
-            <div className="flex flex-col gap-2">
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                disabled={!consent || busy}
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                className="block w-full text-[11.5px] text-[#3A6B57] file:mr-3 file:rounded-md file:border-0 file:bg-[#2E7D5B] file:px-3 file:py-1.5 file:text-[11.5px] file:font-medium file:text-white disabled:opacity-50"
-              />
-              {!consent && (
-                <p className="text-[10.5px] text-[#3A6B57]/80">
-                  동의에 체크하면 사진을 첨부할 수 있어요.
-                </p>
-              )}
-              {err && <p className="text-[11px] text-red-600">{err}</p>}
-              <button
-                type="button"
-                onClick={submit}
-                disabled={busy || !consent || !file}
-                className="inline-flex w-fit items-center gap-1 rounded-md bg-[#2E7D5B] px-3.5 py-2 text-[12.5px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
-                {busy ? '제출 중…' : submitted ? '다시 제출' : '리뷰 등록'}
-              </button>
+      <div className="flex flex-col gap-3 p-4">
+        {/* 현재 상태 */}
+        {state && (
+          <div className="flex items-center gap-3 rounded-xl bg-white/70 p-3 ring-1 ring-[#7FB8A6]/50">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={state.imageUrl}
+              alt="제출한 리뷰 캡처"
+              className="h-14 w-14 flex-shrink-0 rounded-lg object-cover ring-1 ring-black/5"
+            />
+            <div className="min-w-0">
+              <p className="text-[12.5px] font-semibold text-[#245C48]">
+                {confirmed ? '✅ 확인완료' : '🕓 입력완료'}
+              </p>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-[#3A6B57]">
+                {confirmed
+                  ? '확인되어 영구소장권이 적립되었어요. 감사합니다!'
+                  : '제출이 접수되었어요. 확인 후(영업일 1~2일) 영구소장권이 적립됩니다.'}
+              </p>
             </div>
-          </>
-        )
-      )}
+          </div>
+        )}
+
+        {locked ? (
+          <p className="rounded-xl bg-white/70 p-3 text-[11.5px] leading-relaxed text-[#3A6B57] ring-1 ring-[#7FB8A6]/50">
+            발행된 알림장이 있는 고객이 참여할 수 있어요. 알림장을 발행한 뒤 참여해주세요.
+          </p>
+        ) : (
+          !confirmed && (
+            <>
+              {/* 참여 방법 — 3스텝, 한눈에. */}
+              <ol className="flex flex-col gap-1.5">
+                {[
+                  '스토어에 포토리뷰(별점 + 사진) 작성',
+                  '리뷰 내용과 아이디가 보이게 화면 캡처',
+                  '아래에서 동의 후 캡처본 등록',
+                ].map((step, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[12px] leading-relaxed text-[#2F5A48]">
+                    <span className="mt-px grid h-[18px] w-[18px] flex-shrink-0 place-items-center rounded-full bg-[#2E7D5B] text-[10px] font-bold text-white">
+                      {i + 1}
+                    </span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+
+              <label className="flex items-start gap-2 rounded-xl bg-white/70 p-3 text-[11.5px] leading-relaxed text-[#3A6B57] ring-1 ring-[#7FB8A6]/50">
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={(e) => setConsent(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-[#2E7D5B]"
+                />
+                <span>
+                  내 리뷰와 <strong className="text-[#245C48]">발행된 알림장 메인 화면이
+                  마스킹 처리되어 사례로 소개</strong>될 수 있음에 동의합니다.
+                </span>
+              </label>
+
+              <div className="flex flex-col gap-2">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={!consent || busy}
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  className="block w-full text-[11.5px] text-[#3A6B57] file:mr-3 file:rounded-md file:border-0 file:bg-[#2E7D5B] file:px-3 file:py-1.5 file:text-[11.5px] file:font-medium file:text-white disabled:opacity-50"
+                />
+                {!consent && (
+                  <p className="text-[10.5px] text-[#3A6B57]/80">
+                    동의에 체크하면 사진을 첨부할 수 있어요.
+                  </p>
+                )}
+                {err && <p className="text-[11px] text-red-600">{err}</p>}
+                <button
+                  type="button"
+                  onClick={submit}
+                  disabled={busy || !consent || !file}
+                  className="inline-flex w-full items-center justify-center gap-1 rounded-lg bg-[#2E7D5B] px-3.5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  {busy ? '제출 중…' : submitted ? '다시 제출하기' : '리뷰 등록하고 참여하기'}
+                </button>
+              </div>
+
+              {/* 안심 안내 — 작게, 부담 없이. */}
+              <p className="text-[10.5px] leading-relaxed text-[#3A6B57]/80">
+                사례에는 <strong className="text-[#3A6B57]">메인 화면만</strong> 쓰이고 얼굴·이름은
+                식별되지 않게 마스킹 처리돼요. 확인은 영업일 기준 1~2일 소요될 수 있어요.
+              </p>
+            </>
+          )
+        )}
+      </div>
     </div>
   );
 }

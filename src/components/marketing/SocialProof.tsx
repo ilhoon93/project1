@@ -238,7 +238,9 @@ export function SocialProof({
 /** showcase 커버 — 실제 고객 디자인을 config 렌더로 9:18 카드에 표시(익명화 상태). */
 function CoverCard({ cover }: { cover: ShowcaseCover }) {
   return (
-    <div className="aspect-[1/2] w-full overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-cream)]">
+    // 마퀴 안의 장식용 표지 — 터치/스와이프가 슬라이드 넘김으로 이어지지 않게
+    // pointer-events 차단(순수 디스플레이).
+    <div className="pointer-events-none aspect-[1/2] w-full select-none overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-cream)]">
       <InvitationPreview
         design={{
           id: cover.id,
