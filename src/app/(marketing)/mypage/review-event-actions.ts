@@ -39,6 +39,15 @@ export async function submitReviewEvent(
 
   const admin = createAdminClient();
 
+  // 참여 자격 — 발행된 알림장이 있어야 참여 가능.
+  const { data: published } = await admin
+    .from('invitations')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('is_published', true);
+  if (!published || published.length === 0)
+    return { ok: false, error: '발행된 알림장이 있는 고객만 참여할 수 있어요.' };
+
   // 이미 확인 완료면 재제출 불가.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: existing } = await (admin as any)
@@ -72,6 +81,14 @@ export async function submitReviewEvent(
       { onConflict: 'user_id' },
     );
   if (rowErr) return { ok: false, error: `저장 실패: ${rowErr.message}` };
+
+  // 이벤트 참여 = 해당 계정의 발행된 알림장 전체를 사례 노출 동의로 간주.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (admin as any)
+    .from('invitations')
+    .update({ showcase_consent: true })
+    .eq('user_id', user.id)
+    .eq('is_published', true);
 
   revalidatePath('/mypage');
   return {

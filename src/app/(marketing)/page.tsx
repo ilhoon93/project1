@@ -255,6 +255,7 @@ function DesignAndValues({
             <KeyChip>좋아요 가능한 갤러리</KeyChip>
             <KeyChip>손글씨를 담은 방명록</KeyChip>
             <KeyChip>신랑 신부를 위한 소장용 페이지</KeyChip>
+            <KeyChip>📷 프로필용 알림장 이미지</KeyChip>
           </ul>
         </FadeUp>
 
