@@ -2,9 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { InvitationContent } from '@/types/invitation';
+import type {
+  InvitationContent,
+  ResolvedSectionHeader,
+} from '@/types/invitation';
 import { SignaturePad, type SignaturePadHandle } from '@/components/shared/SignaturePad';
 import { persistGuestIdentity } from '../SignatureGate';
+import { SectionHeader } from './SectionHeader';
 
 export interface GuestbookMessage {
   id: string;
@@ -36,6 +40,7 @@ interface Props {
   mode?: 'guest' | 'owner';
   ownerMessages?: OwnerMessage[];
   ownerSignatures?: OwnerSignature[];
+  header: ResolvedSectionHeader;
 }
 
 export function GuestbookSlide({
@@ -45,6 +50,7 @@ export function GuestbookSlide({
   mode = 'guest',
   ownerMessages,
   ownerSignatures,
+  header,
 }: Props) {
   if (mode === 'owner') {
     return (
@@ -55,17 +61,26 @@ export function GuestbookSlide({
       />
     );
   }
-  return <GuestGuestbookForm guestbook={guestbook} invitationId={invitationId} isPreview={isPreview} />;
+  return (
+    <GuestGuestbookForm
+      guestbook={guestbook}
+      invitationId={invitationId}
+      isPreview={isPreview}
+      header={header}
+    />
+  );
 }
 
 function GuestGuestbookForm({
   guestbook,
   invitationId,
   isPreview,
+  header,
 }: {
   guestbook: InvitationContent['guestbook'];
   invitationId: string;
   isPreview?: boolean;
+  header: ResolvedSectionHeader;
 }) {
   const [name, setName] = useState('');
   // Default to '신랑' (groom) — the "선택 안 함" option was dropped per the
@@ -153,10 +168,7 @@ function GuestGuestbookForm({
   return (
     // 다른 슬라이드와 동일하게 헤더는 상단(py-16)에 두고 폼은 자연스럽게 아래로 흐른다.
     <section className="flex min-h-full flex-col gap-6 px-6 py-16">
-      <header className="text-center">
-        <p className="text-xs tracking-[0.3em] opacity-70">GUESTBOOK</p>
-        <h2 className="mt-2 text-xl font-light">방명록</h2>
-      </header>
+      <SectionHeader header={header} />
 
       {guestbook.coupleMessage && (
         <>

@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Heart } from 'lucide-react';
-import type { InvitationContent } from '@/types/invitation';
+import type {
+  InvitationContent,
+  ResolvedSectionHeader,
+} from '@/types/invitation';
+import { SectionHeader } from './SectionHeader';
 
 interface Props {
   gallery: InvitationContent['gallery'];
@@ -12,6 +16,7 @@ interface Props {
   mode?: 'guest' | 'owner';
   /** 사진 인덱스별 누적 좋아요 카운트 (owner view 진입 시 prefetch). */
   initialLikes?: Record<number, number>;
+  header: ResolvedSectionHeader;
 }
 
 export function GallerySlide({
@@ -20,6 +25,7 @@ export function GallerySlide({
   isPreview,
   mode = 'guest',
   initialLikes,
+  header,
 }: Props) {
   if (gallery.images.length === 0) {
     return (
@@ -34,10 +40,7 @@ export function GallerySlide({
 
   return (
     <section className="flex min-h-full flex-col gap-6 px-6 py-16">
-      <header className="text-center">
-        <p className="text-xs tracking-[0.3em] opacity-70">GALLERY</p>
-        <h2 className="mt-2 text-xl font-light">우리의 순간들</h2>
-      </header>
+      <SectionHeader header={header} />
 
       {layout === 'grid' ? (
         <GalleryGrid

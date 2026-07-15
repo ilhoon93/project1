@@ -646,6 +646,66 @@ export const AccountSectionSchema = z
     brideMother: [],
   });
 
+// ── 슬라이드 상단 섹션 헤더(영문 라벨 + 한글 제목) ──────────
+//
+// 각 슬라이드 중앙 상단의 영문/한글 제목을 사용자가 문구 수정하거나 각각 숨길 수
+// 있게 한다. 저장은 override(비어 있으면 SECTION_HEADER_DEFAULTS 로 폴백)만 —
+// 기본값 변경/슬라이드 추가에 안전. pageOrder 처럼 키는 자유 문자열로 저장.
+
+export const SECTION_HEADER_KEYS = [
+  'basic',
+  'story',
+  'gallery',
+  'quiz',
+  'vote',
+  'guestbook',
+  'account',
+] as const;
+export type SectionHeaderKey = (typeof SECTION_HEADER_KEYS)[number];
+
+export const SECTION_HEADER_DEFAULTS: Record<
+  SectionHeaderKey,
+  { en: string; ko: string }
+> = {
+  basic: { en: 'INVITATION', ko: '우리 결혼합니다' },
+  story: { en: 'OUR STORY', ko: '우리의 이야기' },
+  gallery: { en: 'GALLERY', ko: '우리의 순간들' },
+  quiz: { en: 'QUIZ', ko: '우리의 시간, 얼마나 알고 있나요?' },
+  vote: { en: 'VOTE', ko: '함께 골라보기' },
+  guestbook: { en: 'GUESTBOOK', ko: '방명록' },
+  account: { en: 'ACCOUNT', ko: '마음 전하실 곳' },
+};
+
+export const SectionHeaderSchema = z.object({
+  // 비어 있으면 기본값 사용. (사용자가 지운 상태를 '숨김' 이 아니라 '기본값' 으로 처리)
+  en: z.string().max(40).default(''),
+  ko: z.string().max(60).default(''),
+  showEn: z.boolean().default(true),
+  showKo: z.boolean().default(true),
+});
+export type SectionHeaderOverride = z.infer<typeof SectionHeaderSchema>;
+
+export interface ResolvedSectionHeader {
+  en: string;
+  ko: string;
+  showEn: boolean;
+  showKo: boolean;
+}
+
+/** override(문구/토글) 를 기본값과 합쳐 실제 렌더할 헤더를 만든다. */
+export function resolveSectionHeader(
+  key: SectionHeaderKey,
+  override?: Partial<SectionHeaderOverride> | null,
+): ResolvedSectionHeader {
+  const def = SECTION_HEADER_DEFAULTS[key];
+  return {
+    en: (override?.en ?? '').trim() || def.en,
+    ko: (override?.ko ?? '').trim() || def.ko,
+    showEn: override?.showEn ?? true,
+    showKo: override?.showKo ?? true,
+  };
+}
+
 // ── full invitation content ──────────────────────────────
 
 export const InvitationContentSchema = z.object({
@@ -662,6 +722,8 @@ export const InvitationContentSchema = z.object({
   closing: z.string().max(300).default('와주셔서 진심으로 감사합니다'),
   // 마무리 인사 슬라이드의 '공유하기' 버튼 노출 여부. 기본 노출, 사용자가 끌 수 있음.
   closingShare: z.boolean().default(true),
+  // 슬라이드별 상단 헤더(영문/한글) 문구·표시 override. 키는 SECTION_HEADER_KEYS.
+  sectionHeaders: z.record(z.string(), SectionHeaderSchema).default({}),
 });
 
 export type InvitationContent = z.infer<typeof InvitationContentSchema>;

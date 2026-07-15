@@ -2,6 +2,7 @@
 
 import { useEditorStore } from '@/stores/editor';
 import { SectionEditor, type SectionDragProps } from '../SectionEditor';
+import { SectionHeaderFields } from './SectionHeaderFields';
 import { TextField, TextAreaField } from '../form-fields';
 import { Button } from '@/components/ui/button';
 import { ImageUploader } from '../ImageUploader';
@@ -51,6 +52,7 @@ export function StoryEditor({ drag }: { drag?: SectionDragProps }) {
       }}
     >
       <div className="flex flex-col gap-4">
+        <SectionHeaderFields sectionKey="story" />
         {story.chapters.length === 0 && (
           <p className="rounded-md border border-dashed bg-muted/30 px-3 py-4 text-center text-xs text-muted-foreground">
             아래 &lt;챕터 추가&gt;를 눌러 첫 이야기를 시작해보세요

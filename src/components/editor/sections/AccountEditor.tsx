@@ -3,6 +3,7 @@
 import { useEditorStore } from '@/stores/editor';
 import { type AccountPartyKey } from '@/types/invitation';
 import { SectionEditor, type SectionDragProps } from '../SectionEditor';
+import { SectionHeaderFields } from './SectionHeaderFields';
 import { PresetTextArea } from '../PresetTextArea';
 import { ACCOUNT_GUIDE_PRESETS } from '@/lib/presets';
 import { Button } from '@/components/ui/button';
@@ -63,6 +64,7 @@ export function AccountEditor({ drag }: { drag?: SectionDragProps }) {
       }}
     >
       <div className="flex flex-col gap-5">
+        <SectionHeaderFields sectionKey="account" />
         <PresetTextArea
           label="안내문구"
           value={account.guide}

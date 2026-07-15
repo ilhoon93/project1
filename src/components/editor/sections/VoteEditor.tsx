@@ -2,6 +2,7 @@
 
 import { useEditorStore } from '@/stores/editor';
 import { SectionEditor, type SectionDragProps } from '../SectionEditor';
+import { SectionHeaderFields } from './SectionHeaderFields';
 import { TextField } from '../form-fields';
 import { Button } from '@/components/ui/button';
 import type { VoteQuestion } from '@/types/invitation';
@@ -42,6 +43,7 @@ export function VoteEditor({ drag }: { drag?: SectionDragProps }) {
       }}
     >
       <div className="flex flex-col gap-4">
+        <SectionHeaderFields sectionKey="vote" />
         {vote.questions.map((question, qi) => (
           <div key={qi} className="flex flex-col gap-2 rounded-md border bg-muted/30 p-3">
             <div className="flex items-center justify-between">
