@@ -88,8 +88,6 @@ export interface MyPageInvitation {
   layout: string | null;
   /** 디자인 색상 테마 키 (cream / sky / lavender 등). */
   colorTheme: string | null;
-  /** 홈페이지 익명 노출 동의 여부(옵트인). */
-  showcaseConsent: boolean;
   publications: MyPagePublication[];
 }
 
@@ -236,7 +234,15 @@ export function MyPageClient({
       {tab === 'snap' && (
         <SnapTab entitlements={entitlements} snapCreditsBalance={snapCreditsBalance} />
       )}
-      {tab === 'orders' && <OrdersTab orders={orders} reviewEvent={reviewEvent} />}
+      {tab === 'orders' && (
+        <OrdersTab
+          orders={orders}
+          reviewEvent={reviewEvent}
+          hasPublished={invitations.some(
+            (i) => i.isPublished || i.publications.length > 0,
+          )}
+        />
+      )}
     </main>
   );
 }
@@ -1379,26 +1385,6 @@ function SavedRow({
 }) {
   // 이미지 알림장(관리자 테스트) 모달 표시 여부. 안내는 모달 내부에서 처리.
   const [showImageCard, setShowImageCard] = useState(false);
-  // 홈페이지 익명 노출 동의 토글(옵트인) — 낙관적 업데이트.
-  const [consent, setConsent] = useState(inv.showcaseConsent);
-  const [consentBusy, setConsentBusy] = useState(false);
-  const toggleConsent = async () => {
-    const next = !consent;
-    setConsent(next);
-    setConsentBusy(true);
-    try {
-      const res = await fetch(`/api/invitations/${inv.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ showcaseConsent: next }),
-      });
-      if (!res.ok) setConsent(!next); // 실패 시 롤백
-    } catch {
-      setConsent(!next);
-    } finally {
-      setConsentBusy(false);
-    }
-  };
   // 영구소장된 publication 은 expires_at 무시 (소장용 URL 영구).
   const activePublications = inv.publications.filter(
     (p) => !p.revoked_at && (p.archived || new Date(p.expires_at) > new Date()),
@@ -1528,39 +1514,6 @@ function SavedRow({
           삭제
         </Button>
       </div>
-
-      {/* 홈페이지 익명 노출 동의 — 발행 이력이 있는 알림장만. 얼굴은 스티커로 가리고
-          이름은 이니셜로 익명화해 홈 디자인 갤러리에 노출하는 데 동의. */}
-      {hasEverPublished && (
-        <div className="flex items-start justify-between gap-3 rounded-md bg-[#FBEEE9] px-3 py-2 ring-1 ring-[#E3AE9E]/50">
-          <div className="min-w-0">
-            <p className="text-[12px] font-medium text-[#9A3D28]">
-              홈페이지 디자인 갤러리에 익명 노출 동의
-            </p>
-            <p className="mt-0.5 text-[10.5px] leading-relaxed text-[#8A5346]">
-              동의 시 얼굴은 스티커로 가리고 이름은 이니셜로 익명화해 노출됩니다. 언제든
-              끌 수 있어요.
-            </p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={consent}
-            aria-label="홈페이지 익명 노출 동의"
-            disabled={consentBusy}
-            onClick={toggleConsent}
-            className={`mt-0.5 inline-flex h-6 w-11 shrink-0 items-center overflow-hidden rounded-full p-0.5 transition-colors disabled:opacity-50 ${
-              consent ? 'bg-[#B5614F]' : 'bg-[#D9CCB8]'
-            }`}
-          >
-            <span
-              className={`block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-                consent ? 'translate-x-5' : 'translate-x-0'
-              }`}
-            />
-          </button>
-        </div>
-      )}
 
       {showImageCard && (
         <ImageCardGenerator
@@ -1994,7 +1947,13 @@ function ReviewEventNotice({ onParticipate }: { onParticipate: () => void }) {
  * 포토리뷰 이벤트 참여 — 동의 체크 후 리뷰+아이디가 보이는 캡처본을 업로드해 제출.
  * 제출하면 '입력완료', 관리자 확인 시 '확인완료'(영구소장권 적립) 상태로 표시.
  */
-function ReviewEventSubmit({ initial }: { initial: ReviewEventState | null }) {
+function ReviewEventSubmit({
+  initial,
+  hasPublished,
+}: {
+  initial: ReviewEventState | null;
+  hasPublished: boolean;
+}) {
   const [state, setState] = useState<ReviewEventState | null>(initial);
   const [consent, setConsent] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -2003,6 +1962,8 @@ function ReviewEventSubmit({ initial }: { initial: ReviewEventState | null }) {
 
   const confirmed = state?.status === 'confirmed';
   const submitted = state?.status === 'submitted';
+  // 이미 참여한 상태면(제출 이력) 발행 여부와 무관하게 상태를 계속 보여준다.
+  const locked = !hasPublished && !state;
 
   const submit = async () => {
     setErr(null);
@@ -2042,6 +2003,24 @@ function ReviewEventSubmit({ initial }: { initial: ReviewEventState | null }) {
         </span>
       </div>
 
+      {/* 참여 자격 안내 — 발행된 알림장이 있어야 참여 가능. */}
+      <div className="rounded-lg bg-white/70 p-2.5 text-[11px] leading-relaxed text-[#3A6B57] ring-1 ring-[#7FB8A6]/50">
+        <p>
+          · <strong className="text-[#245C48]">발행된 알림장이 있는 고객</strong>만 참여할
+          수 있어요.
+        </p>
+        <p>
+          · 참여 시 해당 계정의 <strong className="text-[#245C48]">발행된 알림장은 모두
+          사례 소개에 동의</strong>한 것으로 간주됩니다.
+        </p>
+        <p>
+          · 사례에는 <strong className="text-[#245C48]">메인 화면만</strong> 쓰이고,
+          <strong className="text-[#245C48]"> 얼굴·이름은 식별되지 않게 마스킹</strong> 처리
+          후 사용됩니다.
+        </p>
+        <p>· 확인에는 영업일 기준 1~2일 소요될 수 있어요.</p>
+      </div>
+
       {/* 현재 상태 */}
       {state && (
         <div className="flex items-center gap-3 rounded-lg bg-white/70 p-2.5 ring-1 ring-[#7FB8A6]/50">
@@ -2058,56 +2037,62 @@ function ReviewEventSubmit({ initial }: { initial: ReviewEventState | null }) {
             <p className="mt-0.5 text-[11px] leading-relaxed text-[#3A6B57]">
               {confirmed
                 ? '확인되어 영구소장권이 적립되었어요. 감사합니다!'
-                : '제출이 접수되었어요. 관리자 확인 후 영구소장권이 적립됩니다.'}
+                : '제출이 접수되었어요. 확인에 영업일 기준 1~2일 소요될 수 있으며, 확인 후 영구소장권이 적립됩니다.'}
             </p>
           </div>
         </div>
       )}
 
-      {!confirmed && (
-        <>
-          <p className="text-[11.5px] leading-relaxed text-[#3A6B57]">
-            포토리뷰 작성 후 <strong className="text-[#245C48]">리뷰 내용과 아이디가
-            보이게 캡처</strong>한 이미지를 첨부해주세요. 확인되면 영구소장권이 적립됩니다.
-          </p>
+      {locked ? (
+        <p className="rounded-lg bg-white/70 p-2.5 text-[11.5px] leading-relaxed text-[#3A6B57] ring-1 ring-[#7FB8A6]/50">
+          아직 발행된 알림장이 없어요. 알림장을 발행한 뒤 참여할 수 있습니다.
+        </p>
+      ) : (
+        !confirmed && (
+          <>
+            <p className="text-[11.5px] leading-relaxed text-[#3A6B57]">
+              포토리뷰 작성 후 <strong className="text-[#245C48]">리뷰 내용과 아이디가
+              보이게 캡처</strong>한 이미지를 첨부해주세요.
+            </p>
 
-          <label className="flex items-start gap-2 text-[11.5px] leading-relaxed text-[#3A6B57]">
-            <input
-              type="checkbox"
-              checked={consent}
-              onChange={(e) => setConsent(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-[#2E7D5B]"
-            />
-            <span>
-              내 <strong className="text-[#245C48]">리뷰와 알림장 화면이 사례로
-              소개</strong>될 수 있음에 동의합니다. (참여 필수)
-            </span>
-          </label>
+            <label className="flex items-start gap-2 text-[11.5px] leading-relaxed text-[#3A6B57]">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-[#2E7D5B]"
+              />
+              <span>
+                내 <strong className="text-[#245C48]">리뷰와 (발행된) 알림장 메인 화면이
+                마스킹 처리되어 사례로 소개</strong>될 수 있음에 동의합니다. (참여 필수)
+              </span>
+            </label>
 
-          <div className="flex flex-col gap-2">
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              disabled={!consent || busy}
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="block w-full text-[11.5px] text-[#3A6B57] file:mr-3 file:rounded-md file:border-0 file:bg-[#2E7D5B] file:px-3 file:py-1.5 file:text-[11.5px] file:font-medium file:text-white disabled:opacity-50"
-            />
-            {!consent && (
-              <p className="text-[10.5px] text-[#3A6B57]/80">
-                동의에 체크하면 사진을 첨부할 수 있어요.
-              </p>
-            )}
-            {err && <p className="text-[11px] text-red-600">{err}</p>}
-            <button
-              type="button"
-              onClick={submit}
-              disabled={busy || !consent || !file}
-              className="inline-flex w-fit items-center gap-1 rounded-md bg-[#2E7D5B] px-3.5 py-2 text-[12.5px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
-              {busy ? '제출 중…' : submitted ? '다시 제출' : '리뷰 등록'}
-            </button>
-          </div>
-        </>
+            <div className="flex flex-col gap-2">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={!consent || busy}
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                className="block w-full text-[11.5px] text-[#3A6B57] file:mr-3 file:rounded-md file:border-0 file:bg-[#2E7D5B] file:px-3 file:py-1.5 file:text-[11.5px] file:font-medium file:text-white disabled:opacity-50"
+              />
+              {!consent && (
+                <p className="text-[10.5px] text-[#3A6B57]/80">
+                  동의에 체크하면 사진을 첨부할 수 있어요.
+                </p>
+              )}
+              {err && <p className="text-[11px] text-red-600">{err}</p>}
+              <button
+                type="button"
+                onClick={submit}
+                disabled={busy || !consent || !file}
+                className="inline-flex w-fit items-center gap-1 rounded-md bg-[#2E7D5B] px-3.5 py-2 text-[12.5px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {busy ? '제출 중…' : submitted ? '다시 제출' : '리뷰 등록'}
+              </button>
+            </div>
+          </>
+        )
       )}
     </div>
   );
@@ -2124,16 +2109,18 @@ function ReviewEventSubmit({ initial }: { initial: ReviewEventState | null }) {
 function OrdersTab({
   orders,
   reviewEvent,
+  hasPublished,
 }: {
   orders: MyPageOrder[];
   reviewEvent: ReviewEventState | null;
+  hasPublished: boolean;
 }) {
   const total = useMemo(() => orders.reduce((acc, o) => acc + (o.amount ?? 0), 0), [orders]);
 
   return (
     <section className="flex flex-col gap-4">
       {/* 포토리뷰 이벤트 — 상단에 배치. 동의 + 캡처본 업로드로 참여. */}
-      <ReviewEventSubmit initial={reviewEvent} />
+      <ReviewEventSubmit initial={reviewEvent} hasPublished={hasPublished} />
 
       {/* 주문 등록 액션 — 결혼알림장 탭에서 이동.
           로그인 자체가 네이버 OAuth 단독이라 모든 사용자는 이미 네이버 계정과

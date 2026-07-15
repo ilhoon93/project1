@@ -29,11 +29,10 @@ export default async function MyPage() {
     { data: snapCreditsBalance },
     { data: reviewEventRow },
   ] = await Promise.all([
-    // showcase_consent 는 자동생성 DB 타입(063 미반영)에 아직 없어 any 캐스팅.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase.from('invitations') as any)
+    supabase
+      .from('invitations')
       .select(
-        'id, slug, groom_name, bride_name, wedding_date, is_published, published_at, expires_at, updated_at, created_at, content, showcase_consent',
+        'id, slug, groom_name, bride_name, wedding_date, is_published, published_at, expires_at, updated_at, created_at, content',
       )
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false }),
@@ -89,20 +88,7 @@ export default async function MyPage() {
     };
   };
 
-  const invitations: MyPageInvitation[] = (invs ?? []).map((i: {
-    id: string;
-    slug: string;
-    groom_name: string;
-    bride_name: string;
-    wedding_date: string | null;
-    is_published: boolean;
-    published_at: string | null;
-    expires_at: string | null;
-    updated_at: string;
-    created_at: string;
-    content: unknown;
-    showcase_consent?: boolean;
-  }) => {
+  const invitations: MyPageInvitation[] = (invs ?? []).map((i) => {
     const meta = extractInvitationMeta(i.content);
     return {
       id: i.id,
@@ -118,7 +104,6 @@ export default async function MyPage() {
       heroImage: meta.heroImage,
       layout: meta.layout,
       colorTheme: meta.colorTheme,
-      showcaseConsent: i.showcase_consent ?? false,
       publications: pubsByInvitation.get(i.id) ?? [],
     };
   });

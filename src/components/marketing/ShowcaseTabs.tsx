@@ -80,7 +80,7 @@ export function ShowcaseTabs({
             <MockQuizVote active={active === 'quizvote'} />
             <MockGuestbook active={active === 'guestbook'} />
             <MockVowPdf active={active === 'vow'} />
-            <MockProfileImage active={active === 'profileImage'} samples={designSamples} />
+            <MockProfileImage active={active === 'profileImage'} />
           </PhoneFrame>
         </div>
 
@@ -256,26 +256,22 @@ function MockDesign({ active, samples }: { active: boolean; samples: SampleDesig
 }
 
 /**
- * 프로필용 알림장 이미지 mock — 메인 표지 디자인을 그대로 세로 이미지로 보여주고,
- * 인스타/카카오 프로필에 올리는 용도임을 하단 pill 로 안내한다.
+ * 프로필용 알림장 이미지 mock — 실제 저장되는 세로 9:16 이미지 예시(첨부 샘플)를
+ * 그대로 보여주고, 인스타/카카오 프로필에 올리는 용도임을 하단 pill 로 안내한다.
  */
-function MockProfileImage({
-  active,
-  samples,
-}: {
-  active: boolean;
-  samples: SampleDesign[];
-}) {
-  const cur = samples[0];
+function MockProfileImage({ active }: { active: boolean }) {
   return (
     <div
       className={`absolute inset-0 transition-opacity duration-500 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
     >
-      {cur && (
-        <div className="absolute inset-0">
-          <InvitationPreview design={cur} cover />
-        </div>
-      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/marketing/profile-image-sample.png"
+        alt="프로필용 알림장 이미지 예시"
+        className="absolute inset-0 h-full w-full object-cover"
+        loading="lazy"
+        draggable={false}
+      />
       {/* 하단 그라데이션 + 안내 pill */}
       <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-1.5 bg-gradient-to-t from-black/55 via-black/25 to-transparent px-3 pb-3.5 pt-10 text-center">
         <span className="inline-flex items-center gap-1 rounded-full bg-white/92 px-2.5 py-1 text-[9.5px] font-medium text-[var(--wd-ink)] shadow-sm">
