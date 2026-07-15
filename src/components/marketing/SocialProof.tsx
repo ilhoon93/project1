@@ -19,23 +19,30 @@ import type { SocialProofConfig } from '@/lib/marketing/social-proof';
 export function SocialProof({
   config,
   coupleCount,
+  purchasePct,
 }: {
   config: SocialProofConfig;
   /** 발행 건수 기반 자동 계산된 커플 수(10단위 올림). 0 이면 커플 수 타일 미노출. */
   coupleCount: number;
+  /** 제작→결제 전환율(%). 통계에서 자동 계산. 0 이면 % 타일/문구 미노출. */
+  purchasePct: number;
 }) {
   if (!config.enabled) return null;
 
-  const reviews = config.reviews.filter((r) => r.imageUrl.trim());
+  // 별점·문구 리뷰(텍스트 마퀴)와 알림장 디자인 사진(디자인 마퀴)을 분리.
+  const reviews = config.reviews.filter((r) => r.caption.trim() || r.rating > 0);
+  const designs = config.designs.filter((d) => d.imageUrl.trim());
   const hasCount = coupleCount > 0;
-  if (!hasCount && reviews.length === 0) return null;
+  const avgRating = config.averageRating; // 관리자 세팅값(0 이면 미노출).
+  const showPurchase = config.purchaseStatEnabled && purchasePct > 0;
 
-  // 평균 별점은 운영자가 관리자에서 직접 세팅한 값(0 이면 미노출).
-  const avgRating = config.averageRating;
+  if (!hasCount && !showPurchase && avgRating <= 0 && reviews.length === 0 && designs.length === 0)
+    return null;
 
-  // 마퀴가 끊김 없이 이어지도록 리뷰를 2배로 복제(-50% 이동 시 이음매 없음).
-  const marqueeItems = reviews.length > 0 ? [...reviews, ...reviews] : [];
-  const marqueeDuration = Math.max(18, reviews.length * 6);
+  const purchaseSentence = config.purchaseStatCaption.replace(
+    '{pct}',
+    String(purchasePct),
+  );
 
   return (
     <section className="relative border-y border-[var(--wd-line)] bg-[var(--wd-coral)]/[0.07] px-6 py-14 sm:py-16">
@@ -62,8 +69,16 @@ export function SocialProof({
           </FadeUp>
         )}
 
-        {/* 수치 타일 — 커플 수 / 평균 별점. 값이 있는 것만 노출하고 개수에 맞춰
-            그리드 열 수를 잡는다. */}
+        {/* 대표 문구 — "만들어본 고객의 N%가 2주 내로 구매를 결정했어요." N 강조. */}
+        {showPurchase && purchaseSentence && (
+          <FadeUp scroll delay={0.16}>
+            <p className="mt-5 break-keep text-[16px] font-medium leading-[1.6] text-[var(--wd-ink)] sm:text-[18px]">
+              {renderWithPct(purchaseSentence, purchasePct)}
+            </p>
+          </FadeUp>
+        )}
+
+        {/* 수치 타일 — 건수 / N% / 별점. 값이 있는 것만 노출하고 개수에 맞춰 열 수 결정. */}
         {(() => {
           const tiles = [
             hasCount && (
@@ -72,6 +87,15 @@ export function SocialProof({
                 value={coupleCount}
                 suffix={config.coupleCountSuffix}
                 label={config.coupleCountCaption || '누적 커플'}
+              />
+            ),
+            showPurchase && (
+              <StatTile
+                key="purchase"
+                value={purchasePct}
+                max={100}
+                suffix="%"
+                label={config.purchaseStatLabel || '2주 내 구매 결정'}
               />
             ),
             avgRating > 0 && (
@@ -94,7 +118,7 @@ export function SocialProof({
                 ? 'grid-cols-2'
                 : 'grid-cols-3';
           return (
-            <FadeUp scroll delay={0.18}>
+            <FadeUp scroll delay={0.2}>
               <div
                 className={`mt-6 grid ${cols} divide-x divide-[var(--wd-line)] overflow-hidden rounded-2xl border border-[var(--wd-line)] bg-[var(--wd-paper)] py-4 text-center`}
               >
@@ -104,67 +128,74 @@ export function SocialProof({
           );
         })()}
 
-        {/* 리뷰 마퀴 */}
-        {reviews.length > 0 && (
+        {/* 디자인 사진 마퀴 (→ 방향) — 알림장 메인 디자인. */}
+        {designs.length > 0 && (
           <FadeUp scroll delay={0.24}>
-            <div className="wd-sp-marquee relative mt-7 overflow-hidden">
-              {/* 좌우 페이드 마스크 */}
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-[var(--wd-cream)] to-transparent"
-              />
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-[var(--wd-cream)] to-transparent"
-              />
-              <ul
-                className="wd-sp-marquee-track flex w-max items-start gap-3"
-                style={{ ['--wd-sp-dur' as string]: `${marqueeDuration}s` }}
-              >
-                {marqueeItems.map((review, i) => (
-                  <li
-                    key={`${review.id}-${i}`}
-                    className="w-[160px] flex-shrink-0 sm:w-[176px]"
-                  >
-                    <div className="overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-paper)]">
-                      {/* 카드 너비를 꽉 채우고 세로는 원본 비율 그대로 — 좌우 여백 없이
-                          잘림 없이 전체 노출. */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={review.imageUrl}
-                        alt={review.caption || '고객 리뷰'}
-                        loading="lazy"
-                        draggable={false}
-                        className="block w-full"
-                      />
-                      <div className="px-2.5 py-2">
-                        {(review.rating ?? 0) > 0 && (
-                          <Stars rating={review.rating} size={12} />
-                        )}
-                        {review.caption && (
-                          <p className="mt-1 line-clamp-[10] break-keep text-[11.5px] leading-relaxed text-[var(--wd-mute)]">
-                            {review.caption}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <Marquee reverse={false} durationSec={Math.max(20, designs.length * 5)}>
+              {[...designs, ...designs].map((design, i) => (
+                <li
+                  key={`${design.id}-${i}`}
+                  className="w-[124px] flex-shrink-0 sm:w-[140px]"
+                >
+                  <div className="overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-paper)]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={design.imageUrl}
+                      alt="알림장 디자인"
+                      loading="lazy"
+                      draggable={false}
+                      className="block w-full"
+                    />
+                  </div>
+                </li>
+              ))}
+            </Marquee>
+          </FadeUp>
+        )}
+
+        {/* 리뷰 텍스트 마퀴 (← 반대 방향) — 별점 + 문구. */}
+        {reviews.length > 0 && (
+          <FadeUp scroll delay={0.28}>
+            <Marquee reverse durationSec={Math.max(18, reviews.length * 7)}>
+              {[...reviews, ...reviews].map((review, i) => (
+                <li
+                  key={`${review.id}-${i}`}
+                  className="w-[230px] flex-shrink-0 sm:w-[250px]"
+                >
+                  <div className="flex h-full flex-col rounded-xl border border-[var(--wd-line)] bg-[var(--wd-paper)] px-3.5 py-3">
+                    {(review.rating ?? 0) > 0 && (
+                      <Stars rating={review.rating} size={13} />
+                    )}
+                    {review.caption && (
+                      <p className="mt-1.5 line-clamp-[8] break-keep text-[12.5px] leading-relaxed text-[var(--wd-ink)]">
+                        {review.caption}
+                      </p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </Marquee>
           </FadeUp>
         )}
       </div>
 
-      {/* 마퀴 keyframes — 절반(-50%) 이동 시 복제본과 이음매 없이 순환. */}
+      {/* 마퀴 keyframes — 절반(-50%) 이동 시 복제본과 이음매 없이 순환.
+          reverse 는 방향만 반대(왼쪽에서 오른쪽으로 흐름). */}
       <style>{`
         @keyframes wd-sp-marquee {
           from { transform: translateX(0); }
           to { transform: translateX(-50%); }
         }
+        @keyframes wd-sp-marquee-rev {
+          from { transform: translateX(-50%); }
+          to { transform: translateX(0); }
+        }
         .wd-sp-marquee-track {
           animation: wd-sp-marquee var(--wd-sp-dur, 30s) linear infinite;
           will-change: transform;
+        }
+        .wd-sp-marquee-track--rev {
+          animation-name: wd-sp-marquee-rev;
         }
         /* 마우스(hover 가능 기기)에서만 일시정지 — 터치 기기는 손을 대도 계속 흐른다. */
         @media (hover: hover) {
@@ -177,6 +208,50 @@ export function SocialProof({
         }
       `}</style>
     </section>
+  );
+}
+
+/** 좌우 페이드 마스크 + 자동 스크롤 트랙을 감싸는 마퀴 컨테이너. */
+function Marquee({
+  children,
+  reverse,
+  durationSec,
+}: {
+  children: React.ReactNode;
+  reverse: boolean;
+  durationSec: number;
+}) {
+  return (
+    <div className="wd-sp-marquee relative mt-6 overflow-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-[var(--wd-cream)] to-transparent"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-[var(--wd-cream)] to-transparent"
+      />
+      <ul
+        className={`wd-sp-marquee-track flex w-max items-stretch gap-3 ${reverse ? 'wd-sp-marquee-track--rev' : ''}`}
+        style={{ ['--wd-sp-dur' as string]: `${durationSec}s` }}
+      >
+        {children}
+      </ul>
+    </div>
+  );
+}
+
+/** 문구 안의 "N%" 를 코랄 굵게 강조해서 렌더. */
+function renderWithPct(sentence: string, pct: number) {
+  const token = `${pct}%`;
+  const idx = sentence.indexOf(token);
+  if (idx === -1) return sentence;
+  return (
+    <>
+      {sentence.slice(0, idx)}
+      <span className="font-bold text-[var(--wd-coral)]">{token}</span>
+      {sentence.slice(idx + token.length)}
+    </>
   );
 }
 

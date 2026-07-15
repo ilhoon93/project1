@@ -14,10 +14,17 @@ import { createClient } from '@/lib/supabase/server';
 
 export interface SocialProofReview {
   id: string;
+  /** (구버전 호환용) 리뷰 텍스트 마퀴에서는 사용하지 않음. */
   imageUrl: string;
   caption: string;
   /** 별점 (0~5). 0 이면 별점 없음으로 간주(평균에서 제외). */
   rating: number;
+}
+
+/** 사회적 증거에 흐르는 "알림장 메인 디자인 사진" 한 장. */
+export interface SocialProofDesign {
+  id: string;
+  imageUrl: string;
 }
 
 export interface SocialProofConfig {
@@ -29,6 +36,15 @@ export interface SocialProofConfig {
   coupleCountCaption: string;
   /** 사회적 증거에 노출할 평균 별점(0~5). 0 이면 평점 타일 미노출. */
   averageRating: number;
+  /** "만들어본 고객의 N%가 2주 내로 구매를 결정했어요" 타일/문구 노출 여부. */
+  purchaseStatEnabled: boolean;
+  /** 위 문구 템플릿. {pct} 자리에 자동 계산된 전환율(%)이 들어간다. */
+  purchaseStatCaption: string;
+  /** % 타일 하단 라벨. */
+  purchaseStatLabel: string;
+  /** 디자인 사진 마퀴(알림장 메인 디자인). */
+  designs: SocialProofDesign[];
+  /** 리뷰 텍스트 마퀴(별점 + 문구). */
   reviews: SocialProofReview[];
 }
 
@@ -40,15 +56,24 @@ export const DEFAULT_SOCIAL_PROOF: SocialProofConfig = {
   coupleCountSuffix: '쌍',
   coupleCountCaption: '누적 알림장 제작',
   averageRating: 5.0,
+  purchaseStatEnabled: true,
+  purchaseStatCaption: '만들어본 고객의 {pct}%가 2주 내로 구매를 결정했어요.',
+  purchaseStatLabel: '2주 내 구매 결정',
+  designs: [],
   reviews: [],
 };
 
 const ReviewSchema = z.object({
   id: z.string(),
-  imageUrl: z.string(),
+  imageUrl: z.string().default(''),
   caption: z.string().default(''),
   // 구버전(별점 없던 저장본) 호환 — 기본 5점.
   rating: z.number().min(0).max(5).default(5),
+});
+
+const DesignSchema = z.object({
+  id: z.string(),
+  imageUrl: z.string(),
 });
 
 const ConfigSchema = z.object({
@@ -59,6 +84,10 @@ const ConfigSchema = z.object({
   coupleCountSuffix: z.string().default('쌍'),
   coupleCountCaption: z.string().default(''),
   averageRating: z.number().min(0).max(5).default(5),
+  purchaseStatEnabled: z.boolean().default(true),
+  purchaseStatCaption: z.string().default(DEFAULT_SOCIAL_PROOF.purchaseStatCaption),
+  purchaseStatLabel: z.string().default(DEFAULT_SOCIAL_PROOF.purchaseStatLabel),
+  designs: z.array(DesignSchema).default([]),
   reviews: z.array(ReviewSchema).default([]),
 });
 
@@ -85,6 +114,10 @@ export async function getSocialProof(): Promise<SocialProofConfig> {
       couple_count_suffix?: string;
       couple_count_caption?: string;
       average_rating?: number | string;
+      purchase_stat_enabled?: boolean;
+      purchase_stat_caption?: string;
+      purchase_stat_label?: string;
+      designs?: unknown;
       reviews?: unknown;
     };
     const parsed = ConfigSchema.safeParse({
@@ -96,6 +129,12 @@ export async function getSocialProof(): Promise<SocialProofConfig> {
       coupleCountCaption: row.couple_count_caption ?? '',
       // numeric 컬럼은 드라이버에 따라 문자열로 올 수 있어 Number() 로 정규화.
       averageRating: row.average_rating != null ? Number(row.average_rating) : 5,
+      purchaseStatEnabled: row.purchase_stat_enabled ?? true,
+      purchaseStatCaption:
+        row.purchase_stat_caption ?? DEFAULT_SOCIAL_PROOF.purchaseStatCaption,
+      purchaseStatLabel:
+        row.purchase_stat_label ?? DEFAULT_SOCIAL_PROOF.purchaseStatLabel,
+      designs: row.designs ?? [],
       reviews: row.reviews ?? [],
     });
     if (!parsed.success) return DEFAULT_SOCIAL_PROOF;
@@ -121,6 +160,10 @@ export async function saveSocialProof(
     couple_count_suffix: parsed.data.coupleCountSuffix,
     couple_count_caption: parsed.data.coupleCountCaption,
     average_rating: parsed.data.averageRating,
+    purchase_stat_enabled: parsed.data.purchaseStatEnabled,
+    purchase_stat_caption: parsed.data.purchaseStatCaption,
+    purchase_stat_label: parsed.data.purchaseStatLabel,
+    designs: parsed.data.designs,
     reviews: parsed.data.reviews,
   };
   // marketing_social_proof 는 자동생성 DB 타입(051 미반영)에 아직 없어 캐스팅.
@@ -145,6 +188,24 @@ export async function getPublishedCoupleCount(): Promise<number> {
     const n = typeof data === 'number' ? data : 0;
     if (error || n <= 0) return 0;
     return Math.ceil(n / 10) * 10;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * "만들어본 고객의 N%가 2주 내로 구매를 결정했어요" 의 N — 제작→결제 전환율(%).
+ * public_purchase_conversion_pct() RPC(061). 통계 페이지의 정의와 동일
+ * (미결제 & 최종수정 2주 미만 건 제외). 실패·0 이면 0 폴백(문구/타일 미노출).
+ */
+export async function getPurchaseConversionPct(): Promise<number> {
+  try {
+    const supabase = createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc('public_purchase_conversion_pct');
+    const n = typeof data === 'number' ? data : 0;
+    if (error || n <= 0) return 0;
+    return n;
   } catch {
     return 0;
   }
