@@ -13,8 +13,8 @@ import {
   type ShowcaseCandidate,
 } from './actions';
 
-/** 브랜드 하트·이모지 스티커(얼굴 가리개) 팔레트. */
-const STICKERS = ['❤️', '🩷', '🤍', '💛', '🌸', '💐', '✨', '🥰', '😍', '🎉', '💍', '🕊️'];
+/** 얼굴 가리개 스티커 팔레트 — 웃는 얼굴(하트 없는) 위주 + 기본 하트 몇 종. */
+const STICKERS = ['🙂', '😊', '😄', '😁', '😌', '☺️', '🙃', '😀', '❤️', '🩷', '🤍', '💛'];
 
 interface Loaded {
   content: InvitationContent;
