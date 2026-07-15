@@ -62,6 +62,12 @@ const ADMIN_PAGES: AdminPage[] = [
       '메인 알림장 섹션 상단 사회적 증거(리뷰 이미지 + 별점 + 자동 커플 수)를 세팅. 메인 노출 토글로 즉시 반영.',
   },
   {
+    href: '/admin/showcase',
+    title: 'showcase 커버 관리',
+    description:
+      '동의 고객 알림장 메인 사진에 얼굴 스티커를 붙여 익명화한 뒤, 실제 메인 디자인을 홈 디자인 마퀴에 config 렌더로 노출.',
+  },
+  {
     href: '/admin/notice-bar',
     title: '상단 공지바',
     description:

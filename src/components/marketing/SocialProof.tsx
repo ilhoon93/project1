@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { FadeUp } from './Motion';
 import { SideCaption } from './SideMarginalia';
-import type { SocialProofConfig } from '@/lib/marketing/social-proof';
+import { InvitationPreview } from './InvitationPreview';
+import type {
+  SocialProofConfig,
+  ShowcaseCover,
+} from '@/lib/marketing/social-proof';
 
 /**
  * 메인 "알림장 소개" 섹션 상단 사회적 증거 — 리뷰(별점·문구) + 커플 수/평점/결제율.
@@ -29,14 +33,17 @@ export function SocialProof({
 }) {
   if (!config.enabled) return null;
 
-  // 별점·문구 리뷰(텍스트 마퀴)와 알림장 디자인 사진(디자인 마퀴)을 분리.
+  // 별점·문구 리뷰(텍스트 마퀴)와 알림장 디자인(디자인 마퀴)을 분리.
   const reviews = config.reviews.filter((r) => r.caption.trim() || r.rating > 0);
-  const designs = config.designs.filter((d) => d.imageUrl.trim());
+  const covers = config.covers ?? [];
+  const designImages = config.designs.filter((d) => d.imageUrl.trim());
+  // 디자인 마퀴 = config 렌더 커버(스티커 익명화된 실제 고객 디자인) + 레거시 업로드 이미지.
+  const hasDesigns = covers.length > 0 || designImages.length > 0;
   const hasCount = coupleCount > 0;
   const avgRating = config.averageRating; // 관리자 세팅값(0 이면 미노출).
   const showPurchase = config.purchaseStatEnabled && purchasePct > 0;
 
-  if (!hasCount && !showPurchase && avgRating <= 0 && reviews.length === 0 && designs.length === 0)
+  if (!hasCount && !showPurchase && avgRating <= 0 && reviews.length === 0 && !hasDesigns)
     return null;
 
   const purchaseSentence = config.purchaseStatCaption.replace(
@@ -128,27 +135,44 @@ export function SocialProof({
           );
         })()}
 
-        {/* 디자인 사진 마퀴 (→ 방향) — 알림장 메인 디자인. */}
-        {designs.length > 0 && (
+        {/* 디자인 마퀴 (→ 방향) — config 렌더 커버 + 레거시 업로드 이미지. */}
+        {hasDesigns && (
           <FadeUp scroll delay={0.24}>
-            <Marquee reverse={false} durationSec={Math.max(20, designs.length * 5)}>
-              {[...designs, ...designs].map((design, i) => (
-                <li
-                  key={`${design.id}-${i}`}
-                  className="w-[124px] flex-shrink-0 sm:w-[140px]"
-                >
-                  <div className="overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-paper)]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={design.imageUrl}
-                      alt="알림장 디자인"
-                      loading="lazy"
-                      draggable={false}
-                      className="block w-full"
-                    />
-                  </div>
-                </li>
-              ))}
+            <Marquee
+              reverse={false}
+              durationSec={Math.max(20, (covers.length + designImages.length) * 5)}
+            >
+              {(() => {
+                const items = [
+                  ...covers.map((c) => ({
+                    key: `cover-${c.id}`,
+                    node: <CoverCard cover={c} />,
+                  })),
+                  ...designImages.map((d) => ({
+                    key: `img-${d.id}`,
+                    node: (
+                      <div className="overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-paper)]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={d.imageUrl}
+                          alt="알림장 디자인"
+                          loading="lazy"
+                          draggable={false}
+                          className="block w-full"
+                        />
+                      </div>
+                    ),
+                  })),
+                ];
+                return [...items, ...items].map((item, i) => (
+                  <li
+                    key={`${item.key}-${i}`}
+                    className="w-[124px] flex-shrink-0 sm:w-[140px]"
+                  >
+                    {item.node}
+                  </li>
+                ));
+              })()}
             </Marquee>
           </FadeUp>
         )}
@@ -208,6 +232,26 @@ export function SocialProof({
         }
       `}</style>
     </section>
+  );
+}
+
+/** showcase 커버 — 실제 고객 디자인을 config 렌더로 9:18 카드에 표시(익명화 상태). */
+function CoverCard({ cover }: { cover: ShowcaseCover }) {
+  return (
+    <div className="aspect-[1/2] w-full overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-paper)]">
+      <InvitationPreview
+        design={{
+          id: cover.id,
+          name: '',
+          layoutLabel: '',
+          groomName: cover.groomName,
+          brideName: cover.brideName,
+          weddingDate: cover.weddingDate,
+          content: cover.content,
+        }}
+        cover
+      />
+    </div>
   );
 }
 
