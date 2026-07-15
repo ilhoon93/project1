@@ -68,6 +68,12 @@ const ADMIN_PAGES: AdminPage[] = [
       '동의 고객 알림장 메인 사진에 얼굴 스티커를 붙여 익명화한 뒤, 실제 메인 디자인을 홈 디자인 마퀴에 config 렌더로 노출.',
   },
   {
+    href: '/admin/review-events',
+    title: '포토리뷰 이벤트',
+    description:
+      '고객이 제출한 리뷰 캡처본/동의를 모아보고, 확인 시 영구소장권을 적립. 제출·확인 상태 관리.',
+  },
+  {
     href: '/admin/notice-bar',
     title: '상단 공지바',
     description:

@@ -10,6 +10,7 @@ import { ARCHIVE_PRICE, formatKRW } from '@/lib/snap/packages';
 import { formatKstDate } from '@/lib/utils/datetime';
 import { computePageItems } from '@/lib/utils/pagination';
 import { ImageCardGenerator } from '@/components/mypage/ImageCardGenerator';
+import { submitReviewEvent } from './review-event-actions';
 
 // snap_jobs / snap_anchor_history 응답 타입 — API 가 돌려주는 raw shape.
 interface SnapJob {
@@ -113,6 +114,12 @@ export interface MyPageOrder {
   } | null;
 }
 
+/** 포토리뷰 이벤트 제출 상태(없으면 미참여). */
+export interface ReviewEventState {
+  imageUrl: string;
+  status: 'submitted' | 'confirmed';
+}
+
 interface Props {
   userEmail: string | null;
   invitations: MyPageInvitation[];
@@ -122,6 +129,8 @@ interface Props {
   snapCreditsBalance: number;
   orders: MyPageOrder[];
   entitlements: MyPageEntitlements;
+  /** 포토리뷰 이벤트 제출 상태(없으면 null). */
+  reviewEvent: ReviewEventState | null;
 }
 
 type Tab = 'saves' | 'orders' | 'snap';
@@ -176,6 +185,7 @@ export function MyPageClient({
   snapCreditsBalance,
   orders,
   entitlements,
+  reviewEvent,
 }: Props) {
   const searchParams = useSearchParams();
   // ?tab=credits 는 과거 탭 — 통합된 '결혼알림장' 탭으로 폴백.
@@ -211,7 +221,7 @@ export function MyPageClient({
           AI 웨딩스냅
         </TabButton>
         <TabButton selected={tab === 'orders'} onClick={() => setTab('orders')}>
-          주문
+          주문/이벤트
         </TabButton>
       </nav>
 
@@ -220,12 +230,13 @@ export function MyPageClient({
           invitations={invitations}
           creditsBalance={creditsBalance}
           archiveBalance={archiveBalance}
+          onParticipateEvent={() => setTab('orders')}
         />
       )}
       {tab === 'snap' && (
         <SnapTab entitlements={entitlements} snapCreditsBalance={snapCreditsBalance} />
       )}
-      {tab === 'orders' && <OrdersTab orders={orders} />}
+      {tab === 'orders' && <OrdersTab orders={orders} reviewEvent={reviewEvent} />}
     </main>
   );
 }
@@ -1186,10 +1197,12 @@ function SavedTab({
   invitations,
   creditsBalance,
   archiveBalance,
+  onParticipateEvent,
 }: {
   invitations: MyPageInvitation[];
   creditsBalance: number;
   archiveBalance: number;
+  onParticipateEvent: () => void;
 }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -1269,7 +1282,7 @@ function SavedTab({
   return (
     <section className="flex flex-col gap-3">
       {/* 포토리뷰 이벤트 안내 — 결혼알림장 탭 상단. */}
-      <ReviewEventNotice />
+      <ReviewEventNotice onParticipate={onParticipateEvent} />
 
       <CreditsSummary balance={creditsBalance} archiveBalance={archiveBalance} />
 
@@ -1878,7 +1891,7 @@ const REVIEW_EVENT_TOTAL = ARCHIVE_PRICE + REVIEW_EVENT_NAVER_POINT;
  */
 const REVIEW_EVENT_COLLAPSE_KEY = 'wd_review_event_collapsed';
 
-function ReviewEventNotice() {
+function ReviewEventNotice({ onParticipate }: { onParticipate: () => void }) {
   // 접힘 상태 — localStorage 에 기억(다음 방문에도 유지). SSR 불일치 방지 위해
   // 마운트 전에는 펼침(기본)으로 렌더.
   const [collapsed, setCollapsed] = useState(false);
@@ -1905,7 +1918,7 @@ function ReviewEventNotice() {
   const expanded = !mounted || !collapsed;
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-[#E3AE9E]/60 bg-[#FBEEE9] p-4">
+    <div className="flex flex-col gap-3 rounded-xl border border-[#7FB8A6]/50 bg-[#E7F1EC] p-4">
       {/* 헤더 — 클릭 시 접기/펼치기. 제목 + 총 혜택 pill + chevron. */}
       <button
         type="button"
@@ -1914,17 +1927,17 @@ function ReviewEventNotice() {
         className="flex items-start justify-between gap-3 text-left"
       >
         <div>
-          <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-[#9A3D28]">
+          <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-[#245C48]">
             <span aria-hidden>📸</span> 포토리뷰 이벤트
           </h3>
           {expanded && (
-            <p className="mt-1 text-[12.5px] leading-relaxed text-[#8A5346]">
-              별점·사진 리뷰를 쓰고 네이버 톡톡으로 스크린샷을 보내주세요.
+            <p className="mt-1 text-[12.5px] leading-relaxed text-[#3A6B57]">
+              포토리뷰를 쓰고 캡처본을 등록하면 참여 완료!
             </p>
           )}
         </div>
         <span className="flex shrink-0 items-center gap-1.5">
-          <span className="whitespace-nowrap rounded-full bg-[#B5614F] px-2.5 py-1 text-[11px] font-bold text-white">
+          <span className="whitespace-nowrap rounded-full bg-[#2E7D5B] px-2.5 py-1 text-[11px] font-bold text-white">
             총 {formatKRW(REVIEW_EVENT_TOTAL)} 혜택
           </span>
           <svg
@@ -1933,7 +1946,7 @@ function ReviewEventNotice() {
             viewBox="0 0 14 14"
             fill="none"
             aria-hidden
-            className={`text-[#B5614F] transition-transform ${expanded ? 'rotate-180' : ''}`}
+            className={`text-[#2E7D5B] transition-transform ${expanded ? 'rotate-180' : ''}`}
           >
             <path
               d="M3 5l4 4 4-4"
@@ -1950,30 +1963,151 @@ function ReviewEventNotice() {
       <>
       {/* 혜택 칩 */}
       <div className="flex flex-wrap gap-1.5">
-        <span className="rounded-full bg-white/80 px-2.5 py-1 text-[11.5px] font-medium text-[#9A3D28] ring-1 ring-[#E3AE9E]/60">
+        <span className="rounded-full bg-white/80 px-2.5 py-1 text-[11.5px] font-medium text-[#245C48] ring-1 ring-[#7FB8A6]/60">
           영구소장 무료 · {formatKRW(ARCHIVE_PRICE)} 상당
         </span>
-        <span className="rounded-full bg-white/80 px-2.5 py-1 text-[11.5px] font-medium text-[#9A3D28] ring-1 ring-[#E3AE9E]/60">
+        <span className="rounded-full bg-white/80 px-2.5 py-1 text-[11.5px] font-medium text-[#245C48] ring-1 ring-[#7FB8A6]/60">
           네이버포인트 {REVIEW_EVENT_NAVER_POINT.toLocaleString('ko-KR')}P
         </span>
       </div>
 
-      {/* 사진 필수 안내 — 한 줄로 간결하게 강조 */}
-      <p className="text-[11.5px] leading-relaxed text-[#8A5346]">
-        <strong className="text-[#9A3D28]">사진 첨부 필수</strong> · 첨부가 안 되면
-        텍스트만 먼저 저장한 뒤 리뷰 수정에서 사진을 추가해 주세요. (포인트는 네이버
-        별도 적립)
+      <p className="text-[11.5px] leading-relaxed text-[#3A6B57]">
+        포토리뷰를 작성한 뒤 <strong className="text-[#245C48]">리뷰 내용과 아이디가
+        보이게 캡처</strong>해 등록해주세요. 확인되면 영구소장권이 적립됩니다. (네이버
+        포인트는 별도 적립)
       </p>
 
-      <a
-        href="https://talk.naver.com/ct/wiq8nf0"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex w-fit items-center gap-1 rounded-md bg-[#03C75A] px-3.5 py-2 text-[12.5px] font-medium text-white transition-opacity hover:opacity-90"
+      <button
+        type="button"
+        onClick={onParticipate}
+        className="inline-flex w-fit items-center gap-1 rounded-md bg-[#2E7D5B] px-3.5 py-2 text-[12.5px] font-medium text-white transition-opacity hover:opacity-90"
       >
-        네이버 톡톡으로 리뷰 보내기 →
-      </a>
+        참여하기 →
+      </button>
       </>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 포토리뷰 이벤트 참여 — 동의 체크 후 리뷰+아이디가 보이는 캡처본을 업로드해 제출.
+ * 제출하면 '입력완료', 관리자 확인 시 '확인완료'(영구소장권 적립) 상태로 표시.
+ */
+function ReviewEventSubmit({ initial }: { initial: ReviewEventState | null }) {
+  const [state, setState] = useState<ReviewEventState | null>(initial);
+  const [consent, setConsent] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const confirmed = state?.status === 'confirmed';
+  const submitted = state?.status === 'submitted';
+
+  const submit = async () => {
+    setErr(null);
+    if (!consent) {
+      setErr('사례 소개 동의에 체크해주세요.');
+      return;
+    }
+    if (!file) {
+      setErr('리뷰 캡처 이미지를 첨부해주세요.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append('consent', 'true');
+      fd.append('file', file);
+      const res = await submitReviewEvent(fd);
+      if (res.ok) {
+        setState({ imageUrl: res.status.imageUrl, status: res.status.status });
+        setFile(null);
+      } else {
+        setErr(res.error);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-[#7FB8A6]/50 bg-[#E7F1EC] p-4">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-[#245C48]">
+          <span aria-hidden>📸</span> 포토리뷰 이벤트
+        </h3>
+        <span className="whitespace-nowrap rounded-full bg-[#2E7D5B] px-2.5 py-1 text-[11px] font-bold text-white">
+          총 {formatKRW(REVIEW_EVENT_TOTAL)} 혜택
+        </span>
+      </div>
+
+      {/* 현재 상태 */}
+      {state && (
+        <div className="flex items-center gap-3 rounded-lg bg-white/70 p-2.5 ring-1 ring-[#7FB8A6]/50">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={state.imageUrl}
+            alt="제출한 리뷰 캡처"
+            className="h-14 w-14 flex-shrink-0 rounded object-cover ring-1 ring-black/5"
+          />
+          <div className="min-w-0">
+            <p className="text-[12.5px] font-semibold text-[#245C48]">
+              {confirmed ? '✅ 확인완료' : '🕓 입력완료'}
+            </p>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-[#3A6B57]">
+              {confirmed
+                ? '확인되어 영구소장권이 적립되었어요. 감사합니다!'
+                : '제출이 접수되었어요. 관리자 확인 후 영구소장권이 적립됩니다.'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!confirmed && (
+        <>
+          <p className="text-[11.5px] leading-relaxed text-[#3A6B57]">
+            포토리뷰 작성 후 <strong className="text-[#245C48]">리뷰 내용과 아이디가
+            보이게 캡처</strong>한 이미지를 첨부해주세요. 확인되면 영구소장권이 적립됩니다.
+          </p>
+
+          <label className="flex items-start gap-2 text-[11.5px] leading-relaxed text-[#3A6B57]">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-[#2E7D5B]"
+            />
+            <span>
+              내 <strong className="text-[#245C48]">리뷰와 알림장 화면이 사례로
+              소개</strong>될 수 있음에 동의합니다. (참여 필수)
+            </span>
+          </label>
+
+          <div className="flex flex-col gap-2">
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              disabled={!consent || busy}
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              className="block w-full text-[11.5px] text-[#3A6B57] file:mr-3 file:rounded-md file:border-0 file:bg-[#2E7D5B] file:px-3 file:py-1.5 file:text-[11.5px] file:font-medium file:text-white disabled:opacity-50"
+            />
+            {!consent && (
+              <p className="text-[10.5px] text-[#3A6B57]/80">
+                동의에 체크하면 사진을 첨부할 수 있어요.
+              </p>
+            )}
+            {err && <p className="text-[11px] text-red-600">{err}</p>}
+            <button
+              type="button"
+              onClick={submit}
+              disabled={busy || !consent || !file}
+              className="inline-flex w-fit items-center gap-1 rounded-md bg-[#2E7D5B] px-3.5 py-2 text-[12.5px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {busy ? '제출 중…' : submitted ? '다시 제출' : '리뷰 등록'}
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
@@ -1987,11 +2121,20 @@ function ReviewEventNotice() {
  * [주문] 탭으로 이동. 사용자가 결제 후 마이페이지 → 주문 탭에서 한 화면에 등록
  * 액션 + 내역 확인 가능.
  */
-function OrdersTab({ orders }: { orders: MyPageOrder[] }) {
+function OrdersTab({
+  orders,
+  reviewEvent,
+}: {
+  orders: MyPageOrder[];
+  reviewEvent: ReviewEventState | null;
+}) {
   const total = useMemo(() => orders.reduce((acc, o) => acc + (o.amount ?? 0), 0), [orders]);
 
   return (
     <section className="flex flex-col gap-4">
+      {/* 포토리뷰 이벤트 — 상단에 배치. 동의 + 캡처본 업로드로 참여. */}
+      <ReviewEventSubmit initial={reviewEvent} />
+
       {/* 주문 등록 액션 — 결혼알림장 탭에서 이동.
           로그인 자체가 네이버 OAuth 단독이라 모든 사용자는 이미 네이버 계정과
           연동돼 있다 → 별도 "네이버 연결" 카드는 중복이라 제거. 크레딧은 아래

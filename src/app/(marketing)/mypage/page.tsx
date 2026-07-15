@@ -27,6 +27,7 @@ export default async function MyPage() {
     { data: aiVideo },
     { data: familyPack },
     { data: snapCreditsBalance },
+    { data: reviewEventRow },
   ] = await Promise.all([
     // showcase_consent 는 자동생성 DB 타입(063 미반영)에 아직 없어 any 캐스팅.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,6 +53,13 @@ export default async function MyPage() {
     supabase.rpc('user_has_package', { uid: user.id, pkg_code: 'ai_video' }),
     supabase.rpc('user_has_package', { uid: user.id, pkg_code: 'family_pack' }),
     supabase.rpc('snap_credits_balance', { uid: user.id }),
+    // review_event_submissions 는 자동생성 DB 타입(064 미반영)에 아직 없어 any 캐스팅.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from('review_event_submissions')
+      .select('image_url, status')
+      .eq('user_id', user.id)
+      .maybeSingle(),
   ]);
 
   const pubsByInvitation = new Map<string, MyPagePublication[]>();
@@ -151,6 +159,17 @@ export default async function MyPage() {
         aiVideo: !!aiVideo,
         familyPack: !!familyPack,
       }}
+      reviewEvent={
+        reviewEventRow
+          ? {
+              imageUrl: (reviewEventRow as { image_url: string }).image_url,
+              status:
+                (reviewEventRow as { status: string }).status === 'confirmed'
+                  ? 'confirmed'
+                  : 'submitted',
+            }
+          : null
+      }
     />
   );
 }
