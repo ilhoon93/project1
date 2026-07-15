@@ -87,6 +87,8 @@ export interface MyPageInvitation {
   layout: string | null;
   /** 디자인 색상 테마 키 (cream / sky / lavender 등). */
   colorTheme: string | null;
+  /** 홈페이지 익명 노출 동의 여부(옵트인). */
+  showcaseConsent: boolean;
   publications: MyPagePublication[];
 }
 
@@ -1364,6 +1366,26 @@ function SavedRow({
 }) {
   // 이미지 알림장(관리자 테스트) 모달 표시 여부. 안내는 모달 내부에서 처리.
   const [showImageCard, setShowImageCard] = useState(false);
+  // 홈페이지 익명 노출 동의 토글(옵트인) — 낙관적 업데이트.
+  const [consent, setConsent] = useState(inv.showcaseConsent);
+  const [consentBusy, setConsentBusy] = useState(false);
+  const toggleConsent = async () => {
+    const next = !consent;
+    setConsent(next);
+    setConsentBusy(true);
+    try {
+      const res = await fetch(`/api/invitations/${inv.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ showcaseConsent: next }),
+      });
+      if (!res.ok) setConsent(!next); // 실패 시 롤백
+    } catch {
+      setConsent(!next);
+    } finally {
+      setConsentBusy(false);
+    }
+  };
   // 영구소장된 publication 은 expires_at 무시 (소장용 URL 영구).
   const activePublications = inv.publications.filter(
     (p) => !p.revoked_at && (p.archived || new Date(p.expires_at) > new Date()),
@@ -1493,6 +1515,39 @@ function SavedRow({
           삭제
         </Button>
       </div>
+
+      {/* 홈페이지 익명 노출 동의 — 발행 이력이 있는 알림장만. 얼굴은 스티커로 가리고
+          이름은 이니셜로 익명화해 홈 디자인 갤러리에 노출하는 데 동의. */}
+      {hasEverPublished && (
+        <div className="flex items-start justify-between gap-3 rounded-md bg-[#FBEEE9] px-3 py-2 ring-1 ring-[#E3AE9E]/50">
+          <div className="min-w-0">
+            <p className="text-[12px] font-medium text-[#9A3D28]">
+              홈페이지 디자인 갤러리에 익명 노출 동의
+            </p>
+            <p className="mt-0.5 text-[10.5px] leading-relaxed text-[#8A5346]">
+              동의 시 얼굴은 스티커로 가리고 이름은 이니셜로 익명화해 노출됩니다. 언제든
+              끌 수 있어요.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={consent}
+            aria-label="홈페이지 익명 노출 동의"
+            disabled={consentBusy}
+            onClick={toggleConsent}
+            className={`mt-0.5 inline-flex h-6 w-11 shrink-0 items-center overflow-hidden rounded-full p-0.5 transition-colors disabled:opacity-50 ${
+              consent ? 'bg-[#B5614F]' : 'bg-[#D9CCB8]'
+            }`}
+          >
+            <span
+              className={`block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                consent ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+      )}
 
       {showImageCard && (
         <ImageCardGenerator

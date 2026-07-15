@@ -450,7 +450,7 @@ export const ParentSchema = z.object({
 // 기본정보 슬라이드의 4가지 하위 영역 — 사용자가 순서를 바꿀 수 있게 했다.
 // 저장값에 알 수 없는 키가 들어 있거나 일부 키가 빠져 있어도 reconcileBasicSubOrder
 // 에서 안전하게 보정한다.
-export const BASIC_SUB_KEYS = ['family', 'date', 'greeting', 'quote'] as const;
+export const BASIC_SUB_KEYS = ['family', 'date', 'together', 'greeting', 'quote'] as const;
 export type BasicSubKey = (typeof BASIC_SUB_KEYS)[number];
 
 /** 결혼식 날짜 표시 형식 4종. ISO 저장(YYYY-MM-DD)은 그대로, 렌더 시점에 적용. */
@@ -490,6 +490,18 @@ export const BasicInfoSectionSchema = z
     showDate: z.boolean().default(true),
     /** 출력 형식 — 슬라이드 렌더 시 적용. 저장은 ISO 그대로 유지. */
     dateFormat: z.enum(DATE_FORMATS).default('YYYY.MM.DD'),
+    // 함께한 날 — 처음 만난 날(ISO)부터 오늘까지의 기간을 년/월/일로 표기.
+    together: z
+      .object({
+        enabled: z.boolean().default(false),
+        // 처음 만난 날(YYYY-MM-DD). 비면 미노출.
+        sinceDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .nullable()
+          .default(null),
+      })
+      .default({ enabled: false, sinceDate: null }),
     // 하위 영역 표시 순서. 저장 시 일부가 빠져도 reconcileBasicSubOrder 가 채워줌.
     subOrder: z.array(z.string()).default([...BASIC_SUB_KEYS]),
   })
@@ -506,6 +518,7 @@ export const BasicInfoSectionSchema = z
     },
     showDate: true,
     dateFormat: 'YYYY.MM.DD',
+    together: { enabled: false, sinceDate: null },
     subOrder: [...BASIC_SUB_KEYS],
   });
 
@@ -755,6 +768,8 @@ export const UpdateInvitationSchema = z.object({
     .nullable()
     .optional(),
   content: InvitationContentSchema.optional(),
+  /** 홈페이지 익명 노출 동의(옵트인) — 마이페이지 토글. */
+  showcaseConsent: z.boolean().optional(),
 });
 
 export type CreateInvitationInput = z.infer<typeof CreateInvitationSchema>;

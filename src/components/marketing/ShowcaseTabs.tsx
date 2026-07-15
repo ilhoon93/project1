@@ -9,31 +9,31 @@ import { OwnerUrlModal } from './OwnerUrlButton';
 type MockTabId =
   | 'design'
   | 'gallery'
-  | 'quiz'
-  | 'vote'
+  | 'quizvote'
   | 'guestbook'
-  | 'vow';
+  | 'vow'
+  | 'profileImage';
 /** mock 탭 + 모달만 띄우는 'ownerUrl' 통합 — 같은 list UI 에서 한 줄로 나열. */
 type TabId = MockTabId | 'ownerUrl';
 
 const TABS: Array<{ id: TabId; name: string; tag: string }> = [
   { id: 'design', name: '움직이는 디자인', tag: '배경효과·텍스트 애니메이션·폭죽효과' },
   { id: 'gallery', name: '좋아요 가능한 갤러리', tag: '사진마다 하객이 ♥ 좋아요' },
-  { id: 'quiz', name: '하객 참여 퀴즈', tag: '객관식 퀴즈로 함께 노는 페이지' },
-  { id: 'vote', name: 'A/B 투표', tag: '신혼여행지·드레스 색깔 투표' },
+  { id: 'quizvote', name: '참여형 퀴즈·투표', tag: '객관식 퀴즈 + A/B 투표로 함께 노는 페이지' },
   { id: 'guestbook', name: '소장용 방명록', tag: '축하 메시지 + 손글씨 서명' },
   { id: 'vow', name: '혼인서약서 PDF', tag: '발행 후 마이페이지에서 소장' },
   { id: 'ownerUrl', name: '소장용 URL', tag: '신랑·신부 전용 URL 평생 소장' },
+  { id: 'profileImage', name: '프로필용 알림장 이미지', tag: '메인 디자인을 인스타·카카오 프로필 이미지로' },
 ];
 
 /** 자동 순환 대상 — 'ownerUrl' 은 모달이라 제외. */
 const MOCK_TAB_IDS: MockTabId[] = [
   'design',
   'gallery',
-  'quiz',
-  'vote',
+  'quizvote',
   'guestbook',
   'vow',
+  'profileImage',
 ];
 
 /**
@@ -77,10 +77,10 @@ export function ShowcaseTabs({
           <PhoneFrame>
             <MockDesign active={active === 'design'} samples={designSamples} />
             <MockGallery active={active === 'gallery'} />
-            <MockQuiz active={active === 'quiz'} />
-            <MockVote active={active === 'vote'} />
+            <MockQuizVote active={active === 'quizvote'} />
             <MockGuestbook active={active === 'guestbook'} />
             <MockVowPdf active={active === 'vow'} />
+            <MockProfileImage active={active === 'profileImage'} samples={designSamples} />
           </PhoneFrame>
         </div>
 
@@ -164,22 +164,26 @@ function TabIcon({ id, active }: { id: TabId; active: boolean }) {
           />
         </svg>
       )}
-      {id === 'quiz' && (
+      {id === 'quizvote' && (
+        // 물음표(퀴즈) + 막대(투표) 결합 — 참여형 컨텐츠.
         <svg width="18" height="22" viewBox="0 0 18 22" fill="none">
-          <circle cx="9" cy="9" r="7" stroke={fill} strokeWidth="1.2" />
           <path
-            d="M9 12v-1c0-1 .5-1.5 1.5-2s1.5-1 1.5-2A3 3 0 1 0 6 7"
+            d="M4 7a2.6 2.6 0 1 1 4 2.2c-.9.6-1.3 1-1.3 2"
             stroke={fill}
             strokeWidth="1.2"
             strokeLinecap="round"
           />
-          <circle cx="9" cy="15" r="0.7" fill={fill} />
+          <circle cx="6.6" cy="14" r="0.7" fill={fill} />
+          <rect x="11" y="4" width="3.4" height="14" rx="1" stroke={fill} strokeWidth="1.2" />
+          <line x1="12.7" y1="9" x2="12.7" y2="18" stroke={fill} strokeWidth="1.2" />
         </svg>
       )}
-      {id === 'vote' && (
+      {id === 'profileImage' && (
+        // 카메라(프로필용 이미지) 아이콘.
         <svg width="18" height="22" viewBox="0 0 18 22" fill="none">
-          <rect x="2" y="3" width="6" height="14" rx="1" stroke={fill} strokeWidth="1.2" />
-          <rect x="10" y="7" width="6" height="10" rx="1" stroke={fill} strokeWidth="1.2" />
+          <rect x="2" y="6" width="14" height="11" rx="2" stroke={fill} strokeWidth="1.2" />
+          <path d="M6.5 6l1-1.5h3l1 1.5" stroke={fill} strokeWidth="1.2" strokeLinejoin="round" />
+          <circle cx="9" cy="11.5" r="3" stroke={fill} strokeWidth="1.2" />
         </svg>
       )}
       {id === 'guestbook' && (
@@ -251,6 +255,40 @@ function MockDesign({ active, samples }: { active: boolean; samples: SampleDesig
   );
 }
 
+/**
+ * 프로필용 알림장 이미지 mock — 메인 표지 디자인을 그대로 세로 이미지로 보여주고,
+ * 인스타/카카오 프로필에 올리는 용도임을 하단 pill 로 안내한다.
+ */
+function MockProfileImage({
+  active,
+  samples,
+}: {
+  active: boolean;
+  samples: SampleDesign[];
+}) {
+  const cur = samples[0];
+  return (
+    <div
+      className={`absolute inset-0 transition-opacity duration-500 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+    >
+      {cur && (
+        <div className="absolute inset-0">
+          <InvitationPreview design={cur} cover />
+        </div>
+      )}
+      {/* 하단 그라데이션 + 안내 pill */}
+      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-1.5 bg-gradient-to-t from-black/55 via-black/25 to-transparent px-3 pb-3.5 pt-10 text-center">
+        <span className="inline-flex items-center gap-1 rounded-full bg-white/92 px-2.5 py-1 text-[9.5px] font-medium text-[var(--wd-ink)] shadow-sm">
+          📷 인스타·카카오 프로필용 · 세로 9:16
+        </span>
+        <span className="text-[9px] leading-tight text-white/90">
+          발행하면 메인 디자인을 이미지 한 장으로 저장
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function MockGallery({ active }: { active: boolean }) {
   // 사진 타일 2×2 — 각 타일에 ♥ 좋아요 배지. 한 장은 '좋아요 누른' 상태(코랄 채움).
   const tiles = [
@@ -288,54 +326,57 @@ function MockGallery({ active }: { active: boolean }) {
   );
 }
 
-function MockQuiz({ active }: { active: boolean }) {
+/**
+ * 퀴즈 + 투표를 한 화면에 위·아래로 나눠 보여주는 통합 mock. 위쪽은 객관식 퀴즈,
+ * 아래쪽은 A/B 투표 — 두 참여형 컨텐츠를 하나의 탭에서 함께 소개한다.
+ */
+function MockQuizVote({ active }: { active: boolean }) {
   return (
     <div
-      className={`absolute inset-0 flex flex-col justify-center bg-[var(--wd-paper)] px-5 transition-opacity duration-500 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+      className={`absolute inset-0 flex flex-col gap-3 bg-[var(--wd-paper)] px-4 pb-4 pt-9 transition-opacity duration-500 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
     >
-      <div className="font-italiana text-[10px] tracking-[0.3em] text-[var(--wd-coral)]">
-        QUIZ · 01 / 02
+      {/* 상단 — 퀴즈 */}
+      <div className="flex flex-1 flex-col justify-center">
+        <div className="font-italiana text-[10px] tracking-[0.3em] text-[var(--wd-coral)]">
+          QUIZ
+        </div>
+        <div className="mt-1.5 text-[13px] font-medium leading-snug text-[var(--wd-ink)]">
+          두 사람이 처음 만난 곳은?
+        </div>
+        <div className="mt-2.5 flex flex-col gap-1.5">
+          {['대학교 동아리', '회사 워크샵', '소개팅 앱', '친구 결혼식'].map((label, i) => (
+            <div
+              key={i}
+              className={`flex items-center justify-between rounded-lg border px-2.5 py-1.5 text-[11px] ${
+                i === 1
+                  ? 'border-[var(--wd-coral)] bg-[var(--wd-cream)] text-[var(--wd-ink)]'
+                  : 'border-[var(--wd-line)] text-[var(--wd-mute)]'
+              }`}
+            >
+              <span>{label}</span>
+              {i === 1 && (
+                <span className="text-[10px] font-medium text-[var(--wd-coral)]">✓</span>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="mt-3 text-[15px] font-medium leading-snug text-[var(--wd-ink)]">
-        두 사람이 처음 만난 곳은?
-      </div>
-      <div className="mt-5 flex flex-col gap-2">
-        {['대학교 동아리', '회사 워크샵', '소개팅 앱', '친구 결혼식'].map((label, i) => (
-          <div
-            key={i}
-            className={`flex items-center justify-between rounded-xl border px-3 py-2.5 text-[12px] ${
-              i === 1
-                ? 'border-[var(--wd-coral)] bg-[var(--wd-cream)] text-[var(--wd-ink)]'
-                : 'border-[var(--wd-line)] text-[var(--wd-mute)]'
-            }`}
-          >
-            <span>{label}</span>
-            {i === 1 && (
-              <span className="text-[10px] font-medium text-[var(--wd-coral)]">✓</span>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
-function MockVote({ active }: { active: boolean }) {
-  const A = 62;
-  const B = 38;
-  return (
-    <div
-      className={`absolute inset-0 flex flex-col justify-center bg-[var(--wd-paper)] px-5 transition-opacity duration-500 ${active ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
-    >
-      <div className="font-italiana text-[10px] tracking-[0.3em] text-[var(--wd-coral)]">
-        A / B VOTE
-      </div>
-      <div className="mt-3 text-[15px] font-medium leading-snug text-[var(--wd-ink)]">
-        신혼여행은 어디로?
-      </div>
-      <div className="mt-5 flex flex-col gap-3">
-        <VoteRow label="A · 발리" pct={A} highlight />
-        <VoteRow label="B · 제주" pct={B} />
+      {/* 구분선 */}
+      <div className="h-px w-full bg-[var(--wd-line)]" />
+
+      {/* 하단 — 투표 */}
+      <div className="flex flex-1 flex-col justify-center">
+        <div className="font-italiana text-[10px] tracking-[0.3em] text-[var(--wd-coral)]">
+          A / B VOTE
+        </div>
+        <div className="mt-1.5 text-[13px] font-medium leading-snug text-[var(--wd-ink)]">
+          신혼여행은 어디로?
+        </div>
+        <div className="mt-2.5 flex flex-col gap-2.5">
+          <VoteRow label="A · 발리" pct={62} highlight />
+          <VoteRow label="B · 제주" pct={38} />
+        </div>
       </div>
     </div>
   );

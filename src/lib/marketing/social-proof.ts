@@ -11,6 +11,10 @@
 
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import {
+  InvitationContentSchema,
+  type InvitationContent,
+} from '@/types/invitation';
 
 export interface SocialProofReview {
   id: string;
@@ -25,6 +29,24 @@ export interface SocialProofReview {
 export interface SocialProofDesign {
   id: string;
   imageUrl: string;
+}
+
+/**
+ * showcase 커버 — 실제 고객 알림장의 메인 디자인을 config 렌더로 그대로 보여주기
+ * 위한 스냅샷. content.main.heroImage 에는 얼굴 위 스티커를 합성한 이미지 URL 이
+ * 들어가고, 이름은 익명화(이니셜 등)된 상태로 저장된다. InvitationPreview 가
+ * 그대로 소비할 수 있는 SampleDesign 형태.
+ */
+export interface ShowcaseCover {
+  id: string;
+  /** 원본 알림장 id — 중복 등록 방지·재편집 매칭용. */
+  invitationId: string;
+  groomName: string;
+  brideName: string;
+  weddingDate: string;
+  /** 홈 노출 여부(관리자 토글). false 면 저장은 유지하되 홈에서 숨김. */
+  hidden: boolean;
+  content: InvitationContent;
 }
 
 export interface SocialProofConfig {
@@ -42,8 +64,10 @@ export interface SocialProofConfig {
   purchaseStatCaption: string;
   /** % 타일 하단 라벨. */
   purchaseStatLabel: string;
-  /** 디자인 사진 마퀴(알림장 메인 디자인). */
+  /** 디자인 사진 마퀴(알림장 메인 디자인) — 정적 업로드 이미지(레거시). */
   designs: SocialProofDesign[];
+  /** 디자인 사진 마퀴 — config 렌더 커버 스냅샷(스티커 익명화된 실제 고객 디자인). */
+  covers: ShowcaseCover[];
   /** 리뷰 텍스트 마퀴(별점 + 문구). */
   reviews: SocialProofReview[];
 }
@@ -60,8 +84,19 @@ export const DEFAULT_SOCIAL_PROOF: SocialProofConfig = {
   purchaseStatCaption: '만들어본 고객의 {pct}%가 2주 내로 구매를 결정했어요.',
   purchaseStatLabel: '2주 내 구매 결정',
   designs: [],
+  covers: [],
   reviews: [],
 };
+
+const ShowcaseCoverSchema = z.object({
+  id: z.string(),
+  invitationId: z.string().default(''),
+  groomName: z.string().default(''),
+  brideName: z.string().default(''),
+  weddingDate: z.string().default(''),
+  hidden: z.boolean().default(false),
+  content: InvitationContentSchema,
+});
 
 const ReviewSchema = z.object({
   id: z.string(),
@@ -88,6 +123,18 @@ const ConfigSchema = z.object({
   purchaseStatCaption: z.string().default(DEFAULT_SOCIAL_PROOF.purchaseStatCaption),
   purchaseStatLabel: z.string().default(DEFAULT_SOCIAL_PROOF.purchaseStatLabel),
   designs: z.array(DesignSchema).default([]),
+  // 개별 커버 파싱 실패(스키마 변화 등) 시 그 커버만 버리고 나머지는 유지.
+  covers: z
+    .array(z.unknown())
+    .default([])
+    .transform((arr) => {
+      const out: ShowcaseCover[] = [];
+      for (const c of arr) {
+        const r = ShowcaseCoverSchema.safeParse(c);
+        if (r.success) out.push(r.data);
+      }
+      return out;
+    }),
   reviews: z.array(ReviewSchema).default([]),
 });
 
@@ -118,6 +165,7 @@ export async function getSocialProof(): Promise<SocialProofConfig> {
       purchase_stat_caption?: string;
       purchase_stat_label?: string;
       designs?: unknown;
+      covers?: unknown;
       reviews?: unknown;
     };
     const parsed = ConfigSchema.safeParse({
@@ -135,6 +183,7 @@ export async function getSocialProof(): Promise<SocialProofConfig> {
       purchaseStatLabel:
         row.purchase_stat_label ?? DEFAULT_SOCIAL_PROOF.purchaseStatLabel,
       designs: row.designs ?? [],
+      covers: row.covers ?? [],
       reviews: row.reviews ?? [],
     });
     if (!parsed.success) return DEFAULT_SOCIAL_PROOF;
@@ -164,6 +213,7 @@ export async function saveSocialProof(
     purchase_stat_caption: parsed.data.purchaseStatCaption,
     purchase_stat_label: parsed.data.purchaseStatLabel,
     designs: parsed.data.designs,
+    covers: parsed.data.covers,
     reviews: parsed.data.reviews,
   };
   // marketing_social_proof 는 자동생성 DB 타입(051 미반영)에 아직 없어 캐스팅.

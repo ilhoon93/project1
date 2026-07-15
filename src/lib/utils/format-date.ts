@@ -31,6 +31,39 @@ export function formatWeddingDate(
 }
 
 /**
+ * 처음 만난 날(ISO)부터 오늘까지의 기간을 "N년 M개월 D일" 로 반환.
+ * 오늘이 첫 날이거나 미래 날짜면 "오늘부터", 잘못된 날짜면 null.
+ *
+ * 슬라이드 렌더와 에디터 미리보기가 공유한다.
+ */
+export function elapsedYMD(sinceISO: string | null | undefined): string | null {
+  if (!sinceISO) return null;
+  const since = new Date(`${sinceISO}T00:00:00`);
+  if (Number.isNaN(since.getTime())) return null;
+  const today = new Date();
+  const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  if (since >= t) return '오늘부터';
+
+  let y = t.getFullYear() - since.getFullYear();
+  let m = t.getMonth() - since.getMonth();
+  let d = t.getDate() - since.getDate();
+  if (d < 0) {
+    m -= 1;
+    // 이번 달 0일 = 지난 달 마지막 날 = 지난 달 일수.
+    d += new Date(t.getFullYear(), t.getMonth(), 0).getDate();
+  }
+  if (m < 0) {
+    y -= 1;
+    m += 12;
+  }
+  const parts: string[] = [];
+  if (y > 0) parts.push(`${y}년`);
+  if (m > 0) parts.push(`${m}개월`);
+  if (d > 0) parts.push(`${d}일`);
+  return parts.length > 0 ? parts.join(' ') : '오늘부터';
+}
+
+/**
  * 사용자가 8자리 숫자(20260523) 만 입력해도 ISO(2026-05-23) 로 저장하기 위한
  * 정규화. 4자리 연도 / 2자리 월·일을 분리. 잘못된 입력이면 null.
  */

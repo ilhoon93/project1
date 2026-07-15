@@ -255,21 +255,7 @@ function DesignAndValues({
             <KeyChip>좋아요 가능한 갤러리</KeyChip>
             <KeyChip>손글씨를 담은 방명록</KeyChip>
             <KeyChip>신랑 신부를 위한 소장용 페이지</KeyChip>
-            <KeyChip>📷 프로필용 알림장 이미지</KeyChip>
           </ul>
-        </FadeUp>
-
-        {/* 알림장 이미지 기능 소개 — 발행 후 메인 디자인을 세로 이미지로 저장. */}
-        <FadeUp scroll delay={0.26}>
-          <div className="mb-7 flex items-start gap-2.5 rounded-xl border border-[var(--wd-line)] bg-[var(--wd-paper)] px-4 py-3">
-            <span aria-hidden className="text-[18px] leading-none">📷</span>
-            <p className="break-keep text-[13px] leading-[1.7] text-[var(--wd-mute)]">
-              발행하면 우리 알림장의{' '}
-              <strong className="font-medium text-[var(--wd-ink)]">메인 디자인을
-              세로 이미지 한 장</strong>으로 저장할 수 있어요. 인스타그램 스토리나
-              카카오톡 프로필에 그대로 올려 소식을 전해보세요.
-            </p>
-          </div>
         </FadeUp>
 
         <ShowcaseTabs designs={designs} ownerUrlExample={ownerUrlExample} />
