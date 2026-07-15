@@ -28,7 +28,8 @@ export default async function SocialProofAdminPage() {
       <header className="mb-4">
         <h1 className="text-xl font-semibold text-[#3D2E1F]">사회적 증거 설정</h1>
         <p className="mt-1 text-xs leading-relaxed text-[#8B7355]">
-          메인 화면 알림장 소개 섹션 하단에 넣을 리뷰 이미지와 커플 수 등을 세팅합니다.
+          메인 화면 알림장 소개 섹션 하단 사회적 증거를 세팅합니다. 디자인 사진과 리뷰
+          텍스트는 각각 별도 마퀴로 흐릅니다.
           <span className="ml-2">로그인 계정: {ctx.email}</span>
         </p>
         <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-[11px] leading-relaxed text-amber-800">

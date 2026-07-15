@@ -5,6 +5,7 @@ import { nanoid } from '@/lib/utils/nanoid';
 import type {
   SocialProofConfig,
   SocialProofReview,
+  SocialProofDesign,
 } from '@/lib/marketing/social-proof';
 import { saveSocialProofAction, uploadReviewImage } from './actions';
 
@@ -49,6 +50,25 @@ export function SocialProofEditor({
     const list = [...config.reviews];
     [list[index], list[j]] = [list[j], list[index]];
     patch({ reviews: list });
+  };
+
+  const addDesign = (design: SocialProofDesign) =>
+    patch({ designs: [...config.designs, design] });
+
+  const updateDesign = (id: string, partial: Partial<SocialProofDesign>) =>
+    patch({
+      designs: config.designs.map((d) => (d.id === id ? { ...d, ...partial } : d)),
+    });
+
+  const removeDesign = (id: string) =>
+    patch({ designs: config.designs.filter((d) => d.id !== id) });
+
+  const moveDesign = (index: number, dir: -1 | 1) => {
+    const j = index + dir;
+    if (j < 0 || j >= config.designs.length) return;
+    const list = [...config.designs];
+    [list[index], list[j]] = [list[j], list[index]];
+    patch({ designs: list });
   };
 
   return (
@@ -184,17 +204,138 @@ export function SocialProofEditor({
         </div>
       </section>
 
-      {/* ── 리뷰 이미지 ─────────────────────────────── */}
+      {/* ── 구매 결정 전환율 문구 ─────────────────────────── */}
       <section className="flex flex-col gap-3 rounded-md border border-[#E8DCC9] bg-white p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-[13px] font-semibold text-[#3D2E1F]">
+              구매 결정 전환율 문구
+            </h2>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-[#8B7355]">
+              &lsquo;만들어본 고객의 <strong className="text-[#3D2E1F]">N%</strong>가 2주
+              내로 구매를 결정했어요&rsquo; — N% 는 통계의 제작→결제 전환율을 자동으로
+              읽어옵니다.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={config.purchaseStatEnabled}
+            aria-label="구매 전환율 문구 노출 여부"
+            onClick={() =>
+              patch({ purchaseStatEnabled: !config.purchaseStatEnabled })
+            }
+            className={`inline-flex h-6 w-11 shrink-0 items-center overflow-hidden rounded-full p-0.5 transition-colors ${
+              config.purchaseStatEnabled ? 'bg-[#8B7355]' : 'bg-[#D9CCB8]'
+            }`}
+          >
+            <span
+              className={`block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                config.purchaseStatEnabled ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+        <label className="flex flex-col gap-1">
+          <span className={labelCls}>문구 (자동 % 자리는 {'{pct}'})</span>
+          <input
+            className={inputCls}
+            value={config.purchaseStatCaption}
+            onChange={(e) => patch({ purchaseStatCaption: e.target.value })}
+            placeholder="만들어본 고객의 {pct}%가 2주 내로 구매를 결정했어요."
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className={labelCls}>% 타일 라벨</span>
+          <input
+            className={`${inputCls} sm:w-64`}
+            value={config.purchaseStatLabel}
+            onChange={(e) => patch({ purchaseStatLabel: e.target.value })}
+            placeholder="2주 내 구매 결정"
+          />
+        </label>
+        <p className="rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-2.5 text-[11px] leading-relaxed text-[#8B7355]">
+          미리보기:{' '}
+          <span className="font-semibold text-[#3D2E1F]">
+            {config.purchaseStatCaption.replace('{pct}', '92')}
+          </span>
+        </p>
+      </section>
+
+      {/* ── 디자인 사진 (마퀴 ①) ─────────────────────────── */}
+      <section className="flex flex-col gap-3 rounded-md border border-[#E8DCC9] bg-white p-4">
+        <div>
           <h2 className="text-[13px] font-semibold text-[#3D2E1F]">
-            리뷰 이미지 ({config.reviews.length})
+            디자인 사진 ({config.designs.length})
           </h2>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-[#8B7355]">
+            알림장 메인 디자인 이미지가 첫 번째 줄에 흐릅니다(→ 방향). 리뷰 텍스트와
+            분리된 별도 마퀴입니다.
+          </p>
+        </div>
+
+        {config.designs.length === 0 && (
+          <p className="text-[11px] text-[#8B7355]">
+            아직 등록된 디자인 사진이 없습니다. 아래에서 추가해주세요.
+          </p>
+        )}
+
+        <ul className="flex flex-wrap gap-3">
+          {config.designs.map((design, i) => (
+            <li
+              key={design.id}
+              className="flex w-[110px] flex-col gap-1.5 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-2"
+            >
+              <ReviewThumb
+                url={design.imageUrl}
+                onUploaded={(url) => updateDesign(design.id, { imageUrl: url })}
+              />
+              <div className="flex items-center justify-center gap-1.5">
+                <SmallBtn disabled={i === 0} onClick={() => moveDesign(i, -1)}>
+                  ←
+                </SmallBtn>
+                <SmallBtn
+                  disabled={i === config.designs.length - 1}
+                  onClick={() => moveDesign(i, 1)}
+                >
+                  →
+                </SmallBtn>
+                <button
+                  type="button"
+                  onClick={() => removeDesign(design.id)}
+                  className="text-[11px] text-red-600 hover:underline"
+                >
+                  삭제
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <button
+          type="button"
+          onClick={() => addDesign({ id: nanoid(10), imageUrl: '' })}
+          className="self-start rounded border border-[#8B7355] px-3 py-1.5 text-[12px] font-medium text-[#8B7355] transition-colors hover:bg-[#8B7355] hover:text-white"
+        >
+          + 디자인 사진 추가
+        </button>
+      </section>
+
+      {/* ── 리뷰 텍스트 (마퀴 ②) ─────────────────────────── */}
+      <section className="flex flex-col gap-3 rounded-md border border-[#E8DCC9] bg-white p-4">
+        <div>
+          <h2 className="text-[13px] font-semibold text-[#3D2E1F]">
+            리뷰 텍스트 ({config.reviews.length})
+          </h2>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-[#8B7355]">
+            별점 + 문구 카드가 두 번째 줄에 반대 방향(←)으로 흐릅니다. 이미지는 넣지
+            않습니다.
+          </p>
         </div>
 
         {config.reviews.length === 0 && (
           <p className="text-[11px] text-[#8B7355]">
-            아직 등록된 리뷰 이미지가 없습니다. 아래에서 추가해주세요.
+            아직 등록된 리뷰 텍스트가 없습니다. 아래에서 추가해주세요.
           </p>
         )}
 
@@ -202,50 +343,44 @@ export function SocialProofEditor({
           {config.reviews.map((review, i) => (
             <li
               key={review.id}
-              className="flex gap-3 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-3"
+              className="flex flex-col gap-2 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-3"
             >
-              <ReviewThumb
-                url={review.imageUrl}
-                onUploaded={(url) => updateReview(review.id, { imageUrl: url })}
-              />
-              <div className="flex min-w-0 flex-1 flex-col gap-2">
-                <label className="flex flex-col gap-1">
-                  <span className={labelCls}>별점</span>
-                  <RatingPicker
-                    value={review.rating}
-                    onChange={(rating) => updateReview(review.id, { rating })}
-                  />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className={labelCls}>리뷰 문구</span>
-                  <textarea
-                    className={`${inputCls} min-h-[72px] resize-y leading-relaxed`}
-                    rows={3}
-                    value={review.caption}
-                    onChange={(e) =>
-                      updateReview(review.id, { caption: e.target.value })
-                    }
-                    placeholder={'예: 하객들이 신선하다고 칭찬 많이 받았어요!\n제작도 정말 간편했습니다 :)'}
-                  />
-                </label>
-                <div className="mt-auto flex items-center gap-1.5">
-                  <SmallBtn disabled={i === 0} onClick={() => moveReview(i, -1)}>
-                    ↑
-                  </SmallBtn>
-                  <SmallBtn
-                    disabled={i === config.reviews.length - 1}
-                    onClick={() => moveReview(i, 1)}
-                  >
-                    ↓
-                  </SmallBtn>
-                  <button
-                    type="button"
-                    onClick={() => removeReview(review.id)}
-                    className="ml-1 text-[11px] text-red-600 hover:underline"
-                  >
-                    삭제
-                  </button>
-                </div>
+              <label className="flex flex-col gap-1">
+                <span className={labelCls}>별점</span>
+                <RatingPicker
+                  value={review.rating}
+                  onChange={(rating) => updateReview(review.id, { rating })}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className={labelCls}>리뷰 문구</span>
+                <textarea
+                  className={`${inputCls} min-h-[72px] resize-y leading-relaxed`}
+                  rows={3}
+                  value={review.caption}
+                  onChange={(e) =>
+                    updateReview(review.id, { caption: e.target.value })
+                  }
+                  placeholder={'예: 하객들이 신선하다고 칭찬 많이 받았어요!\n제작도 정말 간편했습니다 :)'}
+                />
+              </label>
+              <div className="flex items-center gap-1.5">
+                <SmallBtn disabled={i === 0} onClick={() => moveReview(i, -1)}>
+                  ↑
+                </SmallBtn>
+                <SmallBtn
+                  disabled={i === config.reviews.length - 1}
+                  onClick={() => moveReview(i, 1)}
+                >
+                  ↓
+                </SmallBtn>
+                <button
+                  type="button"
+                  onClick={() => removeReview(review.id)}
+                  className="ml-1 text-[11px] text-red-600 hover:underline"
+                >
+                  삭제
+                </button>
               </div>
             </li>
           ))}
@@ -258,7 +393,7 @@ export function SocialProofEditor({
           }
           className="self-start rounded border border-[#8B7355] px-3 py-1.5 text-[12px] font-medium text-[#8B7355] transition-colors hover:bg-[#8B7355] hover:text-white"
         >
-          + 리뷰 추가
+          + 리뷰 텍스트 추가
         </button>
       </section>
 
