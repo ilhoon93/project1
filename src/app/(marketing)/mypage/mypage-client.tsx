@@ -1830,48 +1830,94 @@ const REVIEW_EVENT_TOTAL = ARCHIVE_PRICE + REVIEW_EVENT_NAVER_POINT;
  * 포토리뷰 이벤트 안내 — 별점+사진 리뷰 작성 후 네이버 톡톡으로 스크린샷을 보내면
  * 영구소장 무료 + 네이버 포인트를 지급. 결혼알림장 탭 상단에 노출.
  */
+const REVIEW_EVENT_COLLAPSE_KEY = 'wd_review_event_collapsed';
+
 function ReviewEventNotice() {
+  // 접힘 상태 — localStorage 에 기억(다음 방문에도 유지). SSR 불일치 방지 위해
+  // 마운트 전에는 펼침(기본)으로 렌더.
+  const [collapsed, setCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    try {
+      setCollapsed(localStorage.getItem(REVIEW_EVENT_COLLAPSE_KEY) === '1');
+    } catch {
+      // storage 불가 — 무시
+    }
+  }, []);
+  const toggle = () => {
+    setCollapsed((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem(REVIEW_EVENT_COLLAPSE_KEY, next ? '1' : '0');
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+  const expanded = !mounted || !collapsed;
+
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-[#E4B95F]/60 bg-[#FBF3E1] p-5">
-      <div className="flex items-center gap-2">
-        <span className="text-base" aria-hidden>
-          📸
-        </span>
-        <h3 className="text-sm font-semibold text-[#8A5A12]">포토리뷰 이벤트</h3>
-      </div>
-
-      {/* 총 혜택 강조 배지 */}
-      <div className="flex items-center justify-between gap-3 rounded-lg bg-white/70 px-4 py-3 ring-1 ring-[#E4B95F]/50">
+    <div className="flex flex-col gap-3 rounded-xl border border-[#E4B95F]/50 bg-[#FBF3E1] p-4">
+      {/* 헤더 — 클릭 시 접기/펼치기. 제목 + 총 혜택 pill + chevron. */}
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={expanded}
+        className="flex items-start justify-between gap-3 text-left"
+      >
         <div>
-          <div className="text-[11px] font-medium text-[#8A6B36]">지금 참여하면</div>
-          <div className="mt-0.5 text-[15px] font-bold text-[#8A5A12]">
-            총 {formatKRW(REVIEW_EVENT_TOTAL)} 상당 혜택
-          </div>
+          <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-[#8A5A12]">
+            <span aria-hidden>📸</span> 포토리뷰 이벤트
+          </h3>
+          {expanded && (
+            <p className="mt-1 text-[12.5px] leading-relaxed text-[#6B4E1E]">
+              별점·사진 리뷰를 쓰고 네이버 톡톡으로 스크린샷을 보내주세요.
+            </p>
+          )}
         </div>
-        <ul className="text-right text-[11px] leading-relaxed text-[#6B4E1E]">
-          <li>영구소장 무료 ({formatKRW(ARCHIVE_PRICE)} 상당)</li>
-          <li>네이버 포인트 {REVIEW_EVENT_NAVER_POINT.toLocaleString('ko-KR')}P</li>
-        </ul>
-      </div>
-
-      <p className="text-[13px] leading-relaxed text-[#6B4E1E]">
-        <strong>별점 + 사진</strong>이 담긴 포토리뷰를 작성한 뒤{' '}
-        <strong>네이버 톡톡</strong>으로 리뷰 스크린샷을 보내주시면, 확인 후{' '}
-        <strong>영구소장을 무료로 지급</strong>해 드려요. (네이버 포인트 1,000P는
-        네이버에서 별도 적립)
-      </p>
-
-      {/* 사진 첨부 안내 — 눈에 띄게 강조 */}
-      <div className="flex items-start gap-2 rounded-lg border border-[#E4B95F]/50 bg-white/60 px-3 py-2.5">
-        <span aria-hidden className="text-[13px]">
-          💡
+        <span className="flex shrink-0 items-center gap-1.5">
+          <span className="whitespace-nowrap rounded-full bg-[#8A5A12] px-2.5 py-1 text-[11px] font-bold text-white">
+            총 {formatKRW(REVIEW_EVENT_TOTAL)} 혜택
+          </span>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            fill="none"
+            aria-hidden
+            className={`text-[#8A5A12] transition-transform ${expanded ? 'rotate-180' : ''}`}
+          >
+            <path
+              d="M3 5l4 4 4-4"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </span>
-        <p className="text-[12px] leading-relaxed text-[#6B4E1E]">
-          <strong className="text-[#8A5A12]">사진 첨부는 필수</strong>예요. 리뷰 작성 시
-          사진이 바로 첨부되지 않는다면, <strong>텍스트만 먼저 저장</strong>한 뒤{' '}
-          <strong>리뷰 수정</strong>에서 사진을 추가하면 됩니다.
-        </p>
+      </button>
+
+      {!expanded ? null : (
+      <>
+      {/* 혜택 칩 */}
+      <div className="flex flex-wrap gap-1.5">
+        <span className="rounded-full bg-white/70 px-2.5 py-1 text-[11.5px] font-medium text-[#8A5A12] ring-1 ring-[#E4B95F]/50">
+          영구소장 무료 · {formatKRW(ARCHIVE_PRICE)} 상당
+        </span>
+        <span className="rounded-full bg-white/70 px-2.5 py-1 text-[11.5px] font-medium text-[#8A5A12] ring-1 ring-[#E4B95F]/50">
+          네이버포인트 {REVIEW_EVENT_NAVER_POINT.toLocaleString('ko-KR')}P
+        </span>
       </div>
+
+      {/* 사진 필수 안내 — 한 줄로 간결하게 강조 */}
+      <p className="text-[11.5px] leading-relaxed text-[#8A6B36]">
+        <strong className="text-[#8A5A12]">사진 첨부 필수</strong> · 첨부가 안 되면
+        텍스트만 먼저 저장한 뒤 리뷰 수정에서 사진을 추가해 주세요. (포인트는 네이버
+        별도 적립)
+      </p>
 
       <a
         href="https://talk.naver.com/ct/wiq8nf0"
@@ -1881,6 +1927,8 @@ function ReviewEventNotice() {
       >
         네이버 톡톡으로 리뷰 보내기 →
       </a>
+      </>
+      )}
     </div>
   );
 }
