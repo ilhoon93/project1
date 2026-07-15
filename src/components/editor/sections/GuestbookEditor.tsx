@@ -2,6 +2,7 @@
 
 import { useEditorStore } from '@/stores/editor';
 import { SectionEditor, type SectionDragProps } from '../SectionEditor';
+import { SectionHeaderFields } from './SectionHeaderFields';
 import { PresetTextArea } from '../PresetTextArea';
 import { GUESTBOOK_GREETING_PRESETS } from '@/lib/presets';
 
@@ -21,6 +22,7 @@ export function GuestbookEditor({ drag }: { drag?: SectionDragProps }) {
       }}
     >
       <div className="flex flex-col gap-3">
+        <SectionHeaderFields sectionKey="guestbook" />
         <PresetTextArea
           label="신랑신부의 인사말"
           value={guestbook.coupleMessage}

@@ -1,8 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import type { InvitationContent } from '@/types/invitation';
+import type {
+  InvitationContent,
+  ResolvedSectionHeader,
+} from '@/types/invitation';
 import { readGuestIdentity } from '../SignatureGate';
+import { SectionHeader } from './SectionHeader';
 
 interface Props {
   quiz: InvitationContent['quiz'];
@@ -10,9 +14,10 @@ interface Props {
   isPreview?: boolean;
   mode?: 'guest' | 'owner';
   ownerPicks?: { question_index: number; selected_option: number; is_correct: boolean }[];
+  header: ResolvedSectionHeader;
 }
 
-export function QuizSlide({ quiz, invitationId, isPreview, mode = 'guest', ownerPicks }: Props) {
+export function QuizSlide({ quiz, invitationId, isPreview, mode = 'guest', ownerPicks, header }: Props) {
   // Drafts may include questions without text or full options.
   // 질문(q.q) 만 비어 있지 않으면 렌더한다 — 옵션 일부가 비어 있어도 비어 있지 않은 보기만
   // 노출해 2번째 문항이 자동으로 사라지지 않게 함.
@@ -26,12 +31,14 @@ export function QuizSlide({ quiz, invitationId, isPreview, mode = 'guest', owner
 
   return (
     <section className="flex min-h-full flex-col gap-8 px-6 py-16">
-      <header className="text-center">
-        <p className="text-xs tracking-[0.3em] opacity-70">QUIZ</p>
-        <h2 className="mt-2 text-xl font-light">
-          {mode === 'owner' ? '하객 퀴즈 결과' : '우리의 시간, 얼마나 알고 있나요?'}
-        </h2>
-      </header>
+      {mode === 'owner' ? (
+        <header className="text-center">
+          <p className="text-xs tracking-[0.3em] opacity-70">QUIZ</p>
+          <h2 className="mt-2 text-xl font-light">하객 퀴즈 결과</h2>
+        </header>
+      ) : (
+        <SectionHeader header={header} />
+      )}
 
       <div className="flex flex-col gap-8">
         {playable.map(({ q, qi }) =>

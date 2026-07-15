@@ -2,16 +2,19 @@ import {
   reconcileBasicSubOrder,
   type BasicSubKey,
   type InvitationContent,
+  type ResolvedSectionHeader,
 } from '@/types/invitation';
+import { SectionHeader } from './SectionHeader';
 
 interface Props {
   basic: InvitationContent['basic'];
   groomName: string;
   brideName: string;
   weddingDate: string | null;
+  header: ResolvedSectionHeader;
 }
 
-export function BasicInfoSlide({ basic, groomName, brideName, weddingDate }: Props) {
+export function BasicInfoSlide({ basic, groomName, brideName, weddingDate, header }: Props) {
   const hasQuote = basic.quote.enabled && basic.quote.text.trim();
   const hasGreeting = basic.greeting.enabled && basic.greeting.text.trim();
   const familyOn = basic.family.enabled;
@@ -90,10 +93,7 @@ export function BasicInfoSlide({ basic, groomName, brideName, weddingDate }: Pro
     // 이전엔 justify-center 로 전체를 세로 가운데 정렬해 제목이 화면 중앙에 떠
     // 다른 슬라이드 제목들과 위치·형식이 어긋났음.
     <section className="flex min-h-full flex-col gap-8 px-6 py-16 text-center">
-      <header className="text-center">
-        <p className="text-xs tracking-[0.3em] opacity-70">INVITATION</p>
-        <h2 className="mt-2 text-xl font-light">우리 결혼합니다</h2>
-      </header>
+      <SectionHeader header={header} />
 
       {order.map((k) => renderSub(k))}
     </section>

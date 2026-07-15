@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/client';
 import { nanoid } from '@/lib/utils/nanoid';
 import { GALLERY_LAYOUTS } from '@/types/invitation';
 import { SectionEditor, type SectionDragProps } from '../SectionEditor';
+import { SectionHeaderFields } from './SectionHeaderFields';
 import { Button } from '@/components/ui/button';
 import {
   IMAGE_LIMITS,
@@ -238,6 +239,7 @@ export function GalleryEditor({ drag }: { drag?: SectionDragProps }) {
       }}
     >
       <div className="flex flex-col gap-4">
+        <SectionHeaderFields sectionKey="gallery" />
         {/* 레이아웃 선택 */}
         <div className="flex flex-col gap-2 text-sm">
           <span className="font-medium text-foreground">레이아웃</span>

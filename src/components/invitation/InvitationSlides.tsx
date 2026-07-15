@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { InvitationContent } from '@/types/invitation';
+import { resolveSectionHeader } from '@/types/invitation';
 import { reconcilePageOrder, type SectionKey } from '@/lib/theme';
 import { formatWeddingDate } from '@/lib/utils/format-date';
 import { SlideContainer } from './SlideContainer';
@@ -77,6 +78,11 @@ export function InvitationSlides({
     (q) => q.q.trim() && q.options.every((opt) => opt.trim()),
   );
 
+  // 슬라이드 상단 헤더(영문/한글) override 를 기본값과 합쳐 각 슬라이드에 전달.
+  const headers = content.sectionHeaders ?? {};
+  const hdr = (key: Parameters<typeof resolveSectionHeader>[0]) =>
+    resolveSectionHeader(key, headers[key]);
+
   const slidesByKey: Record<SectionKey, ReactNode | null> = {
     main: (
       <MainSlide
@@ -97,11 +103,12 @@ export function InvitationSlides({
         groomName={groomName}
         brideName={brideName}
         weddingDate={formattedWeddingDate}
+        header={hdr('basic')}
       />
     ) : null,
     story:
       content.story.enabled && storyHasContent ? (
-        <StorySlide story={content.story} />
+        <StorySlide story={content.story} header={hdr('story')} />
       ) : null,
     gallery: content.gallery.enabled ? (
       <GallerySlide
@@ -110,6 +117,7 @@ export function InvitationSlides({
         isPreview={isPreview}
         mode={mode}
         initialLikes={ownerData?.galleryLikes}
+        header={hdr('gallery')}
       />
     ) : null,
     video:
@@ -124,6 +132,7 @@ export function InvitationSlides({
           isPreview={isPreview}
           mode={mode}
           ownerPicks={ownerData?.quizPicks}
+          header={hdr('quiz')}
         />
       ) : null,
     vote:
@@ -134,6 +143,7 @@ export function InvitationSlides({
           isPreview={isPreview}
           mode={mode}
           ownerPicks={ownerData?.votePicks}
+          header={hdr('vote')}
         />
       ) : null,
     guestbook: content.guestbook.enabled ? (
@@ -144,6 +154,7 @@ export function InvitationSlides({
         mode={mode}
         ownerMessages={ownerData?.messages}
         ownerSignatures={ownerData?.signatures}
+        header={hdr('guestbook')}
       />
     ) : null,
     account:
@@ -157,7 +168,7 @@ export function InvitationSlides({
         // 등록된 계좌가 없어도 안내문구만 있으면 슬라이드 노출
         // (예: "축의금은 정중히 사양합니다" 안내).
         content.account.guide.trim().length > 0) ? (
-        <AccountSlide account={content.account} />
+        <AccountSlide account={content.account} header={hdr('account')} />
       ) : null,
     closing: (
       <ClosingSlide

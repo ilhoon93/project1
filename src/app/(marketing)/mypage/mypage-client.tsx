@@ -120,8 +120,6 @@ interface Props {
   snapCreditsBalance: number;
   orders: MyPageOrder[];
   entitlements: MyPageEntitlements;
-  /** 관리자 여부 — 테스트 중인 관리자 전용 기능(이미지 알림장) 노출용. */
-  isAdmin: boolean;
 }
 
 type Tab = 'saves' | 'orders' | 'snap';
@@ -176,7 +174,6 @@ export function MyPageClient({
   snapCreditsBalance,
   orders,
   entitlements,
-  isAdmin,
 }: Props) {
   const searchParams = useSearchParams();
   // ?tab=credits 는 과거 탭 — 통합된 '결혼알림장' 탭으로 폴백.
@@ -221,7 +218,6 @@ export function MyPageClient({
           invitations={invitations}
           creditsBalance={creditsBalance}
           archiveBalance={archiveBalance}
-          isAdmin={isAdmin}
         />
       )}
       {tab === 'snap' && (
@@ -1188,12 +1184,10 @@ function SavedTab({
   invitations,
   creditsBalance,
   archiveBalance,
-  isAdmin,
 }: {
   invitations: MyPageInvitation[];
   creditsBalance: number;
   archiveBalance: number;
-  isAdmin: boolean;
 }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -1311,7 +1305,6 @@ function SavedTab({
           <SavedRow
             key={inv.id}
             inv={inv}
-            isAdmin={isAdmin}
             busy={busyId === inv.id || inv.publications.some((p) => busyId === p.id)}
             archiveBalance={archiveBalance}
             onArchive={handleArchive}
@@ -1356,7 +1349,6 @@ function SavedTab({
 
 function SavedRow({
   inv,
-  isAdmin,
   busy,
   archiveBalance,
   onArchive,
@@ -1364,7 +1356,6 @@ function SavedRow({
   onDelete,
 }: {
   inv: MyPageInvitation;
-  isAdmin: boolean;
   busy: boolean;
   archiveBalance: number;
   onArchive: (publicationId: string) => void;
@@ -1474,8 +1465,8 @@ function SavedRow({
         </Button>
         {/* 혼인서약서 PDF — 발행 후에만 활성화. 발행 전엔 비활성. */}
         <CertificatePdfButton invitationId={inv.id} disabled={!hasEverPublished} />
-        {/* 이미지 알림장 — 관리자 테스트 전용 + 발행된 알림장만 생성 가능. */}
-        {isAdmin && hasEverPublished && (
+        {/* 알림장 이미지 — 발행된 알림장이면 누구나 생성 가능(인스타/카카오 프로필용). */}
+        {hasEverPublished && (
           <Button variant="outline" size="sm" onClick={() => setShowImageCard(true)}>
             알림장 이미지
           </Button>
@@ -1859,7 +1850,7 @@ function ReviewEventNotice() {
   const expanded = !mounted || !collapsed;
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-[#E4B95F]/50 bg-[#FBF3E1] p-4">
+    <div className="flex flex-col gap-3 rounded-xl border border-[#E3AE9E]/60 bg-[#FBEEE9] p-4">
       {/* 헤더 — 클릭 시 접기/펼치기. 제목 + 총 혜택 pill + chevron. */}
       <button
         type="button"
@@ -1868,17 +1859,17 @@ function ReviewEventNotice() {
         className="flex items-start justify-between gap-3 text-left"
       >
         <div>
-          <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-[#8A5A12]">
+          <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-[#9A3D28]">
             <span aria-hidden>📸</span> 포토리뷰 이벤트
           </h3>
           {expanded && (
-            <p className="mt-1 text-[12.5px] leading-relaxed text-[#6B4E1E]">
+            <p className="mt-1 text-[12.5px] leading-relaxed text-[#8A5346]">
               별점·사진 리뷰를 쓰고 네이버 톡톡으로 스크린샷을 보내주세요.
             </p>
           )}
         </div>
         <span className="flex shrink-0 items-center gap-1.5">
-          <span className="whitespace-nowrap rounded-full bg-[#8A5A12] px-2.5 py-1 text-[11px] font-bold text-white">
+          <span className="whitespace-nowrap rounded-full bg-[#B5614F] px-2.5 py-1 text-[11px] font-bold text-white">
             총 {formatKRW(REVIEW_EVENT_TOTAL)} 혜택
           </span>
           <svg
@@ -1887,7 +1878,7 @@ function ReviewEventNotice() {
             viewBox="0 0 14 14"
             fill="none"
             aria-hidden
-            className={`text-[#8A5A12] transition-transform ${expanded ? 'rotate-180' : ''}`}
+            className={`text-[#B5614F] transition-transform ${expanded ? 'rotate-180' : ''}`}
           >
             <path
               d="M3 5l4 4 4-4"
@@ -1904,17 +1895,17 @@ function ReviewEventNotice() {
       <>
       {/* 혜택 칩 */}
       <div className="flex flex-wrap gap-1.5">
-        <span className="rounded-full bg-white/70 px-2.5 py-1 text-[11.5px] font-medium text-[#8A5A12] ring-1 ring-[#E4B95F]/50">
+        <span className="rounded-full bg-white/80 px-2.5 py-1 text-[11.5px] font-medium text-[#9A3D28] ring-1 ring-[#E3AE9E]/60">
           영구소장 무료 · {formatKRW(ARCHIVE_PRICE)} 상당
         </span>
-        <span className="rounded-full bg-white/70 px-2.5 py-1 text-[11.5px] font-medium text-[#8A5A12] ring-1 ring-[#E4B95F]/50">
+        <span className="rounded-full bg-white/80 px-2.5 py-1 text-[11.5px] font-medium text-[#9A3D28] ring-1 ring-[#E3AE9E]/60">
           네이버포인트 {REVIEW_EVENT_NAVER_POINT.toLocaleString('ko-KR')}P
         </span>
       </div>
 
       {/* 사진 필수 안내 — 한 줄로 간결하게 강조 */}
-      <p className="text-[11.5px] leading-relaxed text-[#8A6B36]">
-        <strong className="text-[#8A5A12]">사진 첨부 필수</strong> · 첨부가 안 되면
+      <p className="text-[11.5px] leading-relaxed text-[#8A5346]">
+        <strong className="text-[#9A3D28]">사진 첨부 필수</strong> · 첨부가 안 되면
         텍스트만 먼저 저장한 뒤 리뷰 수정에서 사진을 추가해 주세요. (포인트는 네이버
         별도 적립)
       </p>

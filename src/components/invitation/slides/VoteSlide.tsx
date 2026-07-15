@@ -1,8 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import type { InvitationContent } from '@/types/invitation';
+import type {
+  InvitationContent,
+  ResolvedSectionHeader,
+} from '@/types/invitation';
 import { readGuestIdentity } from '../SignatureGate';
+import { SectionHeader } from './SectionHeader';
 
 interface Props {
   vote: InvitationContent['vote'];
@@ -10,9 +14,10 @@ interface Props {
   isPreview?: boolean;
   mode?: 'guest' | 'owner';
   ownerPicks?: { question_index: number; selected_option: number }[];
+  header: ResolvedSectionHeader;
 }
 
-export function VoteSlide({ vote, invitationId, isPreview, mode = 'guest', ownerPicks }: Props) {
+export function VoteSlide({ vote, invitationId, isPreview, mode = 'guest', ownerPicks, header }: Props) {
   const playable = vote.questions
     .map((q, qi) => ({ q, qi }))
     .filter(({ q }) => q.q.trim() && q.options.every((opt) => opt.trim()));
@@ -28,12 +33,14 @@ export function VoteSlide({ vote, invitationId, isPreview, mode = 'guest', owner
 
   return (
     <section className="flex min-h-full flex-col gap-8 px-6 py-16">
-      <header className="text-center">
-        <p className="text-xs tracking-[0.3em] opacity-70">VOTE</p>
-        <h2 className="mt-2 text-xl font-light">
-          {mode === 'owner' ? '하객 투표 결과' : '함께 골라보기'}
-        </h2>
-      </header>
+      {mode === 'owner' ? (
+        <header className="text-center">
+          <p className="text-xs tracking-[0.3em] opacity-70">VOTE</p>
+          <h2 className="mt-2 text-xl font-light">하객 투표 결과</h2>
+        </header>
+      ) : (
+        <SectionHeader header={header} />
+      )}
 
       <div className="flex flex-col gap-8">
         {playable.map(({ q, qi }) =>

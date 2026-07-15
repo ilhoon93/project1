@@ -1,7 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import type { InvitationContent, BankAccount } from '@/types/invitation';
+import type {
+  InvitationContent,
+  BankAccount,
+  ResolvedSectionHeader,
+} from '@/types/invitation';
+import { SectionHeader } from './SectionHeader';
 
 interface PartyGroup {
   label: string;
@@ -11,7 +16,13 @@ interface PartyGroup {
 const isComplete = (a: BankAccount) =>
   a.bank.trim() && a.number.trim() && a.holder.trim();
 
-export function AccountSlide({ account }: { account: InvitationContent['account'] }) {
+export function AccountSlide({
+  account,
+  header,
+}: {
+  account: InvitationContent['account'];
+  header: ResolvedSectionHeader;
+}) {
   const [side, setSide] = useState<'groom' | 'bride'>('groom');
 
   const groomGroups: PartyGroup[] = [
@@ -35,10 +46,7 @@ export function AccountSlide({ account }: { account: InvitationContent['account'
     const hasGuide = account.guide.trim().length > 0;
     return (
       <section className="flex min-h-full flex-col items-center justify-center gap-4 px-6 py-16">
-        <header className="text-center">
-          <p className="text-xs tracking-[0.3em] opacity-70">ACCOUNT</p>
-          <h2 className="mt-2 text-xl font-light">마음 전하실 곳</h2>
-        </header>
+        <SectionHeader header={header} />
         {hasGuide ? (
           <p className="max-w-md whitespace-pre-line text-center text-sm leading-relaxed opacity-90">
             {account.guide}
@@ -58,10 +66,7 @@ export function AccountSlide({ account }: { account: InvitationContent['account'
 
   return (
     <section className="flex min-h-full flex-col gap-5 px-6 py-16">
-      <header className="text-center">
-        <p className="text-xs tracking-[0.3em] opacity-70">ACCOUNT</p>
-        <h2 className="mt-2 text-xl font-light">마음 전하실 곳</h2>
-      </header>
+      <SectionHeader header={header} />
 
       {account.guide.trim() && (
         <p className="whitespace-pre-line text-center text-sm leading-relaxed opacity-90">

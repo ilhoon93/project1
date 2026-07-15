@@ -2,6 +2,7 @@
 
 import { useEditorStore } from '@/stores/editor';
 import { SectionEditor, type SectionDragProps } from '../SectionEditor';
+import { SectionHeaderFields } from './SectionHeaderFields';
 import { TextAreaField } from '../form-fields';
 import { PresetPickerButton } from '../PresetTextArea';
 import { BASIC_GREETING_PRESETS, QUOTE_PRESETS } from '@/lib/presets';
@@ -218,7 +219,10 @@ export function BasicInfoEditor({ drag }: { drag?: SectionDragProps }) {
       title="기본 정보"
       description="신랑·신부와 가족 · 날짜 · 인사말 · 글귀 (↑ ↓ 로 순서 변경)"
     >
-      <div className="flex flex-col gap-3">{order.map((k, i) => renderSub(k, i))}</div>
+      <div className="flex flex-col gap-3">
+        <SectionHeaderFields sectionKey="basic" />
+        {order.map((k, i) => renderSub(k, i))}
+      </div>
     </SectionEditor>
   );
 }
