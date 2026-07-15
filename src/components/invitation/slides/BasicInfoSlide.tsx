@@ -4,6 +4,7 @@ import {
   type InvitationContent,
   type ResolvedSectionHeader,
 } from '@/types/invitation';
+import { formatWeddingDate, elapsedYMD } from '@/lib/utils/format-date';
 import { SectionHeader } from './SectionHeader';
 
 interface Props {
@@ -19,6 +20,7 @@ export function BasicInfoSlide({ basic, groomName, brideName, weddingDate, heade
   const hasGreeting = basic.greeting.enabled && basic.greeting.text.trim();
   const familyOn = basic.family.enabled;
   const showDate = basic.showDate && !!weddingDate;
+  const hasTogether = basic.together.enabled && !!basic.together.sinceDate;
 
   const groomFamily = familyLine(basic.family.groomFather, basic.family.groomMother);
   const brideFamily = familyLine(basic.family.brideFather, basic.family.brideMother);
@@ -32,7 +34,7 @@ export function BasicInfoSlide({ basic, groomName, brideName, weddingDate, heade
 
   // If everything inside is off/empty, render a quiet placeholder so the slide
   // doesn't appear as a blank panel.
-  if (!hasQuote && !hasGreeting && !hasNames && !hasFamily && !showDate) {
+  if (!hasQuote && !hasGreeting && !hasNames && !hasFamily && !showDate && !hasTogether) {
     return (
       <section className="flex min-h-full flex-col items-center justify-center gap-2 px-6 py-16 text-center">
         <p className="text-sm opacity-70">기본 정보가 설정되어 있지 않습니다</p>
@@ -82,6 +84,19 @@ export function BasicInfoSlide({ basic, groomName, brideName, weddingDate, heade
           <p className="text-xs tracking-[0.3em] opacity-70">WEDDING DAY</p>
           {/* weddingDate 는 InvitationSlides 가 basic.dateFormat 으로 사전 포맷팅한 string. */}
           <p className="text-base tracking-widest">{weddingDate}</p>
+        </div>
+      );
+    }
+    if (key === 'together' && hasTogether && basic.together.sinceDate) {
+      const elapsed = elapsedYMD(basic.together.sinceDate);
+      if (!elapsed) return null;
+      return (
+        <div key={key} className="flex flex-col items-center gap-1">
+          <p className="text-xs tracking-[0.3em] opacity-70">WITH YOU</p>
+          <p className="text-base tracking-wide">함께한 지 {elapsed}</p>
+          <p className="text-xs opacity-70">
+            {formatWeddingDate(basic.together.sinceDate, basic.dateFormat)}부터
+          </p>
         </div>
       );
     }

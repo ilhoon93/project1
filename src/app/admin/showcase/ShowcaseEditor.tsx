@@ -1,14 +1,16 @@
 'use client';
 
-import { useRef, useState, useTransition, type PointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition, type PointerEvent } from 'react';
 import { nanoid } from '@/lib/utils/nanoid';
 import type { InvitationContent } from '@/types/invitation';
 import type { ShowcaseCover } from '@/lib/marketing/social-proof';
 import { InvitationPreview } from '@/components/marketing/InvitationPreview';
 import {
+  listShowcaseCandidates,
   loadInvitationForShowcase,
   uploadShowcaseImage,
   saveShowcaseCovers,
+  type ShowcaseCandidate,
 } from './actions';
 
 /** 브랜드 하트·이모지 스티커(얼굴 가리개) 팔레트. */
@@ -46,8 +48,24 @@ export function ShowcaseEditor({
   const [savePending, startSave] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
 
+  // ── 동의 후보 목록 ─────────────────────────────────────────
+  const [candidates, setCandidates] = useState<ShowcaseCandidate[] | null>(null);
+  const [candErr, setCandErr] = useState<string | null>(null);
+  const refreshCandidates = useCallback(async () => {
+    setCandErr(null);
+    const res = await listShowcaseCandidates();
+    if (res.ok) setCandidates(res.candidates);
+    else {
+      setCandidates([]);
+      setCandErr(res.error);
+    }
+  }, []);
+  useEffect(() => {
+    void refreshCandidates();
+  }, [refreshCandidates]);
+
   // ── 소스 로드 ───────────────────────────────────────────────
-  const [idInput, setIdInput] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
@@ -61,11 +79,12 @@ export function ShowcaseEditor({
   const stageRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: string; startX: number; startY: number; ox: number; oy: number } | null>(null);
 
-  const load = async () => {
+  const load = async (invitationId: string) => {
     setLoadErr(null);
     setLoading(true);
+    setSelectedId(invitationId);
     try {
-      const res = await loadInvitationForShowcase(idInput);
+      const res = await loadInvitationForShowcase(invitationId);
       if (!res.ok) {
         setLoadErr(res.error);
         setLoaded(null);
@@ -186,14 +205,20 @@ export function ShowcaseEditor({
 
       const content = structuredClone(loaded.content);
       content.main.heroImage = up.url;
+      // 같은 알림장의 기존 커버가 있으면 교체(중복 방지).
+      const withoutOld = selectedId
+        ? covers.filter((c) => c.invitationId !== selectedId)
+        : covers;
       const cover: ShowcaseCover = {
         id: nanoid(10),
+        invitationId: selectedId ?? '',
         groomName: anonGroom.trim() || '○○',
         brideName: anonBride.trim() || '○○',
         weddingDate: loaded.weddingDate,
+        hidden: false,
         content,
       };
-      const next = [...covers, cover];
+      const next = [...withoutOld, cover];
       setCovers(next);
       const res = await saveShowcaseCovers(next);
       if (!res.ok) throw new Error(res.error ?? 'save failed');
@@ -202,7 +227,7 @@ export function ShowcaseEditor({
       setLoaded(null);
       setStickers([]);
       setSelected(null);
-      setIdInput('');
+      setSelectedId(null);
     } catch (e) {
       setMsg(e instanceof Error ? e.message : '커버 추가 실패');
     } finally {
@@ -219,6 +244,17 @@ export function ShowcaseEditor({
     });
   };
 
+  const toggleHidden = (id: string) => {
+    const next = covers.map((c) => (c.id === id ? { ...c, hidden: !c.hidden } : c));
+    setCovers(next);
+    startSave(async () => {
+      const res = await saveShowcaseCovers(next);
+      setMsg(res.ok ? '노출 설정이 저장되었습니다.' : `저장 실패: ${res.error ?? 'unknown'}`);
+    });
+  };
+
+  const registeredIds = new Set(covers.map((c) => c.invitationId).filter(Boolean));
+
   return (
     <div className="flex flex-col gap-6">
       {msg && (
@@ -233,31 +269,65 @@ export function ShowcaseEditor({
         </p>
       )}
 
-      {/* ── 1. 소스 알림장 불러오기 ───────────────────────── */}
+      {/* ── 1. 동의 고객 목록 ─────────────────────────────── */}
       <section className="flex flex-col gap-3 rounded-md border border-[#E8DCC9] bg-white p-4">
-        <h2 className="text-[13px] font-semibold text-[#3D2E1F]">
-          1. 알림장 불러오기
-        </h2>
-        <p className="text-[11px] leading-relaxed text-[#8B7355]">
-          마케팅 노출에 동의한 고객의 <strong className="text-[#3D2E1F]">알림장 ID</strong>를
-          입력하세요. 메인 사진이 있는 알림장만 대상입니다.
-        </p>
-        <div className="flex gap-2">
-          <input
-            className="min-w-0 flex-1 rounded border border-[#E8DCC9] bg-white px-2.5 py-1.5 text-[13px] text-[#3D2E1F] focus:border-[#8B7355] focus:outline-none"
-            value={idInput}
-            onChange={(e) => setIdInput(e.target.value)}
-            placeholder="알림장 ID (uuid)"
-          />
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-[13px] font-semibold text-[#3D2E1F]">
+            1. 동의한 알림장 {candidates ? `(${candidates.length})` : ''}
+          </h2>
           <button
             type="button"
-            onClick={load}
-            disabled={loading || !idInput.trim()}
-            className="rounded-md bg-[#3D2E1F] px-4 py-1.5 text-[13px] font-medium text-white disabled:opacity-50"
+            onClick={() => refreshCandidates()}
+            className="text-[11px] text-[#8B7355] hover:underline"
           >
-            {loading ? '불러오는 중…' : '불러오기'}
+            새로고침
           </button>
         </div>
+        <p className="text-[11px] leading-relaxed text-[#8B7355]">
+          <strong className="text-[#3D2E1F]">홈 노출에 동의</strong>했고 메인 사진이 있는
+          발행 알림장만 표시됩니다. 카드를 선택하면 아래에서 스티커를 붙일 수 있어요.
+        </p>
+        {candErr && <p className="text-[11px] text-red-600">{candErr}</p>}
+        {candidates === null ? (
+          <p className="py-4 text-center text-[11px] text-[#8B7355]">불러오는 중…</p>
+        ) : candidates.length === 0 ? (
+          <p className="rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-4 text-[11px] text-[#8B7355]">
+            아직 동의한 알림장이 없습니다. (마이페이지에서 고객이 동의하면 여기에
+            표시됩니다.)
+          </p>
+        ) : (
+          <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {candidates.map((c) => {
+              const on = selectedId === c.id;
+              const done = registeredIds.has(c.id);
+              return (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => load(c.id)}
+                    disabled={loading}
+                    className={`relative block w-full overflow-hidden rounded-lg border text-left transition-colors disabled:opacity-60 ${
+                      on ? 'border-[1.5px] border-[#B5614F]' : 'border-[#E8DCC9] hover:border-[#8B7355]'
+                    }`}
+                  >
+                    <div className="aspect-[3/4] w-full bg-[#FAF7F2]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={c.heroImage} alt="" className="h-full w-full object-cover" />
+                    </div>
+                    {done && (
+                      <span className="absolute right-1 top-1 rounded bg-[#B5614F] px-1.5 py-0.5 text-[9px] font-medium text-white">
+                        등록됨
+                      </span>
+                    )}
+                    <span className="block truncate px-1.5 py-1 text-[10.5px] text-[#5C4633]">
+                      {c.groomName || '신랑'} · {c.brideName || '신부'}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
         {loadErr && <p className="text-[11px] text-red-600">{loadErr}</p>}
       </section>
 
@@ -403,7 +473,11 @@ export function ShowcaseEditor({
           <ul className="flex flex-wrap gap-3">
             {covers.map((c) => (
               <li key={c.id} className="flex w-[120px] flex-col gap-1.5">
-                <div className="aspect-[1/2] w-full overflow-hidden rounded-lg border border-[#E8DCC9] bg-[#FAF7F2]">
+                <div
+                  className={`relative aspect-[1/2] w-full overflow-hidden rounded-lg border border-[#E8DCC9] bg-[#FAF7F2] ${
+                    c.hidden ? 'opacity-40' : ''
+                  }`}
+                >
                   <InvitationPreview
                     design={{
                       id: c.id,
@@ -416,15 +490,30 @@ export function ShowcaseEditor({
                     }}
                     cover
                   />
+                  {c.hidden && (
+                    <span className="absolute left-1 top-1 rounded bg-[#6B4E1E] px-1.5 py-0.5 text-[9px] font-medium text-white">
+                      숨김
+                    </span>
+                  )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => removeCover(c.id)}
-                  disabled={savePending}
-                  className="text-[11px] text-red-600 hover:underline disabled:opacity-50"
-                >
-                  삭제
-                </button>
+                <div className="flex items-center justify-between gap-1">
+                  <button
+                    type="button"
+                    onClick={() => toggleHidden(c.id)}
+                    disabled={savePending}
+                    className="text-[11px] text-[#8B7355] hover:underline disabled:opacity-50"
+                  >
+                    {c.hidden ? '보이기' : '숨기기'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeCover(c.id)}
+                    disabled={savePending}
+                    className="text-[11px] text-red-600 hover:underline disabled:opacity-50"
+                  >
+                    삭제
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

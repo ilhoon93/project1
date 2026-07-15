@@ -39,9 +39,13 @@ export interface SocialProofDesign {
  */
 export interface ShowcaseCover {
   id: string;
+  /** 원본 알림장 id — 중복 등록 방지·재편집 매칭용. */
+  invitationId: string;
   groomName: string;
   brideName: string;
   weddingDate: string;
+  /** 홈 노출 여부(관리자 토글). false 면 저장은 유지하되 홈에서 숨김. */
+  hidden: boolean;
   content: InvitationContent;
 }
 
@@ -86,9 +90,11 @@ export const DEFAULT_SOCIAL_PROOF: SocialProofConfig = {
 
 const ShowcaseCoverSchema = z.object({
   id: z.string(),
+  invitationId: z.string().default(''),
   groomName: z.string().default(''),
   brideName: z.string().default(''),
   weddingDate: z.string().default(''),
+  hidden: z.boolean().default(false),
   content: InvitationContentSchema,
 });
 

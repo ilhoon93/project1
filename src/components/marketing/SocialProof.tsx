@@ -35,7 +35,7 @@ export function SocialProof({
 
   // 별점·문구 리뷰(텍스트 마퀴)와 알림장 디자인(디자인 마퀴)을 분리.
   const reviews = config.reviews.filter((r) => r.caption.trim() || r.rating > 0);
-  const covers = config.covers ?? [];
+  const covers = (config.covers ?? []).filter((c) => !c.hidden);
   const designImages = config.designs.filter((d) => d.imageUrl.trim());
   // 디자인 마퀴 = config 렌더 커버(스티커 익명화된 실제 고객 디자인) + 레거시 업로드 이미지.
   const hasDesigns = covers.length > 0 || designImages.length > 0;

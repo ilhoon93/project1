@@ -13,7 +13,7 @@ import {
   type DateFormat,
   type InvitationContent,
 } from '@/types/invitation';
-import { formatWeddingDate, normalizeDateInput } from '@/lib/utils/format-date';
+import { formatWeddingDate, normalizeDateInput, elapsedYMD } from '@/lib/utils/format-date';
 
 type BasicInfo = InvitationContent['basic'];
 type Parent = BasicInfo['family']['groomFather'];
@@ -21,6 +21,7 @@ type Parent = BasicInfo['family']['groomFather'];
 const SUB_LABELS: Record<BasicSubKey, string> = {
   family: '신랑·신부와 가족',
   date: '날짜 표시',
+  together: '함께한 날',
   greeting: '인사말',
   quote: '글귀',
 };
@@ -178,6 +179,36 @@ export function BasicInfoEditor({ drag }: { drag?: SectionDragProps }) {
         </SubBox>
       );
     }
+    if (key === 'together') {
+      const elapsed = basic.together.sinceDate
+        ? elapsedYMD(basic.together.sinceDate)
+        : null;
+      return (
+        <SubBox key={key} header={header}>
+          {basic.together.enabled && (
+            <div className="flex flex-col gap-2">
+              <DateInput
+                label="처음 만난 날"
+                value={basic.together.sinceDate}
+                onChange={(iso) =>
+                  set({ ...basic, together: { ...basic.together, sinceDate: iso } })
+                }
+              />
+              <p className="text-[11px] text-muted-foreground">
+                오늘까지의 기간이 <strong className="text-foreground">함께한 지 N년 M개월 D일</strong>로
+                표기됩니다.
+                {elapsed && (
+                  <>
+                    {' '}미리보기:{' '}
+                    <span className="font-medium text-foreground">함께한 지 {elapsed}</span>
+                  </>
+                )}
+              </p>
+            </div>
+          )}
+        </SubBox>
+      );
+    }
     if (key === 'greeting') {
       return (
         <SubBox key={key} header={header}>
@@ -237,6 +268,8 @@ function subEnabled(basic: BasicInfo, key: BasicSubKey): boolean {
       return basic.family.enabled;
     case 'date':
       return basic.showDate;
+    case 'together':
+      return basic.together.enabled;
     case 'greeting':
       return basic.greeting.enabled;
     case 'quote':
@@ -256,6 +289,9 @@ function toggleSub(
       return;
     case 'date':
       set({ ...basic, showDate: v });
+      return;
+    case 'together':
+      set({ ...basic, together: { ...basic.together, enabled: v } });
       return;
     case 'greeting':
       set({ ...basic, greeting: { ...basic.greeting, enabled: v } });
@@ -446,14 +482,16 @@ function ParentField({
 function DateInput({
   value,
   onChange,
+  label = '결혼식 날짜',
 }: {
   value: string | null;
   onChange: (iso: string | null) => void;
+  label?: string;
 }) {
   return (
     <label className="flex min-w-0 flex-col gap-1.5">
       <span className="text-xs text-muted-foreground">
-        결혼식 날짜{' '}
+        {label}{' '}
         <span className="text-[10px]">(YYYYMMDD · 숫자만 입력해도 됨)</span>
       </span>
       <input

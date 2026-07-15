@@ -60,6 +60,10 @@ export async function PATCH(req: Request, { params }: RouteCtx) {
   if (input.brideName !== undefined) update.bride_name = input.brideName;
   if (input.weddingDate !== undefined) update.wedding_date = input.weddingDate;
   if (input.content !== undefined) update.content = input.content;
+  // showcase_consent 컬럼은 자동생성 DB 타입(063 미반영)에 아직 없어 캐스팅.
+  if (input.showcaseConsent !== undefined) {
+    (update as Record<string, unknown>).showcase_consent = input.showcaseConsent;
+  }
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });

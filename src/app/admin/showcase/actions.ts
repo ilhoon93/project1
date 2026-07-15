@@ -18,6 +18,61 @@ import {
   type ShowcaseCover,
 } from '@/lib/marketing/social-proof';
 
+export interface ShowcaseCandidate {
+  id: string;
+  groomName: string;
+  brideName: string;
+  weddingDate: string;
+  heroImage: string;
+}
+
+/**
+ * 홈 노출에 동의(showcase_consent)했고 메인 사진이 있는 발행 알림장 목록(admin).
+ * 관리자가 ID 를 직접 입력하지 않고 이 목록에서 골라 세팅한다.
+ */
+export async function listShowcaseCandidates(): Promise<
+  { ok: true; candidates: ShowcaseCandidate[] } | { ok: false; error: string }
+> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { ok: false, error: 'forbidden' };
+  }
+  const admin = createAdminClient();
+  // showcase_consent 는 자동생성 DB 타입(063 미반영)에 아직 없어 any 캐스팅.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const q = admin.from('invitations') as any;
+  const { data, error } = await q
+    .select('id, groom_name, bride_name, wedding_date, content')
+    .eq('showcase_consent', true)
+    .eq('is_published', true)
+    .order('updated_at', { ascending: false })
+    .limit(200);
+  if (error) return { ok: false, error: error.message };
+
+  const candidates: ShowcaseCandidate[] = [];
+  for (const row of (data ?? []) as Array<{
+    id: string;
+    groom_name: string | null;
+    bride_name: string | null;
+    wedding_date: string | null;
+    content: unknown;
+  }>) {
+    const parsed = InvitationContentSchema.safeParse(row.content ?? {});
+    if (!parsed.success) continue;
+    const hero = parsed.data.main.heroImage;
+    if (typeof hero !== 'string' || !hero) continue;
+    candidates.push({
+      id: row.id,
+      groomName: row.groom_name ?? '',
+      brideName: row.bride_name ?? '',
+      weddingDate: row.wedding_date ?? '',
+      heroImage: hero,
+    });
+  }
+  return { ok: true, candidates };
+}
+
 /**
  * showcase 대상 알림장의 메인 디자인 소스를 불러온다(admin). content(파싱본) +
  * 이름/날짜 + 현재 heroImage. heroImage 가 없으면 hasPhoto=false 로 알려준다.
