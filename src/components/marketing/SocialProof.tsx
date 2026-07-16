@@ -136,71 +136,81 @@ export function SocialProof({
         })()}
 
         {/* 디자인 마퀴 (→ 방향) — config 렌더 커버 + 레거시 업로드 이미지. */}
-        {hasDesigns && (
-          <FadeUp scroll delay={0.24}>
-            <Marquee
-              reverse={false}
-              durationSec={Math.max(20, (covers.length + designImages.length) * 5)}
-            >
-              {(() => {
-                const items = [
-                  ...covers.map((c) => ({
-                    key: `cover-${c.id}`,
-                    node: <CoverCard cover={c} />,
-                  })),
-                  ...designImages.map((d) => ({
-                    key: `img-${d.id}`,
-                    node: (
-                      <div className="overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-cream)]">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={d.imageUrl}
-                          alt="알림장 디자인"
-                          loading="lazy"
-                          draggable={false}
-                          className="block w-full"
-                        />
-                      </div>
-                    ),
-                  })),
-                ];
-                return [...items, ...items].map((item, i) => (
-                  <li
-                    key={`${item.key}-${i}`}
-                    className="w-[124px] flex-shrink-0 sm:w-[140px]"
-                  >
-                    {item.node}
-                  </li>
-                ));
-              })()}
-            </Marquee>
-          </FadeUp>
-        )}
+        {hasDesigns &&
+          (() => {
+            const items = [
+              ...covers.map((c) => ({
+                key: `cover-${c.id}`,
+                node: <CoverCard cover={c} />,
+              })),
+              ...designImages.map((d) => ({
+                key: `img-${d.id}`,
+                node: (
+                  <div className="overflow-hidden rounded-xl border border-[var(--wd-line)] bg-[var(--wd-cream)]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={d.imageUrl}
+                      alt="알림장 디자인"
+                      loading="lazy"
+                      draggable={false}
+                      className="block w-full"
+                    />
+                  </div>
+                ),
+              })),
+            ];
+            // 개수가 적으면(가로가 안 넘침) 복제·스크롤 없이 한 번만 가운데 정렬로 노출.
+            const loop = items.length >= 5;
+            const rendered = loop ? [...items, ...items] : items;
+            return (
+              <FadeUp scroll delay={0.24}>
+                <Marquee
+                  reverse={false}
+                  animate={loop}
+                  durationSec={Math.max(20, items.length * 5)}
+                >
+                  {rendered.map((item, i) => (
+                    <li
+                      key={`${item.key}-${i}`}
+                      className="w-[124px] flex-shrink-0 sm:w-[140px]"
+                    >
+                      {item.node}
+                    </li>
+                  ))}
+                </Marquee>
+              </FadeUp>
+            );
+          })()}
 
         {/* 리뷰 텍스트 마퀴 (← 반대 방향) — 별점 + 문구. */}
-        {reviews.length > 0 && (
-          <FadeUp scroll delay={0.28}>
-            <Marquee reverse durationSec={Math.max(18, reviews.length * 7)}>
-              {[...reviews, ...reviews].map((review, i) => (
-                <li
-                  key={`${review.id}-${i}`}
-                  className="w-[230px] flex-shrink-0 sm:w-[250px]"
-                >
-                  <div className="flex h-full flex-col rounded-xl border border-[var(--wd-line)] bg-[var(--wd-cream)] px-3.5 py-3">
-                    {(review.rating ?? 0) > 0 && (
-                      <Stars rating={review.rating} size={13} />
-                    )}
-                    {review.caption && (
-                      <p className="mt-1.5 line-clamp-[8] break-keep text-[12.5px] leading-relaxed text-[var(--wd-ink)]">
-                        {review.caption}
-                      </p>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </Marquee>
-          </FadeUp>
-        )}
+        {reviews.length > 0 &&
+          (() => {
+            const loop = reviews.length >= 3;
+            const rendered = loop ? [...reviews, ...reviews] : reviews;
+            return (
+              <FadeUp scroll delay={0.28}>
+                <Marquee reverse animate={loop} durationSec={Math.max(18, reviews.length * 7)}>
+                  {rendered.map((review, i) => (
+                    <li
+                      key={`${review.id}-${i}`}
+                      className="w-[230px] flex-shrink-0 sm:w-[250px]"
+                    >
+                      <div className="flex h-full flex-col rounded-xl border border-[var(--wd-line)] bg-[var(--wd-cream)] px-3.5 py-3">
+                        {(review.rating ?? 0) > 0 && (
+                          <Stars rating={review.rating} size={13} />
+                        )}
+                        {review.caption && (
+                          <p className="mt-1.5 line-clamp-[8] break-keep text-[12.5px] leading-relaxed text-[var(--wd-ink)]">
+                            {review.caption}
+                          </p>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </Marquee>
+              </FadeUp>
+            );
+          })()}
       </div>
 
       {/* 마퀴 keyframes — 절반(-50%) 이동 시 복제본과 이음매 없이 순환.
@@ -257,29 +267,43 @@ function CoverCard({ cover }: { cover: ShowcaseCover }) {
   );
 }
 
-/** 좌우 페이드 마스크 + 자동 스크롤 트랙을 감싸는 마퀴 컨테이너. */
+/**
+ * 좌우 페이드 마스크 + 자동 스크롤 트랙을 감싸는 마퀴 컨테이너.
+ * animate=false 면(항목이 적어 가로가 안 넘칠 때) 복제·애니메이션 없이 가운데 정렬로
+ * 한 번만 노출한다.
+ */
 function Marquee({
   children,
   reverse,
   durationSec,
+  animate = true,
 }: {
   children: React.ReactNode;
   reverse: boolean;
   durationSec: number;
+  animate?: boolean;
 }) {
   return (
     <div className="wd-sp-marquee relative mt-6 overflow-hidden">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-[var(--wd-paper)] to-transparent"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-[var(--wd-paper)] to-transparent"
-      />
+      {animate && (
+        <>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-[var(--wd-paper)] to-transparent"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-[var(--wd-paper)] to-transparent"
+          />
+        </>
+      )}
       <ul
-        className={`wd-sp-marquee-track flex w-max items-stretch gap-3 ${reverse ? 'wd-sp-marquee-track--rev' : ''}`}
-        style={{ ['--wd-sp-dur' as string]: `${durationSec}s` }}
+        className={
+          animate
+            ? `wd-sp-marquee-track flex w-max items-stretch gap-3 ${reverse ? 'wd-sp-marquee-track--rev' : ''}`
+            : 'flex w-full flex-wrap items-stretch justify-center gap-3'
+        }
+        style={animate ? { ['--wd-sp-dur' as string]: `${durationSec}s` } : undefined}
       >
         {children}
       </ul>

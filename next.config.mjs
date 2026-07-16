@@ -1,5 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // 서버 액션 payload 기본 한도(1MB)로는 이미지 업로드(리뷰 캡처·showcase 합성본)가
+  // 잘려 액션이 실패한다 → 한도 상향.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '16mb',
+    },
+  },
   // 레거시/외부에서 참조하던 /terms·/privacy 가 404 나지 않도록 실제 약관
   // 페이지로 영구 리다이렉트. (일반 서비스 약관은 추후 별도 보강 — 현재는
   // AI 웨딩스냅 약관/개인정보 문서로 연결.)
