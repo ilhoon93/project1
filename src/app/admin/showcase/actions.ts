@@ -11,7 +11,11 @@
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/auth/admin';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { InvitationContentSchema } from '@/types/invitation';
+import { nanoid } from '@/lib/utils/nanoid';
+import {
+  InvitationContentSchema,
+  type InvitationContent,
+} from '@/types/invitation';
 import {
   getSocialProof,
   saveSocialProof,
@@ -24,11 +28,31 @@ export interface ShowcaseCandidate {
   brideName: string;
   weddingDate: string;
   heroImage: string;
+  /** 실제 사진이 노출되는 디자인인지(포스터/액자 + heroImage). false 면 일러스트·텍스트 등 사진 없는 디자인. */
+  hasPhoto: boolean;
+}
+
+// 실제 업로드 사진이 표지에 노출되는 레이아웃.
+const PHOTO_LAYOUTS = new Set(['poster', 'frame', 'polaroid']);
+
+/** content 가 실제 사진(얼굴)을 노출하는 디자인인지. */
+function designHasPhoto(content: InvitationContent): boolean {
+  const hero = content.main.heroImage;
+  return (
+    typeof hero === 'string' && !!hero && PHOTO_LAYOUTS.has(content.main.layout)
+  );
+}
+
+/** 이름 익명화 — 첫 글자 + ○ (예: 민준 → 민○). 비면 ○○. */
+function initialName(name: string | null): string {
+  const t = (name ?? '').trim();
+  return t ? `${t[0]}○` : '○○';
 }
 
 /**
- * 홈 노출에 동의(showcase_consent)했고 메인 사진이 있는 발행 알림장 목록(admin).
- * 관리자가 ID 를 직접 입력하지 않고 이 목록에서 골라 세팅한다.
+ * showcase 후보 목록(admin).
+ *   - 사진 있는 디자인: 홈 노출 동의(showcase_consent)한 발행 건만.
+ *   - 사진 없는 디자인(일러스트·텍스트 등): 얼굴 노출이 없어 동의 없이도 후보로 포함.
  */
 export async function listShowcaseCandidates(): Promise<
   { ok: true; candidates: ShowcaseCandidate[] } | { ok: false; error: string }
@@ -43,11 +67,10 @@ export async function listShowcaseCandidates(): Promise<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const q = admin.from('invitations') as any;
   const { data, error } = await q
-    .select('id, groom_name, bride_name, wedding_date, content')
-    .eq('showcase_consent', true)
+    .select('id, groom_name, bride_name, wedding_date, content, showcase_consent')
     .eq('is_published', true)
     .order('updated_at', { ascending: false })
-    .limit(200);
+    .limit(300);
   if (error) return { ok: false, error: error.message };
 
   const candidates: ShowcaseCandidate[] = [];
@@ -57,20 +80,141 @@ export async function listShowcaseCandidates(): Promise<
     bride_name: string | null;
     wedding_date: string | null;
     content: unknown;
+    showcase_consent: boolean | null;
   }>) {
     const parsed = InvitationContentSchema.safeParse(row.content ?? {});
     if (!parsed.success) continue;
-    const hero = parsed.data.main.heroImage;
-    if (typeof hero !== 'string' || !hero) continue;
+    const hasPhoto = designHasPhoto(parsed.data);
+    // 사진 있는 디자인은 동의 필수, 사진 없는 디자인은 동의 불필요.
+    if (hasPhoto && !row.showcase_consent) continue;
     candidates.push({
       id: row.id,
       groomName: row.groom_name ?? '',
       brideName: row.bride_name ?? '',
       weddingDate: row.wedding_date ?? '',
-      heroImage: hero,
+      heroImage: hasPhoto ? (parsed.data.main.heroImage as string) : '',
+      hasPhoto,
     });
   }
   return { ok: true, candidates };
+}
+
+/** content 로 사진 없는 커버 스냅샷을 만든다(이름 익명화). */
+function buildPhotolessCover(
+  invitationId: string,
+  content: InvitationContent,
+  groomName: string | null,
+  brideName: string | null,
+  weddingDate: string | null,
+): ShowcaseCover {
+  return {
+    id: nanoid(10),
+    invitationId,
+    groomName: initialName(groomName),
+    brideName: initialName(brideName),
+    weddingDate: weddingDate ?? '',
+    hidden: false,
+    content,
+  };
+}
+
+/**
+ * 사진 없는 디자인 1건을 커버로 바로 추가(스티커 불필요). 같은 알림장은 교체.
+ */
+export async function addPhotolessCover(
+  invitationId: string,
+): Promise<{ ok: true; covers: ShowcaseCover[] } | { ok: false; error: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { ok: false, error: 'forbidden' };
+  }
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('invitations')
+    .select('content, groom_name, bride_name, wedding_date')
+    .eq('id', invitationId)
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: '알림장을 찾을 수 없습니다.' };
+  const parsed = InvitationContentSchema.safeParse(data.content ?? {});
+  if (!parsed.success) return { ok: false, error: '콘텐츠 파싱 실패.' };
+  if (designHasPhoto(parsed.data))
+    return { ok: false, error: '사진 있는 디자인은 스티커 설정이 필요합니다.' };
+
+  const config = await getSocialProof();
+  const cover = buildPhotolessCover(
+    invitationId,
+    parsed.data,
+    data.groom_name,
+    data.bride_name,
+    data.wedding_date,
+  );
+  const covers = [
+    ...config.covers.filter((c) => c.invitationId !== invitationId),
+    cover,
+  ];
+  const res = await saveSocialProof({ ...config, covers });
+  if (!res.ok) return { ok: false, error: res.error ?? 'save failed' };
+  revalidatePath('/');
+  revalidatePath('/admin/showcase');
+  return { ok: true, covers };
+}
+
+/**
+ * 사진 없는 디자인(일러스트·텍스트 등) 발행 건을 한 번에 모두 커버로 추가.
+ * 이미 등록된 알림장은 건너뛴다(동의 불필요).
+ */
+export async function addAllPhotolessCovers(): Promise<
+  { ok: true; covers: ShowcaseCover[]; added: number } | { ok: false; error: string }
+> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { ok: false, error: 'forbidden' };
+  }
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('invitations')
+    .select('id, groom_name, bride_name, wedding_date, content')
+    .eq('is_published', true)
+    .order('updated_at', { ascending: false })
+    .limit(300);
+  if (error) return { ok: false, error: error.message };
+
+  const config = await getSocialProof();
+  const existing = new Set(config.covers.map((c) => c.invitationId).filter(Boolean));
+  const additions: ShowcaseCover[] = [];
+  for (const row of (data ?? []) as Array<{
+    id: string;
+    groom_name: string | null;
+    bride_name: string | null;
+    wedding_date: string | null;
+    content: unknown;
+  }>) {
+    if (existing.has(row.id)) continue;
+    const parsed = InvitationContentSchema.safeParse(row.content ?? {});
+    if (!parsed.success) continue;
+    if (designHasPhoto(parsed.data)) continue; // 사진 있는 건 제외
+    additions.push(
+      buildPhotolessCover(
+        row.id,
+        parsed.data,
+        row.groom_name,
+        row.bride_name,
+        row.wedding_date,
+      ),
+    );
+  }
+  if (additions.length === 0)
+    return { ok: true, covers: config.covers, added: 0 };
+
+  const covers = [...config.covers, ...additions];
+  const res = await saveSocialProof({ ...config, covers });
+  if (!res.ok) return { ok: false, error: res.error ?? 'save failed' };
+  revalidatePath('/');
+  revalidatePath('/admin/showcase');
+  return { ok: true, covers, added: additions.length };
 }
 
 /**
