@@ -172,20 +172,27 @@ export function ShowcaseEditor({
       img.onerror = () => reject(new Error('메인 사진을 불러오지 못했습니다(CORS).'));
       img.src = loaded.heroImage;
     });
+    // 원본이 클 수 있어 최대 폭 1080 으로 축소(용량↓·업로드 한도 여유) 후 JPEG 로 인코딩.
+    const MAX_W = 1080;
+    const scale = Math.min(1, MAX_W / img.naturalWidth);
+    const cw = Math.max(1, Math.round(img.naturalWidth * scale));
+    const ch = Math.max(1, Math.round(img.naturalHeight * scale));
     const canvas = document.createElement('canvas');
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
+    canvas.width = cw;
+    canvas.height = ch;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('캔버스 생성 실패');
-    ctx.drawImage(img, 0, 0);
+    ctx.drawImage(img, 0, 0, cw, ch);
     for (const s of stickers) {
-      const fontPx = (s.sizePct / 100) * canvas.width;
+      const fontPx = (s.sizePct / 100) * cw;
       ctx.font = `${fontPx}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(s.char, (s.xPct / 100) * canvas.width, (s.yPct / 100) * canvas.height);
+      ctx.fillText(s.char, (s.xPct / 100) * cw, (s.yPct / 100) * ch);
     }
-    const blob: Blob | null = await new Promise((res) => canvas.toBlob((b) => res(b), 'image/png'));
+    const blob: Blob | null = await new Promise((res) =>
+      canvas.toBlob((b) => res(b), 'image/jpeg', 0.9),
+    );
     if (!blob) throw new Error('이미지 인코딩 실패');
     return blob;
   };
@@ -201,9 +208,9 @@ export function ShowcaseEditor({
     try {
       const blob = await composite();
       const fd = new FormData();
-      fd.append('file', new File([blob], 'cover.png', { type: 'image/png' }));
+      fd.append('file', new File([blob], 'cover.jpg', { type: 'image/jpeg' }));
       const up = await uploadShowcaseImage(fd);
-      if (!up.ok) throw new Error(up.error);
+      if (!up || !up.ok) throw new Error(up?.error ?? '업로드 실패');
 
       const content = structuredClone(loaded.content);
       content.main.heroImage = up.url;
@@ -223,7 +230,7 @@ export function ShowcaseEditor({
       const next = [...withoutOld, cover];
       setCovers(next);
       const res = await saveShowcaseCovers(next);
-      if (!res.ok) throw new Error(res.error ?? 'save failed');
+      if (!res || !res.ok) throw new Error(res?.error ?? '저장 실패');
       setMsg('커버가 추가되었습니다.');
       // 편집 상태 초기화(다음 알림장으로).
       setLoaded(null);
