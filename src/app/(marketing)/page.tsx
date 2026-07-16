@@ -23,6 +23,7 @@ import {
   getSocialProof,
   getPublishedCoupleCount,
   getPurchaseConversionPct,
+  getActiveShowcaseIds,
 } from '@/lib/marketing/social-proof';
 import { SocialProof } from '@/components/marketing/SocialProof';
 import type {
@@ -50,11 +51,24 @@ export default async function LandingPage() {
   ]);
   const catalogCount = catalog.length;
 
+  // showcase 커버 중 원본이 삭제·발행취소된 건은 홈에서 자동 제외(스냅샷은 유지).
+  const activeIds = await getActiveShowcaseIds(
+    socialProof.covers.map((c) => c.invitationId),
+  );
+  const socialProofForHome = activeIds
+    ? {
+        ...socialProof,
+        covers: socialProof.covers.filter(
+          (c) => !c.invitationId || activeIds.has(c.invitationId),
+        ),
+      }
+    : socialProof;
+
   return (
     <>
       <Hero aiSnaps={home.aiSnaps} designs={home.designs} />
       <SocialProof
-        config={socialProof}
+        config={socialProofForHome}
         coupleCount={coupleCount}
         purchasePct={purchasePct}
       />

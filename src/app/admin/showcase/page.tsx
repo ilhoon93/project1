@@ -34,8 +34,10 @@ export default async function ShowcaseAdminPage() {
           <span className="ml-2">로그인 계정: {ctx.email}</span>
         </p>
         <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-[11px] leading-relaxed text-amber-800">
-          반드시 <strong>마케팅 노출에 동의한 고객</strong>의 알림장만 등록하세요. 얼굴은
-          스티커로 가리고 이름은 익명(이니셜)으로 저장됩니다.
+          <strong>사진 있는 디자인</strong>은 동의 고객만 등록하고 얼굴은 스티커, 이름은
+          이니셜로 익명화합니다. <strong>사진 없는 디자인</strong>(일러스트·텍스트)은 얼굴
+          노출이 없어 동의 없이 바로 추가할 수 있습니다. 원본 알림장이 삭제·발행취소되면
+          홈에서 자동으로 감춰집니다.
         </p>
       </header>
 

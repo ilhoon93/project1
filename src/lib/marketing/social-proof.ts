@@ -244,6 +244,40 @@ export async function getPublishedCoupleCount(): Promise<number> {
 }
 
 /**
+ * showcase 커버의 원본 알림장 id 중 "현재 발행 중"인 것만 반환(065 RPC).
+ * 삭제·발행취소된 원본을 홈에서 자동으로 감추기 위한 검증용. 실패 시 null →
+ * 호출부는 전체를 그대로 노출(fail-open, 빈 홈 방지).
+ */
+export async function getActiveShowcaseIds(
+  ids: string[],
+): Promise<Set<string> | null> {
+  const unique = Array.from(new Set(ids.filter(Boolean)));
+  if (unique.length === 0) return new Set();
+  try {
+    const supabase = createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc(
+      'public_active_showcase_ids',
+      { ids: unique },
+    );
+    if (error || !Array.isArray(data)) return null;
+    const out = new Set<string>();
+    for (const r of data) {
+      const v =
+        typeof r === 'string'
+          ? r
+          : r && typeof r === 'object'
+            ? (Object.values(r)[0] as unknown)
+            : null;
+      if (typeof v === 'string') out.add(v);
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * "만들어본 고객의 N%가 2주 내로 구매를 결정했어요" 의 N — 제작→결제 전환율(%).
  * public_purchase_conversion_pct() RPC(061). 통계 페이지의 정의와 동일
  * (미결제 & 최종수정 2주 미만 건 제외). 실패·0 이면 0 폴백(문구/타일 미노출).

@@ -10,6 +10,8 @@ import {
   loadInvitationForShowcase,
   uploadShowcaseImage,
   saveShowcaseCovers,
+  addPhotolessCover,
+  addAllPhotolessCovers,
   type ShowcaseCandidate,
 } from './actions';
 
@@ -255,6 +257,41 @@ export function ShowcaseEditor({
 
   const registeredIds = new Set(covers.map((c) => c.invitationId).filter(Boolean));
 
+  // 사진 없는 디자인 — 스티커 없이 바로 추가.
+  const addOnePhotoless = (invitationId: string) => {
+    setMsg(null);
+    startSave(async () => {
+      const res = await addPhotolessCover(invitationId);
+      if (res.ok) {
+        setCovers(res.covers);
+        setMsg('사진 없는 디자인을 추가했습니다.');
+      } else {
+        setMsg(`실패: ${res.error}`);
+      }
+    });
+  };
+
+  const addAllPhotoless = () => {
+    setMsg(null);
+    startSave(async () => {
+      const res = await addAllPhotolessCovers();
+      if (res.ok) {
+        setCovers(res.covers);
+        setMsg(
+          res.added > 0
+            ? `사진 없는 디자인 ${res.added}건을 추가했습니다.`
+            : '추가할 새 디자인이 없습니다.',
+        );
+      } else {
+        setMsg(`실패: ${res.error}`);
+      }
+    });
+  };
+
+  const photolessCount = (candidates ?? []).filter(
+    (c) => !c.hasPhoto && !registeredIds.has(c.id),
+  ).length;
+
   return (
     <div className="flex flex-col gap-6">
       {msg && (
@@ -284,16 +321,29 @@ export function ShowcaseEditor({
           </button>
         </div>
         <p className="text-[11px] leading-relaxed text-[#8B7355]">
-          <strong className="text-[#3D2E1F]">홈 노출에 동의</strong>했고 메인 사진이 있는
-          발행 알림장만 표시됩니다. 카드를 선택하면 아래에서 스티커를 붙일 수 있어요.
+          <strong className="text-[#3D2E1F]">사진 있는 디자인</strong>은 동의(showcase_consent)한
+          발행 건만, <strong className="text-[#3D2E1F]">사진 없는 디자인</strong>(일러스트·텍스트)은
+          얼굴 노출이 없어 <strong className="text-[#3D2E1F]">동의 없이도</strong> 표시됩니다.
+          사진 카드는 선택해 스티커를, 사진 없는 카드는 바로 추가할 수 있어요.
         </p>
+
+        {photolessCount > 0 && (
+          <button
+            type="button"
+            onClick={addAllPhotoless}
+            disabled={savePending}
+            className="self-start rounded-md border border-[#8B7355] px-3 py-1.5 text-[12px] font-medium text-[#8B7355] transition-colors hover:bg-[#8B7355] hover:text-white disabled:opacity-50"
+          >
+            사진 없는 디자인 {photolessCount}건 모두 추가
+          </button>
+        )}
+
         {candErr && <p className="text-[11px] text-red-600">{candErr}</p>}
         {candidates === null ? (
           <p className="py-4 text-center text-[11px] text-[#8B7355]">불러오는 중…</p>
         ) : candidates.length === 0 ? (
           <p className="rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-4 text-[11px] text-[#8B7355]">
-            아직 동의한 알림장이 없습니다. (마이페이지에서 고객이 동의하면 여기에
-            표시됩니다.)
+            표시할 발행 알림장이 없습니다.
           </p>
         ) : (
           <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -304,20 +354,34 @@ export function ShowcaseEditor({
                 <li key={c.id}>
                   <button
                     type="button"
-                    onClick={() => load(c.id)}
-                    disabled={loading}
+                    onClick={() => (c.hasPhoto ? load(c.id) : addOnePhotoless(c.id))}
+                    disabled={loading || savePending}
                     className={`relative block w-full overflow-hidden rounded-lg border text-left transition-colors disabled:opacity-60 ${
                       on ? 'border-[1.5px] border-[#B5614F]' : 'border-[#E8DCC9] hover:border-[#8B7355]'
                     }`}
                   >
-                    <div className="aspect-[3/4] w-full bg-[#FAF7F2]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={c.heroImage} alt="" className="h-full w-full object-cover" />
+                    <div className="grid aspect-[3/4] w-full place-items-center bg-[#FAF7F2]">
+                      {c.hasPhoto ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={c.heroImage} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="px-1 text-center text-[10px] leading-tight text-[#B09B80]">
+                          🎨 사진 없는
+                          <br />
+                          디자인
+                        </span>
+                      )}
                     </div>
-                    {done && (
+                    {done ? (
                       <span className="absolute right-1 top-1 rounded bg-[#B5614F] px-1.5 py-0.5 text-[9px] font-medium text-white">
                         등록됨
                       </span>
+                    ) : (
+                      !c.hasPhoto && (
+                        <span className="absolute right-1 top-1 rounded bg-[#6B8E7A] px-1.5 py-0.5 text-[9px] font-medium text-white">
+                          동의 불필요
+                        </span>
+                      )
                     )}
                     <span className="block truncate px-1.5 py-1 text-[10.5px] text-[#5C4633]">
                       {c.groomName || '신랑'} · {c.brideName || '신부'}
