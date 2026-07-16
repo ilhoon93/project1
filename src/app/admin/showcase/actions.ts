@@ -63,11 +63,23 @@ export async function listShowcaseCandidates(): Promise<
     return { ok: false, error: 'forbidden' };
   }
   const admin = createAdminClient();
+
+  // 동의는 계정 단위 — 포토리뷰 이벤트에 참여(동의)한 계정은 동의 시점 이후에
+  // 발행한 알림장도 모두 동의로 간주한다. (예전 per-invitation showcase_consent
+  // 플래그는 동의 시점의 발행 건에만 찍혀 이후 발행 건이 누락되던 문제 해결.)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: subs } = await (admin as any)
+    .from('review_event_submissions')
+    .select('user_id');
+  const consentedUsers = new Set<string>(
+    ((subs ?? []) as Array<{ user_id: string }>).map((s) => s.user_id),
+  );
+
   // showcase_consent 는 자동생성 DB 타입(063 미반영)에 아직 없어 any 캐스팅.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const q = admin.from('invitations') as any;
   const { data, error } = await q
-    .select('id, groom_name, bride_name, wedding_date, content, showcase_consent')
+    .select('id, user_id, groom_name, bride_name, wedding_date, content, showcase_consent')
     .eq('is_published', true)
     .order('updated_at', { ascending: false })
     .limit(300);
@@ -76,6 +88,7 @@ export async function listShowcaseCandidates(): Promise<
   const candidates: ShowcaseCandidate[] = [];
   for (const row of (data ?? []) as Array<{
     id: string;
+    user_id: string;
     groom_name: string | null;
     bride_name: string | null;
     wedding_date: string | null;
@@ -85,8 +98,9 @@ export async function listShowcaseCandidates(): Promise<
     const parsed = InvitationContentSchema.safeParse(row.content ?? {});
     if (!parsed.success) continue;
     const hasPhoto = designHasPhoto(parsed.data);
-    // 사진 있는 디자인은 동의 필수, 사진 없는 디자인은 동의 불필요.
-    if (hasPhoto && !row.showcase_consent) continue;
+    // 사진 있는 디자인은 동의 필수(계정 참여 or 레거시 플래그), 사진 없는 디자인은 동의 불필요.
+    const ownerConsented = consentedUsers.has(row.user_id) || !!row.showcase_consent;
+    if (hasPhoto && !ownerConsented) continue;
     candidates.push({
       id: row.id,
       groomName: row.groom_name ?? '',
