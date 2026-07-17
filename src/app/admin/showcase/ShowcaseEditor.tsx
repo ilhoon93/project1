@@ -35,10 +35,10 @@ interface Sticker {
   sizePct: number;
 }
 
-/** 이름 자동 익명화 — 첫 글자 + ○ (예: 민준 → 민○). 비면 ○○. */
+/** 이름 자동 익명화 — 성(첫 글자) + ○○ (예: 박주환 → 박○○). 비면 ○○. */
 function initial(name: string): string {
   const t = name.trim();
-  return t ? `${t[0]}○` : '○○';
+  return t ? `${t[0]}○○` : '○○';
 }
 
 export function ShowcaseEditor({

@@ -65,6 +65,7 @@ export function InvitationPreview({
           isPreview
           scoped
           forceBgm={withBgm && !cover}
+          coverOnly={cover}
         />
       </div>
     </div>

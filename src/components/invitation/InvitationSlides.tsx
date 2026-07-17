@@ -48,6 +48,11 @@ interface Props {
   ownerData?: OwnerData;
   /** isPreview 여도 배경음악 플레이어를 노출 — 마케팅 전체보기 모달의 샘플 음악용. */
   forceBgm?: boolean;
+  /**
+   * coverOnly: 메인 표지 한 장만 렌더(다른 슬라이드로 넘어갈 수 없음). 홈 쇼케이스
+   * 커버처럼 표지만 보여줄 때 사용. pageOrder 를 무시하고 main 만 노출한다.
+   */
+  coverOnly?: boolean;
 }
 
 export function InvitationSlides({
@@ -61,6 +66,7 @@ export function InvitationSlides({
   mode = 'guest',
   ownerData,
   forceBgm,
+  coverOnly,
 }: Props) {
   // 운영자가 고른 출력 형식으로 사전 포맷팅 — 자식 슬라이드들은 받은 문자열을
   // 그대로 표시(슬라이드별로 다른 변환을 거치지 않게 단일 출처).
@@ -180,8 +186,11 @@ export function InvitationSlides({
     ),
   };
 
-  const orderedKeys = reconcilePageOrder(content.theme.pageOrder);
-  
+  // coverOnly 면 표지(main) 한 장만 — pageOrder 무시(다음 슬라이드 없음).
+  const orderedKeys = coverOnly
+    ? (['main'] as SectionKey[])
+    : reconcilePageOrder(content.theme.pageOrder);
+
   // SlideContainer의 cloneElement가 정상 작동하도록 컴포넌트 자체를 넘김
   const slides = orderedKeys
     .map((key) => slidesByKey[key])
