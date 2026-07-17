@@ -35,10 +35,10 @@ interface Sticker {
   sizePct: number;
 }
 
-/** 이름 자동 익명화 — 첫 글자 + ○ (예: 민준 → 민○). 비면 ○○. */
+/** 이름 자동 익명화 — 성(첫 글자) + ○○ (예: 박주환 → 박○○). 비면 ○○. */
 function initial(name: string): string {
   const t = name.trim();
-  return t ? `${t[0]}○` : '○○';
+  return t ? `${t[0]}○○` : '○○';
 }
 
 export function ShowcaseEditor({
@@ -560,6 +560,7 @@ export function ShowcaseEditor({
                       content: c.content,
                     }}
                     cover
+                    coverOnly
                   />
                   {c.hidden && (
                     <span className="absolute left-1 top-1 rounded bg-[#6B4E1E] px-1.5 py-0.5 text-[9px] font-medium text-white">

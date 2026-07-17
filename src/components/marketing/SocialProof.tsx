@@ -269,6 +269,7 @@ function CoverCard({ cover }: { cover: ShowcaseCover }) {
           content: cover.content,
         }}
         cover
+        coverOnly
       />
     </div>
   );

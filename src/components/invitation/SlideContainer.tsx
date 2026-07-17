@@ -177,7 +177,10 @@ export function SlideContainer({
         ))}
       </motion.div>
 
-      {/* 하단 점 표시 (인디케이터) */}
+      {/* 하단 점 표시 (인디케이터) — 슬라이드가 2장 이상일 때만. 표지 1장짜리
+          (쇼케이스 커버 등)에서는 인디케이터·화살표를 아예 렌더하지 않아 다음
+          슬라이드로 넘어갈 수 없다. */}
+      {slidesLen > 1 && (
       <div className="pointer-events-none absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 gap-1.5">
         {slides.map((_, i) => (
           <button
@@ -193,8 +196,10 @@ export function SlideContainer({
           />
         ))}
       </div>
+      )}
 
       {/* 좌우 화살표: 끝 위치에선 disabled:opacity-0 으로 자연스레 사라짐 */}
+      {slidesLen > 1 && (
       <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-between px-2 md:px-4">
         <button
           type="button"
@@ -217,6 +222,7 @@ export function SlideContainer({
           ›
         </button>
       </div>
+      )}
     </div>
   );
 }
