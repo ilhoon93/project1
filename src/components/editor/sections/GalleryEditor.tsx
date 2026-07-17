@@ -11,7 +11,7 @@ import { GripVertical } from 'lucide-react';
 import { useEditorStore } from '@/stores/editor';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from '@/lib/utils/nanoid';
-import { GALLERY_LAYOUTS } from '@/types/invitation';
+import { GALLERY_LAYOUTS, type GalleryImageFit } from '@/types/invitation';
 import { SectionEditor, type SectionDragProps } from '../SectionEditor';
 import { SectionHeaderFields } from './SectionHeaderFields';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,11 @@ import {
   compressImage,
   validateImageFile,
 } from '@/lib/uploads';
+
+const IMAGE_FIT_OPTIONS: { key: GalleryImageFit; name: string; hint: string }[] = [
+  { key: 'cover', name: '채우기', hint: '가득 채움(잘림)' },
+  { key: 'contain', name: '전체보기', hint: '잘림 없이' },
+];
 
 const LAYOUT_LABEL: Record<(typeof GALLERY_LAYOUTS)[number], { name: string; hint: string }> = {
   grid: { name: '그리드', hint: '바둑판 형태' },
@@ -267,6 +272,38 @@ export function GalleryEditor({ drag }: { drag?: SectionDragProps }) {
               );
             })}
           </div>
+        </div>
+
+        {/* 사진 표시 방식 — 갤러리 전체 일괄 적용 */}
+        <div className="flex flex-col gap-2 text-sm">
+          <span className="font-medium text-foreground">사진 표시 방식</span>
+          <div className="grid grid-cols-2 gap-2">
+            {IMAGE_FIT_OPTIONS.map(({ key, name, hint }) => {
+              const selected = (gallery.imageFit ?? 'cover') === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => patch('gallery', { ...gallery, imageFit: key })}
+                  aria-pressed={selected}
+                  className={`flex flex-col items-center gap-1 rounded-md border px-3 py-3 text-xs transition-colors ${
+                    selected
+                      ? 'border-foreground bg-foreground text-background'
+                      : 'border-input bg-background text-foreground hover:bg-muted'
+                  }`}
+                >
+                  <span className="font-medium">{name}</span>
+                  <span className={selected ? 'opacity-80' : 'text-muted-foreground'}>
+                    {hint}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            전체보기는 사진을 잘리지 않게 보여주고, 남는 여백은 같은 사진의 흐린 배경으로
+            채웁니다.
+          </p>
         </div>
 
         {/* 업로더 */}

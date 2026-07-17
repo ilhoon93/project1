@@ -196,9 +196,16 @@ export function SocialProof({
                       className="w-[230px] flex-shrink-0 sm:w-[250px]"
                     >
                       <div className="flex h-full flex-col rounded-xl border border-[var(--wd-line)] bg-[var(--wd-cream)] px-3.5 py-3">
-                        {(review.rating ?? 0) > 0 && (
-                          <Stars rating={review.rating} size={13} />
-                        )}
+                        <div className="flex items-center justify-between gap-2">
+                          {(review.rating ?? 0) > 0 && (
+                            <Stars rating={review.rating} size={13} />
+                          )}
+                          {review.author?.trim() && (
+                            <span className="truncate text-[11px] font-medium text-[var(--wd-mute)]">
+                              {review.author}
+                            </span>
+                          )}
+                        </div>
                         {review.caption && (
                           <p className="mt-1.5 line-clamp-[8] break-keep text-[12.5px] leading-relaxed text-[var(--wd-ink)]">
                             {review.caption}

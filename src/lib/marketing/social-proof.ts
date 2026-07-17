@@ -23,6 +23,8 @@ export interface SocialProofReview {
   caption: string;
   /** 별점 (0~5). 0 이면 별점 없음으로 간주(평균에서 제외). */
   rating: number;
+  /** 표시용 작성자 아이디/닉네임(예: hj***). 비면 미표시. */
+  author: string;
 }
 
 /** 사회적 증거에 흐르는 "알림장 메인 디자인 사진" 한 장. */
@@ -104,6 +106,8 @@ const ReviewSchema = z.object({
   caption: z.string().default(''),
   // 구버전(별점 없던 저장본) 호환 — 기본 5점.
   rating: z.number().min(0).max(5).default(5),
+  // 표시용 아이디/닉네임(구버전 저장본 호환 — 기본 빈 문자열).
+  author: z.string().default(''),
 });
 
 const DesignSchema = z.object({
