@@ -24,11 +24,18 @@ export function InvitationPreview({
   design,
   cover = false,
   withBgm = false,
+  coverOnly = false,
 }: {
   design: SampleDesign;
   cover?: boolean;
   /** 전체보기 모달처럼 몰입형 뷰에서 샘플 배경음악을 재생/토글 노출. 표지(cover)는 항상 무음. */
   withBgm?: boolean;
+  /**
+   * coverOnly: 표지(main) 한 장만 렌더하고 다음 슬라이드로 넘어갈 수 없게 한다.
+   * 홈 쇼케이스 커버 전용 — 커버 스냅샷엔 고객 실제 사생활(가족/계좌/갤러리)이
+   * 들어 있어 표지 뒤로 넘어가면 안 된다. 샘플 디자인 미리보기는 false(스와이프 가능).
+   */
+  coverOnly?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
@@ -65,7 +72,7 @@ export function InvitationPreview({
           isPreview
           scoped
           forceBgm={withBgm && !cover}
-          coverOnly={cover}
+          coverOnly={coverOnly}
         />
       </div>
     </div>

@@ -560,6 +560,7 @@ export function ShowcaseEditor({
                       content: c.content,
                     }}
                     cover
+                    coverOnly
                   />
                   {c.hidden && (
                     <span className="absolute left-1 top-1 rounded bg-[#6B4E1E] px-1.5 py-0.5 text-[9px] font-medium text-white">
