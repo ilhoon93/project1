@@ -565,13 +565,21 @@ export const StorySectionSchema = z
 
 export const GALLERY_LAYOUTS = ['slide', 'grid'] as const;
 
+// 사진 표시 방식.
+//   - cover  : 3:4 영역을 가득 채우고 넘치는 부분은 잘라냄(기존 동작).
+//   - contain: 사진 전체를 잘림 없이 보여주고, 남는 여백은 같은 사진의 흐린 배경으로 채움.
+export const GALLERY_IMAGE_FITS = ['cover', 'contain'] as const;
+export type GalleryImageFit = (typeof GALLERY_IMAGE_FITS)[number];
+
 export const GallerySectionSchema = z
   .object({
     enabled: z.boolean().default(true),
     layout: z.enum(GALLERY_LAYOUTS).default('grid'),
+    /** 큰 사진 표시 방식 — 갤러리 전체에 일괄 적용. 기본 cover(기존 동작 유지). */
+    imageFit: z.enum(GALLERY_IMAGE_FITS).default('cover'),
     images: z.array(z.string().url()).max(20).default([]),
   })
-  .default({ enabled: true, layout: 'grid', images: [] });
+  .default({ enabled: true, layout: 'grid', imageFit: 'cover', images: [] });
 
 export const VideoSectionSchema = z
   .object({

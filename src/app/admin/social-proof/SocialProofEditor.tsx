@@ -345,13 +345,24 @@ export function SocialProofEditor({
               key={review.id}
               className="flex flex-col gap-2 rounded-md border border-[#E8DCC9] bg-[#FAF7F2] p-3"
             >
-              <label className="flex flex-col gap-1">
-                <span className={labelCls}>별점</span>
-                <RatingPicker
-                  value={review.rating}
-                  onChange={(rating) => updateReview(review.id, { rating })}
-                />
-              </label>
+              <div className="flex items-end gap-2">
+                <label className="flex flex-col gap-1">
+                  <span className={labelCls}>별점</span>
+                  <RatingPicker
+                    value={review.rating}
+                    onChange={(rating) => updateReview(review.id, { rating })}
+                  />
+                </label>
+                <label className="flex flex-1 flex-col gap-1">
+                  <span className={labelCls}>아이디</span>
+                  <input
+                    className={inputCls}
+                    value={review.author}
+                    onChange={(e) => updateReview(review.id, { author: e.target.value })}
+                    placeholder="예: hj***"
+                  />
+                </label>
+              </div>
               <label className="flex flex-col gap-1">
                 <span className={labelCls}>리뷰 문구</span>
                 <textarea
@@ -389,7 +400,7 @@ export function SocialProofEditor({
         <button
           type="button"
           onClick={() =>
-            addReview({ id: nanoid(10), imageUrl: '', caption: '', rating: 5 })
+            addReview({ id: nanoid(10), imageUrl: '', caption: '', rating: 5, author: '' })
           }
           className="self-start rounded border border-[#8B7355] px-3 py-1.5 text-[12px] font-medium text-[#8B7355] transition-colors hover:bg-[#8B7355] hover:text-white"
         >

@@ -5,6 +5,7 @@ import { Heart } from 'lucide-react';
 import type {
   InvitationContent,
   ResolvedSectionHeader,
+  GalleryImageFit,
 } from '@/types/invitation';
 import { SectionHeader } from './SectionHeader';
 
@@ -37,6 +38,7 @@ export function GallerySlide({
   }
 
   const layout = gallery.layout ?? 'grid';
+  const fit = gallery.imageFit ?? 'cover';
 
   return (
     <section className="flex min-h-full flex-col gap-6 px-6 py-16">
@@ -49,6 +51,7 @@ export function GallerySlide({
           isPreview={isPreview}
           mode={mode}
           initialLikes={initialLikes}
+          fit={fit}
         />
       ) : (
         <GallerySlider
@@ -57,9 +60,38 @@ export function GallerySlide({
           isPreview={isPreview}
           mode={mode}
           initialLikes={initialLikes}
+          fit={fit}
         />
       )}
     </section>
+  );
+}
+
+/**
+ * 갤러리 큰 사진 — cover 는 3:4 를 채우고(잘림), contain 은 전체를 보여주고 남는
+ * 여백을 같은 사진의 흐린 배경으로 채운다(잘림 없음).
+ */
+function GalleryHeroImage({ src, fit }: { src: string; fit: GalleryImageFit }) {
+  return (
+    <>
+      {fit === 'contain' && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl"
+          draggable={false}
+        />
+      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt=""
+        className={`relative h-full w-full ${fit === 'contain' ? 'object-contain' : 'object-cover'}`}
+        draggable={false}
+      />
+    </>
   );
 }
 
@@ -160,12 +192,14 @@ function GallerySlider({
   isPreview,
   mode,
   initialLikes,
+  fit,
 }: {
   images: string[];
   invitationId: string;
   isPreview?: boolean;
   mode: 'guest' | 'owner';
   initialLikes?: Record<number, number>;
+  fit: GalleryImageFit;
 }) {
   const [index, setIndex] = useState(0);
   const [lightbox, setLightbox] = useState(false);
@@ -240,14 +274,8 @@ function GallerySlider({
           aria-label={`사진 ${clamped + 1} / ${images.length} 확대`}
           className="relative block aspect-[3/4] w-full overflow-hidden rounded-md bg-black/5"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={images[clamped]}
-            alt=""
-            className="h-full w-full object-cover"
-            draggable={false}
-          />
-          <span className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
+          <GalleryHeroImage src={images[clamped]} fit={fit} />
+          <span className="pointer-events-none absolute bottom-2 right-2 z-10 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
             {clamped + 1} / {images.length}
           </span>
         </button>
@@ -308,12 +336,14 @@ function GalleryGrid({
   isPreview,
   mode,
   initialLikes,
+  fit,
 }: {
   images: string[];
   invitationId: string;
   isPreview?: boolean;
   mode: 'guest' | 'owner';
   initialLikes?: Record<number, number>;
+  fit: GalleryImageFit;
 }) {
   const [selected, setSelected] = useState(0);
   const [lightbox, setLightbox] = useState(false);
@@ -329,14 +359,8 @@ function GalleryGrid({
           aria-label="선택된 사진 확대"
           className="relative block aspect-[3/4] w-full overflow-hidden rounded-md bg-black/5"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={images[selected]}
-            alt=""
-            className="h-full w-full object-cover"
-            draggable={false}
-          />
-          <span className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
+          <GalleryHeroImage src={images[selected]} fit={fit} />
+          <span className="pointer-events-none absolute bottom-2 right-2 z-10 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
             {selected + 1} / {images.length}
           </span>
         </button>

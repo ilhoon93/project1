@@ -325,6 +325,7 @@ export function buildDesign(
   content.gallery = {
     enabled: true,
     layout: 'grid',
+    imageFit: 'cover',
     images: t.galleryImageIds.map((id) => `${CAT}/${id}.jpg`),
   };
 
