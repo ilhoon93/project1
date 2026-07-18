@@ -20,7 +20,7 @@ export function BasicInfoSlide({ basic, groomName, brideName, weddingDate, heade
   const hasGreeting = basic.greeting.enabled && basic.greeting.text.trim();
   const familyOn = basic.family.enabled;
   const showDate = basic.showDate && !!weddingDate;
-  const hasTogether = basic.together.enabled && !!basic.together.sinceDate;
+  const hasTogether = !!basic.together?.enabled && !!basic.together?.sinceDate;
 
   const groomFamily = familyLine(basic.family.groomFather, basic.family.groomMother);
   const brideFamily = familyLine(basic.family.brideFather, basic.family.brideMother);
