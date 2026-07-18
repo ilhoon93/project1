@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { InvitationContent } from '@/types/invitation';
+import {
+  InvitationContentSchema,
+  type InvitationContent,
+} from '@/types/invitation';
 
 type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
 
@@ -196,6 +199,20 @@ export const useEditorStore = create<EditorState>()(
         lastEditedAt: state.lastEditedAt,
         lastSavedServerTs: state.lastSavedServerTs,
       }),
+      // 리하이드레이션 시 저장된 content 를 스키마로 다시 파싱해 신규 필드(together·
+      // imageFit·sectionHeaders 등)의 기본값을 채운다. 스키마 변경 이전에 저장된
+      // 구버전 content 가 그대로 되살아나 `basic.together` 등 undefined 접근으로
+      // 에디터가 크래시(무료로 만들기→에디터 진입 시 오류)하던 문제를 방지.
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<EditorState>;
+        let content = p.content ?? null;
+        if (content) {
+          const parsed = InvitationContentSchema.safeParse(content);
+          // 파싱 실패 시 버리고(null) init 이 서버 데이터로 채우게 둔다.
+          content = parsed.success ? parsed.data : null;
+        }
+        return { ...current, ...p, content };
+      },
     },
   ),
 );

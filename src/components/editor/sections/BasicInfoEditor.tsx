@@ -180,18 +180,17 @@ export function BasicInfoEditor({ drag }: { drag?: SectionDragProps }) {
       );
     }
     if (key === 'together') {
-      const elapsed = basic.together.sinceDate
-        ? elapsedYMD(basic.together.sinceDate)
-        : null;
+      const together = basic.together ?? { enabled: false, sinceDate: null };
+      const elapsed = together.sinceDate ? elapsedYMD(together.sinceDate) : null;
       return (
         <SubBox key={key} header={header}>
-          {basic.together.enabled && (
+          {together.enabled && (
             <div className="flex flex-col gap-2">
               <DateInput
                 label="처음 만난 날"
-                value={basic.together.sinceDate}
+                value={together.sinceDate}
                 onChange={(iso) =>
-                  set({ ...basic, together: { ...basic.together, sinceDate: iso } })
+                  set({ ...basic, together: { ...together, sinceDate: iso } })
                 }
               />
               <p className="text-[11px] text-muted-foreground">
@@ -269,7 +268,7 @@ function subEnabled(basic: BasicInfo, key: BasicSubKey): boolean {
     case 'date':
       return basic.showDate;
     case 'together':
-      return basic.together.enabled;
+      return !!basic.together?.enabled;
     case 'greeting':
       return basic.greeting.enabled;
     case 'quote':
@@ -290,9 +289,11 @@ function toggleSub(
     case 'date':
       set({ ...basic, showDate: v });
       return;
-    case 'together':
-      set({ ...basic, together: { ...basic.together, enabled: v } });
+    case 'together': {
+      const cur = basic.together ?? { enabled: false, sinceDate: null };
+      set({ ...basic, together: { ...cur, enabled: v } });
       return;
+    }
     case 'greeting':
       set({ ...basic, greeting: { ...basic.greeting, enabled: v } });
       return;
