@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z, ZodError } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { checkAdmin } from '@/lib/auth/admin';
 import {
   isCommerceApiConfigured,
   resolveProductOrder,
@@ -144,43 +145,63 @@ export async function POST(req: Request) {
     );
   }
 
-  // 옵션 없는 상품은 optionCode 가 비어있을 수 있어 '' 로 매칭한다.
-  const optionCode = parsed.optionCode ?? parsed.optionManageCode ?? '';
-
   // 4) 옵션 매핑대로 다중 크레딧 적립.
-  const { data: grantResult, error: grantErr } = await admin.rpc(
-    'grant_smartstore_order',
-    {
+  //    커머스 API 가 "옵션번호"(판매자센터 옵션번호)를 어느 필드에 담는지 환경/버전
+  //    마다 달라(optionCode 가 비거나 조합 ID 일 수 있음), 여러 후보 코드로 순차
+  //    매칭한다. grant RPC 는 매핑 실패 시 부수효과 없이 'option_not_mapped' 만
+  //    돌려주므로 후보를 여러 번 시도해도 안전(중복 적립 없음).
+  const candidateCodes = Array.from(
+    new Set(
+      [parsed.optionCode, parsed.optionManageCode, '']
+        .filter((v): v is string => v !== undefined && v !== null),
+    ),
+  );
+
+  let grantResult: unknown = null;
+  let mapped = false;
+  for (const code of candidateCodes) {
+    const { data, error: grantErr } = await admin.rpc('grant_smartstore_order', {
       p_user_id: user.id,
       p_product_no: parsed.productId,
-      p_option_code: optionCode,
+      p_option_code: code,
       p_amount: parsed.totalPaymentAmount ?? 0,
       p_naver_order_no: parsed.orderId ?? null,
       p_naver_product_order_no: productOrderNo,
       p_raw: raw as never,
-    },
-  );
-
-  if (grantErr) {
-    console.error('[orders/register] grant_smartstore_order failed', grantErr);
-    return NextResponse.json({ error: grantErr.message }, { status: 500 });
+    });
+    if (grantErr) {
+      console.error('[orders/register] grant_smartstore_order failed', grantErr);
+      return NextResponse.json({ error: grantErr.message }, { status: 500 });
+    }
+    const r = data as { error?: string } | null;
+    if (r?.error === 'option_not_mapped') continue; // 다음 후보 시도
+    grantResult = data;
+    mapped = true;
+    break;
   }
 
-  const result = grantResult as {
-    error?: string;
-    product_no?: string;
-    option_code?: string;
-  } | null;
+  if (!mapped) {
+    // 진단용 — 실제로 커머스 API 가 내려준 옵션 식별자를 모두 남긴다.
+    const diag = {
+      productId: parsed.productId,
+      optionCode: parsed.optionCode ?? null,
+      optionManageCode: parsed.optionManageCode ?? null,
+      productOption: parsed.productOption ?? null,
+      productName: parsed.productName ?? null,
+      candidates: candidateCodes,
+    };
+    console.error('[orders/register] option not mapped (all candidates)', diag);
 
-  if (result?.error === 'option_not_mapped') {
-    console.error('[orders/register] option not mapped', {
-      product_no: result.product_no,
-      option_code: result.option_code,
-    });
+    // 관리자(본인 테스트)에게는 어떤 값으로 시드해야 하는지 바로 보이도록 진단을 붙인다.
+    const isAdmin = !!(await checkAdmin());
+    const base =
+      '등록되지 않은 상품 옵션입니다. 고객센터로 문의해주시면 적립해 드리겠습니다.';
     return NextResponse.json(
       {
-        error:
-          '등록되지 않은 상품 옵션입니다. 고객센터로 문의해주시면 적립해 드리겠습니다.',
+        error: isAdmin
+          ? `${base}\n[진단] 상품번호=${diag.productId ?? '-'} · optionCode=${diag.optionCode ?? '(없음)'} · optionManageCode=${diag.optionManageCode ?? '(없음)'} · 옵션표시="${diag.productOption ?? '-'}"`
+          : base,
+        ...(isAdmin ? { diagnostic: diag } : {}),
       },
       { status: 422 },
     );
