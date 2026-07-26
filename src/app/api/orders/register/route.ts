@@ -145,25 +145,47 @@ export async function POST(req: Request) {
     );
   }
 
-  // 4) 옵션 매핑대로 다중 크레딧 적립.
-  //    커머스 API 가 "옵션번호"(판매자센터 옵션번호)를 어느 필드에 담는지 환경/버전
-  //    마다 달라(optionCode 가 비거나 조합 ID 일 수 있음), 여러 후보 코드로 순차
-  //    매칭한다. grant RPC 는 매핑 실패 시 부수효과 없이 'option_not_mapped' 만
-  //    돌려주므로 후보를 여러 번 시도해도 안전(중복 적립 없음).
-  const candidateCodes = Array.from(
-    new Set(
-      [parsed.optionCode, parsed.optionManageCode, '']
-        .filter((v): v is string => v !== undefined && v !== null),
-    ),
-  );
+  // 4) 옵션 식별 → 매핑 행의 option_code 로 적립.
+  //    이 스토어의 단독형 "패키지" 옵션은 커머스 API 가 optionCode 없이 productOption
+  //    텍스트("패키지: 알림장 기본")로만 내려준다. 그래서 옵션번호 대신 옵션명으로도
+  //    매칭한다: naver_option_grants 에서 (option_code 일치) 또는 (option_name 일치)
+  //    행을 찾아, 그 행의 option_code 로 기존 grant RPC 를 호출한다.
+  const apiCode = (parsed.optionCode ?? parsed.optionManageCode ?? '').trim();
+  const apiName = extractOptionName(parsed.productOption);
+  const norm = (s: string) => s.replace(/\s+/g, '').toLowerCase();
+
+  // option_name 컬럼이 아직 없을 수 있어(마이그 066 미적용) select('*') 로 방어.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: grantRows } = await (admin as any)
+    .from('naver_option_grants')
+    .select('*')
+    .eq('product_no', parsed.productId)
+    .eq('active', true);
+
+  let matchedCode: string | null = null;
+  for (const row of (grantRows ?? []) as Array<{
+    option_code: string;
+    option_name?: string | null;
+  }>) {
+    if (apiCode && row.option_code === apiCode) {
+      matchedCode = row.option_code;
+      break;
+    }
+    if (apiName && row.option_name && norm(row.option_name) === norm(apiName)) {
+      matchedCode = row.option_code;
+      break;
+    }
+  }
+  // 옵션이 아예 없는 상품이면 '' 로 매칭 시도(기존 동작 보존).
+  if (matchedCode === null && !apiCode && !apiName) matchedCode = '';
 
   let grantResult: unknown = null;
   let mapped = false;
-  for (const code of candidateCodes) {
+  if (matchedCode !== null) {
     const { data, error: grantErr } = await admin.rpc('grant_smartstore_order', {
       p_user_id: user.id,
       p_product_no: parsed.productId,
-      p_option_code: code,
+      p_option_code: matchedCode,
       p_amount: parsed.totalPaymentAmount ?? 0,
       p_naver_order_no: parsed.orderId ?? null,
       p_naver_product_order_no: productOrderNo,
@@ -174,10 +196,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: grantErr.message }, { status: 500 });
     }
     const r = data as { error?: string } | null;
-    if (r?.error === 'option_not_mapped') continue; // 다음 후보 시도
-    grantResult = data;
-    mapped = true;
-    break;
+    if (r?.error !== 'option_not_mapped') {
+      grantResult = data;
+      mapped = true;
+    }
   }
 
   if (!mapped) {
@@ -187,10 +209,10 @@ export async function POST(req: Request) {
       optionCode: parsed.optionCode ?? null,
       optionManageCode: parsed.optionManageCode ?? null,
       productOption: parsed.productOption ?? null,
+      optionNameParsed: apiName || null,
       productName: parsed.productName ?? null,
-      candidates: candidateCodes,
     };
-    console.error('[orders/register] option not mapped (all candidates)', diag);
+    console.error('[orders/register] option not mapped', diag);
 
     // 관리자(본인 테스트)에게는 어떤 값으로 시드해야 하는지 바로 보이도록 진단을 붙인다.
     const isAdmin = !!(await checkAdmin());
@@ -208,4 +230,15 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ success: true, result: grantResult });
+}
+
+/**
+ * 커머스 API productOption 텍스트에서 옵션명만 뽑는다.
+ * 예: "패키지: 알림장 기본" → "알림장 기본". (그룹명 접두 "패키지:" 제거)
+ * 콜론이 없으면 원문 그대로. 여러 옵션 조합은 이 스토어에 없어 첫 콜론 기준으로 충분.
+ */
+function extractOptionName(productOption?: string | null): string {
+  if (!productOption) return '';
+  const idx = productOption.indexOf(':');
+  return (idx >= 0 ? productOption.slice(idx + 1) : productOption).trim();
 }
