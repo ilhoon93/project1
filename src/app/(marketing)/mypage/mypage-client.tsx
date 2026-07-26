@@ -1821,7 +1821,7 @@ function RegisterOrderCard() {
       </form>
       {msg && (
         <p
-          className={`text-xs ${
+          className={`whitespace-pre-line text-xs ${
             msg.kind === 'ok' ? 'text-emerald-600' : 'text-destructive'
           }`}
         >
