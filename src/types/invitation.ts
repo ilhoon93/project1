@@ -202,14 +202,14 @@ export const IllustrationDesignSchema = z
     dateBox: z
       .object({
         enabled: z.boolean().default(true),
-        fontSize: z.number().min(11).max(22).default(15),
+        fontSize: z.number().min(11).max(30).default(15),
         position: PositionSchema.default({ x: 50, y: 78 }),
       })
       .default({ enabled: true, fontSize: 15, position: { x: 50, y: 78 } }),
     nameBox: z
       .object({
         enabled: z.boolean().default(true),
-        fontSize: z.number().min(12).max(24).default(16),
+        fontSize: z.number().min(12).max(32).default(16),
         position: PositionSchema.default({ x: 50, y: 70 }),
       })
       .default({ enabled: true, fontSize: 16, position: { x: 50, y: 70 } }),
@@ -277,7 +277,7 @@ export const TextDesignSchema = z
     dateBox: z
       .object({
         enabled: z.boolean().default(true),
-        fontSize: z.number().min(11).max(22).default(15),
+        fontSize: z.number().min(11).max(30).default(15),
         position: PositionSchema.default({ x: 50, y: 80 }),
       })
       .default({ enabled: true, fontSize: 15, position: { x: 50, y: 80 } }),
@@ -356,14 +356,14 @@ export const FrameDesignSchema = z
     nameBox: z
       .object({
         enabled: z.boolean().default(true),
-        fontSize: z.number().min(12).max(28).default(20),
+        fontSize: z.number().min(12).max(36).default(20),
         position: PositionSchema.default({ x: 50, y: 78 }),
       })
       .default({ enabled: true, fontSize: 20, position: { x: 50, y: 78 } }),
     dateBox: z
       .object({
         enabled: z.boolean().default(true),
-        fontSize: z.number().min(11).max(22).default(14),
+        fontSize: z.number().min(11).max(30).default(14),
         position: PositionSchema.default({ x: 50, y: 85 }),
       })
       .default({ enabled: true, fontSize: 14, position: { x: 50, y: 85 } }),
