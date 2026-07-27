@@ -408,7 +408,7 @@ export function PosterDesignControls({ design, onChange, greeting, onGreetingCha
                 label="글자 크기"
                 value={design.dateBox.fontSize}
                 min={12}
-                max={28}
+                max={40}
                 unit="px"
                 onChange={(fontSize) =>
                   onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
@@ -442,7 +442,7 @@ export function PosterDesignControls({ design, onChange, greeting, onGreetingCha
                 label="글자 크기"
                 value={design.nameBox.fontSize}
                 min={14}
-                max={32}
+                max={40}
                 unit="px"
                 onChange={(fontSize) =>
                   onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
@@ -662,7 +662,7 @@ export function IllustrationDesignControls({ design, onChange, greeting, onGreet
                 label="글자 크기"
                 value={design.dateBox.fontSize}
                 min={11}
-                max={22}
+                max={30}
                 unit="px"
                 onChange={(fontSize) =>
                   onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
@@ -696,7 +696,7 @@ export function IllustrationDesignControls({ design, onChange, greeting, onGreet
                 label="글자 크기"
                 value={design.nameBox.fontSize}
                 min={12}
-                max={24}
+                max={32}
                 unit="px"
                 onChange={(fontSize) =>
                   onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
@@ -878,7 +878,7 @@ export function TextDesignControls({ design, onChange, greeting, onGreetingChang
                 label="글자 크기"
                 value={design.dateBox.fontSize}
                 min={11}
-                max={22}
+                max={30}
                 unit="px"
                 onChange={(fontSize) =>
                   onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
@@ -1148,7 +1148,7 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
                 label="글자 크기"
                 value={design.dateBox.fontSize}
                 min={11}
-                max={22}
+                max={30}
                 unit="px"
                 onChange={(fontSize) =>
                   onChange({ ...design, dateBox: { ...design.dateBox, fontSize } })
@@ -1182,7 +1182,7 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
                 label="글자 크기"
                 value={design.nameBox.fontSize}
                 min={12}
-                max={28}
+                max={36}
                 unit="px"
                 onChange={(fontSize) =>
                   onChange({ ...design, nameBox: { ...design.nameBox, fontSize } })
@@ -1669,8 +1669,7 @@ function SliderRow({
   unit?: string;
   onChange: (v: number) => void;
 }) {
-  // 슬라이더 + 우측에 직접 입력 가능한 숫자 칸. 입력값은 min/max 로 clamp.
-  const clamp = (v: number) => Math.min(max, Math.max(min, v));
+  // 슬라이더 + 우측에 직접 입력 가능한 숫자 칸(NumberField). 범위 검증은 NumberField.
   return (
     <div className="flex items-center gap-2 text-xs">
       <span className="w-14 shrink-0 text-muted-foreground">{label}</span>
@@ -1686,27 +1685,87 @@ function SliderRow({
         aria-label={label}
       />
       {rightHint && <span className="shrink-0 text-muted-foreground">{rightHint}</span>}
-      {/* 직접 입력 — 값 칸을 number input 으로. 비우면 무시, 범위를 벗어나면 clamp. */}
+      {/* 직접 입력 — 자유롭게 지우고 입력 가능. 범위 밖이면 blur 시 알림 + 한계값 원복. */}
       <span className="flex shrink-0 items-center gap-0.5">
-        <input
-          type="number"
+        <NumberField
+          value={value}
           min={min}
           max={max}
-          step={1}
-          value={Math.round(value)}
-          onChange={(e) => {
-            const raw = e.target.value;
-            if (raw === '') return;
-            const n = Number(raw);
-            if (Number.isNaN(n)) return;
-            onChange(clamp(n));
-          }}
-          aria-label={`${label} 값 직접 입력`}
-          className="w-11 rounded border border-input bg-background px-1 py-0.5 text-right tabular-nums text-muted-foreground [appearance:textfield] focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring/30 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          onChange={onChange}
+          ariaLabel={`${label} 값 직접 입력`}
         />
         {unit && <span className="text-muted-foreground">{unit}</span>}
       </span>
     </div>
+  );
+}
+
+/**
+ * 숫자 직접 입력 칸 — 타이핑 중에는 자유롭게 지우고 입력할 수 있게 draft(문자열) 로
+ * 두고, 범위 내 유효값이면 즉시 반영한다. 포커스를 벗어날 때(blur) 비었거나 잘못된
+ * 값이면 현재값으로 원복하고, 범위를 벗어난 값이면 작은 알림 후 한계값으로 원복한다.
+ */
+function NumberField({
+  value,
+  min,
+  max,
+  onChange,
+  ariaLabel,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  onChange: (v: number) => void;
+  ariaLabel: string;
+}) {
+  const [draft, setDraft] = useState<string>(String(Math.round(value)));
+  const focused = useRef(false);
+
+  // 외부에서 값이 바뀌면(슬라이더 조작 등) 포커스 중이 아닐 때만 draft 동기화.
+  useEffect(() => {
+    if (!focused.current) setDraft(String(Math.round(value)));
+  }, [value]);
+
+  const commit = () => {
+    focused.current = false;
+    const t = draft.trim();
+    if (t === '' || Number.isNaN(Number(t))) {
+      setDraft(String(Math.round(value))); // 비움/오입력 → 원복
+      return;
+    }
+    let n = Math.round(Number(t));
+    if (n < min || n > max) {
+      const clamped = Math.min(max, Math.max(min, n));
+      window.alert(`${min}~${max} 범위로 입력할 수 있어요. ${clamped}(으)로 조정됩니다.`);
+      n = clamped;
+    }
+    setDraft(String(n));
+    if (n !== Math.round(value)) onChange(n);
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={draft}
+      onFocus={() => {
+        focused.current = true;
+      }}
+      onChange={(e) => {
+        const raw = e.target.value.replace(/[^\d]/g, ''); // 숫자만, 빈 값 허용
+        setDraft(raw);
+        if (raw === '') return; // 비움은 허용하되 커밋하지 않음
+        const n = Number(raw);
+        // 범위 내 유효값이면 즉시 반영(라이브 프리뷰). 범위 밖이면 blur 때 처리.
+        if (!Number.isNaN(n) && n >= min && n <= max) onChange(n);
+      }}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+      }}
+      aria-label={ariaLabel}
+      className="w-11 rounded border border-input bg-background px-1 py-0.5 text-right tabular-nums text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring/30"
+    />
   );
 }
 
