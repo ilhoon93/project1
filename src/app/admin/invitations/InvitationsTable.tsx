@@ -31,6 +31,8 @@ export interface InvitationRow {
   pub_slug: string | null;
   owner_token: string | null;
   archived: boolean | null;
+  /** 수정(제작) 여부 — updated_at<>created_at 또는 편집 흔적 존재. 070 마이그 이전이면 null. */
+  was_made: boolean | null;
 }
 
 function statusOf(r: InvitationRow): {
@@ -130,6 +132,7 @@ export function InvitationsTable({
               <th className="px-3 py-2 text-left font-medium">이메일</th>
               <th className="px-3 py-2 text-left font-medium">신랑 · 신부</th>
               <th className="px-3 py-2 text-left font-medium">예식일</th>
+              <th className="px-2 py-2 text-center font-medium">수정 여부</th>
               <th className="px-2 py-2 text-center font-medium">상태</th>
               <th className="px-3 py-2 text-left font-medium">보기</th>
             </tr>
@@ -155,6 +158,19 @@ export function InvitationsTable({
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-[12px] text-[#5C4633]">
                     {r.wedding_date ?? '-'}
+                  </td>
+                  <td className="px-2 py-2 text-center">
+                    {r.was_made == null ? (
+                      <span className="text-[10px] text-[#B0A088]">-</span>
+                    ) : r.was_made ? (
+                      <span className="inline-block rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700 ring-1 ring-sky-200">
+                        수정됨
+                      </span>
+                    ) : (
+                      <span className="inline-block rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-500 ring-1 ring-stone-200">
+                        미수정
+                      </span>
+                    )}
                   </td>
                   <td className="px-2 py-2 text-center">
                     <span
@@ -201,7 +217,7 @@ export function InvitationsTable({
             })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-10 text-center text-xs text-[#8B7355]">
+                <td colSpan={8} className="px-3 py-10 text-center text-xs text-[#8B7355]">
                   알림장이 없습니다.
                 </td>
               </tr>
