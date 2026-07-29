@@ -1268,6 +1268,23 @@ function SavedTab({
     }
   };
 
+  const handleDuplicate = async (id: string) => {
+    if (busyId) return;
+    setBusyId(id);
+    setErrorMsg(null);
+    try {
+      const res = await fetch(`/api/invitations/${id}/duplicate`, { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      // 복사본은 미발행 draft — 바로 편집기로 이동해 (혼주용이면) 계좌만 바꾸면 된다.
+      // 이동하므로 busyId 는 리셋하지 않는다(페이지 전환).
+      router.push(`/edit/${data.id}`);
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : '복사 실패');
+      setBusyId(null);
+    }
+  };
+
   if (invitations.length === 0) {
     return (
       <section className="flex flex-col gap-4">
@@ -1327,11 +1344,13 @@ function SavedTab({
             key={inv.id}
             inv={inv}
             busy={busyId === inv.id || inv.publications.some((p) => busyId === p.id)}
+            atLimit={atLimit}
             archiveBalance={archiveBalance}
             onArchive={handleArchive}
             onPublish={() => {
               setModal({ kind: 'publish', invitation: inv });
             }}
+            onDuplicate={() => handleDuplicate(inv.id)}
             onDelete={() => setModal({ kind: 'delete', invitation: inv })}
           />
         ))}
@@ -1371,16 +1390,20 @@ function SavedTab({
 function SavedRow({
   inv,
   busy,
+  atLimit,
   archiveBalance,
   onArchive,
   onPublish,
+  onDuplicate,
   onDelete,
 }: {
   inv: MyPageInvitation;
   busy: boolean;
+  atLimit: boolean;
   archiveBalance: number;
   onArchive: (publicationId: string) => void;
   onPublish: () => void;
+  onDuplicate: () => void;
   onDelete: () => void;
 }) {
   // 이미지 알림장(관리자 테스트) 모달 표시 여부. 안내는 모달 내부에서 처리.
@@ -1483,6 +1506,21 @@ function SavedRow({
         {/* 데스크톱: 에디터에 좌측 실시간 미리보기가 있으므로 에디터 페이지로 */}
         <Button asChild variant="outline" size="sm" className="hidden lg:inline-flex">
           <Link href={`/edit/${inv.id}`}>미리보기</Link>
+        </Button>
+        {/* 복사 — 이 알림장을 그대로 복제해 새 미발행 draft 생성(혼주용 등). 복사 후
+            편집기로 이동해 계좌 등만 바꾸면 된다. 한도 초과 시 비활성. */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onDuplicate}
+          disabled={busy || atLimit}
+          title={
+            atLimit
+              ? `알림장은 최대 ${MAX_INVITATIONS}개까지 만들 수 있어요. 삭제 후 복사해주세요.`
+              : '이 알림장을 복사해 새로 만들기 (혼주용 등 — 복사 후 계좌만 변경)'
+          }
+        >
+          {busy ? '복사 중...' : '복사'}
         </Button>
         {/* 혼인서약서 PDF — 발행 후에만 활성화. 발행 전엔 비활성. */}
         <CertificatePdfButton invitationId={inv.id} disabled={!hasEverPublished} />
