@@ -1,0 +1,49 @@
+'use client';
+
+import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
+import { DesignPreset } from './DesignPreset';
+import { CompositionPreset } from './CompositionPreset';
+
+/**
+ * "추천으로 시작하기" — 에디터 맨 위 접이식 패널.
+ *
+ * 추천 디자인(표지 룩)과 추천 구성(슬라이드 묶음)을 각각 골라 빠르게 시작한다.
+ * 두 선택 모두 내용(이름·사진·계좌·글)은 보존하고 스타일/노출만 바꾼다.
+ *
+ * defaultOpen: 한 번도 저장 안 된 신규 알림장이면 펼쳐서 안내, 그 외엔 접힘.
+ */
+export function QuickStartPanel({ defaultOpen = false }: { defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <section className="overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+      >
+        <div>
+          <h2 className="text-sm font-semibold">추천으로 시작하기</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            추천 디자인과 구성을 골라 빠르게 시작해요. 이름·사진·글은 그대로 유지돼요.
+          </p>
+        </div>
+        <ChevronDown
+          size={16}
+          className={`shrink-0 text-muted-foreground transition-transform ${
+            open ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+
+      {open && (
+        <div className="flex flex-col gap-5 border-t bg-background px-4 py-4">
+          <DesignPreset />
+          <CompositionPreset />
+        </div>
+      )}
+    </section>
+  );
+}
