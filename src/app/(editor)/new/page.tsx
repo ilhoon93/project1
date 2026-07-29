@@ -26,7 +26,16 @@ export default async function NewInvitationPage({ searchParams }: PageProps) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect('/login?next=/');
+  if (!user) {
+    // "비슷하게 만들기"(preset 지정)로 들어온 경우엔 선택한 디자인을 로그인 후까지
+    // 이어가 곧바로 그 디자인으로 만들어지게 한다. preset 없이 들어온 일반 "새 알림장
+    // 만들기"는 기존대로 홈으로 보내(next=/) 로그인만으로 빈 알림장이 자동 생성되지
+    // 않도록 유지한다. (auth 콜백이 same-origin 상대경로만 허용하므로 안전.)
+    const next = searchParams.preset
+      ? `/new?preset=${encodeURIComponent(searchParams.preset)}`
+      : '/';
+    redirect(`/login?next=${encodeURIComponent(next)}`);
+  }
 
   // 한도 초과: 마이페이지로 안내하는 안내 화면 렌더 (자동 생성 X)
   const { count } = await supabase
