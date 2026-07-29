@@ -18,6 +18,7 @@ import { AccountEditor } from '@/components/editor/sections/AccountEditor';
 import { ClosingEditor } from '@/components/editor/sections/ClosingEditor';
 import { ThemeEditor } from '@/components/editor/sections/ThemeEditor';
 import { BasicInfoEditor } from '@/components/editor/sections/BasicInfoEditor';
+import { DesignPreset } from '@/components/editor/DesignPreset';
 import { CompositionPreset } from '@/components/editor/CompositionPreset';
 import { EditorLivePreview } from '@/components/editor/EditorLivePreview';
 import { EditorMobilePreview } from '@/components/editor/EditorMobilePreview';
@@ -346,6 +347,7 @@ function SectionList() {
           그대로 받는다. 동시에 querySelector 범위를 카드 목록으로 한정해 클론을 제외. */}
       <div ref={listRef} className="contents">
         {renderSection('main')}
+        <DesignPreset />
         <CompositionPreset />
         {movable.map((key) => renderSection(key))}
         {renderSection('closing')}

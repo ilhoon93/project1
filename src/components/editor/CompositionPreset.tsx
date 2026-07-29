@@ -34,7 +34,7 @@ const PRESETS: readonly Preset[] = [
   { id: 'simple', name: '간편', desc: '기본정보 · 계좌', on: ['basic', 'account'] },
   {
     id: 'middle',
-    name: '중간',
+    name: '표준',
     desc: '간편 + 갤러리 · 방명록',
     on: ['basic', 'gallery', 'guestbook', 'account'],
   },
