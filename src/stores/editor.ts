@@ -7,6 +7,27 @@ import {
 
 type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
 
+/**
+ * 첫 편집 계측 — invitation 당 이번 로드에서 1회만 sendBeacon(POST) 을 쏜다.
+ * 자동저장이 아니라 "편집 흔적 있음" 만 서버에 남긴다(멱등). 실패는 무시.
+ */
+function reportFirstEdit(invitationId: string) {
+  const url = `/api/invitations/${invitationId}/mark-edited`;
+  try {
+    if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+      navigator.sendBeacon(url);
+      return;
+    }
+  } catch {
+    // sendBeacon 미지원/차단 — fetch 폴백.
+  }
+  try {
+    void fetch(url, { method: 'POST', keepalive: true }).catch(() => {});
+  } catch {
+    // 계측 실패는 무시.
+  }
+}
+
 interface EditorMeta {
   groomName: string;
   brideName: string;
@@ -40,6 +61,12 @@ interface EditorState {
    * 캐시된 옛 RSC 가 store 를 덮어쓰는 회귀 방지. init 시에도 함께 갱신.
    */
   lastSavedServerTs: string | null;
+  /**
+   * 이번 로드에서 "첫 편집" 계측 비콘을 이미 쐈는지(비영속). 자동저장이 아니라
+   * 편집 흔적만 1회 남긴다. persist 에서 제외되어 새로 열 때마다 재-arm 되며,
+   * 서버 upsert 가 멱등이라 중복 발사는 무해하다.
+   */
+  editReported: boolean;
 
   init: (
     id: string,
@@ -69,6 +96,7 @@ export const useEditorStore = create<EditorState>()(
       unsaved: false,
       lastEditedAt: null,
       lastSavedServerTs: null,
+      editReported: false,
 
       init: (id, meta, content, serverUpdatedAt) =>
         set({
@@ -80,6 +108,7 @@ export const useEditorStore = create<EditorState>()(
           unsaved: false,
           lastEditedAt: null,
           lastSavedServerTs: serverUpdatedAt,
+          editReported: false,
         }),
 
       reset: () =>
@@ -92,9 +121,10 @@ export const useEditorStore = create<EditorState>()(
           unsaved: false,
           lastEditedAt: null,
           lastSavedServerTs: null,
+          editReported: false,
         }),
 
-      patchSection: (key, value) =>
+      patchSection: (key, value) => {
         set((state) =>
           state.content
             ? {
@@ -104,9 +134,18 @@ export const useEditorStore = create<EditorState>()(
                 lastEditedAt: Date.now(),
               }
             : state,
-        ),
+        );
+        // 첫 편집 계측 — 이번 로드에서 1회만 비콘 발사.
+        {
+          const { invitationId, editReported } = get();
+          if (invitationId && !editReported) {
+            set({ editReported: true });
+            reportFirstEdit(invitationId);
+          }
+        }
+      },
 
-      setMeta: (partial) =>
+      setMeta: (partial) => {
         set((state) =>
           state.meta
             ? {
@@ -116,7 +155,16 @@ export const useEditorStore = create<EditorState>()(
                 lastEditedAt: Date.now(),
               }
             : state,
-        ),
+        );
+        // 첫 편집 계측 — 이번 로드에서 1회만 비콘 발사.
+        {
+          const { invitationId, editReported } = get();
+          if (invitationId && !editReported) {
+            set({ editReported: true });
+            reportFirstEdit(invitationId);
+          }
+        }
+      },
 
       save: async () => {
         const { invitationId, content, meta, status } = get();
