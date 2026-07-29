@@ -28,6 +28,8 @@ interface Preset {
   name: string;
   desc: string;
   on: readonly ToggleKey[];
+  /** 가장 무난한 기본 구성 — 버튼에 "추천" 뱃지를 표시한다. */
+  recommended?: boolean;
 }
 
 const PRESETS: readonly Preset[] = [
@@ -37,6 +39,7 @@ const PRESETS: readonly Preset[] = [
     name: '표준',
     desc: '간편 + 갤러리 · 방명록',
     on: ['basic', 'gallery', 'guestbook', 'account'],
+    recommended: true,
   },
   { id: 'detail', name: '상세', desc: '모든 슬라이드', on: [...TOGGLE_KEYS] },
 ];
@@ -74,8 +77,7 @@ export function CompositionPreset() {
     <div>
       <h3 className="text-xs font-semibold text-foreground">추천 구성</h3>
       <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground">
-        표시할 슬라이드를 한 번에 골라요. 내용은 지워지지 않고 노출 여부만 바뀌며, 아래에서
-        개별로 다시 켜고 끌 수 있어요.
+        표시할 슬라이드를 한 번에 골라요.
       </p>
       <div className="mt-2 grid grid-cols-3 gap-2">
         {PRESETS.map((p) => {
@@ -86,10 +88,15 @@ export function CompositionPreset() {
               type="button"
               onClick={() => apply(p)}
               aria-pressed={active}
-              className={`flex flex-col items-center gap-0.5 rounded-md border px-2 py-2 text-center transition-colors ${
+              className={`relative flex flex-col items-center gap-0.5 rounded-md border px-2 py-2 text-center transition-colors ${
                 active ? 'border-primary bg-primary/10' : 'border-input hover:bg-muted/50'
               }`}
             >
+              {p.recommended && (
+                <span className="absolute -top-1.5 right-1 rounded-full bg-primary px-1.5 py-px text-[9px] font-medium leading-tight text-primary-foreground shadow-sm">
+                  추천
+                </span>
+              )}
               <span className="text-xs font-semibold">{p.name}</span>
               <span className="text-[10px] leading-tight text-muted-foreground">
                 {p.desc}

@@ -1,5 +1,6 @@
 import {
   defaultInvitationContent,
+  type FrameVariant,
   type InvitationContent,
 } from '@/types/invitation';
 import {
@@ -444,6 +445,9 @@ interface Seed {
   petalType: PetalType;
   font: FontKey;
   layout: InvitationContent['main']['layout'];
+  // 액자(frame) 레이아웃의 표지 셰이프. 미지정 시 스키마 기본값(polaroid).
+  // 에디터 "추천 디자인" 프리셋(design-presets.ts)과 동일하게 맞춰 둔다.
+  frameVariant?: FrameVariant;
   heroImageId: string;
   groomName: string;
   brideName: string;
@@ -453,14 +457,14 @@ interface Seed {
 
 const SEEDS: Seed[] = [
   { id: 'cream-poster', name: '크림 포스터', layoutLabel: '풀이미지 · 벚꽃', colorTheme: 'cream', petalType: 'sakura', font: 'gowun', layout: 'poster', heroImageId: 'studio-floral-pastel', groomName: '민준', brideName: '서연', weddingDate: '2026-05-23', greetingShort: '저희 두 사람, 결혼합니다' },
-  { id: 'blush-frame', name: '블러쉬 프레임', layoutLabel: '액자 · 꽃잎', colorTheme: 'blush', petalType: 'flower', font: 'songMyung', layout: 'frame', heroImageId: 'studio-ivory-satin-couple', groomName: '도윤', brideName: '지우', weddingDate: '2026-06-13', greetingShort: '봄날의 약속' },
+  { id: 'blush-frame', name: '블러쉬 프레임', layoutLabel: '액자 · 꽃잎', colorTheme: 'blush', petalType: 'flower', font: 'songMyung', layout: 'frame', frameVariant: 'classic', heroImageId: 'studio-ivory-satin-couple', groomName: '도윤', brideName: '지우', weddingDate: '2026-06-13', greetingShort: '봄날의 약속' },
   { id: 'forest-illust', name: '포레스트 보태니컬', layoutLabel: '일러스트 · 잎', colorTheme: 'forest', petalType: 'leaf', font: 'jeju', layout: 'illustration', heroImageId: 'garden-finger-heart', groomName: '우진', brideName: '서윤', weddingDate: '2026-09-19', greetingShort: '초록 가득한 날에' },
   { id: 'midnight-cinematic', name: '미드나잇 시네마틱', layoutLabel: '풀이미지 · 별빛', colorTheme: 'midnight', petalType: 'starlight', font: 'pretendard', layout: 'poster', heroImageId: 'seoul-nightview', groomName: '시우', brideName: '예린', weddingDate: '2026-10-24', greetingShort: '별이 빛나는 밤에' },
   { id: 'navy-classic', name: '네이비 클래식', layoutLabel: '풀이미지 · 별', colorTheme: 'navy', petalType: 'star', font: 'gmarket', layout: 'poster', heroImageId: 'studio-couple-blackwhite', groomName: '준호', brideName: '다은', weddingDate: '2026-11-07', greetingShort: '변치 않을 약속' },
   { id: 'letter-minimal', name: '편지지 미니멀', layoutLabel: '텍스트 · 무효과', colorTheme: 'letterPaper', petalType: 'none', font: 'songMyung', layout: 'text', heroImageId: 'studio-arch-window-couple', groomName: '현우', brideName: '소율', weddingDate: '2026-04-11', greetingShort: 'We are getting married' },
-  { id: 'lavender-starlight', name: '라벤더 오로라', layoutLabel: '액자 · 별빛', colorTheme: 'lavender', petalType: 'starlight', font: 'gowun', layout: 'frame', heroImageId: 'city-goldenhour-balcony', groomName: '지호', brideName: '유나', weddingDate: '2026-08-29', greetingShort: '함께 물든 노을' },
+  { id: 'lavender-starlight', name: '라벤더 오로라', layoutLabel: '액자 · 별빛', colorTheme: 'lavender', petalType: 'starlight', font: 'gowun', layout: 'frame', frameVariant: 'arch', heroImageId: 'city-goldenhour-balcony', groomName: '지호', brideName: '유나', weddingDate: '2026-08-29', greetingShort: '함께 물든 노을' },
   { id: 'champagne-gold', name: '샴페인 골드', layoutLabel: '풀이미지 · 보케', colorTheme: 'champagne', petalType: 'bokeh', font: 'songMyung', layout: 'poster', heroImageId: 'canola-field-walk', groomName: '건우', brideName: '채원', weddingDate: '2026-05-09', greetingShort: '햇살 가득한 날' },
-  { id: 'rose-romantic', name: '더스티 로즈', layoutLabel: '액자 · 흰 꽃잎', colorTheme: 'rose', petalType: 'whitePetal', font: 'gowun', layout: 'frame', heroImageId: 'studio-shoulder-lean', groomName: '태경', brideName: '하린', weddingDate: '2026-07-04', greetingShort: '로즈빛 약속' },
+  { id: 'rose-romantic', name: '더스티 로즈', layoutLabel: '액자 · 흰 꽃잎', colorTheme: 'rose', petalType: 'whitePetal', font: 'gowun', layout: 'frame', frameVariant: 'polaroid', heroImageId: 'studio-shoulder-lean', groomName: '태경', brideName: '하린', weddingDate: '2026-07-04', greetingShort: '로즈빛 약속' },
   { id: 'sky-poster', name: '스카이 포스터', layoutLabel: '풀이미지 · 하트', colorTheme: 'sky', petalType: 'heart', font: 'gowun', layout: 'poster', heroImageId: 'meadow-blue-sky-couple', groomName: '하준', brideName: '아윤', weddingDate: '2026-04-25', greetingShort: '맑은 봄날에' },
   { id: 'pearl-minimal', name: '펄 미니멀', layoutLabel: '텍스트 · 무효과', colorTheme: 'pearl', petalType: 'none', font: 'songMyung', layout: 'text', heroImageId: 'beige-wall-cheek-lean', groomName: '윤서', brideName: '서아', weddingDate: '2026-03-14', greetingShort: 'Save the date' },
   { id: 'charcoal-modern', name: '차콜 모던', layoutLabel: '일러스트 · 잎', colorTheme: 'charcoal', petalType: 'leaf', font: 'pretendard', layout: 'illustration', heroImageId: 'studio-greenwall-glasses', groomName: '도현', brideName: '예지', weddingDate: '2026-12-05', greetingShort: '모던한 시작' },
@@ -471,6 +475,8 @@ function seedToConfig(s: Seed): DesignConfig {
   main.layout = s.layout;
   main.greeting = s.greetingShort;
   main.heroImage = null;
+  // 액자 프리셋은 셰이프(variant)까지 맞춰 줘야 에디터 추천 디자인과 같은 예시가 된다.
+  if (s.frameVariant) main.frameDesign = { ...main.frameDesign, variant: s.frameVariant };
   return {
     id: s.id,
     enabled: true,
