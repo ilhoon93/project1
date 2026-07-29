@@ -18,8 +18,7 @@ import { AccountEditor } from '@/components/editor/sections/AccountEditor';
 import { ClosingEditor } from '@/components/editor/sections/ClosingEditor';
 import { ThemeEditor } from '@/components/editor/sections/ThemeEditor';
 import { BasicInfoEditor } from '@/components/editor/sections/BasicInfoEditor';
-import { DesignPreset } from '@/components/editor/DesignPreset';
-import { CompositionPreset } from '@/components/editor/CompositionPreset';
+import { QuickStartPanel } from '@/components/editor/QuickStartPanel';
 import { EditorLivePreview } from '@/components/editor/EditorLivePreview';
 import { EditorMobilePreview } from '@/components/editor/EditorMobilePreview';
 
@@ -47,6 +46,8 @@ interface Props {
   content: InvitationContent;
   /** 서버 invitations.updated_at — 로컬 lastEditedAt 와 비교해 어느 쪽이 최신인지 판정. */
   serverUpdatedAt: string | null;
+  /** 신규(미저장) 알림장이면 "추천으로 시작하기" 패널을 펼친 상태로 시작. */
+  recommendOpen?: boolean;
 }
 
 export function EditorClient({
@@ -54,6 +55,7 @@ export function EditorClient({
   meta,
   content,
   serverUpdatedAt,
+  recommendOpen = false,
 }: Props) {
   const init = useEditorStore((s) => s.init);
   const status = useEditorStore((s) => s.status);
@@ -131,6 +133,7 @@ export function EditorClient({
           </div>
 
           <main className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-4 py-6 pb-32 lg:max-w-none lg:px-0 lg:py-4">
+            <QuickStartPanel defaultOpen={recommendOpen} />
             <ThemeEditor />
             <SectionList />
           </main>
@@ -347,8 +350,6 @@ function SectionList() {
           그대로 받는다. 동시에 querySelector 범위를 카드 목록으로 한정해 클론을 제외. */}
       <div ref={listRef} className="contents">
         {renderSection('main')}
-        <DesignPreset />
-        <CompositionPreset />
         {movable.map((key) => renderSection(key))}
         {renderSection('closing')}
       </div>

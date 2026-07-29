@@ -35,37 +35,33 @@ export function DesignPreset() {
   };
 
   return (
-    <section className="overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm">
-      <div className="px-4 py-3">
-        <h2 className="text-sm font-semibold">메인디자인 빠른설정</h2>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          표지 색상·폰트·배경효과·형태를 한 번에 골라요. 이름·사진·문구는 그대로
-          유지되며, 아래 &ldquo;메인&rdquo;·&ldquo;테마&rdquo;에서 세부 조정할 수 있어요.
-        </p>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {DESIGN_PRESETS.map((p) => {
-            const active = keyOf(p) === currentKey;
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => apply(p)}
-                aria-pressed={active}
-                className={`flex flex-col items-start gap-0.5 rounded-md border px-2.5 py-2 text-left transition-colors ${
-                  active
-                    ? 'border-primary bg-primary/10'
-                    : 'border-input hover:bg-muted/50'
-                }`}
-              >
-                <span className="text-xs font-semibold">{p.name}</span>
-                <span className="text-[10px] leading-tight text-muted-foreground">
-                  {p.layoutLabel}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+    <div>
+      <h3 className="text-xs font-semibold text-foreground">추천 디자인</h3>
+      <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground">
+        표지 색상·폰트·배경효과·형태를 한 번에 골라요. 아래 &ldquo;메인&rdquo;·&ldquo;테마&rdquo;에서
+        세부 조정할 수 있어요.
+      </p>
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {DESIGN_PRESETS.map((p) => {
+          const active = keyOf(p) === currentKey;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => apply(p)}
+              aria-pressed={active}
+              className={`flex flex-col items-start gap-0.5 rounded-md border px-2.5 py-2 text-left transition-colors ${
+                active ? 'border-primary bg-primary/10' : 'border-input hover:bg-muted/50'
+              }`}
+            >
+              <span className="text-xs font-semibold">{p.name}</span>
+              <span className="text-[10px] leading-tight text-muted-foreground">
+                {p.layoutLabel}
+              </span>
+            </button>
+          );
+        })}
       </div>
-    </section>
+    </div>
   );
 }

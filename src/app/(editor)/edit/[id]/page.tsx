@@ -13,7 +13,7 @@ export default async function EditPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('invitations')
-    .select('id, groom_name, bride_name, wedding_date, content, is_published, updated_at')
+    .select('id, groom_name, bride_name, wedding_date, content, is_published, created_at, updated_at')
     .eq('id', params.id)
     .maybeSingle();
 
@@ -36,6 +36,8 @@ export default async function EditPage({ params }: { params: { id: string } }) {
       }}
       content={content}
       serverUpdatedAt={data.updated_at}
+      // 한 번도 저장된 적 없는 신규 알림장이면 "추천으로 시작하기" 패널을 펼쳐 안내.
+      recommendOpen={data.updated_at === data.created_at}
     />
   );
 }
