@@ -243,7 +243,68 @@ export function MyPageClient({
           )}
         />
       )}
+
+      <WithdrawSection />
     </main>
+  );
+}
+
+// ── 회원 탈퇴 (익명화) ────────────────────────────────────────
+
+function WithdrawSection() {
+  const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const handleWithdraw = async () => {
+    setBusy(true);
+    setErrorMsg(null);
+    try {
+      const res = await fetch('/api/account/withdraw', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      // 서버에서 세션까지 로그아웃됨 → 홈으로.
+      router.replace('/');
+      router.refresh();
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : '탈퇴 처리에 실패했어요');
+      setBusy(false);
+      setConfirming(false);
+    }
+  };
+
+  return (
+    <section className="mt-4 border-t pt-6">
+      <h2 className="text-sm font-medium text-muted-foreground">회원 탈퇴</h2>
+      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+        탈퇴하면 내 알림장·사진·AI 웨딩스냅·남은 크레딧이 모두 삭제되며 복구할 수 없어요.
+        발행된 공개 링크도 즉시 만료됩니다. (전자상거래법에 따라 결제·거래 기록은 개인정보를
+        제거한 형태로만 일정 기간 보관됩니다.)
+      </p>
+      {errorMsg && <p className="mt-2 text-xs text-destructive">{errorMsg}</p>}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setConfirming(true)}
+        disabled={busy}
+        className="mt-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+      >
+        회원 탈퇴
+      </Button>
+
+      {confirming && (
+        <ConfirmDialog
+          title="정말 탈퇴하시겠어요?"
+          description="내 알림장·사진·AI 웨딩스냅·남은 크레딧이 모두 영구 삭제되고 복구할 수 없어요. 발행된 공개 링크도 즉시 만료됩니다. 결제·거래 기록은 법령에 따라 개인정보를 제거한 형태로만 보관됩니다."
+          confirmLabel={busy ? '탈퇴 처리 중...' : '탈퇴하기'}
+          confirmVariant="destructive"
+          busy={busy}
+          onCancel={() => !busy && setConfirming(false)}
+          onConfirm={handleWithdraw}
+        />
+      )}
+    </section>
   );
 }
 
