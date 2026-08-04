@@ -133,7 +133,10 @@ function PhoneFrame({ children }: { children: React.ReactNode }) {
       {/* 화면 = 정확히 9:18 → InvitationPreview 가 왜곡 없이 가득 채움.
           bg 는 베젤(#15110E) 과 동일하게 — 다크 테마 디자인 표지에서 베젤/스크린
           경계에 흰색 seam(rounded radius 안티에일리어싱) 이 안 보이게. */}
-      <div className="relative aspect-[1/2] w-[228px] overflow-hidden rounded-[21px] bg-[#15110E]">
+      {/* clip-path 로 라운드 사각형을 기하학적으로 클립 — overflow-hidden 만으로는
+          내부 scale transform 된 미리보기가 아래쪽 라운드 코너를 미세하게 삐져나오는
+          현상이 있어, transform 된 하위요소까지 확실히 잘라 seam 을 없앤다. */}
+      <div className="relative aspect-[1/2] w-[228px] overflow-hidden rounded-[21px] bg-[#15110E] [clip-path:inset(0_round_21px)]">
         <div className="absolute left-1/2 top-3 z-30 h-[6px] w-[64px] -translate-x-1/2 rounded-full bg-black/80" />
         {children}
       </div>
