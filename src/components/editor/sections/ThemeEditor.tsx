@@ -90,6 +90,34 @@ export function ThemeEditor() {
           </Field>
         </div>
 
+        {/* 혼주용 큰 글씨 — 본문 글씨를 전반적으로 키워 어르신도 잘 보이게(표지 제외). */}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={theme.hostMode}
+          aria-label="혼주용 큰 글씨 사용 여부"
+          onClick={() => setTheme({ ...theme, hostMode: !theme.hostMode })}
+          className="flex items-center justify-between gap-3 rounded-md border border-input px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
+        >
+          <span className="flex flex-col">
+            <span className="text-sm font-medium text-foreground">혼주용 큰 글씨</span>
+            <span className="mt-0.5 text-[11px] leading-tight text-muted-foreground">
+              어르신도 잘 보이도록 본문 글씨를 전반적으로 키워요. (표지 이름·날짜 크기는 그대로)
+            </span>
+          </span>
+          <span
+            className={`inline-flex h-5 w-9 shrink-0 items-center overflow-hidden rounded-full p-0.5 transition-colors ${
+              theme.hostMode ? 'bg-primary' : 'bg-muted-foreground/30'
+            }`}
+          >
+            <span
+              className={`block h-4 w-4 rounded-full bg-background shadow-sm transition-transform ${
+                theme.hostMode ? 'translate-x-4' : 'translate-x-0'
+              }`}
+            />
+          </span>
+        </button>
+
         {/* 배경 음악 */}
         <BgmField
           invitationId={invitationId}

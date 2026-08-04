@@ -207,6 +207,7 @@ export function InvitationSlides({
         scoped={scoped}
         isPreview={isPreview}
         forceBgm={forceBgm}
+        hostMode={content.theme.hostMode}
       >
         {slides}
       </SlideContainer>

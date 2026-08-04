@@ -305,3 +305,19 @@
 .mw-thin-scroll::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * 혼주용 큰 글씨 모드 (theme.hostMode)
+ * SlideContainer 루트에 .wd-host-text 가 붙으면, 본문(정보 슬라이드)의 rem 기반
+ * Tailwind 글자 크기를 전반적으로 ~12% 키워 어르신도 잘 보이게 한다. 간격·이미지 등
+ * 레이아웃은 그대로 두고 글자 크기만 키워 디자인을 크게 해치지 않는다.
+ * (표지 이름·날짜는 인라인 px 라 대상이 아니며, 사용자가 직접 크기 조절한다.)
+ * 클래스 결합 선택자라 기본 유틸리티(.text-sm 등)보다 우선한다.
+ * ───────────────────────────────────────────────────────────── */
+.wd-host-text .text-xs   { font-size: 0.84rem; line-height: 1.15rem; }
+.wd-host-text .text-sm   { font-size: 0.98rem; line-height: 1.4rem; }
+.wd-host-text .text-base { font-size: 1.12rem; line-height: 1.65rem; }
+.wd-host-text .text-lg   { font-size: 1.26rem; line-height: 1.75rem; }
+.wd-host-text .text-xl   { font-size: 1.4rem;  line-height: 1.9rem; }
+.wd-host-text .text-2xl  { font-size: 1.7rem;  line-height: 2.1rem; }
+.wd-host-text .text-3xl  { font-size: 2.1rem;  line-height: 2.4rem; }
