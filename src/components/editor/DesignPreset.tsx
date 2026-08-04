@@ -1,6 +1,5 @@
 'use client';
 
-import { useRef } from 'react';
 import { useEditorStore } from '@/stores/editor';
 import type { EditorSampleDesign } from '@/lib/editor/design-presets';
 
@@ -50,38 +49,32 @@ export function DesignPreset({
     (s) => !!s.content?.main.heroImage?.includes(SAMPLE_PHOTO_MARK),
   );
 
-  // 직전에 자동 로딩한 샘플 데이터 스냅샷 — 사용자가 이후 직접 바꿨는지 판별용.
-  const lastSample = useRef<null | {
-    heroImage: string | null;
-    greeting: string;
-    groom: string;
-    bride: string;
-    date: string | null;
-  }>(null);
-
   if (currentKey === null) return null;
 
-  // 샘플 데이터를 지금 로딩해도 되는지 — 새 알림장이고, 데이터가 비어 있거나
-  // 직전에 우리가 넣은 샘플 값 그대로일 때만(= 사용자가 아직 안 건드림).
-  const dataUntouched = (): boolean => {
+  // 샘플 데이터를 지금 로딩(교체)해도 되는지 — 새 알림장이고, 현재 표지 데이터가
+  // "비어 있거나 어떤 샘플과 정확히 일치"할 때만 true. 사용자가 직접 넣은 사진·글은
+  // 어떤 샘플과도 일치하지 않으므로 보존되고, 직전에 자동 로딩된 샘플 데이터는 어떤
+  // 샘플과 일치하므로 다음 샘플 클릭 시 그 샘플 값으로 교체된다(이전 샘플이 남지 않음).
+  // ref/스냅샷에 의존하지 않아 리마운트에도 안전하다.
+  const canLoadSampleData = (): boolean => {
+    if (!isFresh) return false;
     const { content: c, meta } = useEditorStore.getState();
     if (!c || !meta) return false;
-    const last = lastSample.current;
-    if (last === null) {
-      return (
-        !c.main.heroImage &&
-        !c.main.greeting &&
-        !meta.groomName &&
-        !meta.brideName &&
-        !meta.weddingDate
-      );
-    }
-    return (
-      c.main.heroImage === last.heroImage &&
-      c.main.greeting === last.greeting &&
-      meta.groomName === last.groom &&
-      meta.brideName === last.bride &&
-      meta.weddingDate === last.date
+    const isEmpty =
+      !c.main.heroImage &&
+      !c.main.greeting &&
+      !meta.groomName &&
+      !meta.brideName &&
+      !meta.weddingDate;
+    if (isEmpty) return true;
+    const hero = c.main.heroImage ?? null;
+    return designs.some(
+      (d) =>
+        (d.heroImageUrl ?? null) === hero &&
+        d.main.greeting === c.main.greeting &&
+        d.groomName === meta.groomName &&
+        d.brideName === meta.brideName &&
+        (d.weddingDate ?? null) === (meta.weddingDate ?? null),
     );
   };
 
@@ -107,8 +100,8 @@ export function DesignPreset({
       frameDesign: d.main.frameDesign,
     };
 
-    if (isFresh && dataUntouched()) {
-      // 새 알림장 + 아직 안 건드림 → 분위기 위해 샘플 데이터도 로딩.
+    if (canLoadSampleData()) {
+      // 비었거나 이전 샘플 그대로 → 이 샘플의 데이터(사진·인사말·이름·날짜)로 교체.
       state.patchSection('main', {
         ...c.main,
         ...designMain,
@@ -120,15 +113,8 @@ export function DesignPreset({
         brideName: d.brideName,
         weddingDate: d.weddingDate,
       });
-      lastSample.current = {
-        heroImage: d.heroImageUrl,
-        greeting: d.main.greeting,
-        groom: d.groomName,
-        bride: d.brideName,
-        date: d.weddingDate,
-      };
     } else {
-      // 사용자 데이터 보존 — 디자인만 교체.
+      // 사용자가 입력한 데이터 보존 — 디자인만 교체.
       state.patchSection('main', { ...c.main, ...designMain });
     }
   };
