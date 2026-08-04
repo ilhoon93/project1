@@ -4,16 +4,28 @@ import { useState } from 'react';
 import { ChevronDown, Sparkles } from 'lucide-react';
 import { DesignPreset } from './DesignPreset';
 import { CompositionPreset } from './CompositionPreset';
+import type { EditorSampleDesign } from '@/lib/editor/design-presets';
 
 /**
  * "추천으로 시작하기" — 에디터 맨 위 접이식 패널.
  *
- * 추천 디자인(표지 룩)과 추천 구성(슬라이드 묶음)을 각각 골라 빠르게 시작한다.
- * 두 선택 모두 내용(이름·사진·계좌·글)은 보존하고 스타일/노출만 바꾼다.
+ * 추천 디자인(운영자 샘플 그대로)과 추천 구성(슬라이드 묶음)을 각각 골라 빠르게 시작한다.
+ * 추천 구성은 노출만 바꾸고 데이터를 보존한다. 추천 디자인은 디자인을 교체하되, 새
+ * 알림장에서는 분위기용으로 샘플 사진·글도 함께 로딩한다(사용자 데이터가 있으면 보존).
  *
  * defaultOpen: 한 번도 저장 안 된 신규 알림장이면 펼쳐서 안내, 그 외엔 접힘.
+ * sampleDesigns: 운영자 admin 샘플에서 매핑한 추천 디자인 목록.
+ * isFresh: 아직 편집·저장 안 된 새 알림장인지(샘플 데이터 자동 로딩 여부).
  */
-export function QuickStartPanel({ defaultOpen = false }: { defaultOpen?: boolean }) {
+export function QuickStartPanel({
+  defaultOpen = false,
+  sampleDesigns,
+  isFresh,
+}: {
+  defaultOpen?: boolean;
+  sampleDesigns: EditorSampleDesign[];
+  isFresh: boolean;
+}) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
@@ -44,7 +56,7 @@ export function QuickStartPanel({ defaultOpen = false }: { defaultOpen?: boolean
 
       {open && (
         <div className="flex flex-col gap-5 border-t border-primary/20 bg-background px-4 py-4">
-          <DesignPreset />
+          <DesignPreset designs={sampleDesigns} isFresh={isFresh} />
           <CompositionPreset />
         </div>
       )}

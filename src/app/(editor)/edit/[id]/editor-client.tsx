@@ -19,6 +19,7 @@ import { ClosingEditor } from '@/components/editor/sections/ClosingEditor';
 import { ThemeEditor } from '@/components/editor/sections/ThemeEditor';
 import { BasicInfoEditor } from '@/components/editor/sections/BasicInfoEditor';
 import { QuickStartPanel } from '@/components/editor/QuickStartPanel';
+import type { EditorSampleDesign } from '@/lib/editor/design-presets';
 import { EditorLivePreview } from '@/components/editor/EditorLivePreview';
 import { EditorMobilePreview } from '@/components/editor/EditorMobilePreview';
 
@@ -48,6 +49,10 @@ interface Props {
   serverUpdatedAt: string | null;
   /** 신규(미저장) 알림장이면 "추천으로 시작하기" 패널을 펼친 상태로 시작. */
   recommendOpen?: boolean;
+  /** 운영자 admin 샘플에서 매핑한 추천 디자인 목록. */
+  sampleDesigns: EditorSampleDesign[];
+  /** 아직 편집·저장 안 된 새 알림장인지 — 추천 디자인 선택 시 샘플 데이터 자동 로딩 여부. */
+  isFresh: boolean;
 }
 
 export function EditorClient({
@@ -56,6 +61,8 @@ export function EditorClient({
   content,
   serverUpdatedAt,
   recommendOpen = false,
+  sampleDesigns,
+  isFresh,
 }: Props) {
   const init = useEditorStore((s) => s.init);
   const status = useEditorStore((s) => s.status);
@@ -133,7 +140,11 @@ export function EditorClient({
           </div>
 
           <main className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-4 py-6 pb-32 lg:max-w-none lg:px-0 lg:py-4">
-            <QuickStartPanel defaultOpen={recommendOpen} />
+            <QuickStartPanel
+              defaultOpen={recommendOpen}
+              sampleDesigns={sampleDesigns}
+              isFresh={isFresh}
+            />
             <ThemeEditor />
             <SectionList />
           </main>
