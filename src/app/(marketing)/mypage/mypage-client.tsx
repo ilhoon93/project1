@@ -1589,12 +1589,16 @@ function SavedRow({
         </Button>
         {/* 혼인서약서 PDF — 발행 후에만 활성화. 발행 전엔 비활성. */}
         <CertificatePdfButton invitationId={inv.id} disabled={!hasEverPublished} />
-        {/* 알림장 이미지 — 발행된 알림장이면 누구나 생성 가능(인스타/카카오 프로필용). */}
-        {hasEverPublished && (
-          <Button variant="outline" size="sm" onClick={() => setShowImageCard(true)}>
-            알림장 이미지
-          </Button>
-        )}
+        {/* 알림장 이미지 — 혼인서약서처럼 미발행이면 비활성, 발행하면 활성화. */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowImageCard(true)}
+          disabled={!hasEverPublished}
+          title={hasEverPublished ? '알림장 이미지 만들기' : '발행 후 사용 가능'}
+        >
+          알림장 이미지
+        </Button>
         {/* 한 번 발행되면 URL 이 고정됨 → "발행" 버튼은 미발행 상태에서만 노출.
             발행 후 편집은 에디터에서 저장 시 publications.content 가 자동 갱신됨. */}
         {!latest && (

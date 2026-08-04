@@ -31,6 +31,9 @@ export const ThemeSchema = z
     colorTheme: z.enum(COLOR_THEMES).default('cream'),
     petalType: z.enum(PETAL_TYPES).default('flower'),
     font: z.enum(FONT_KEYS).default('serif'),
+    // 혼주용(어르신용) 큰 글씨 모드 — 본문(정보 슬라이드) 글자 크기를 전반적으로
+    // 키워 어르신도 잘 보이게 한다. 레이아웃은 유지하고 글자 크기만 키운다.
+    hostMode: z.boolean().default(false),
     // Stored as plain strings so adding new section keys later doesn't break
     // existing data; reconcilePageOrder() in lib/theme.ts normalizes at render time.
     pageOrder: z.array(z.string()).default([...SECTION_KEYS]),
@@ -40,6 +43,7 @@ export const ThemeSchema = z
     colorTheme: 'cream',
     petalType: 'flower',
     font: 'serif',
+    hostMode: false,
     pageOrder: [...SECTION_KEYS],
     bgm: { enabled: false, url: null },
   });

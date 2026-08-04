@@ -39,6 +39,8 @@ interface Props {
    * 모달처럼 "샘플 음악을 들려주고 싶은" 미리보기 한정으로 켠다.
    */
   forceBgm?: boolean;
+  /** 혼주용 큰 글씨 모드 — 본문(rem 기반) 텍스트를 전반적으로 키운다(globals.css .wd-host-text). */
+  hostMode?: boolean;
 }
 
 export function SlideContainer({
@@ -50,6 +52,7 @@ export function SlideContainer({
   scoped = false,
   isPreview = false,
   forceBgm = false,
+  hostMode = false,
 }: Props) {
   const slides = children.filter(Boolean);
   const [index, setIndex] = useState(0);
@@ -128,7 +131,7 @@ export function SlideContainer({
     <div
       className={`relative overflow-hidden ${
         scoped ? 'h-full w-full' : 'h-[100dvh] w-screen'
-      }`}
+      }${hostMode ? ' wd-host-text' : ''}`}
       style={{
         backgroundColor: palette.bg,
         color: palette.fg,
