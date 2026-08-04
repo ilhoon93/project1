@@ -1420,7 +1420,11 @@ function SavedTab({
       {modal && modal.kind === 'publish' && (
         <ConfirmDialog
           title="지금 발행할까요?"
-          description="발행권 1개가 차감되고 발행 후 30일간 유효한 고유 URL이 생성됩니다. 한 번 발행하면 URL은 그대로 유지되고, 이후 편집은 같은 URL에 즉시 반영됩니다."
+          description={
+            modal.invitation.heroImage?.includes('/wedding-snap/catalog/')
+              ? '⚠️ 메인 사진이 아직 샘플 사진이에요. 편집에서 내 사진으로 바꾼 뒤 발행하시길 권해요.\n\n발행권 1개가 차감되고 발행 후 30일간 유효한 고유 URL이 생성됩니다. 한 번 발행하면 URL은 그대로 유지되고, 이후 편집은 같은 URL에 즉시 반영됩니다.'
+              : '발행권 1개가 차감되고 발행 후 30일간 유효한 고유 URL이 생성됩니다. 한 번 발행하면 URL은 그대로 유지되고, 이후 편집은 같은 URL에 즉시 반영됩니다.'
+          }
           confirmLabel={busyId ? '발행 중...' : '발행하기'}
           confirmVariant="default"
           busy={busyId === modal.invitation.id}
@@ -2315,7 +2319,7 @@ function ConfirmDialog({
           <h3 id="confirm-dialog-title" className="text-base font-semibold text-[#3D2E1F]">
             {title}
           </h3>
-          <p className="text-sm leading-relaxed text-[#5C4633]">{description}</p>
+          <p className="whitespace-pre-line text-sm leading-relaxed text-[#5C4633]">{description}</p>
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="outline" size="sm" onClick={onCancel} disabled={busy}>
