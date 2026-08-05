@@ -9,7 +9,9 @@
 ```
 네이버 로그인 (자동 로그인 토글)
    → 알림장 생성 (계정당 최대 10개)
-   → 11개 슬라이드 편집 (메인 / 기본정보 / 스토리 / 갤러리 / 영상 /
+   → "추천으로 시작하기" — 운영자 샘플 그대로의 추천 디자인 + 추천 구성(간편/표준/상세)
+        (새 알림장이면 분위기용 샘플 사진·인사말·이름·날짜도 함께 로딩)
+   → 10개 슬라이드 편집 (메인 / 기본정보 / 스토리 / 갤러리 / 영상 /
                          퀴즈 / 투표 / 방명록 / 계좌 / 마무리)
    → AI 컨셉 이미지 생성 (계정당 1회 무료, fal.ai 큐 모드)
    → 데스크톱: 좌측 실시간 미리보기 / 모바일: 별도 미리보기 페이지
@@ -49,6 +51,12 @@
 
 ## 슬라이드 / 편집기 한눈에
 
+편집기 최상단 **"추천으로 시작하기"** 패널 — ① 추천 디자인: 운영자가 admin
+"알림장 샘플 설정"에 등록한 디자인 미리보기 샘플을 그대로 적용(색·폰트·배경효과·표지
+디자인). 새(미저장) 알림장이면 분위기용으로 샘플 사진·인사말·이름·날짜도 함께 로딩하고,
+사용자가 입력한 데이터는 보존한다. ② 추천 구성: 표시할 슬라이드 묶음(간편/표준/상세)을
+한 번에 토글(내용 보존, 노출만 변경).
+
 | 슬라이드 | 주요 기능 |
 | --- | --- |
 | **메인** | 4가지 레이아웃: 포스터(풀이미지) · 액자프레임(폴라로이드/하트/스크린) · 일러스트(아치/슬로우 댄스) · 텍스트 — 글자 크기/색·위치 슬라이더 + 이미지 위치(크롭) 슬라이더 + 9:20 폰 크롭 안내 |
@@ -71,9 +79,12 @@
 - 색상: 크림 / 블러쉬 / 세이지 / 라벤더 / 하늘(그라데이션) / 펄 / 편지지 / 샴페인 / 로즈 / 포레스트 / 차콜 / 더스크 / 미드나잇 / 네이비 — 14종
 - 배경 효과: 꽃잎 / 하트 / 별 / 벚꽃잎(질감) / 단풍잎(질감) / 흰 꽃잎(실사풍) / **별빛(트윙클 + 오로라)** / **보케(블러 원)** / 없음
 - 폰트: 명조/고딕/나눔/프리텐다드/제주 외 한글 다수 + 메인 제목 영문 폰트 6종 (Playfair Display 등)
+- **혼주용 큰 글씨**(`theme.hostMode`) — 디자인 탭 토글. 켜면 본문(정보 슬라이드) 글자
+  크기를 전반적으로 키워 어르신 가독성을 높인다(레이아웃 유지, 표지 이름·날짜는 제외).
 
 마케팅 디자인 카탈로그 (`/designs`) — 위 색상·효과·레이아웃·폰트 조합으로 만든
-**15종 풀스크린 샘플** (`src/lib/marketing/sample-invitations.ts:SEEDS`). 사용자가
+**12종 풀스크린 샘플** (`src/lib/marketing/sample-invitations.ts:SEEDS`, 운영자가 admin
+"알림장 샘플 설정"에서 편집/추가 가능). 사용자가
 카드를 누르면 폰 프레임 모달에서 슬라이드 전체를 둘러볼 수 있고, "비슷하게 만들기"
 를 누르면 `/new?preset=<id>` 로 진입해 그 디자인의 컬러·펄·폰트·레이아웃 +
 신랑·신부 이름·날짜·인사말까지 시작값으로 채워진 빈 알림장이 생성됨.
@@ -83,7 +94,7 @@
 | 페이지 | 경로 | 누가 보는가 |
 | --- | --- | --- |
 | 랜딩 | `/` | 누구나 |
-| 디자인 카탈로그 | `/designs` | 누구나 (15종 샘플 풀스크린 미리보기 + "비슷하게 만들기" 진입) |
+| 디자인 카탈로그 | `/designs` | 누구나 (12종 샘플 풀스크린 미리보기 + "비슷하게 만들기" 진입) |
 | AI 웨딩스냅 안내 | `/wedding-snap` | 누구나 (카탈로그 갤러리 + 진행 방법) |
 | 로그인 | `/login` | 비로그인 |
 | 마이페이지 | `/mypage` | 본인 |
@@ -224,22 +235,17 @@ cp .env.local.example .env.local
 npx supabase db push
 ```
 
-또는 Supabase Dashboard SQL Editor 에서 순서대로 실행:
+또는 Supabase Dashboard SQL Editor 에서 `supabase/migrations/` 파일을 **번호 순서대로**
+실행. 마이그레이션은 `001` 부터 순번대로 누적되며(2026-08 기준 `074` 까지), 각 파일 상단
+주석에 목적이 정리돼 있다. 큰 갈래:
 
-1. `001_initial.sql` — 기본 테이블·RLS·트리거
-2. `002_storage.sql` — Storage 버킷·정책
-3. `003_guestbook_private.sql` — 방명록 비공개화
-4. `004_credits_publications.sql` — 발행권 원장·publications·네이버 계정·addon_packages
-5. `005_retention.sql` — 14일 미발행 자동 삭제 함수
-6. `006_ai_usage.sql` — AI 이미지 사용량 추적 (계정당 1회)
-7. `007_owner_view_and_engagement.sql` — `publications.owner_token` + 축하/좋아요 카운트 + RPC
-8. `008_archive_and_packages.sql` — 영구소장 ledger + AI 스냅/영상/가족 패키지 + `publish_invitation_v4` (만료 = 결혼식 날짜 + 30일)
-9. `009_fix_invitation_is_active.sql` — `invitation_is_active()` 가 publications 기반으로 동작하도록 수정 (RLS 거짓 음성 해결)
-10. `010_single_publication.sql` — 1 알림장당 1개 활성 publication 보장
-11. `011_force_active_publications.sql` — 레거시 invitations 행을 publications 로 강제 동기화
-12. `012_snap_credits_and_anchors.sql` — AI 웨딩스냅 크레딧 원장 + `snap_anchors` 테이블
-13. `013_snap_solo_anchors_and_jobs.sql` — solo 앵커(groom/bride 분리) + `snap_jobs` 작업 로그
-14. `014_snap_anchor_history.sql` — 폐기된 앵커 이력 보존
+- `001`~`011` — 기본 테이블·RLS·Storage·발행권/영구소장 원장·publications·네이버 계정
+- `012`~`032` — AI 웨딩스냅 크레딧·앵커·`snap_jobs`·후처리 파이프라인·재생성 quota·동의
+- `033`~`049` — 마케팅 홈 샘플·리뷰 이벤트·가격 개편(`035`)·관리자 통계 함수
+- `040`~`043`,`066`~`067`,`072` — 스마트스토어 옵션 단위 크레딧 매핑(`naver_option_grants`)
+- `050`~`061`,`069`~`071` — 관리자 알림장 통계·편집(제작) 판정·전환율
+- `069`,`073` — 편집 흔적 계측 / 회원 탈퇴(익명화, `withdrawn_order_records`)
+- `074` — 보안 보강 (`snap_catalog_stats` 뷰가 `auth.users` 를 직접 참조하지 않게)
 
 타입 자동 생성 (선택):
 
@@ -272,7 +278,8 @@ npm run lint         # ESLint
 ```
 src/
 ├── app/
-│   ├── (marketing)/                # 랜딩 + 마이페이지(저장 내역/발행권/주문/영구소장)
+│   ├── (marketing)/                # 랜딩 + 마이페이지(저장 내역·발행·복사·삭제/발행권/주문/
+│   │                               #  영구소장/혼인서약서·알림장 이미지(발행 후)/회원 탈퇴)
 │   ├── (auth)/                     # 네이버 로그인 + 콜백 + AutoLoginGate
 │   ├── (editor)/                   # 편집기 / 실시간 미리보기 / 결제
 │   ├── [slug]/                     # 하객용 알림장
@@ -281,8 +288,9 @@ src/
 │   │   ├── ai/concept-{generate,status,finalize}/   # AI 컨셉 이미지 (큐 모드)
 │   │   ├── snap/{generate,status,finalize,anchor}/  # AI 웨딩스냅 (큐 모드)
 │   │   ├── snap/jobs/poll-pending/                  # 배치 finalize (mypage 진입 시)
-│   │   ├── invitations/[id]/{,certificate}/         # CRUD + 혼인서약서 PDF
-│   │   ├── publish/[id]/            # publish_invitation_v4
+│   │   ├── invitations/[id]/{,certificate,duplicate,mark-edited}/  # CRUD + 서약서 PDF + 복사 + 편집흔적
+│   │   ├── account/withdraw/        # 회원 탈퇴(익명화) — 개인정보 파기 + 결제기록만 익명 보존
+│   │   ├── publish/[id]/            # publish_invitation (만료 = 결혼식 + 30일)
 │   │   ├── archive/[id]/            # 영구소장 적용
 │   │   ├── auth/naver/{start,callback}/
 │   │   ├── orders/{register,...}/
@@ -332,21 +340,8 @@ src/
 ├── stores/editor.ts                # Zustand persist (unsaved 플래그로 기기간 동기화)
 └── types/{database,invitation}.ts  # Supabase 타입 + Zod 스키마
 
-supabase/migrations/
-├── 001_initial.sql
-├── 002_storage.sql
-├── 003_guestbook_private.sql
-├── 004_credits_publications.sql
-├── 005_retention.sql
-├── 006_ai_usage.sql
-├── 007_owner_view_and_engagement.sql
-├── 008_archive_and_packages.sql
-├── 009_fix_invitation_is_active.sql        # RLS 거짓 음성 fix
-├── 010_single_publication.sql              # 1 알림장 = 1 publication
-├── 011_force_active_publications.sql       # 레거시 → publications 동기화
-├── 012_snap_credits_and_anchors.sql        # 스냅 크레딧 + 앵커
-├── 013_snap_solo_anchors_and_jobs.sql      # solo 앵커 + snap_jobs
-└── 014_snap_anchor_history.sql             # 앵커 폐기 이력
+supabase/migrations/                         # 001 ~ 074 순번 누적 (파일 상단 주석에 목적)
+                                             # 위 "데이터베이스 마이그레이션" 절의 갈래 참고
 
 docs/
 ├── env-variables.md                  # 모든 env 변수 일람 + 운영 권장값
