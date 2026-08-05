@@ -30,8 +30,11 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   for (let attempt = 0; attempt < 4; attempt++) {
     const slug = generateSlug();
     const ownerToken = generateOwnerToken();
-    // v4 — 만료 기준이 결혼식 날짜 + 30일 (없으면 발행 + 30일).
-    const { data, error } = await supabase.rpc('publish_invitation_v4', {
+    // v5 — 만료 후 재발행 시 새 slug 를 만들지 않고 직전 발행본(옛 주소)을 되살려
+    // 유지한다(인쇄한 QR 대응). 만료 기준은 결혼식 날짜 + 30일(없으면 발행 + 30일).
+    // publish_invitation_v5 는 자동생성 DB 타입(075 미반영)에 아직 없어 캐스팅.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc('publish_invitation_v5', {
       inv_id: params.id,
       new_slug: slug,
       new_owner_tok: ownerToken,
