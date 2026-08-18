@@ -58,7 +58,10 @@ export function InvitationPreview({
         className="absolute left-0 top-0 origin-top-left transition-opacity duration-300"
         style={{
           width: BASE_W,
-          height: BASE_H,
+          // 세로로 6px 여유를 둬(디자인 배경색으로 채워짐) scale transform 의
+          // 서브픽셀 반올림으로 하단에 프레임 배경색이 얇게 비치는 현상을 막는다.
+          // overflow-hidden 이 여유분을 잘라내므로 디자인만 깔끔하게 가득 찬다.
+          height: BASE_H + 6,
           transform: `scale(${scale})`,
           opacity: scale ? 1 : 0,
         }}
