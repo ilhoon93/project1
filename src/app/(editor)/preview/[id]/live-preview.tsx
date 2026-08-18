@@ -36,7 +36,10 @@ export function LivePreview({
       brideName={brideName}
       weddingDate={weddingDate}
       content={content}
+      // isPreview 로 카운트 기록은 막되, 이 페이지는 발행본을 그대로 확인하는
+      // 전체화면 미리보기이므로 배경음악은 실제 화면처럼 들려준다(forceBgm).
       isPreview
+      forceBgm
     />
   );
 }
