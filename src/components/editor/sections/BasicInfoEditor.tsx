@@ -18,6 +18,11 @@ import { formatWeddingDate, normalizeDateInput, elapsedYMD } from '@/lib/utils/f
 type BasicInfo = InvitationContent['basic'];
 type Parent = BasicInfo['family']['groomFather'];
 
+// 부모 이름 아래 표시할 관계 표기 추천값. datalist 로 제공하되 자유 입력도 허용.
+// 기본값은 아들/딸(스키마 default) 이라 아무것도 고르지 않으면 지금과 동일하게 나온다.
+const GROOM_RELATIONS = ['아들', '장남', '차남', '삼남', '막내아들', '외아들'];
+const BRIDE_RELATIONS = ['딸', '장녀', '차녀', '삼녀', '막내딸', '외동딸'];
+
 const SUB_LABELS: Record<BasicSubKey, string> = {
   family: '신랑·신부와 가족',
   date: '날짜 표시',
@@ -110,6 +115,14 @@ export function BasicInfoEditor({ drag }: { drag?: SectionDragProps }) {
                       set({ ...basic, family: { ...basic.family, groomMother: p } })
                     }
                   />
+                  <RelationField
+                    value={basic.family.groomRelation}
+                    onChange={(v) =>
+                      set({ ...basic, family: { ...basic.family, groomRelation: v } })
+                    }
+                    presets={GROOM_RELATIONS}
+                    listId="wd-groom-relation"
+                  />
                 </SideBlock>
                 <SideBlock title="신부측">
                   <CompactNameField
@@ -130,6 +143,14 @@ export function BasicInfoEditor({ drag }: { drag?: SectionDragProps }) {
                     onChange={(p) =>
                       set({ ...basic, family: { ...basic.family, brideMother: p } })
                     }
+                  />
+                  <RelationField
+                    value={basic.family.brideRelation}
+                    onChange={(v) =>
+                      set({ ...basic, family: { ...basic.family, brideRelation: v } })
+                    }
+                    presets={BRIDE_RELATIONS}
+                    listId="wd-bride-relation"
                   />
                 </SideBlock>
               </div>
@@ -471,6 +492,48 @@ function ParentField({
         />
         故
       </label>
+    </div>
+  );
+}
+
+/**
+ * 부모 이름 아래 표시되는 관계 표기(아들/장남/차남 등)를 고르는 입력.
+ * datalist 로 추천값을 드롭다운처럼 제공하되, 직접 타이핑도 가능하다.
+ * 미리보기에서는 "○○○ · △△△의 {관계}" 형태로 나온다.
+ */
+function RelationField({
+  value,
+  onChange,
+  presets,
+  listId,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  presets: string[];
+  listId: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-16 shrink-0 text-xs text-muted-foreground">관계 표기</span>
+      <input
+        type="text"
+        value={value}
+        maxLength={10}
+        list={listId}
+        placeholder={presets[0]}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+      />
+      <datalist id={listId}>
+        {presets.map((p) => (
+          <option key={p} value={p} />
+        ))}
+      </datalist>
+      {/* 故 체크박스 자리 정렬용 invisible 스페이서 — ParentField 와 폭을 맞춘다. */}
+      <span aria-hidden className="flex shrink-0 items-center gap-1 text-xs invisible">
+        <span className="inline-block h-3 w-3" />
+        故
+      </span>
     </div>
   );
 }

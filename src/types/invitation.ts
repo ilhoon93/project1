@@ -483,6 +483,10 @@ export const BasicInfoSectionSchema = z
         groomMother: ParentSchema,
         brideFather: ParentSchema,
         brideMother: ParentSchema,
+        // 부모 이름 아래 표시할 관계 — "○○○의 {값}". 기본은 지금과 동일한 아들/딸,
+        // 사용자가 장남/차남/막내딸 등으로 바꿀 수 있다.
+        groomRelation: z.string().max(10).default('아들'),
+        brideRelation: z.string().max(10).default('딸'),
       })
       .default({
         enabled: true,
@@ -490,6 +494,8 @@ export const BasicInfoSectionSchema = z
         groomMother: { name: '', deceased: false },
         brideFather: { name: '', deceased: false },
         brideMother: { name: '', deceased: false },
+        groomRelation: '아들',
+        brideRelation: '딸',
       }),
     showDate: z.boolean().default(true),
     /** 출력 형식 — 슬라이드 렌더 시 적용. 저장은 ISO 그대로 유지. */
@@ -519,6 +525,8 @@ export const BasicInfoSectionSchema = z
       groomMother: { name: '', deceased: false },
       brideFather: { name: '', deceased: false },
       brideMother: { name: '', deceased: false },
+      groomRelation: '아들',
+      brideRelation: '딸',
     },
     showDate: true,
     dateFormat: 'YYYY.MM.DD',

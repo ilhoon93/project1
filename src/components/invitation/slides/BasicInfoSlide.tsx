@@ -73,6 +73,8 @@ export function BasicInfoSlide({ basic, groomName, brideName, weddingDate, heade
           familyOn={familyOn}
           groomFamily={groomFamily}
           brideFamily={brideFamily}
+          groomRelation={basic.family.groomRelation?.trim() || '아들'}
+          brideRelation={basic.family.brideRelation?.trim() || '딸'}
           groomName={groomName}
           brideName={brideName}
         />
@@ -125,12 +127,17 @@ function NamesSection({
   familyOn,
   groomFamily,
   brideFamily,
+  groomRelation,
+  brideRelation,
   groomName,
   brideName,
 }: {
   familyOn: boolean;
   groomFamily: string;
   brideFamily: string;
+  /** 부모 이름 아래 표시할 관계(아들/장남/차남 등). 앞에 "의 "가 붙는다. */
+  groomRelation: string;
+  brideRelation: string;
   groomName: string;
   brideName: string;
 }) {
@@ -140,7 +147,7 @@ function NamesSection({
     <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-end justify-items-center gap-3 sm:gap-6">
       <PersonBlock
         familyCaption={showFamilyCaption ? groomFamily : ''}
-        roleLabel="의 아들"
+        roleLabel={groomRelation ? `의 ${groomRelation}` : ''}
         name={groomName}
       />
       <span
@@ -151,7 +158,7 @@ function NamesSection({
       </span>
       <PersonBlock
         familyCaption={showFamilyCaption ? brideFamily : ''}
-        roleLabel="의 딸"
+        roleLabel={brideRelation ? `의 ${brideRelation}` : ''}
         name={brideName}
       />
     </div>
@@ -172,7 +179,7 @@ function PersonBlock({
       {familyCaption && (
         <div className="flex flex-col items-center text-sm leading-snug opacity-70 [word-break:keep-all]">
           <p>{familyCaption}</p>
-          <p>{roleLabel}</p>
+          {roleLabel && <p>{roleLabel}</p>}
         </div>
       )}
       {name.trim() && (

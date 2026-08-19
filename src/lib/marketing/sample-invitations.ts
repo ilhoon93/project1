@@ -315,6 +315,8 @@ export function buildDesign(
     groomMother: { name: '이정희', deceased: false },
     brideFather: { name: '박준호', deceased: false },
     brideMother: { name: '최은영', deceased: false },
+    groomRelation: '아들',
+    brideRelation: '딸',
   };
 
   content.story.chapters = t.storyChapters.map((ch) => ({
