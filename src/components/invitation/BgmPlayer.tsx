@@ -4,6 +4,13 @@ import { useEffect, useRef, useState } from 'react';
 
 interface Props {
   url: string;
+  /**
+   * autoStart: 마운트 시 + 첫 제스처에 자동재생을 시도할지. 실제 하객/소장용
+   * 화면이나 /preview 전체보기에서는 true. 에디터 실시간 미리보기처럼 "버튼은
+   * 보이되 편집 중 소리가 저절로 나면 곤란한" 곳에서는 false — 이때는 펄 버튼을
+   * 탭해야만 재생된다. 기본 true.
+   */
+  autoStart?: boolean;
 }
 
 /**
@@ -18,23 +25,26 @@ interface Props {
  * 전엔 막히므로, 첫 pointer/key 제스처에 한 번 play() 를 시도하고, 펄 버튼으로
  * 언제든 끄거나 다시 켤 수 있다.
  */
-export function BgmPlayer({ url }: Props) {
+export function BgmPlayer({ url, autoStart = true }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
   const [playing, setPlaying] = useState(false);
 
   // Wire up: try to start on first user gesture. We add the listener once
-  // and remove it after success.
+  // and remove it after success. autoStart=false 면 자동재생/제스처 리스너를
+  // 아예 걸지 않고, 펄 버튼 탭(toggle)으로만 재생한다(에디터 미리보기용).
   useEffect(() => {
+    if (!autoStart) return;
     const audio = audioRef.current;
     if (!audio) return;
 
-    const tryPlay = () => {
+    const start = () => {
       audio
         .play()
         .then(() => {
           setPlaying(true);
-          window.removeEventListener('pointerdown', tryPlay);
-          window.removeEventListener('keydown', tryPlay);
+          window.removeEventListener('pointerdown', onGesture);
+          window.removeEventListener('keydown', onGesture);
         })
         .catch(() => {
           // Browser still refused — leave the listeners attached so the next
@@ -42,16 +52,25 @@ export function BgmPlayer({ url }: Props) {
         });
     };
 
-    window.addEventListener('pointerdown', tryPlay, { once: false });
-    window.addEventListener('keydown', tryPlay, { once: false });
+    // 재생 켜기/끄기 버튼(펄) 위에서 시작된 제스처는 무시한다. 그렇지 않으면
+    // 같은 탭에서 이 window 리스너가 pointerdown 에 재생을 시작하고, 이어지는
+    // 버튼 click(=toggle) 이 곧바로 일시정지시켜 "펄을 눌러도 음악이 안 나오는"
+    // 현상이 생긴다. 펄 탭은 버튼의 onClick(toggle) 에게만 맡긴다.
+    const onGesture = (e: Event) => {
+      if (e.target instanceof Node && btnRef.current?.contains(e.target)) return;
+      start();
+    };
+
+    window.addEventListener('pointerdown', onGesture, { once: false });
+    window.addEventListener('keydown', onGesture, { once: false });
     // 처음 열었을 때 바로 재생 시도 (기본값 = 재생). 브라우저 자동재생 정책이
     // 막으면 위 제스처 리스너가 첫 탭/키 입력에서 다시 시도한다.
-    tryPlay();
+    start();
     return () => {
-      window.removeEventListener('pointerdown', tryPlay);
-      window.removeEventListener('keydown', tryPlay);
+      window.removeEventListener('pointerdown', onGesture);
+      window.removeEventListener('keydown', onGesture);
     };
-  }, [url]);
+  }, [url, autoStart]);
 
   const toggle = () => {
     const audio = audioRef.current;
@@ -81,6 +100,7 @@ export function BgmPlayer({ url }: Props) {
           둬서 콘텐츠를 가리지 않으며, 사진 위에서도 또렷하도록 drop-shadow 만 입힌다.
           작은 히트박스(아이콘 크기)라 다른 요소 위를 거의 점유하지 않음. */}
       <button
+        ref={btnRef}
         type="button"
         onClick={toggle}
         aria-label={playing ? '배경음악 끄기' : '배경음악 켜기'}

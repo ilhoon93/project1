@@ -66,6 +66,8 @@ export function EditorLivePreview({ invitationId }: Props) {
               content={content}
               isPreview
               scoped
+              // 편집 중 자동재생은 막되, 음악 버튼은 노출해 탭하면 들어볼 수 있게.
+              manualBgm
             />
           ) : (
             <div className="grid h-full w-full place-items-center text-xs text-muted-foreground">

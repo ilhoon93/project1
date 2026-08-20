@@ -173,6 +173,8 @@ export function EditorMobilePreview({ invitationId, open, onOpenChange }: Props)
                     content={content}
                     isPreview
                     scoped
+                    // 편집 중 자동재생은 막되, 음악 버튼은 노출해 탭하면 들어볼 수 있게.
+                    manualBgm
                   />
                 </div>
               </div>
