@@ -4,6 +4,13 @@ import { useEffect, useRef, useState } from 'react';
 
 interface Props {
   url: string;
+  /**
+   * autoStart: 마운트 시 + 첫 제스처에 자동재생을 시도할지. 실제 하객/소장용
+   * 화면이나 /preview 전체보기에서는 true. 에디터 실시간 미리보기처럼 "버튼은
+   * 보이되 편집 중 소리가 저절로 나면 곤란한" 곳에서는 false — 이때는 펄 버튼을
+   * 탭해야만 재생된다. 기본 true.
+   */
+  autoStart?: boolean;
 }
 
 /**
@@ -18,14 +25,16 @@ interface Props {
  * 전엔 막히므로, 첫 pointer/key 제스처에 한 번 play() 를 시도하고, 펄 버튼으로
  * 언제든 끄거나 다시 켤 수 있다.
  */
-export function BgmPlayer({ url }: Props) {
+export function BgmPlayer({ url, autoStart = true }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const [playing, setPlaying] = useState(false);
 
   // Wire up: try to start on first user gesture. We add the listener once
-  // and remove it after success.
+  // and remove it after success. autoStart=false 면 자동재생/제스처 리스너를
+  // 아예 걸지 않고, 펄 버튼 탭(toggle)으로만 재생한다(에디터 미리보기용).
   useEffect(() => {
+    if (!autoStart) return;
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -61,7 +70,7 @@ export function BgmPlayer({ url }: Props) {
       window.removeEventListener('pointerdown', onGesture);
       window.removeEventListener('keydown', onGesture);
     };
-  }, [url]);
+  }, [url, autoStart]);
 
   const toggle = () => {
     const audio = audioRef.current;

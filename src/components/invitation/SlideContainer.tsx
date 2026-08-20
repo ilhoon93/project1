@@ -35,10 +35,16 @@ interface Props {
    */
   isPreview?: boolean;
   /**
-   * forceBgm: isPreview 여도 배경음악 플레이어를 노출. 마케팅 디자인 전체보기
-   * 모달처럼 "샘플 음악을 들려주고 싶은" 미리보기 한정으로 켠다.
+   * forceBgm: isPreview 여도 배경음악 플레이어를 노출 + 자동재생. 마케팅 디자인
+   * 전체보기 모달처럼 "샘플 음악을 들려주고 싶은" 미리보기 한정으로 켠다.
    */
   forceBgm?: boolean;
+  /**
+   * manualBgm: isPreview 인데 음악 버튼은 보여주되 자동재생은 하지 않는다.
+   * 에디터 실시간 미리보기용 — 편집 중 소리가 저절로 나지 않게 하면서도 버튼을
+   * 탭하면 음악을 확인할 수 있다.
+   */
+  manualBgm?: boolean;
   /** 혼주용 큰 글씨 모드 — 본문(rem 기반) 텍스트를 전반적으로 키운다(globals.css .wd-host-text). */
   hostMode?: boolean;
 }
@@ -52,6 +58,7 @@ export function SlideContainer({
   scoped = false,
   isPreview = false,
   forceBgm = false,
+  manualBgm = false,
   hostMode = false,
 }: Props) {
   const slides = children.filter(Boolean);
@@ -146,7 +153,11 @@ export function SlideContainer({
           : {}),
       }}
     >
-      {bgmUrl && (!isPreview || forceBgm) && <BgmPlayer url={bgmUrl} />}
+      {bgmUrl && (!isPreview || forceBgm || manualBgm) && (
+        // 실제 화면·전체보기(forceBgm)는 자동재생, 에디터 미리보기(manualBgm)는
+        // 버튼만 노출하고 탭해야 재생.
+        <BgmPlayer url={bgmUrl} autoStart={!isPreview || forceBgm} />
+      )}
 
       <motion.div
         className="flex h-full"

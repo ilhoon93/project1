@@ -46,8 +46,10 @@ interface Props {
   /** owner 모드 — 신랑신부 전용 소장용 뷰. quiz/vote 통계, 방명록·서명 모음 표시. */
   mode?: 'guest' | 'owner';
   ownerData?: OwnerData;
-  /** isPreview 여도 배경음악 플레이어를 노출 — 마케팅 전체보기 모달의 샘플 음악용. */
+  /** isPreview 여도 배경음악 플레이어를 노출 + 자동재생 — 마케팅 전체보기 모달의 샘플 음악용. */
   forceBgm?: boolean;
+  /** isPreview 에서 음악 버튼만 노출(자동재생 X) — 에디터 실시간 미리보기용. */
+  manualBgm?: boolean;
   /**
    * coverOnly: 메인 표지 한 장만 렌더(다른 슬라이드로 넘어갈 수 없음). 홈 쇼케이스
    * 커버처럼 표지만 보여줄 때 사용. pageOrder 를 무시하고 main 만 노출한다.
@@ -66,6 +68,7 @@ export function InvitationSlides({
   mode = 'guest',
   ownerData,
   forceBgm,
+  manualBgm,
   coverOnly,
 }: Props) {
   // 운영자가 고른 출력 형식으로 사전 포맷팅 — 자식 슬라이드들은 받은 문자열을
@@ -207,6 +210,7 @@ export function InvitationSlides({
         scoped={scoped}
         isPreview={isPreview}
         forceBgm={forceBgm}
+        manualBgm={manualBgm}
         hostMode={content.theme.hostMode}
       >
         {slides}
