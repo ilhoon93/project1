@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Heart } from 'lucide-react';
+import { Heart, ZoomIn } from 'lucide-react';
 import type {
   InvitationContent,
   ResolvedSectionHeader,
@@ -67,6 +67,20 @@ export function GallerySlide({
         />
       )}
     </section>
+  );
+}
+
+/**
+ * 큰 사진 우상단에 "🔍 확대" 힌트 배지 — 확대 보기(allowZoom)가 켜진 경우에만
+ * 노출해, 하객이 "누르면 크게 볼 수 있다"는 걸 알 수 있게 한다. 배지는 안내용이라
+ * pointer-events 를 끊어 사진(버튼) 탭을 가리지 않는다.
+ */
+function ZoomHintBadge() {
+  return (
+    <span className="pointer-events-none absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-[11px] font-medium text-white">
+      <ZoomIn size={12} />
+      확대
+    </span>
   );
 }
 
@@ -276,10 +290,11 @@ function GallerySlider({
           onClick={() => {
             if (!movedRef.current) setLightbox(true);
           }}
-          aria-label={`사진 ${clamped + 1} / ${images.length} 확대`}
+          aria-label={`사진 ${clamped + 1} / ${images.length}${allowZoom ? ' 확대' : ''}`}
           className="relative block aspect-[3/4] w-full overflow-hidden rounded-md bg-black/5"
         >
           <GalleryHeroImage src={images[clamped]} fit={fit} />
+          {allowZoom && <ZoomHintBadge />}
           <span className="pointer-events-none absolute bottom-2 right-2 z-10 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
             {clamped + 1} / {images.length}
           </span>
@@ -363,10 +378,11 @@ function GalleryGrid({
         <button
           type="button"
           onClick={() => setLightbox(true)}
-          aria-label="선택된 사진 확대"
+          aria-label={`선택된 사진${allowZoom ? ' 확대' : ' 크게 보기'}`}
           className="relative block aspect-[3/4] w-full overflow-hidden rounded-md bg-black/5"
         >
           <GalleryHeroImage src={images[selected]} fit={fit} />
+          {allowZoom && <ZoomHintBadge />}
           <span className="pointer-events-none absolute bottom-2 right-2 z-10 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
             {selected + 1} / {images.length}
           </span>

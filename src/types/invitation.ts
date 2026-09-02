@@ -595,7 +595,7 @@ export const GallerySectionSchema = z
      * 에서 켜야 확대가 동작한다. 사진 탭 → 전체화면 열림 자체는 이 값과 무관.
      */
     allowZoom: z.boolean().default(false),
-    images: z.array(z.string().url()).max(20).default([]),
+    images: z.array(z.string().url()).max(30).default([]),
   })
   .default({ enabled: true, layout: 'grid', imageFit: 'cover', allowZoom: false, images: [] });
 
