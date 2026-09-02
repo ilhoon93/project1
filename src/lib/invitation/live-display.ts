@@ -16,42 +16,24 @@ import type { InvitationContent } from '@/types/invitation';
  */
 export interface LiveDisplaySettings {
   galleryAllowZoom?: boolean;
-  /** 이 알림장 소유자가 관리자 계정인지(진입 인트로 노출 조건 — 현재 테스트용). */
-  ownerIsAdmin?: boolean;
 }
 
 /**
- * 원본 invitations 에서 화이트리스트 표시용 설정 + 소유자 관리자 여부를 읽어온다.
+ * 원본 invitations.content 에서 화이트리스트 표시용 설정만 읽어온다.
  * 익명(하객) 페이지에서도 읽어야 하므로 RLS 를 우회하는 service-role 로 조회하되,
- * content/소유자 role 외 필드는 건드리지 않는다. 실패 시 빈 객체 → 스냅샷 값 유지.
+ * content 외 필드는 건드리지 않는다. 실패 시 빈 객체 → 호출부가 스냅샷 값을 유지.
  */
 export async function fetchLiveDisplaySettings(invitationId: string): Promise<LiveDisplaySettings> {
   try {
     const admin = createAdminClient();
     const { data } = await admin
       .from('invitations')
-      .select('content, user_id')
+      .select('content')
       .eq('id', invitationId)
       .maybeSingle();
     const gallery = (data?.content as { gallery?: { allowZoom?: unknown } } | null)?.gallery;
     const allowZoom = gallery?.allowZoom;
-
-    let ownerIsAdmin = false;
-    const ownerId = (data as { user_id?: string } | null)?.user_id;
-    if (ownerId) {
-      try {
-        const { data: owner } = await admin.auth.admin.getUserById(ownerId);
-        const role = (owner.user?.app_metadata as { role?: string } | undefined)?.role;
-        ownerIsAdmin = role === 'admin';
-      } catch {
-        ownerIsAdmin = false;
-      }
-    }
-
-    return {
-      galleryAllowZoom: typeof allowZoom === 'boolean' ? allowZoom : undefined,
-      ownerIsAdmin,
-    };
+    return { galleryAllowZoom: typeof allowZoom === 'boolean' ? allowZoom : undefined };
   } catch {
     return {};
   }

@@ -32,7 +32,10 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const wasPlayingRef = useRef(false);
-  const [playing, setPlaying] = useState(false);
+  // 자동재생 화면(autoStart)에서는 스피커 아이콘 기본값을 "재생(🔊)"으로 둔다.
+  // 실제 재생은 정책상 첫 제스처가 필요할 수 있지만, 음악이 켜져 있음을 알리고
+  // (탭하면 재생) 아이콘이 음소거처럼 보이지 않게 한다. 실제 play/pause 이벤트로 동기화.
+  const [playing, setPlaying] = useState(autoStart);
 
   const syncPlaying = () => {
     const a = audioRef.current;
