@@ -48,37 +48,36 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
     if (!audio) return;
     const mountedAt = Date.now();
 
-    // 다양한 "사용자 활성화" 이벤트에서 재생. 브라우저마다 활성화로 인정하는 이벤트가
-    // 달라(Android 크롬은 pointerdown 만으론 인정 안 될 때가 많음) 여러 이벤트를 건다.
-    // capture:true 로 다른 핸들러의 stopPropagation 을 피한다.
+    // 자동재생을 "최초 1회 시작" 시키기 위한 제스처 리스너. 브라우저마다 활성화로
+    // 인정하는 이벤트가 달라(Android 크롬은 pointerdown 만으론 인정 안 될 때가 많음)
+    // 여러 이벤트를 건다. capture:true 로 다른 핸들러의 stopPropagation 을 피한다.
+    //
+    // ⚠️ 핵심: 음악이 한 번 재생되기 시작하면(자동재생·제스처·펄 버튼 무관) 이 리스너를
+    // 즉시·영구 해제한다. 그래야 이후 화면을 아무리 터치해도 음악이 자동으로 다시
+    // 재생되지 않는다(사용자가 펄로 끈 걸 터치가 되살리는 문제 방지).
     const GESTURE_EVENTS = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
-    const armGesture = () => {
-      GESTURE_EVENTS.forEach((ev) => window.addEventListener(ev, onGesture, true));
-    };
-    const disarmGesture = () => {
-      GESTURE_EVENTS.forEach((ev) => window.removeEventListener(ev, onGesture, true));
-    };
 
     const play = () => {
-      audio
-        .play()
-        .then(() => {
-          syncPlaying();
-          disarmGesture();
-        })
-        .catch(() => {
-          /* 막히면 다음 제스처/펄 버튼에서 다시 시도. */
-        });
+      audio.play().then(syncPlaying).catch(() => {
+        /* 막히면 다음 제스처에서 다시 시도(teardown 전까지). */
+      });
     };
-
-    // 펄 버튼 위에서 시작된 제스처는 무시(버튼 onClick=toggle 이 단독 처리) — 아니면
-    // 리스너가 재생을 켠 직후 toggle 이 곧바로 꺼버린다.
+    // 펄 버튼 위에서 시작된 제스처는 무시(버튼 onClick=toggle 이 단독 처리).
     const onGesture = (e: Event) => {
       if (e.target instanceof Node && btnRef.current?.contains(e.target)) return;
       play();
     };
+    // 재생이 실제로 시작되면(어떤 경로든) 자동재생 제스처 리스너를 영구 해제.
+    let tornDown = false;
+    const teardown = () => {
+      if (tornDown) return;
+      tornDown = true;
+      GESTURE_EVENTS.forEach((ev) => window.removeEventListener(ev, onGesture, true));
+      audio.removeEventListener('play', teardown);
+    };
 
-    armGesture();
+    audio.addEventListener('play', teardown);
+    GESTURE_EVENTS.forEach((ev) => window.addEventListener(ev, onGesture, true));
     play(); // 마운트 즉시 시도
 
     // ── 창 이탈 정지 ─────────────────────────────────────────────
@@ -93,8 +92,11 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
         if (Date.now() - mountedAt < VISIBILITY_GRACE_MS) return; // 로드 직후 깜빡임 무시
         pauseForLeave();
       } else if (wasPlayingRef.current) {
+        // 앱/탭 전환 후 복귀 시, 나가기 전 재생 중이었으면 이어서 재생 시도.
+        // 실패해도 제스처 리스너를 재장착하지 않는다(터치 자동재생 방지). 필요 시
+        // 사용자가 펄 버튼으로 다시 켠다.
         wasPlayingRef.current = false;
-        audio.play().then(syncPlaying).catch(() => armGesture());
+        audio.play().then(syncPlaying).catch(() => {});
       }
     };
 
@@ -102,7 +104,7 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
     window.addEventListener('pagehide', pauseForLeave);
 
     return () => {
-      disarmGesture();
+      teardown();
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', pauseForLeave);
     };
