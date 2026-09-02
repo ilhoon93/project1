@@ -32,6 +32,9 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const wasPlayingRef = useRef(false);
+  // 음악이 한 번이라도 재생 시작되면 true. 이후 자동재생(제스처) 로직은 완전히
+  // 비활성 — 화면 터치가 음악을 다시 켜지 못하게 하는 이중 안전장치.
+  const startedRef = useRef(false);
   // 자동재생 화면(autoStart)에서는 스피커 아이콘 기본값을 "재생(🔊)"으로 둔다.
   // 실제 재생은 정책상 첫 제스처가 필요할 수 있지만, 음악이 켜져 있음을 알리고
   // (탭하면 재생) 아이콘이 음소거처럼 보이지 않게 한다. 실제 play/pause 이벤트로 동기화.
@@ -58,20 +61,24 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
     const GESTURE_EVENTS = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
 
     const play = () => {
+      if (startedRef.current) return; // 이미 한 번 재생됐으면 자동재생 재시도 금지
       audio.play().then(syncPlaying).catch(() => {
         /* 막히면 다음 제스처에서 다시 시도(teardown 전까지). */
       });
     };
     // 펄 버튼 위에서 시작된 제스처는 무시(버튼 onClick=toggle 이 단독 처리).
     const onGesture = (e: Event) => {
+      if (startedRef.current) return; // 이미 재생 시작됨 → 터치가 음악을 다시 켜지 않음
       if (e.target instanceof Node && btnRef.current?.contains(e.target)) return;
       play();
     };
-    // 재생이 실제로 시작되면(어떤 경로든) 자동재생 제스처 리스너를 영구 해제.
+    // 재생이 실제로 시작되면(어떤 경로든: 자동재생·제스처·펄 버튼) 자동재생 제스처
+    // 리스너를 영구 해제하고 startedRef 를 세운다 → 이후 터치는 재생을 트리거 못 함.
     let tornDown = false;
     const teardown = () => {
       if (tornDown) return;
       tornDown = true;
+      startedRef.current = true;
       GESTURE_EVENTS.forEach((ev) => window.removeEventListener(ev, onGesture, true));
       audio.removeEventListener('play', teardown);
     };
