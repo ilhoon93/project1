@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { Heart, ZoomIn } from 'lucide-react';
 import type {
   InvitationContent,
@@ -71,19 +70,14 @@ export function GallerySlide({
   );
 }
 
-/**
- * 큰 사진 우상단에 "🔍 확대" 힌트 배지 — 확대 보기(allowZoom)가 켜진 경우에만
- * 노출해, 하객이 "누르면 크게 볼 수 있다"는 걸 알 수 있게 한다. 배지는 안내용이라
- * pointer-events 를 끊어 사진(버튼) 탭을 가리지 않는다.
- */
-function ZoomHintBadge() {
-  return (
-    <span className="pointer-events-none absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-[11px] font-medium text-white">
-      <ZoomIn size={12} />
-      확대
-    </span>
-  );
-}
+// 갤러리 사진 저장(내려받기) 방지용 공통 속성.
+//   - onContextMenu 차단: 데스크톱 우클릭 "이미지 저장" 막기
+//   - draggable=false: 드래그해서 저장/복사 막기
+//   - select-none + [-webkit-touch-callout:none]: iOS 길게 눌러 뜨는 "이미지 저장/
+//     복사" 콜아웃 및 텍스트/이미지 선택 막기
+// (웹 특성상 스크린샷까지 원천 차단은 불가 — 캐주얼 저장을 막는 표준 조치.)
+const noSaveImgClass = 'select-none [-webkit-touch-callout:none]';
+const preventCtxMenu = (e: React.MouseEvent) => e.preventDefault();
 
 /**
  * 갤러리 큰 사진 — cover 는 3:4 를 채우고(잘림), contain 은 전체를 보여주고 남는
@@ -98,18 +92,346 @@ function GalleryHeroImage({ src, fit }: { src: string; fit: GalleryImageFit }) {
           src={src}
           alt=""
           aria-hidden
-          className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl"
+          className={`absolute inset-0 h-full w-full scale-110 object-cover blur-2xl ${noSaveImgClass}`}
           draggable={false}
+          onContextMenu={preventCtxMenu}
         />
       )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
         alt=""
-        className={`relative h-full w-full ${fit === 'contain' ? 'object-contain' : 'object-cover'}`}
+        className={`relative h-full w-full ${fit === 'contain' ? 'object-contain' : 'object-cover'} ${noSaveImgClass}`}
         draggable={false}
+        onContextMenu={preventCtxMenu}
       />
     </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 인라인 확대 사진 (ZoomableImage)
+// ─────────────────────────────────────────────────────────────
+
+const ZOOM_MAX_SCALE = 4;
+const ZOOM_DOUBLE_TAP_SCALE = 2.5;
+
+function touchDist(a: { clientX: number; clientY: number }, b: { clientX: number; clientY: number }) {
+  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+}
+const clampScale = (s: number) => Math.max(1, Math.min(ZOOM_MAX_SCALE, s));
+
+/**
+ * 갤러리 큰 사진을 "그 자리에서(인라인)" 확대해서 볼 수 있는 컴포넌트.
+ * 전체화면(새 창)으로 넘어가지 않고, 사진 박스 안에서 바로 확대·이동한다.
+ *
+ * 확대 방법(모두 인라인):
+ *   - ＋/－ 버튼: 어떤 기기(아이폰 포함)에서도 확실히 동작하는 기본 수단
+ *   - 더블탭 / 더블클릭: 확대 ↔ 원위치 토글
+ *   - 두 손가락 핀치: Android 는 touchmove 거리, iOS 사파리는 gesture 이벤트로 처리
+ *   - 확대된 상태에서 한 손가락 드래그: 이동(pan), 휠(데스크톱): 확대/축소
+ *
+ * 제스처 충돌 완화:
+ *   - 핀치는 "두 손가락" 에서만 → 한 손가락 스와이프/스크롤과 절대 겹치지 않음
+ *   - 배율 1(원본) 일 때는 터치를 가로채지 않고 그대로 흘려보내(passthrough) 갤러리
+ *     좌우 스와이프·세로 스크롤이 평소대로 동작
+ *   - 확대된 상태(배율>1)에서만 한 손가락 드래그를 이동으로 캡처하고, 이때는
+ *     stopPropagation 으로 슬라이드/사진 전환 스와이프를 차단
+ *   - touch-action 을 동적으로(확대 시 none / 평상시 pan-y) 지정
+ *   - iOS 페이지 확대는 gesturestart·touchmove preventDefault 로 억제
+ */
+function ZoomableImage({
+  src,
+  fit,
+  enabled,
+  children,
+}: {
+  src: string;
+  fit: GalleryImageFit;
+  enabled: boolean;
+  /** 사진 위에 얹는 오버레이(좋아요 하트·번호 등). transform 영향 밖에서 렌더. */
+  children?: React.ReactNode;
+}) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [view, setView] = useState({ scale: 1, tx: 0, ty: 0 });
+  const [animate, setAnimate] = useState(false);
+  const viewRef = useRef(view);
+  viewRef.current = view;
+
+  const clampPan = (s: number, x: number, y: number) => {
+    const el = rootRef.current;
+    const w = el?.clientWidth ?? 0;
+    const h = el?.clientHeight ?? 0;
+    const maxX = ((s - 1) * w) / 2;
+    const maxY = ((s - 1) * h) / 2;
+    return {
+      x: Math.max(-maxX, Math.min(maxX, x)),
+      y: Math.max(-maxY, Math.min(maxY, y)),
+    };
+  };
+
+  const apply = (scale: number, tx: number, ty: number, withAnim = false) => {
+    setAnimate(withAnim);
+    if (scale <= 1) {
+      setView({ scale: 1, tx: 0, ty: 0 });
+      return;
+    }
+    const p = clampPan(scale, tx, ty);
+    setView({ scale, tx: p.x, ty: p.y });
+  };
+
+  const zoomBy = (delta: number) => {
+    const cur = viewRef.current;
+    const next = cur.scale <= 1 && delta > 0 ? ZOOM_DOUBLE_TAP_SCALE : cur.scale + delta;
+    apply(clampScale(next), cur.tx, cur.ty, true);
+  };
+
+  // 사진이 바뀌면(슬라이더/그리드 선택 변경) 확대를 원위치로. key 로도 remount 되지만
+  // 안전하게 src 변화에도 리셋한다.
+  useEffect(() => {
+    setAnimate(false);
+    setView({ scale: 1, tx: 0, ty: 0 });
+  }, [src]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const el = rootRef.current;
+    if (!el) return;
+
+    // iOS 사파리는 gesture 이벤트를 지원 — 이 경우 두 손가락 touchmove 거리 기반
+    // 핀치는 건너뛰고 gesture(e.scale) 로만 처리한다(둘이 겹쳐 튀는 것 방지).
+    const hasGesture = typeof window !== 'undefined' && 'GestureEvent' in window;
+
+    const g = {
+      mode: 'idle' as 'idle' | 'pan' | 'pinch' | 'control',
+      startDist: 0,
+      startScale: 1,
+      startX: 0,
+      startY: 0,
+      startTx: 0,
+      startTy: 0,
+      moved: false,
+      lastTap: 0,
+    };
+
+    const isControl = (t: EventTarget | null) =>
+      t instanceof Element && !!t.closest('[data-zoom-control]');
+
+    const onStart = (e: TouchEvent) => {
+      if (isControl(e.target)) {
+        g.mode = 'control';
+        return;
+      }
+      setAnimate(false);
+      const cur = viewRef.current;
+      if (e.touches.length === 2) {
+        g.mode = 'pinch';
+        g.startDist = touchDist(e.touches[0], e.touches[1]) || 1;
+        g.startScale = cur.scale;
+        g.startTx = cur.tx;
+        g.startTy = cur.ty;
+        g.moved = true;
+        // 두 손가락 제스처는 스와이프가 아니므로 항상 차단 + 브라우저 확대 억제.
+        e.preventDefault();
+        e.stopPropagation();
+      } else if (e.touches.length === 1) {
+        g.mode = cur.scale > 1 ? 'pan' : 'idle';
+        g.startX = e.touches[0].clientX;
+        g.startY = e.touches[0].clientY;
+        g.startTx = cur.tx;
+        g.startTy = cur.ty;
+        g.moved = false;
+        // 확대 상태에서만 캡처(이동). 배율 1 이면 흘려보내 스와이프/스크롤 허용.
+        if (cur.scale > 1) e.stopPropagation();
+      }
+    };
+
+    const onMove = (e: TouchEvent) => {
+      if (g.mode === 'control') return;
+      const cur = viewRef.current;
+      if (g.mode === 'pinch' && e.touches.length === 2) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (hasGesture) return; // iOS 는 gesturechange 가 처리
+        const d = touchDist(e.touches[0], e.touches[1]);
+        const ns = clampScale(g.startScale * (d / g.startDist));
+        const p = clampPan(ns, g.startTx, g.startTy);
+        setView({ scale: ns, tx: p.x, ty: p.y });
+      } else if (g.mode === 'pan' && e.touches.length === 1) {
+        e.preventDefault();
+        e.stopPropagation();
+        const dx = e.touches[0].clientX - g.startX;
+        const dy = e.touches[0].clientY - g.startY;
+        if (Math.abs(dx) > 6 || Math.abs(dy) > 6) g.moved = true;
+        const p = clampPan(cur.scale, g.startTx + dx, g.startTy + dy);
+        setView({ scale: cur.scale, tx: p.x, ty: p.y });
+      } else if (g.mode === 'idle' && e.touches.length === 1) {
+        // passthrough — 스크롤/스와이프가 동작하도록 가로채지 않는다. 탭 판별만.
+        const dx = e.touches[0].clientX - g.startX;
+        const dy = e.touches[0].clientY - g.startY;
+        if (Math.abs(dx) > 8 || Math.abs(dy) > 8) g.moved = true;
+      }
+    };
+
+    const onEnd = (e: TouchEvent) => {
+      if (g.mode === 'control') {
+        g.mode = 'idle';
+        return;
+      }
+      const cur = viewRef.current;
+      if (e.touches.length > 0) {
+        // 핀치 중 손가락 하나를 떼면 남은 손가락으로 이동 이어가기.
+        if (cur.scale > 1) {
+          g.mode = 'pan';
+          g.startX = e.touches[0].clientX;
+          g.startY = e.touches[0].clientY;
+          g.startTx = cur.tx;
+          g.startTy = cur.ty;
+        }
+        return;
+      }
+      if (g.mode === 'pinch') {
+        if (cur.scale <= 1.01) apply(1, 0, 0, true);
+        g.mode = viewRef.current.scale > 1 ? 'pan' : 'idle';
+        return;
+      }
+      if (!g.moved) {
+        const now = Date.now();
+        if (now - g.lastTap < 300) {
+          // 더블탭 — 확대 ↔ 원위치
+          g.lastTap = 0;
+          if (cur.scale > 1) apply(1, 0, 0, true);
+          else apply(ZOOM_DOUBLE_TAP_SCALE, 0, 0, true);
+        } else {
+          g.lastTap = now;
+        }
+      } else if (cur.scale <= 1.01) {
+        apply(1, 0, 0, true);
+      }
+      g.mode = viewRef.current.scale > 1 ? 'pan' : 'idle';
+    };
+
+    // iOS 사파리 핀치 — gesture 이벤트(e.scale 은 gesturestart 대비 누적 배율).
+    let gestureStartScale = 1;
+    const onGestureStart = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      gestureStartScale = viewRef.current.scale;
+      setAnimate(false);
+    };
+    const onGestureChange = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const scale = (e as unknown as { scale: number }).scale ?? 1;
+      const ns = clampScale(gestureStartScale * scale);
+      const cur = viewRef.current;
+      const p = clampPan(ns, cur.tx, cur.ty);
+      setView({ scale: ns, tx: p.x, ty: p.y });
+    };
+    const onGestureEnd = (e: Event) => {
+      e.preventDefault();
+      if (viewRef.current.scale <= 1.01) apply(1, 0, 0, true);
+    };
+
+    el.addEventListener('touchstart', onStart, { passive: false });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd);
+    el.addEventListener('touchcancel', onEnd);
+    el.addEventListener('gesturestart', onGestureStart, { passive: false });
+    el.addEventListener('gesturechange', onGestureChange, { passive: false });
+    el.addEventListener('gestureend', onGestureEnd, { passive: false });
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+      el.removeEventListener('touchcancel', onEnd);
+      el.removeEventListener('gesturestart', onGestureStart);
+      el.removeEventListener('gesturechange', onGestureChange);
+      el.removeEventListener('gestureend', onGestureEnd);
+    };
+    // 최신 값은 viewRef 로 읽으므로 enabled 만 의존성으로 둔다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled]);
+
+  const zoomed = view.scale > 1;
+
+  return (
+    <div
+      ref={rootRef}
+      className="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-black/5"
+      style={{ touchAction: enabled ? (zoomed ? 'none' : 'pan-y') : undefined }}
+      onWheel={
+        enabled
+          ? (e) => {
+              const cur = viewRef.current;
+              apply(clampScale(cur.scale - e.deltaY * 0.002), cur.tx, cur.ty, false);
+            }
+          : undefined
+      }
+      onDoubleClick={
+        enabled
+          ? () => {
+              const cur = viewRef.current;
+              if (cur.scale > 1) apply(1, 0, 0, true);
+              else apply(ZOOM_DOUBLE_TAP_SCALE, 0, 0, true);
+            }
+          : undefined
+      }
+    >
+      <div
+        className="h-full w-full"
+        style={{
+          transform: `translate(${view.tx}px, ${view.ty}px) scale(${view.scale})`,
+          transformOrigin: 'center center',
+          transition: animate ? 'transform 0.2s ease-out' : 'none',
+          willChange: 'transform',
+        }}
+      >
+        <GalleryHeroImage src={src} fit={fit} />
+      </div>
+
+      {children}
+
+      {enabled && (
+        <>
+          {/* 확대 힌트 — 원본 배율일 때만 좌상단에 살짝. */}
+          {!zoomed && (
+            <span className="pointer-events-none absolute left-2 top-2 z-30 flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-[11px] font-medium text-white">
+              <ZoomIn size={12} />
+              확대
+            </span>
+          )}
+          {/* ＋/－ 버튼 — 우하단. 제스처를 몰라도(아이폰 포함) 탭으로 확실히 확대. */}
+          <div className="absolute bottom-2 right-2 z-30 flex items-center gap-1.5">
+            <button
+              type="button"
+              data-zoom-control
+              aria-label="축소"
+              disabled={!zoomed}
+              onClick={(e) => {
+                e.stopPropagation();
+                zoomBy(-0.8);
+              }}
+              className="grid h-9 w-9 place-items-center rounded-full bg-black/55 text-xl leading-none text-white transition-colors hover:bg-black/75 disabled:opacity-30"
+            >
+              −
+            </button>
+            <button
+              type="button"
+              data-zoom-control
+              aria-label="확대"
+              onClick={(e) => {
+                e.stopPropagation();
+                zoomBy(0.8);
+              }}
+              className="grid h-9 w-9 place-items-center rounded-full bg-black/55 text-xl leading-none text-white transition-colors hover:bg-black/75"
+            >
+              ＋
+            </button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -199,9 +521,19 @@ function FloatingHeart() {
   );
 }
 
+/** 사진 번호(N / M) 배지 — 우상단(확대 버튼과 겹치지 않게). */
+function CountBadge({ current, total }: { current: number; total: number }) {
+  return (
+    <span className="pointer-events-none absolute right-2 top-2 z-30 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
+      {current} / {total}
+    </span>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // 슬라이드형 — 중앙 큰 사진 + 하단 썸네일 5장. 메인 사진 좌우 스와이프 시
 // 썸네일도 같이 따라 움직이고, 썸네일을 누르면 메인이 해당 인덱스로 점프.
+// (확대된 상태에서는 ZoomableImage 가 스와이프를 가로채지 않도록 stopPropagation.)
 // ─────────────────────────────────────────────────────────────
 
 function GallerySlider({
@@ -222,9 +554,7 @@ function GallerySlider({
   allowZoom: boolean;
 }) {
   const [index, setIndex] = useState(0);
-  const [lightbox, setLightbox] = useState(false);
   const startRef = useRef<{ x: number; y: number } | null>(null);
-  const movedRef = useRef(false);
   const thumbStripRef = useRef<HTMLDivElement>(null);
   const SWIPE_THRESHOLD = 30;
   const { counts, bursts, like } = useLikes(invitationId, isPreview, initialLikes);
@@ -235,15 +565,6 @@ function GallerySlider({
   const onTouchStart = (e: React.TouchEvent) => {
     const t = e.touches[0];
     startRef.current = { x: t.clientX, y: t.clientY };
-    movedRef.current = false;
-  };
-  const onTouchMove = (e: React.TouchEvent) => {
-    const start = startRef.current;
-    if (!start) return;
-    const t = e.touches[0];
-    if (Math.abs(t.clientX - start.x) > 8 || Math.abs(t.clientY - start.y) > 8) {
-      movedRef.current = true;
-    }
   };
   const onTouchEnd = (e: React.TouchEvent) => {
     const start = startRef.current;
@@ -258,8 +579,6 @@ function GallerySlider({
   };
 
   // 썸네일이 활성 인덱스를 자동으로 가운데로 가져오도록 스크롤 동기화.
-  // scrollIntoView 는 모든 ancestor 스크롤 컨테이너를 함께 움직여 슬라이드 컨테이너의
-  // transform 위치를 흔드는 부작용이 있어, scrollLeft 를 직접 계산해 strip 만 움직인다.
   useEffect(() => {
     const strip = thumbStripRef.current;
     if (!strip) return;
@@ -275,39 +594,21 @@ function GallerySlider({
   }, [clamped]);
 
   return (
-    // data-noswipe — SlideContainer 의 슬라이드 전환 스와이프와 분리. 갤러리 안 좌우 스와이프
-    // 는 메인 사진 자체에서만 동작하고 슬라이드 전환에는 영향 주지 않도록 한다.
+    // data-noswipe — SlideContainer 의 슬라이드 전환 스와이프와 분리. 갤러리 안 좌우
+    // 스와이프는 메인 사진에서만 동작하고 슬라이드 전환엔 영향 주지 않도록.
     <div data-noswipe className="flex flex-col gap-3">
-      {/* 중앙 큰 사진 — 좌우 스와이프 가능. 단순 탭은 라이트박스 오픈.
-          z-20 으로 슬라이드의 z-10 배경 효과(별빛/펠탈) 위로 올려 사진 위에는 효과가 떨어지지 않게. */}
-      <div
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        className="relative z-20"
-      >
-        <button
-          type="button"
-          onClick={() => {
-            if (!movedRef.current) setLightbox(true);
-          }}
-          aria-label={`사진 ${clamped + 1} / ${images.length}${allowZoom ? ' 확대' : ''}`}
-          className="relative block aspect-[3/4] w-full overflow-hidden rounded-md bg-black/5"
-        >
-          <GalleryHeroImage src={images[clamped]} fit={fit} />
-          {allowZoom && <ZoomHintBadge />}
-          <span className="pointer-events-none absolute bottom-2 right-2 z-10 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
-            {clamped + 1} / {images.length}
-          </span>
-        </button>
-        {/* 좌하단 하트 좋아요 버튼 — 메인 사진 단위로 카운트. */}
-        <HeartLikeButton
-          index={clamped}
-          count={counts[clamped] ?? 0}
-          burstKey={bursts[clamped]}
-          onLike={like}
-          disabled={mode === 'owner'}
-        />
+      {/* 중앙 큰 사진 — (배율 1) 좌우 스와이프로 사진 전환, (확대 시) 인라인 확대/이동. */}
+      <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} className="relative z-20">
+        <ZoomableImage key={images[clamped]} src={images[clamped]} fit={fit} enabled={allowZoom}>
+          <CountBadge current={clamped + 1} total={images.length} />
+          <HeartLikeButton
+            index={clamped}
+            count={counts[clamped] ?? 0}
+            burstKey={bursts[clamped]}
+            onLike={like}
+            disabled={mode === 'owner'}
+          />
+        </ZoomableImage>
       </div>
 
       {/* 하단 썸네일 스트립 — 가로 스크롤. 한 화면에 약 5장 보이도록 너비 조정. */}
@@ -333,17 +634,18 @@ function GallerySlider({
               style={{ width: 'calc((100% - 4 * 0.375rem) / 5)' }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
+              <img
+                src={url}
+                alt=""
+                className={`h-full w-full object-cover ${noSaveImgClass}`}
+                loading="lazy"
+                draggable={false}
+                onContextMenu={preventCtxMenu}
+              />
             </button>
           );
         })}
       </div>
-
-      {lightbox && (
-        <LightboxPortal>
-          <Lightbox src={images[clamped]} zoomable={allowZoom} onClose={() => setLightbox(false)} />
-        </LightboxPortal>
-      )}
     </div>
   );
 }
@@ -371,32 +673,22 @@ function GalleryGrid({
   allowZoom: boolean;
 }) {
   const [selected, setSelected] = useState(0);
-  const [lightbox, setLightbox] = useState(false);
   const { counts, bursts, like } = useLikes(invitationId, isPreview, initialLikes);
 
   return (
     <div className="relative flex flex-col gap-3">
-      {/* 상단 큰 사진 — z-20 으로 배경 효과 위로 올려 사진 위에 효과가 떨어지지 않게. */}
+      {/* 상단 큰 사진 — 인라인 확대. */}
       <div className="relative z-20">
-        <button
-          type="button"
-          onClick={() => setLightbox(true)}
-          aria-label={`선택된 사진${allowZoom ? ' 확대' : ' 크게 보기'}`}
-          className="relative block aspect-[3/4] w-full overflow-hidden rounded-md bg-black/5"
-        >
-          <GalleryHeroImage src={images[selected]} fit={fit} />
-          {allowZoom && <ZoomHintBadge />}
-          <span className="pointer-events-none absolute bottom-2 right-2 z-10 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
-            {selected + 1} / {images.length}
-          </span>
-        </button>
-        <HeartLikeButton
-          index={selected}
-          count={counts[selected] ?? 0}
-          burstKey={bursts[selected]}
-          onLike={like}
-          disabled={mode === 'owner'}
-        />
+        <ZoomableImage key={images[selected]} src={images[selected]} fit={fit} enabled={allowZoom}>
+          <CountBadge current={selected + 1} total={images.length} />
+          <HeartLikeButton
+            index={selected}
+            count={counts[selected] ?? 0}
+            burstKey={bursts[selected]}
+            onLike={like}
+            disabled={mode === 'owner'}
+          />
+        </ZoomableImage>
       </div>
 
       {/* 하단 그리드 — 클릭 시 상단 사진 교체. */}
@@ -416,337 +708,19 @@ function GalleryGrid({
                 }`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                <img
+                  src={url}
+                  alt=""
+                  className={`h-full w-full object-cover ${noSaveImgClass}`}
+                  loading="lazy"
+                  draggable={false}
+                  onContextMenu={preventCtxMenu}
+                />
               </button>
             </li>
           );
         })}
       </ul>
-
-      {lightbox && (
-        <LightboxPortal>
-          <Lightbox src={images[selected]} zoomable={allowZoom} onClose={() => setLightbox(false)} />
-        </LightboxPortal>
-      )}
-    </div>
-  );
-}
-
-/**
- * 전체화면 사진 뷰어. zoomable 이면 ＋/－ 버튼·핀치 줌·더블탭·드래그로 사진을 더
- * 확대해서 볼 수 있다(사진 세부를 크게 보고 싶을 때). zoomable=false 면 예전처럼
- * 전체화면 한 장만 보여 준다.
- *
- * 닫기: 우측 상단 ✕ 버튼은 항상 동작. 사진 바깥(어두운 여백)을 탭/클릭해도 닫힌다.
- * 사진 위 단일 탭은 닫지 않는다(확대 조작과 헷갈리지 않게) — 더블탭은 확대 토글.
- *
- * 터치 이벤트는 React 합성 핸들러(패시브라 preventDefault 가 막힐 수 있음) 대신
- * 컨테이너에 native listener 를 { passive:false } 로 직접 붙여, 인앱 브라우저에서도
- * 브라우저 기본 핀치/스크롤에 가로채이지 않고 우리 확대가 확실히 동작하게 한다.
- */
-const LIGHTBOX_MAX_SCALE = 4;
-const LIGHTBOX_DOUBLE_TAP_SCALE = 2.5;
-
-/**
- * 라이트박스를 document.body 로 포탈시키는 래퍼.
- *
- * 슬라이드 컨테이너(SlideContainer)의 motion.div 는 슬라이드 전환을 위해
- * transform: translateX() 를 항상 적용한다. CSS 상 transform 이 걸린 조상은
- * position:fixed 의 기준(containing block)이 되어 버려, 갤러리가 첫 슬라이드가
- * 아니면 fixed 인 라이트박스가 화면 밖(왼쪽으로 N화면)으로 밀려 "전체화면이
- * 안 열리는" 것처럼 보였다. body 로 포탈해 transform 조상 밖에서 렌더하면
- * fixed 가 실제 뷰포트를 기준으로 잡혀 정상 동작한다.
- */
-function LightboxPortal({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
-  return createPortal(children, document.body);
-}
-
-function touchDist(a: { clientX: number; clientY: number }, b: { clientX: number; clientY: number }) {
-  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-}
-
-function clampPanBox(s: number, x: number, y: number) {
-  // 확대 배율만큼 화면 절반 범위 안에서만 이동 허용 → 사진이 화면 밖으로 완전히
-  // 빠지지 않게 한다. 뷰포트 기준 근사치(자연 크기 측정 불필요).
-  const maxX = ((s - 1) * window.innerWidth) / 2;
-  const maxY = ((s - 1) * window.innerHeight) / 2;
-  return {
-    x: Math.max(-maxX, Math.min(maxX, x)),
-    y: Math.max(-maxY, Math.min(maxY, y)),
-  };
-}
-
-function Lightbox({
-  src,
-  zoomable,
-  onClose,
-}: {
-  src: string;
-  zoomable: boolean;
-  onClose: () => void;
-}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [view, setView] = useState({ scale: 1, tx: 0, ty: 0 });
-  const [animate, setAnimate] = useState(false);
-  // native 리스너가 최신 값을 stale 없이 읽도록 ref 로 미러링.
-  const viewRef = useRef(view);
-  viewRef.current = view;
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-
-  // 전체보기(라이트박스) 상태에서 (모바일/브라우저) 뒤로가기를 누르면 알림장을
-  // 벗어나지 않고 갤러리로 돌아오도록, 열릴 때 히스토리 항목을 하나 쌓는다.
-  // 뒤로가기 → popstate → 닫기. ✕/배경 탭으로 닫으면 쌓아둔 항목을 정리한다.
-  useEffect(() => {
-    window.history.pushState({ wdLightbox: true }, '');
-    const onPop = () => onCloseRef.current();
-    window.addEventListener('popstate', onPop);
-    return () => {
-      window.removeEventListener('popstate', onPop);
-      if ((window.history.state as { wdLightbox?: boolean } | null)?.wdLightbox) {
-        window.history.back();
-      }
-    };
-  }, []);
-
-  const applyView = (scale: number, tx: number, ty: number, withAnim = false) => {
-    setAnimate(withAnim);
-    if (scale <= 1) {
-      setView({ scale: 1, tx: 0, ty: 0 });
-      return;
-    }
-    const p = clampPanBox(scale, tx, ty);
-    setView({ scale, tx: p.x, ty: p.y });
-  };
-
-  // ＋/－ 버튼 — 제스처를 몰라도 탭 한 번으로 확대/축소. 어떤 브라우저에서도 확실히 동작.
-  const zoomBy = (delta: number) => {
-    const cur = viewRef.current;
-    const next = cur.scale <= 1 && delta > 0 ? LIGHTBOX_DOUBLE_TAP_SCALE : cur.scale + delta;
-    applyView(Math.max(1, Math.min(LIGHTBOX_MAX_SCALE, next)), cur.tx, cur.ty, true);
-  };
-
-  useEffect(() => {
-    if (!zoomable) return;
-    const el = containerRef.current;
-    if (!el) return;
-
-    const g = {
-      mode: 'none' as 'none' | 'pan' | 'pinch',
-      startDist: 0,
-      startScale: 1,
-      startX: 0,
-      startY: 0,
-      startTx: 0,
-      startTy: 0,
-      moved: false,
-      lastTap: 0,
-      downOnBackdrop: false,
-    };
-
-    const onStart = (e: TouchEvent) => {
-      setAnimate(false);
-      const cur = viewRef.current;
-      if (e.touches.length === 2) {
-        g.mode = 'pinch';
-        g.startDist = touchDist(e.touches[0], e.touches[1]) || 1;
-        g.startScale = cur.scale;
-        g.startTx = cur.tx;
-        g.startTy = cur.ty;
-        g.moved = true;
-      } else if (e.touches.length === 1) {
-        g.mode = cur.scale > 1 ? 'pan' : 'none';
-        g.startX = e.touches[0].clientX;
-        g.startY = e.touches[0].clientY;
-        g.startTx = cur.tx;
-        g.startTy = cur.ty;
-        g.moved = false;
-        g.downOnBackdrop = e.target === el;
-      }
-    };
-
-    const onMove = (e: TouchEvent) => {
-      const cur = viewRef.current;
-      if (g.mode === 'pinch' && e.touches.length === 2) {
-        e.preventDefault();
-        const d = touchDist(e.touches[0], e.touches[1]);
-        const ns = Math.max(1, Math.min(LIGHTBOX_MAX_SCALE, g.startScale * (d / g.startDist)));
-        const p = clampPanBox(ns, g.startTx, g.startTy);
-        setView({ scale: ns, tx: p.x, ty: p.y });
-      } else if (g.mode === 'pan' && e.touches.length === 1) {
-        e.preventDefault();
-        const dx = e.touches[0].clientX - g.startX;
-        const dy = e.touches[0].clientY - g.startY;
-        if (Math.abs(dx) > 6 || Math.abs(dy) > 6) g.moved = true;
-        const p = clampPanBox(cur.scale, g.startTx + dx, g.startTy + dy);
-        setView({ scale: cur.scale, tx: p.x, ty: p.y });
-      } else if (g.mode === 'none' && e.touches.length === 1) {
-        const dx = e.touches[0].clientX - g.startX;
-        const dy = e.touches[0].clientY - g.startY;
-        if (Math.abs(dx) > 8 || Math.abs(dy) > 8) g.moved = true;
-      }
-    };
-
-    const onEnd = (e: TouchEvent) => {
-      const cur = viewRef.current;
-      // 핀치 중 손가락 하나를 떼면 남은 손가락으로 이동(pan) 이어가기.
-      if (e.touches.length > 0) {
-        if (cur.scale > 1) {
-          g.mode = 'pan';
-          g.startX = e.touches[0].clientX;
-          g.startY = e.touches[0].clientY;
-          g.startTx = cur.tx;
-          g.startTy = cur.ty;
-        }
-        return;
-      }
-      if (g.mode === 'pinch') {
-        if (cur.scale <= 1.01) applyView(1, 0, 0, true);
-        g.mode = viewRef.current.scale > 1 ? 'pan' : 'none';
-        return;
-      }
-      if (!g.moved) {
-        const now = Date.now();
-        if (now - g.lastTap < 300) {
-          // 더블탭 — 확대/원위치 토글
-          g.lastTap = 0;
-          if (cur.scale > 1) applyView(1, 0, 0, true);
-          else applyView(LIGHTBOX_DOUBLE_TAP_SCALE, 0, 0, true);
-        } else {
-          g.lastTap = now;
-          // 사진 바깥(어두운 여백) 단일 탭 → 닫기. 사진 위 단일 탭은 아무 동작 안 함.
-          if (g.downOnBackdrop && cur.scale <= 1) onClose();
-        }
-      } else if (cur.scale <= 1.01) {
-        applyView(1, 0, 0, true);
-      }
-      g.mode = viewRef.current.scale > 1 ? 'pan' : 'none';
-    };
-
-    el.addEventListener('touchstart', onStart, { passive: false });
-    el.addEventListener('touchmove', onMove, { passive: false });
-    el.addEventListener('touchend', onEnd);
-    el.addEventListener('touchcancel', onEnd);
-    return () => {
-      el.removeEventListener('touchstart', onStart);
-      el.removeEventListener('touchmove', onMove);
-      el.removeEventListener('touchend', onEnd);
-      el.removeEventListener('touchcancel', onEnd);
-    };
-    // onClose/applyView 는 렌더마다 새로 생기지만 최신 값은 viewRef 로 읽으므로
-    // zoomable 만 의존성으로 둔다(리스너 재부착 최소화).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zoomable]);
-
-  return (
-    <div
-      ref={containerRef}
-      data-noswipe
-      className="fixed inset-0 z-50 flex touch-none items-center justify-center overflow-hidden bg-black/90"
-      // 데스크톱 마우스: 휠 확대/축소, 더블클릭 토글, 사진 바깥 클릭 시 닫기.
-      onWheel={
-        zoomable
-          ? (e) => {
-              const cur = viewRef.current;
-              applyView(
-                Math.max(1, Math.min(LIGHTBOX_MAX_SCALE, cur.scale - e.deltaY * 0.002)),
-                cur.tx,
-                cur.ty,
-                false,
-              );
-            }
-          : undefined
-      }
-      onDoubleClick={
-        zoomable
-          ? () => {
-              const cur = viewRef.current;
-              if (cur.scale > 1) applyView(1, 0, 0, true);
-              else applyView(LIGHTBOX_DOUBLE_TAP_SCALE, 0, 0, true);
-            }
-          : undefined
-      }
-      onClick={(e) => {
-        if (!zoomable) {
-          onClose();
-          return;
-        }
-        // 사진 바깥(컨테이너 자체) 클릭 시에만 닫기 — 마우스 전용. 모바일 탭은
-        // native onEnd 가 처리한다(여기로 오는 합성 클릭은 target 이 컨테이너라도
-        // 확대 상태에선 무시).
-        if (e.target === e.currentTarget && viewRef.current.scale <= 1) onClose();
-      }}
-      role="dialog"
-      aria-label="사진 확대 보기"
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt=""
-        draggable={false}
-        className="max-h-full max-w-full select-none object-contain"
-        style={{
-          transform: `translate(${view.tx}px, ${view.ty}px) scale(${view.scale})`,
-          transition: animate ? 'transform 0.2s ease-out' : 'none',
-          willChange: 'transform',
-        }}
-      />
-
-      {/* 닫기 ✕ — 좌측 상단. 우측 상단은 알림장 '전체보기' 버튼(FullscreenToggle,
-          fixed right-3 top-3)과 겹치므로 왼쪽에 둔다. 확대 상태에서도 항상 노출. */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
-        aria-label="닫기"
-        className="absolute left-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-black/50 text-2xl leading-none text-white transition-colors hover:bg-black/70"
-      >
-        ✕
-      </button>
-
-      {/* 확대/축소 버튼 — 제스처(핀치·더블탭)를 몰라도 탭으로 확실히 확대되게. */}
-      {zoomable && (
-        <div
-          className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              aria-label="축소"
-              disabled={view.scale <= 1}
-              onClick={(e) => {
-                e.stopPropagation();
-                zoomBy(-0.8);
-              }}
-              className="grid h-11 w-11 place-items-center rounded-full bg-black/55 text-2xl leading-none text-white transition-colors hover:bg-black/75 disabled:opacity-30"
-            >
-              −
-            </button>
-            <button
-              type="button"
-              aria-label="확대"
-              onClick={(e) => {
-                e.stopPropagation();
-                zoomBy(0.8);
-              }}
-              className="grid h-11 w-11 place-items-center rounded-full bg-black/55 text-2xl leading-none text-white transition-colors hover:bg-black/75"
-            >
-              ＋
-            </button>
-          </div>
-          {view.scale <= 1 && (
-            <span className="rounded-full bg-black/45 px-3 py-1 text-[11px] text-white/90">
-              ＋ 버튼·더블탭·두 손가락으로 확대해서 볼 수 있어요
-            </span>
-          )}
-        </div>
-      )}
     </div>
   );
 }
