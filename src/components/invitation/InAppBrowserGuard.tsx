@@ -3,18 +3,16 @@
 import { useEffect, useState } from 'react';
 
 /**
- * 카카오톡 인앱 브라우저 자동 우회.
+ * 카카오톡 인앱 브라우저 안내(비강제).
  *
- * 동작:
- *   1) 페이지 진입 시 UA 의 'KAKAOTALK' 감지
- *   2) 즉시 `kakaotalk://web/openExternal?url=...` 로 시스템 브라우저 redirect 시도
- *   3) 1.5초 안에 redirect 안 되면 (스킴 실패 / 사용자 환경 이슈) fallback 오버레이 표시
- *   4) 사용자가 "그대로 보기" 누르면 sessionStorage 에 dismiss 기록
- *   5) 같은 카카오 webview 세션에서 redirect 1회만 자동 시도 — 사용자가 외부 브라우저
- *      에서 돌아오는 케이스를 대비. 두 번째부터는 오버레이만 표시.
+ * 예전엔 카톡 진입 시 즉시 외부 브라우저로 자동 redirect 했지만, 그 방식은
+ * "카톡의 완화된 자동재생 정책"을 버리고 외부 브라우저(콜드오픈 시 소리 자동재생
+ * 금지)로 나가게 만들어 배경음악 자동재생이 깨지는 문제가 있었다. 그래서 자동
+ * redirect 는 제거하고, 카톡 인앱에 그대로 머물러 소리가 입장과 동시에 나도록 한다.
  *
- * URL 자체로 카카오톡 인앱 진입을 막을 수는 없다 (페이지 로드 후에야 JS 가 실행되어
- * redirect 가능). 따라서 ~0.5-1.5초의 짧은 플래시는 불가피하다.
+ * 대신 카톡 인앱의 상하단 메뉴바가 화면을 일부 가릴 수 있으므로, 원하는 사용자는
+ * 직접 외부 브라우저로 열 수 있도록 작고 닫을 수 있는 안내 배너만 상단에 띄운다
+ * (자동으로 내보내지 않음 — 누르는 순간이 사용자의 선택).
  */
 export function InAppBrowserGuard() {
   const [show, setShow] = useState(false);
@@ -25,26 +23,7 @@ export function InAppBrowserGuard() {
     const isKakao = /KAKAOTALK/i.test(ua);
     if (!isKakao) return;
     if (sessionStorage.getItem('mw_kakao_inapp_dismiss') === '1') return;
-
-    const alreadyAttempted =
-      sessionStorage.getItem('mw_kakao_inapp_attempted') === '1';
-
-    if (alreadyAttempted) {
-      // 이미 한 번 자동 redirect 를 시도했음 → 사용자가 외부 브라우저 갔다 돌아왔거나
-      // 스킴이 실패해서 다시 들어온 것. 자동 redirect 무한 루프 방지 위해 오버레이만.
-      setShow(true);
-      return;
-    }
-
-    sessionStorage.setItem('mw_kakao_inapp_attempted', '1');
-    // 즉시 외부 브라우저로 redirect 시도.
-    window.location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(
-      window.location.href,
-    )}`;
-
-    // 1.5초 안에 redirect 가 안 되면 (스킴 미지원/사용자 환경 이슈) fallback.
-    const t = setTimeout(() => setShow(true), 1500);
-    return () => clearTimeout(t);
+    setShow(true);
   }, []);
 
   if (!show) return null;
@@ -61,33 +40,25 @@ export function InAppBrowserGuard() {
   };
 
   return (
-    <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center gap-4 bg-black/85 px-6 text-center text-white">
-      <div className="flex max-w-sm flex-col gap-3">
-        <p className="text-base font-semibold leading-snug">
-          카카오톡에서는 상하단 메뉴 때문에
-          <br />
-          알림장이 일부 가려질 수 있어요.
-        </p>
-        <p className="text-sm leading-relaxed text-white/80">
-          아래 버튼을 누르면 외부 브라우저로 열려
-          <br />
-          전체 화면으로 깨끗하게 보실 수 있습니다.
-        </p>
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-[300] flex justify-center px-3 pt-[calc(env(safe-area-inset-top)+0.5rem)]">
+      <div className="pointer-events-auto flex max-w-md items-center gap-2 rounded-full bg-black/80 py-2 pl-4 pr-2 text-xs text-white shadow-lg backdrop-blur">
+        <span className="leading-snug">전체 화면으로 보시려면 외부 브라우저로 열어주세요</span>
+        <button
+          type="button"
+          onClick={openExternal}
+          className="shrink-0 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-black active:scale-[0.98]"
+        >
+          열기
+        </button>
+        <button
+          type="button"
+          onClick={dismiss}
+          aria-label="닫기"
+          className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-white/70 hover:text-white"
+        >
+          ✕
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={openExternal}
-        className="mt-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black shadow-lg active:scale-[0.98]"
-      >
-        외부 브라우저로 열기
-      </button>
-      <button
-        type="button"
-        onClick={dismiss}
-        className="text-xs text-white/60 underline-offset-2 hover:underline"
-      >
-        그대로 보기
-      </button>
     </div>
   );
 }

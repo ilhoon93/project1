@@ -50,8 +50,6 @@ interface Props {
   forceBgm?: boolean;
   /** isPreview 에서 음악 버튼만 노출(자동재생 X) — 에디터 실시간 미리보기용. */
   manualBgm?: boolean;
-  /** 마운트 즉시 배경음악 자동재생 시도 여부(기본 true). 진입 게이트가 있으면 false. */
-  autoplayBgmOnMount?: boolean;
   /**
    * coverOnly: 메인 표지 한 장만 렌더(다른 슬라이드로 넘어갈 수 없음). 홈 쇼케이스
    * 커버처럼 표지만 보여줄 때 사용. pageOrder 를 무시하고 main 만 노출한다.
@@ -71,7 +69,6 @@ export function InvitationSlides({
   ownerData,
   forceBgm,
   manualBgm,
-  autoplayBgmOnMount,
   coverOnly,
 }: Props) {
   // 운영자가 고른 출력 형식으로 사전 포맷팅 — 자식 슬라이드들은 받은 문자열을
@@ -214,7 +211,6 @@ export function InvitationSlides({
         isPreview={isPreview}
         forceBgm={forceBgm}
         manualBgm={manualBgm}
-        autoplayBgmOnMount={autoplayBgmOnMount}
         hostMode={content.theme.hostMode}
       >
         {slides}

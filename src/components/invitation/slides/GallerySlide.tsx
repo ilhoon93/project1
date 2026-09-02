@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Heart } from 'lucide-react';
+import { Heart, Plus, Minus } from 'lucide-react';
 import type {
   InvitationContent,
   ResolvedSectionHeader,
@@ -398,9 +398,9 @@ function ZoomableImage({
                 e.stopPropagation();
                 zoomBy(-0.8);
               }}
-              className="grid h-9 w-9 place-items-center rounded-full bg-black/55 text-xl leading-none text-white transition-colors hover:bg-black/75 disabled:opacity-30"
+              className="grid h-9 w-9 place-items-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75 disabled:opacity-30"
             >
-              −
+              <Minus size={18} strokeWidth={2.5} aria-hidden />
             </button>
             <button
               type="button"
@@ -410,9 +410,9 @@ function ZoomableImage({
                 e.stopPropagation();
                 zoomBy(0.8);
               }}
-              className="grid h-9 w-9 place-items-center rounded-full bg-black/55 text-xl leading-none text-white transition-colors hover:bg-black/75"
+              className="grid h-9 w-9 place-items-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75"
             >
-              ＋
+              <Plus size={18} strokeWidth={2.5} aria-hidden />
             </button>
           </div>
         </>

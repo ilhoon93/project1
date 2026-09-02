@@ -10,23 +10,19 @@ interface Props {
    * 저절로 나면 곤란한" 곳에서는 false — 이때는 펄 버튼을 탭해야만 재생된다. 기본 true.
    */
   autoStart?: boolean;
-  /**
-   * autoplayOnMount: 마운트 즉시 재생을 시도할지(기본 true). 진입 게이트가 있는
-   * 뷰어에서는 false — 마운트 시엔 재생하지 않고, 첫 제스처(= 게이트 탭)에서만
-   * 처음부터 재생한다(게이트 뒤에서 미리 재생되는 것 방지). 제스처 리스너는 그대로
-   * 장착되므로 게이트 탭이 재생을 켠다.
-   */
-  autoplayOnMount?: boolean;
 }
 
 /**
  * 배경음악 ON/OFF 토글 — 슬라이드 컨테이너 좌하단 코너에 absolute 로 고정.
  *
  * 재생 정책(모든 기기에서 최대한 일관되게):
- *   - 마운트 시 소리 재생을 시도한다(자동재생 허용 환경이면 처음부터 재생).
- *   - 막히면(iOS 등) 첫 사용자 접촉에 재생한다. 진입 인트로(InvitationEntryGate)를
- *     탭하는 그 동작이 첫 접촉이 되어, 카톡/아이폰 포함 모든 기기에서 "입장과 동시에
- *     처음부터" 소리가 난다.
+ *   - 마운트 즉시 소리 재생을 시도한다. 브라우저가 자동재생을 허용하는 환경
+ *     (카톡 인앱, 안드로이드 크롬, 미디어 인게이지먼트가 쌓인 브라우저 등)에서는
+ *     "링크를 열자마자" 처음부터 소리가 난다. 진입 게이트(탭 인트로)는 두지 않는다.
+ *   - 자동재생이 막히면(iOS 사파리 콜드오픈 등 정책상 제스처 필요) 첫 사용자 접촉
+ *     (스크롤/탭)에서 처음부터 재생한다.
+ *   - 한 번 재생이 시작되면 제스처 리스너를 영구 해제한다 → 이후 화면을 아무리
+ *     터치해도 음악이 다시(처음부터) 재생되지 않는다.
  *   - "무음으로 몰래 재생" 트릭은 쓰지 않는다(기기마다 중간부터/처음부터 재생이
  *     달라지고 아이콘이 어긋나는 문제 때문). 항상 처음부터, 아이콘도 정확히.
  *
@@ -35,7 +31,7 @@ interface Props {
  */
 const VISIBILITY_GRACE_MS = 2000;
 
-export function BgmPlayer({ url, autoStart = true, autoplayOnMount = true }: Props) {
+export function BgmPlayer({ url, autoStart = true }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const wasPlayingRef = useRef(false);
@@ -100,8 +96,8 @@ export function BgmPlayer({ url, autoStart = true, autoplayOnMount = true }: Pro
     audio.addEventListener('play', markStarted);
     audio.addEventListener('playing', markStarted);
     GESTURE_EVENTS.forEach((ev) => window.addEventListener(ev, onGesture, true));
-    // 게이트가 있으면(autoplayOnMount=false) 마운트 재생은 생략 — 게이트 탭(첫 제스처)에서만 재생.
-    if (autoplayOnMount) play();
+    // 마운트 즉시 재생 시도 — 허용 환경이면 링크 열자마자 소리, 막히면 첫 제스처에서 재생.
+    play();
 
     // ── 창 이탈 정지 ─────────────────────────────────────────────
     const pauseForLeave = () => {
@@ -131,7 +127,7 @@ export function BgmPlayer({ url, autoStart = true, autoplayOnMount = true }: Pro
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', pauseForLeave);
     };
-  }, [url, autoStart, autoplayOnMount]);
+  }, [url, autoStart]);
 
   const toggle = () => {
     const audio = audioRef.current;
