@@ -306,12 +306,12 @@ export function GalleryEditor({ drag }: { drag?: SectionDragProps }) {
           </p>
         </div>
 
-        {/* 확대 보기 — 사진 그 자리(인라인)에서 핀치/＋버튼/더블탭으로 크게 보기 */}
+        {/* 사진 확대 보기 토글 — 켜면 ＋/－·더블탭·두 손가락으로 사진 확대, 끄면 확대 안 됨 */}
         <div className="flex items-start justify-between gap-3 rounded-md border bg-background p-3">
           <div className="flex min-w-0 flex-col gap-0.5">
             <span className="text-sm font-medium text-foreground">사진 확대 보기</span>
             <span className="text-[11px] text-muted-foreground">
-              사진에서 두 손가락(핀치)·＋ 버튼·더블탭으로 그 자리에서 크게 볼 수 있어요.
+              하객이 사진을 크게 볼 수 있어요(＋/− 버튼·더블탭·두 손가락). 끄면 확대되지 않습니다.
             </span>
           </div>
           <button

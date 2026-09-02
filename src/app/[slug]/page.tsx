@@ -16,17 +16,6 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
-// 하객용 뷰어는 네이티브 앱처럼 동작하도록 브라우저 확대(핀치 페이지 줌)를 끈다.
-// → 갤러리 사진의 인라인 확대(우리 핀치/버튼)가 iPhone 에서도 브라우저 페이지
-//   줌과 충돌 없이 정확히 동작한다. 본문 가독성은 '혼주용 큰 글씨' 모드로 대응.
-export const viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: 'cover' as const,
-};
-
 interface PageProps {
   params: { slug: string };
 }

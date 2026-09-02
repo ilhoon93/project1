@@ -16,16 +16,6 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
-// 소장용 뷰어도 하객용과 동일하게 브라우저 확대(핀치 페이지 줌)를 꺼, 갤러리
-// 인라인 확대가 iPhone 에서도 정확히 동작하게 한다.
-export const viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: 'cover' as const,
-};
-
 /**
  * 소장용(owner) 뷰 라우트.
  * `/{slug}/o/{owner_token}` — slug + token 둘 다 일치해야만 진입.
