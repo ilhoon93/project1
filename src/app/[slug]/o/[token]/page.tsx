@@ -5,7 +5,6 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { InvitationContentSchema, type InvitationContent } from '@/types/invitation';
 import { fetchLiveDisplaySettings, applyLiveDisplaySettings } from '@/lib/invitation/live-display';
 import { InvitationSlides } from '@/components/invitation/InvitationSlides';
-import { InvitationEntryGate } from '@/components/invitation/InvitationEntryGate';
 import { FullscreenToggle } from '@/components/invitation/FullscreenToggle';
 
 interface PageProps {
@@ -125,12 +124,6 @@ function OwnerView(props: {
 }) {
   return (
     <div className="flex min-h-[100dvh] w-full items-center justify-center bg-neutral-950 md:p-6">
-      {/* 진입 인트로 — 탭이 곧 사용자 제스처가 되어 배경음악이 입장과 동시에 재생됨. */}
-      <InvitationEntryGate
-        groomName={props.pub.groom_name}
-        brideName={props.pub.bride_name}
-        colorTheme={props.content.theme.colorTheme}
-      />
       <FullscreenToggle />
       <div className="relative h-[100dvh] w-full overflow-hidden bg-black md:h-[min(92dvh,calc(100vw*16/9))] md:max-h-[min(92dvh,900px)] md:w-[min(92vw,calc(92dvh*9/16))] md:max-w-[506px] md:rounded-2xl md:shadow-2xl">
         <InvitationSlides
