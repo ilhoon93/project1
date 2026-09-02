@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Heart, ZoomIn } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import type {
   InvitationContent,
   ResolvedSectionHeader,
@@ -394,13 +394,6 @@ function ZoomableImage({
 
       {enabled && (
         <>
-          {/* 확대 힌트 — 원본 배율일 때만 좌상단에 살짝. */}
-          {!zoomed && (
-            <span className="pointer-events-none absolute left-2 top-2 z-30 flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-[11px] font-medium text-white">
-              <ZoomIn size={12} />
-              확대
-            </span>
-          )}
           {/* ＋/－ 버튼 — 우하단. 제스처를 몰라도(아이폰 포함) 탭으로 확실히 확대. */}
           <div className="absolute bottom-2 right-2 z-30 flex items-center gap-1.5">
             <button
