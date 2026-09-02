@@ -39,7 +39,7 @@ export function GallerySlide({
 
   const layout = gallery.layout ?? 'grid';
   const fit = gallery.imageFit ?? 'cover';
-  const allowZoom = gallery.allowZoom ?? true;
+  const allowZoom = gallery.allowZoom ?? false;
 
   return (
     <section className="flex min-h-full flex-col gap-6 px-6 py-16">
