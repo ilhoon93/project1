@@ -28,7 +28,42 @@ interface Props {
 export function BgmPlayer({ url, autoStart = true }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
+  const wasPlayingRef = useRef(false);
   const [playing, setPlaying] = useState(false);
+
+  // 페이지가 화면에서 사라지면(탭 전환·앱 전환·인앱 브라우저 닫기 등) 음악을 멈춘다.
+  // 카카오톡/인스타 인앱 브라우저(특히 안드로이드 WebView)는 링크를 닫아도 WebView
+  // 를 곧바로 파괴하지 않고 백그라운드로만 내려, <audio loop> 가 계속 재생되는
+  // 현상이 있다("창을 종료해도 음악이 계속됨"). visibilitychange/pagehide 로 감지해
+  // 반드시 pause 하고, 다시 화면에 돌아오면 재생 중이던 경우에만 이어서 재생한다.
+  useEffect(() => {
+    const onHidden = () => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      if (!audio.paused) {
+        wasPlayingRef.current = true;
+        audio.pause();
+      }
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        onHidden();
+      } else if (document.visibilityState === 'visible' && wasPlayingRef.current) {
+        wasPlayingRef.current = false;
+        audioRef.current?.play().catch(() => {
+          /* 자동재생이 막히면 사용자가 펄 버튼으로 다시 켤 수 있다. */
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    // pagehide: iOS Safari·모바일 크롬에서 페이지가 bfcache 로 내려가거나 닫힐 때.
+    window.addEventListener('pagehide', onHidden);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pagehide', onHidden);
+    };
+  }, []);
 
   // Wire up: try to start on first user gesture. We add the listener once
   // and remove it after success. autoStart=false 면 자동재생/제스처 리스너를

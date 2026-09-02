@@ -306,6 +306,33 @@ export function GalleryEditor({ drag }: { drag?: SectionDragProps }) {
           </p>
         </div>
 
+        {/* 확대 보기 — 전체화면에서 핀치 줌/더블탭으로 더 크게 볼 수 있게 */}
+        <div className="flex items-start justify-between gap-3 rounded-md border bg-background p-3">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-sm font-medium text-foreground">사진 확대 보기</span>
+            <span className="text-[11px] text-muted-foreground">
+              전체화면에서 손가락으로 넓혀(핀치)·더블탭해 사진을 더 크게 볼 수 있어요.
+              어르신 하객도 얼굴을 크게 확인할 수 있습니다.
+            </span>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={gallery.allowZoom ?? false}
+            aria-label="사진 확대 보기 사용 여부"
+            onClick={() => patch('gallery', { ...gallery, allowZoom: !(gallery.allowZoom ?? false) })}
+            className={`mt-0.5 inline-flex h-5 w-9 shrink-0 items-center overflow-hidden rounded-full p-0.5 transition-colors ${
+              (gallery.allowZoom ?? false) ? 'bg-primary' : 'bg-muted-foreground/30'
+            }`}
+          >
+            <span
+              className={`block h-4 w-4 rounded-full bg-background shadow-sm transition-transform ${
+                (gallery.allowZoom ?? false) ? 'translate-x-4' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+
         {/* 업로더 */}
         <input
           ref={inputRef}

@@ -329,6 +329,7 @@ export function buildDesign(
     enabled: true,
     layout: 'grid',
     imageFit: 'cover',
+    allowZoom: false,
     images: t.galleryImageIds.map((id) => `${CAT}/${id}.jpg`),
   };
 
