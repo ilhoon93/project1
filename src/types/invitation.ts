@@ -589,9 +589,15 @@ export const GallerySectionSchema = z
     layout: z.enum(GALLERY_LAYOUTS).default('grid'),
     /** 큰 사진 표시 방식 — 갤러리 전체에 일괄 적용. 기본 cover(기존 동작 유지). */
     imageFit: z.enum(GALLERY_IMAGE_FITS).default('cover'),
+    /**
+     * 전체화면 사진 보기에서 핀치 줌·더블탭·드래그로 사진을 더 확대해서 볼 수
+     * 있게 할지 여부. 기본 true. false 면 전체화면 한 장만 보여 준다(예전 동작).
+     * 사진 탭 → 전체화면 열림 자체는 이 값과 무관하게 항상 동작한다.
+     */
+    allowZoom: z.boolean().default(true),
     images: z.array(z.string().url()).max(20).default([]),
   })
-  .default({ enabled: true, layout: 'grid', imageFit: 'cover', images: [] });
+  .default({ enabled: true, layout: 'grid', imageFit: 'cover', allowZoom: true, images: [] });
 
 export const VideoSectionSchema = z
   .object({
