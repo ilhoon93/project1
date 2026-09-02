@@ -198,9 +198,14 @@ function ZoomableImage({
     const el = rootRef.current;
     if (!el) return;
 
-    // iOS 사파리는 gesture 이벤트를 지원 — 이 경우 두 손가락 touchmove 거리 기반
-    // 핀치는 건너뛰고 gesture(e.scale) 로만 처리한다(둘이 겹쳐 튀는 것 방지).
-    const hasGesture = typeof window !== 'undefined' && 'GestureEvent' in window;
+    // 핀치는 두 경로로 처리한다:
+    //   1) touchmove 두 손가락 거리 (Android, 그리고 user-scalable=no 인 iOS)
+    //   2) iOS/데스크톱 사파리 gesture 이벤트(e.scale)
+    // gesture 이벤트가 실제로 발생하는 환경(스케일 허용된 사파리·맥 트랙패드)에서는
+    // gestureActive 로 표시해 (1) 을 건너뛰어 둘이 겹쳐 튀지 않게 한다. iOS 라도
+    // gesture 이벤트가 안 오는 경우(user-scalable=no, 일부 인앱 WebView)에는 (1) 이
+    // 그대로 동작하므로 아이폰에서도 확대가 된다.
+    let gestureActive = false;
 
     const g = {
       mode: 'idle' as 'idle' | 'pan' | 'pinch' | 'control',
@@ -252,7 +257,7 @@ function ZoomableImage({
       if (g.mode === 'pinch' && e.touches.length === 2) {
         e.preventDefault();
         e.stopPropagation();
-        if (hasGesture) return; // iOS 는 gesturechange 가 처리
+        if (gestureActive) return; // gesture 이벤트가 처리 중이면 중복 방지
         const d = touchDist(e.touches[0], e.touches[1]);
         const ns = clampScale(g.startScale * (d / g.startDist));
         const p = clampPan(ns, g.startTx, g.startTy);
@@ -316,6 +321,7 @@ function ZoomableImage({
     const onGestureStart = (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
+      gestureActive = true;
       gestureStartScale = viewRef.current.scale;
       setAnimate(false);
     };
@@ -330,6 +336,7 @@ function ZoomableImage({
     };
     const onGestureEnd = (e: Event) => {
       e.preventDefault();
+      gestureActive = false;
       if (viewRef.current.scale <= 1.01) apply(1, 0, 0, true);
     };
 
