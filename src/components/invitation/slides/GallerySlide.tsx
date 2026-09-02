@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Heart } from 'lucide-react';
 import type {
   InvitationContent,
@@ -324,7 +325,9 @@ function GallerySlider({
       </div>
 
       {lightbox && (
-        <Lightbox src={images[clamped]} zoomable={allowZoom} onClose={() => setLightbox(false)} />
+        <LightboxPortal>
+          <Lightbox src={images[clamped]} zoomable={allowZoom} onClose={() => setLightbox(false)} />
+        </LightboxPortal>
       )}
     </div>
   );
@@ -405,7 +408,9 @@ function GalleryGrid({
       </ul>
 
       {lightbox && (
-        <Lightbox src={images[selected]} zoomable={allowZoom} onClose={() => setLightbox(false)} />
+        <LightboxPortal>
+          <Lightbox src={images[selected]} zoomable={allowZoom} onClose={() => setLightbox(false)} />
+        </LightboxPortal>
       )}
     </div>
   );
@@ -425,6 +430,23 @@ function GalleryGrid({
  */
 const LIGHTBOX_MAX_SCALE = 4;
 const LIGHTBOX_DOUBLE_TAP_SCALE = 2.5;
+
+/**
+ * 라이트박스를 document.body 로 포탈시키는 래퍼.
+ *
+ * 슬라이드 컨테이너(SlideContainer)의 motion.div 는 슬라이드 전환을 위해
+ * transform: translateX() 를 항상 적용한다. CSS 상 transform 이 걸린 조상은
+ * position:fixed 의 기준(containing block)이 되어 버려, 갤러리가 첫 슬라이드가
+ * 아니면 fixed 인 라이트박스가 화면 밖(왼쪽으로 N화면)으로 밀려 "전체화면이
+ * 안 열리는" 것처럼 보였다. body 로 포탈해 transform 조상 밖에서 렌더하면
+ * fixed 가 실제 뷰포트를 기준으로 잡혀 정상 동작한다.
+ */
+function LightboxPortal({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+  return createPortal(children, document.body);
+}
 
 function touchDist(a: { clientX: number; clientY: number }, b: { clientX: number; clientY: number }) {
   return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
