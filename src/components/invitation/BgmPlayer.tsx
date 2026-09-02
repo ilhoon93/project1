@@ -15,34 +15,28 @@ interface Props {
 /**
  * 배경음악 ON/OFF 토글 — 슬라이드 컨테이너 좌하단 코너에 absolute 로 고정.
  *
- * "링크 열자마자 재생"을 최대한 보장:
- *   1) 마운트 즉시 소리(unmuted) 재생 시도. 링크 탭으로 들어온 경우 그 탭이 사용자
- *      활성화로 인정되는 브라우저/인앱(카카오톡 등)에서는 바로 소리가 난다.
- *   2) 정책으로 막히면 무음(muted) 자동재생으로 미리 굴려 두고, 첫 사용자 접촉
- *      순간 음소거를 풀어 소리로 전환한다.
+ * 재생 정책(모든 기기에서 최대한 일관되게):
+ *   - 마운트 시 소리 재생을 시도한다(자동재생 허용 환경이면 처음부터 재생).
+ *   - 막히면(iOS 등) 첫 사용자 접촉에 재생한다. 진입 인트로(InvitationEntryGate)를
+ *     탭하는 그 동작이 첫 접촉이 되어, 카톡/아이폰 포함 모든 기기에서 "입장과 동시에
+ *     처음부터" 소리가 난다.
+ *   - "무음으로 몰래 재생" 트릭은 쓰지 않는다(기기마다 중간부터/처음부터 재생이
+ *     달라지고 아이콘이 어긋나는 문제 때문). 항상 처음부터, 아이콘도 정확히.
  *
- * 창 이탈 정지:
- *   - pagehide(닫기/이탈) 시 정지.
- *   - visibilitychange(탭/앱 전환)로도 정지하되, "로드 직후 인앱 브라우저가 순간
- *     hidden→visible 로 깜빡이는" 구간(GRACE_MS)은 무시한다. 이 깜빡임에 반응해
- *     정지하면 이후 자동 재개가 제스처 없이는 막혀(iOS) '한 번 터치해야 재생되는'
- *     문제가 생기기 때문. 복귀 시 재생이 막히면 다음 사용자 접촉에 재개한다.
- *
- * ⚠️ iOS/Android 모두 "상호작용 0 상태의 소리 자동재생"은 정책상 원천 차단이라
- * 완전 무접촉 재생은 불가하다. 위는 그 제약 안에서의 최대치.
+ * 창 이탈 정지: pagehide(닫기)와 visibilitychange(탭/앱 전환) 로 정지. 단 로드 직후
+ * 인앱 브라우저의 순간 hidden→visible 깜빡임(GRACE)은 무시해 자동재생이 끊기지 않게.
  */
 const VISIBILITY_GRACE_MS = 2000;
 
 export function BgmPlayer({ url, autoStart = true }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
-  const wasAudibleRef = useRef(false);
-  // 실제로 "소리가 나는" 상태(재생 중 + 음소거 아님)만 true.
-  const [audible, setAudible] = useState(false);
+  const wasPlayingRef = useRef(false);
+  const [playing, setPlaying] = useState(false);
 
-  const syncAudible = () => {
+  const syncPlaying = () => {
     const a = audioRef.current;
-    setAudible(!!a && !a.paused && !a.muted);
+    setPlaying(!!a && !a.paused);
   };
 
   useEffect(() => {
@@ -51,9 +45,9 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
     if (!audio) return;
     const mountedAt = Date.now();
 
-    // 다양한 "사용자 활성화" 이벤트에서 음소거 해제 + 재생. 브라우저마다 활성화로
-    // 인정하는 이벤트가 달라(Android 크롬은 pointerdown 만으론 인정 안 될 때가 많음)
-    // 여러 이벤트를 건다. capture:true 로 다른 핸들러의 stopPropagation 회피.
+    // 다양한 "사용자 활성화" 이벤트에서 재생. 브라우저마다 활성화로 인정하는 이벤트가
+    // 달라(Android 크롬은 pointerdown 만으론 인정 안 될 때가 많음) 여러 이벤트를 건다.
+    // capture:true 로 다른 핸들러의 stopPropagation 을 피한다.
     const GESTURE_EVENTS = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
     const armGesture = () => {
       GESTURE_EVENTS.forEach((ev) => window.addEventListener(ev, onGesture, true));
@@ -62,66 +56,46 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
       GESTURE_EVENTS.forEach((ev) => window.removeEventListener(ev, onGesture, true));
     };
 
-    const goAudible = () => {
-      audio.muted = false;
+    const play = () => {
       audio
         .play()
         .then(() => {
-          syncAudible();
+          syncPlaying();
           disarmGesture();
         })
         .catch(() => {
-          /* 그래도 막히면 다음 제스처/펄 버튼에서 다시. */
+          /* 막히면 다음 제스처/펄 버튼에서 다시 시도. */
         });
     };
 
-    // 펄 버튼 위에서 시작된 제스처는 무시(버튼 onClick=toggle 이 단독 처리).
+    // 펄 버튼 위에서 시작된 제스처는 무시(버튼 onClick=toggle 이 단독 처리) — 아니면
+    // 리스너가 재생을 켠 직후 toggle 이 곧바로 꺼버린다.
     const onGesture = (e: Event) => {
       if (e.target instanceof Node && btnRef.current?.contains(e.target)) return;
-      goAudible();
+      play();
     };
 
     armGesture();
-
-    // 1) 소리(unmuted) 자동재생 즉시 시도.
-    audio.muted = false;
-    audio
-      .play()
-      .then(() => {
-        syncAudible();
-        disarmGesture();
-      })
-      .catch(() => {
-        // 2) 막히면 무음 자동재생으로 굴려 두고 첫 접촉에 음소거 해제.
-        audio.muted = true;
-        audio.play().then(syncAudible).catch(() => {});
-      });
+    play(); // 마운트 즉시 시도
 
     // ── 창 이탈 정지 ─────────────────────────────────────────────
     const pauseForLeave = () => {
-      if (!audio.paused && !audio.muted) {
-        wasAudibleRef.current = true;
+      if (!audio.paused) {
+        wasPlayingRef.current = true;
         audio.pause();
       }
     };
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') {
-        // 로드 직후 인앱 브라우저의 순간 깜빡임은 무시 — 여기에 반응해 정지하면
-        // 자동재생이 곧바로 멈춰 "한 번 터치해야 재생" 문제가 생긴다.
-        if (Date.now() - mountedAt < VISIBILITY_GRACE_MS) return;
+        if (Date.now() - mountedAt < VISIBILITY_GRACE_MS) return; // 로드 직후 깜빡임 무시
         pauseForLeave();
-      } else if (wasAudibleRef.current) {
-        wasAudibleRef.current = false;
-        audio.muted = false;
-        audio.play().then(syncAudible).catch(() => {
-          // 복귀 재생이 막히면(iOS 제스처 필요) 다음 사용자 접촉에 재개.
-          armGesture();
-        });
+      } else if (wasPlayingRef.current) {
+        wasPlayingRef.current = false;
+        audio.play().then(syncPlaying).catch(() => armGesture());
       }
     };
 
     document.addEventListener('visibilitychange', onVisibility);
-    // pagehide: 닫기/이탈은 확실히 정지(인앱 브라우저가 백그라운드에서 계속 재생하는 것 방지).
     window.addEventListener('pagehide', pauseForLeave);
 
     return () => {
@@ -134,15 +108,11 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
   const toggle = () => {
     const audio = audioRef.current;
     if (!audio) return;
-    if (!audio.paused && !audio.muted) {
-      audio.pause();
-      syncAudible();
+    if (audio.paused) {
+      audio.play().then(syncPlaying).catch(() => syncPlaying());
     } else {
-      audio.muted = false;
-      audio
-        .play()
-        .then(syncAudible)
-        .catch(() => syncAudible());
+      audio.pause();
+      syncPlaying();
     }
   };
 
@@ -153,22 +123,20 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
         src={url}
         loop
         preload="auto"
-        onPlay={syncAudible}
-        onPause={syncAudible}
-        onVolumeChange={syncAudible}
+        onPlay={syncPlaying}
+        onPause={syncPlaying}
       />
       {/* 좌하단 코너 — absolute 라 폰 프레임 안에서도 보인다. 배경색/라벨 없이 아이콘만
-          둬서 콘텐츠를 가리지 않으며, 사진 위에서도 또렷하도록 drop-shadow 만 입힌다.
-          작은 히트박스(아이콘 크기)라 다른 요소 위를 거의 점유하지 않음. */}
+          둬서 콘텐츠를 가리지 않으며, 사진 위에서도 또렷하도록 drop-shadow 만 입힌다. */}
       <button
         ref={btnRef}
         type="button"
         onClick={toggle}
-        aria-label={audible ? '배경음악 끄기' : '배경음악 켜기'}
+        aria-label={playing ? '배경음악 끄기' : '배경음악 켜기'}
         className="pointer-events-auto absolute bottom-4 left-3 z-30 grid h-8 w-8 place-items-center bg-transparent text-xl leading-none transition-opacity hover:opacity-70"
         style={{ filter: 'drop-shadow(0 1px 2.5px rgba(0,0,0,0.6))' }}
       >
-        <span aria-hidden>{audible ? '🔊' : '🔇'}</span>
+        <span aria-hidden>{playing ? '🔊' : '🔇'}</span>
       </button>
     </>
   );

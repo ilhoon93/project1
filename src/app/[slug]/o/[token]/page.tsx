@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { InvitationContentSchema, type InvitationContent } from '@/types/invitation';
 import { fetchLiveDisplaySettings, applyLiveDisplaySettings } from '@/lib/invitation/live-display';
 import { InvitationSlides } from '@/components/invitation/InvitationSlides';
+import { InvitationEntryGate } from '@/components/invitation/InvitationEntryGate';
 import { FullscreenToggle } from '@/components/invitation/FullscreenToggle';
 
 interface PageProps {
@@ -15,16 +16,6 @@ interface PageProps {
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
-
-// 소장용 뷰어도 하객용과 동일하게 브라우저 확대(핀치 페이지 줌)를 꺼, 갤러리
-// 인라인 확대가 iPhone 에서도 정확히 동작하게 한다.
-export const viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: 'cover' as const,
-};
 
 /**
  * 소장용(owner) 뷰 라우트.
@@ -134,6 +125,12 @@ function OwnerView(props: {
 }) {
   return (
     <div className="flex min-h-[100dvh] w-full items-center justify-center bg-neutral-950 md:p-6">
+      {/* 진입 인트로 — 탭이 곧 사용자 제스처가 되어 배경음악이 입장과 동시에 재생됨. */}
+      <InvitationEntryGate
+        groomName={props.pub.groom_name}
+        brideName={props.pub.bride_name}
+        colorTheme={props.content.theme.colorTheme}
+      />
       <FullscreenToggle />
       <div className="relative h-[100dvh] w-full overflow-hidden bg-black md:h-[min(92dvh,calc(100vw*16/9))] md:max-h-[min(92dvh,900px)] md:w-[min(92vw,calc(92dvh*9/16))] md:max-w-[506px] md:rounded-2xl md:shadow-2xl">
         <InvitationSlides
