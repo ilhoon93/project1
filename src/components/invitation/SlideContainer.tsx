@@ -45,6 +45,8 @@ interface Props {
    * 탭하면 음악을 확인할 수 있다.
    */
   manualBgm?: boolean;
+  /** 마운트 즉시 배경음악 자동재생 시도 여부(기본 true). 진입 게이트가 있으면 false. */
+  autoplayBgmOnMount?: boolean;
   /** 혼주용 큰 글씨 모드 — 본문(rem 기반) 텍스트를 전반적으로 키운다(globals.css .wd-host-text). */
   hostMode?: boolean;
 }
@@ -59,6 +61,7 @@ export function SlideContainer({
   isPreview = false,
   forceBgm = false,
   manualBgm = false,
+  autoplayBgmOnMount = true,
   hostMode = false,
 }: Props) {
   const slides = children.filter(Boolean);
@@ -156,7 +159,11 @@ export function SlideContainer({
       {bgmUrl && (!isPreview || forceBgm || manualBgm) && (
         // 실제 화면·전체보기(forceBgm)는 자동재생, 에디터 미리보기(manualBgm)는
         // 버튼만 노출하고 탭해야 재생.
-        <BgmPlayer url={bgmUrl} autoStart={!isPreview || forceBgm} />
+        <BgmPlayer
+          url={bgmUrl}
+          autoStart={!isPreview || forceBgm}
+          autoplayOnMount={autoplayBgmOnMount}
+        />
       )}
 
       <motion.div
