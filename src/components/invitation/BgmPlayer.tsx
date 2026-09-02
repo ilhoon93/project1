@@ -60,10 +60,27 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
     // 재생되지 않는다(사용자가 펄로 끈 걸 터치가 되살리는 문제 방지).
     const GESTURE_EVENTS = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
 
+    const removeAutoStart = () => {
+      GESTURE_EVENTS.forEach((ev) => window.removeEventListener(ev, onGesture, true));
+      audio.removeEventListener('play', markStarted);
+      audio.removeEventListener('playing', markStarted);
+    };
+    // 재생이 실제로 시작되면(자동재생·제스처·펄 버튼 무관) 자동재생 로직을 영구 종료.
+    // play/playing 이벤트 + play() 성공 콜백 다중 감지 — 일부 인앱 WebView 는 특정
+    // 이벤트를 누락하므로 여러 경로로 확실히 잡는다.
+    const markStarted = () => {
+      if (startedRef.current) return;
+      startedRef.current = true;
+      removeAutoStart();
+      syncPlaying();
+    };
     const play = () => {
-      if (startedRef.current) return; // 이미 한 번 재생됐으면 자동재생 재시도 금지
-      audio.play().then(syncPlaying).catch(() => {
-        /* 막히면 다음 제스처에서 다시 시도(teardown 전까지). */
+      // ⚠️ 이미 재생 중이면 절대 play() 를 다시 부르지 않는다. 카카오톡 인앱 WebView
+      // 는 재생 중 오디오에 play() 가 오면 currentTime 을 0 으로 되감아 "처음부터"
+      // 재생하는 버그가 있다. 정지 상태에서 최초 시작에만 play() 를 호출한다.
+      if (startedRef.current || !audio.paused) return;
+      audio.play().then(markStarted).catch(() => {
+        /* 막히면 다음 제스처에서 다시 시도(started 전까지). */
       });
     };
     // 펄 버튼 위에서 시작된 제스처는 무시(버튼 onClick=toggle 이 단독 처리).
@@ -72,20 +89,11 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
       if (e.target instanceof Node && btnRef.current?.contains(e.target)) return;
       play();
     };
-    // 재생이 실제로 시작되면(어떤 경로든: 자동재생·제스처·펄 버튼) 자동재생 제스처
-    // 리스너를 영구 해제하고 startedRef 를 세운다 → 이후 터치는 재생을 트리거 못 함.
-    let tornDown = false;
-    const teardown = () => {
-      if (tornDown) return;
-      tornDown = true;
-      startedRef.current = true;
-      GESTURE_EVENTS.forEach((ev) => window.removeEventListener(ev, onGesture, true));
-      audio.removeEventListener('play', teardown);
-    };
 
-    audio.addEventListener('play', teardown);
+    audio.addEventListener('play', markStarted);
+    audio.addEventListener('playing', markStarted);
     GESTURE_EVENTS.forEach((ev) => window.addEventListener(ev, onGesture, true));
-    play(); // 마운트 즉시 시도
+    play(); // 마운트 즉시 시도(정지 상태에서만)
 
     // ── 창 이탈 정지 ─────────────────────────────────────────────
     const pauseForLeave = () => {
@@ -111,7 +119,7 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
     window.addEventListener('pagehide', pauseForLeave);
 
     return () => {
-      teardown();
+      removeAutoStart();
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', pauseForLeave);
     };
