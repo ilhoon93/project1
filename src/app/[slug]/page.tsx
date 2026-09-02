@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { InvitationContentSchema } from '@/types/invitation';
+import { fetchLiveDisplaySettings, applyLiveDisplaySettings } from '@/lib/invitation/live-display';
 import { InvitationSlides } from '@/components/invitation/InvitationSlides';
 import { InAppBrowserGuard } from '@/components/invitation/InAppBrowserGuard';
 import { FullscreenToggle } from '@/components/invitation/FullscreenToggle';
@@ -148,6 +149,8 @@ export default async function PublicInvitationPage({ params }: PageProps) {
 
   const inv = result.inv;
   const content = InvitationContentSchema.parse(inv.content ?? {});
+  // 표시용 설정(예: 갤러리 확대 보기)은 재발행 없이 저장 즉시 반영되도록 원본에서 덮어쓴다.
+  applyLiveDisplaySettings(content, await fetchLiveDisplaySettings(inv.invitation_id));
 
   return (
     <>

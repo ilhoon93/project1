@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { InvitationContentSchema, type InvitationContent } from '@/types/invitation';
+import { fetchLiveDisplaySettings, applyLiveDisplaySettings } from '@/lib/invitation/live-display';
 import { InvitationSlides } from '@/components/invitation/InvitationSlides';
 import { FullscreenToggle } from '@/components/invitation/FullscreenToggle';
 
@@ -53,6 +54,9 @@ export default async function OwnerInvitationPage({ params }: PageProps) {
   // service-role 로 통계 데이터 prefetch — 익명 owner 페이지에서 RLS 우회 필요.
   const admin = createAdminClient();
   const invitationId = pub.invitation_id;
+
+  // 표시용 설정(갤러리 확대 보기 등)은 재발행 없이 저장 즉시 반영되도록 원본에서 덮어쓴다.
+  applyLiveDisplaySettings(content, await fetchLiveDisplaySettings(invitationId));
 
   const [{ data: cheers }, { data: likes }, { data: quizPicks }, { data: votePicks }, { data: messages }, { data: signatures }] =
     await Promise.all([

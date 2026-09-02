@@ -311,8 +311,7 @@ export function GalleryEditor({ drag }: { drag?: SectionDragProps }) {
           <div className="flex min-w-0 flex-col gap-0.5">
             <span className="text-sm font-medium text-foreground">사진 확대 보기</span>
             <span className="text-[11px] text-muted-foreground">
-              전체화면에서 손가락으로 넓혀(핀치)·더블탭해 사진을 더 크게 볼 수 있어요.
-              어르신 하객도 얼굴을 크게 확인할 수 있습니다.
+              전체화면에서 ＋ 버튼·손가락(핀치)·더블탭으로 사진을 더 크게 볼 수 있어요.
             </span>
           </div>
           <button
