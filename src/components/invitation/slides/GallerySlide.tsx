@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Heart, ZoomIn } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import type {
   InvitationContent,
   ResolvedSectionHeader,
@@ -388,12 +388,6 @@ function ZoomableImage({
 
       {enabled && (
         <>
-          {!zoomed && (
-            <span className="pointer-events-none absolute left-2 top-2 z-30 flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-[11px] font-medium text-white">
-              <ZoomIn size={12} />
-              확대
-            </span>
-          )}
           <div className="absolute bottom-2 right-2 z-30 flex items-center gap-1.5">
             <button
               type="button"

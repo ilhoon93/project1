@@ -7,6 +7,7 @@ import { fetchLiveDisplaySettings, applyLiveDisplaySettings } from '@/lib/invita
 import { InvitationSlides } from '@/components/invitation/InvitationSlides';
 import { InAppBrowserGuard } from '@/components/invitation/InAppBrowserGuard';
 import { FullscreenToggle } from '@/components/invitation/FullscreenToggle';
+import { InvitationEntryGate } from '@/components/invitation/InvitationEntryGate';
 
 // 노트북에서 저장한 직후 모바일에서 열어도 항상 최신 publications.content 가
 // 보이도록 페이지/메타데이터 모두 캐시 우회. Supabase 클라이언트가 cookies()
@@ -150,11 +151,21 @@ export default async function PublicInvitationPage({ params }: PageProps) {
   const inv = result.inv;
   const content = InvitationContentSchema.parse(inv.content ?? {});
   // 표시용 설정(예: 갤러리 확대 보기)은 재발행 없이 저장 즉시 반영되도록 원본에서 덮어쓴다.
-  applyLiveDisplaySettings(content, await fetchLiveDisplaySettings(inv.invitation_id));
+  const live = await fetchLiveDisplaySettings(inv.invitation_id);
+  applyLiveDisplaySettings(content, live);
 
   return (
     <>
       <InAppBrowserGuard />
+      {/* 진입 인트로 — 탭이 곧 사용자 제스처가 되어 배경음악이 입장과 동시에 재생됨.
+          현재는 관리자 계정이 만든 알림장에만 노출(테스트용). */}
+      {live.ownerIsAdmin && (
+        <InvitationEntryGate
+          groomName={inv.groom_name}
+          brideName={inv.bride_name}
+          colorTheme={content.theme.colorTheme}
+        />
+      )}
       {/* 모바일은 풀스크린, 노트북/PC(>= md)는 가운데 폰 프레임 박스로 가둬 보여준다 —
           소장용(o/[token]) 뷰와 동일한 처리. 큰 모니터에서 가로로 늘어진 알림장이
           어색해 보이는 문제 해결. scoped 로 InvitationSlides 가 부모 박스 기준으로 렌더. */}
