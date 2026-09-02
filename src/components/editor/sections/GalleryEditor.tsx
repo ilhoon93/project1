@@ -186,9 +186,9 @@ export function GalleryEditor({ drag }: { drag?: SectionDragProps }) {
 
   const handleFiles = async (files: FileList) => {
     setErrorMsg(null);
-    const remaining = 20 - gallery.images.length;
+    const remaining = 30 - gallery.images.length;
     if (remaining <= 0) {
-      setErrorMsg('이미지는 최대 20장까지 업로드 가능합니다.');
+      setErrorMsg('이미지는 최대 30장까지 업로드 가능합니다.');
       return;
     }
     const valid: File[] = [];
@@ -237,7 +237,7 @@ export function GalleryEditor({ drag }: { drag?: SectionDragProps }) {
     <SectionEditor
       drag={drag}
       title="갤러리"
-      description="둘이 함께한 사진들 (최대 20장)"
+      description="둘이 함께한 사진들 (최대 30장)"
       toggle={{
         enabled: gallery.enabled,
         onChange: (next) => patch('gallery', { ...gallery, enabled: next }),
@@ -350,13 +350,13 @@ export function GalleryEditor({ drag }: { drag?: SectionDragProps }) {
             type="button"
             variant="outline"
             size="sm"
-            disabled={!!busy || gallery.images.length >= 20}
+            disabled={!!busy || gallery.images.length >= 30}
             onClick={() => inputRef.current?.click()}
           >
             {busy ? `압축·업로드 중 (${busy.done}/${busy.total})` : '사진 추가'}
           </Button>
           <span className="text-xs text-muted-foreground">
-            {gallery.images.length} / 20
+            {gallery.images.length} / 30
           </span>
         </div>
 
