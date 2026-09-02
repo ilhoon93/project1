@@ -412,18 +412,33 @@ function GalleryGrid({
 }
 
 /**
- * 전체화면 사진 뷰어. zoomable 이면 핀치 줌 / 더블탭 / 드래그 이동으로 사진을 더
+ * 전체화면 사진 뷰어. zoomable 이면 ＋/－ 버튼·핀치 줌·더블탭·드래그로 사진을 더
  * 확대해서 볼 수 있다(어르신 등 세부를 크게 보고 싶은 하객용). zoomable=false 면
  * 예전처럼 전체화면 한 장만 보여 준다.
  *
- * 닫기: 우측 상단 ✕ 버튼은 항상 동작. 확대 배율이 1일 때는 배경 탭으로도 닫힌다.
- * 확대된 상태에서는 탭이 닫기 대신 확대 조작으로 쓰이므로 ✕ 로만 닫는다.
+ * 닫기: 우측 상단 ✕ 버튼은 항상 동작. 사진 바깥(어두운 여백)을 탭/클릭해도 닫힌다.
+ * 사진 위 단일 탭은 닫지 않는다(확대 조작과 헷갈리지 않게) — 더블탭은 확대 토글.
+ *
+ * 터치 이벤트는 React 합성 핸들러(패시브라 preventDefault 가 막힐 수 있음) 대신
+ * 컨테이너에 native listener 를 { passive:false } 로 직접 붙여, 인앱 브라우저에서도
+ * 브라우저 기본 핀치/스크롤에 가로채이지 않고 우리 확대가 확실히 동작하게 한다.
  */
 const LIGHTBOX_MAX_SCALE = 4;
 const LIGHTBOX_DOUBLE_TAP_SCALE = 2.5;
 
 function touchDist(a: { clientX: number; clientY: number }, b: { clientX: number; clientY: number }) {
   return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+}
+
+function clampPanBox(s: number, x: number, y: number) {
+  // 확대 배율만큼 화면 절반 범위 안에서만 이동 허용 → 사진이 화면 밖으로 완전히
+  // 빠지지 않게 한다. 뷰포트 기준 근사치(자연 크기 측정 불필요).
+  const maxX = ((s - 1) * window.innerWidth) / 2;
+  const maxY = ((s - 1) * window.innerHeight) / 2;
+  return {
+    x: Math.max(-maxX, Math.min(maxX, x)),
+    y: Math.max(-maxY, Math.min(maxY, y)),
+  };
 }
 
 function Lightbox({
@@ -435,187 +450,179 @@ function Lightbox({
   zoomable: boolean;
   onClose: () => void;
 }) {
-  const [scale, setScale] = useState(1);
-  const [tx, setTx] = useState(0);
-  const [ty, setTy] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [view, setView] = useState({ scale: 1, tx: 0, ty: 0 });
   const [animate, setAnimate] = useState(false);
+  // native 리스너가 최신 값을 stale 없이 읽도록 ref 로 미러링.
+  const viewRef = useRef(view);
+  viewRef.current = view;
 
-  const g = useRef({
-    mode: 'none' as 'none' | 'pan' | 'pinch',
-    startDist: 0,
-    startScale: 1,
-    startX: 0,
-    startY: 0,
-    startTx: 0,
-    startTy: 0,
-    moved: false,
-    lastTap: 0,
-    lastTouch: 0,
-  });
-  // 단일 탭 닫기를 살짝 지연시켜, 곧바로 두 번째 탭이 오면(더블탭) 확대로 처리한다.
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const clearCloseTimer = () => {
-    if (closeTimer.current) {
-      clearTimeout(closeTimer.current);
-      closeTimer.current = null;
-    }
-  };
-  useEffect(() => clearCloseTimer, []);
-
-  const clampPan = (s: number, x: number, y: number) => {
-    // 확대 배율만큼 화면 절반 범위 안에서만 이동 허용 → 사진이 화면 밖으로 완전히
-    // 빠지지 않게 한다. 뷰포트 기준 근사치(자연 크기 측정 불필요).
-    const maxX = ((s - 1) * window.innerWidth) / 2;
-    const maxY = ((s - 1) * window.innerHeight) / 2;
-    return {
-      x: Math.max(-maxX, Math.min(maxX, x)),
-      y: Math.max(-maxY, Math.min(maxY, y)),
-    };
-  };
-
-  const reset = (withAnim = true) => {
+  const applyView = (scale: number, tx: number, ty: number, withAnim = false) => {
     setAnimate(withAnim);
-    setScale(1);
-    setTx(0);
-    setTy(0);
-  };
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    if (!zoomable) return;
-    const t = e.touches;
-    // 두 번째 탭이 들어오면 대기 중이던 단일 탭 닫기를 취소(더블탭으로 전환).
-    clearCloseTimer();
-    setAnimate(false);
-    if (t.length === 2) {
-      g.current.mode = 'pinch';
-      g.current.startDist = touchDist(t[0], t[1]);
-      g.current.startScale = scale;
-      g.current.startTx = tx;
-      g.current.startTy = ty;
-      g.current.moved = true;
-    } else if (t.length === 1) {
-      g.current.mode = scale > 1 ? 'pan' : 'none';
-      g.current.startX = t[0].clientX;
-      g.current.startY = t[0].clientY;
-      g.current.startTx = tx;
-      g.current.startTy = ty;
-      g.current.moved = false;
-    }
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (!zoomable) return;
-    const t = e.touches;
-    if (g.current.mode === 'pinch' && t.length === 2) {
-      e.preventDefault();
-      const d = touchDist(t[0], t[1]);
-      const ns = Math.max(1, Math.min(LIGHTBOX_MAX_SCALE, g.current.startScale * (d / g.current.startDist)));
-      const p = clampPan(ns, g.current.startTx, g.current.startTy);
-      setScale(ns);
-      setTx(p.x);
-      setTy(p.y);
-    } else if (g.current.mode === 'pan' && t.length === 1) {
-      e.preventDefault();
-      const dx = t[0].clientX - g.current.startX;
-      const dy = t[0].clientY - g.current.startY;
-      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) g.current.moved = true;
-      const p = clampPan(scale, g.current.startTx + dx, g.current.startTy + dy);
-      setTx(p.x);
-      setTy(p.y);
-    } else if (g.current.mode === 'none' && t.length === 1) {
-      const dx = t[0].clientX - g.current.startX;
-      const dy = t[0].clientY - g.current.startY;
-      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) g.current.moved = true;
-    }
-  };
-
-  const onTouchEnd = (e: React.TouchEvent) => {
-    g.current.lastTouch = Date.now();
-    if (!zoomable) {
-      onClose();
+    if (scale <= 1) {
+      setView({ scale: 1, tx: 0, ty: 0 });
       return;
     }
-    // 핀치 도중 손가락 하나를 떼면 남은 한 손가락으로 이동(pan) 이어가도록 재설정.
-    if (e.touches.length > 0) {
-      if (scale > 1) {
-        g.current.mode = 'pan';
-        g.current.startX = e.touches[0].clientX;
-        g.current.startY = e.touches[0].clientY;
-        g.current.startTx = tx;
-        g.current.startTy = ty;
+    const p = clampPanBox(scale, tx, ty);
+    setView({ scale, tx: p.x, ty: p.y });
+  };
+
+  // ＋/－ 버튼 — 제스처를 몰라도 탭 한 번으로 확대/축소. 어떤 브라우저에서도 확실히 동작.
+  const zoomBy = (delta: number) => {
+    const cur = viewRef.current;
+    const next = cur.scale <= 1 && delta > 0 ? LIGHTBOX_DOUBLE_TAP_SCALE : cur.scale + delta;
+    applyView(Math.max(1, Math.min(LIGHTBOX_MAX_SCALE, next)), cur.tx, cur.ty, true);
+  };
+
+  useEffect(() => {
+    if (!zoomable) return;
+    const el = containerRef.current;
+    if (!el) return;
+
+    const g = {
+      mode: 'none' as 'none' | 'pan' | 'pinch',
+      startDist: 0,
+      startScale: 1,
+      startX: 0,
+      startY: 0,
+      startTx: 0,
+      startTy: 0,
+      moved: false,
+      lastTap: 0,
+      downOnBackdrop: false,
+    };
+
+    const onStart = (e: TouchEvent) => {
+      setAnimate(false);
+      const cur = viewRef.current;
+      if (e.touches.length === 2) {
+        g.mode = 'pinch';
+        g.startDist = touchDist(e.touches[0], e.touches[1]) || 1;
+        g.startScale = cur.scale;
+        g.startTx = cur.tx;
+        g.startTy = cur.ty;
+        g.moved = true;
+      } else if (e.touches.length === 1) {
+        g.mode = cur.scale > 1 ? 'pan' : 'none';
+        g.startX = e.touches[0].clientX;
+        g.startY = e.touches[0].clientY;
+        g.startTx = cur.tx;
+        g.startTy = cur.ty;
+        g.moved = false;
+        g.downOnBackdrop = e.target === el;
       }
-      return;
-    }
-    if (g.current.mode === 'pinch') {
-      if (scale <= 1.01) reset();
-      g.current.mode = scale > 1 ? 'pan' : 'none';
-      return;
-    }
-    // 한 손가락 탭/드래그 종료
-    if (!g.current.moved) {
-      const now = Date.now();
-      if (now - g.current.lastTap < 300) {
-        // 더블탭 — 확대 토글
-        g.current.lastTap = 0;
-        clearCloseTimer();
-        setAnimate(true);
-        if (scale > 1) {
-          reset();
+    };
+
+    const onMove = (e: TouchEvent) => {
+      const cur = viewRef.current;
+      if (g.mode === 'pinch' && e.touches.length === 2) {
+        e.preventDefault();
+        const d = touchDist(e.touches[0], e.touches[1]);
+        const ns = Math.max(1, Math.min(LIGHTBOX_MAX_SCALE, g.startScale * (d / g.startDist)));
+        const p = clampPanBox(ns, g.startTx, g.startTy);
+        setView({ scale: ns, tx: p.x, ty: p.y });
+      } else if (g.mode === 'pan' && e.touches.length === 1) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - g.startX;
+        const dy = e.touches[0].clientY - g.startY;
+        if (Math.abs(dx) > 6 || Math.abs(dy) > 6) g.moved = true;
+        const p = clampPanBox(cur.scale, g.startTx + dx, g.startTy + dy);
+        setView({ scale: cur.scale, tx: p.x, ty: p.y });
+      } else if (g.mode === 'none' && e.touches.length === 1) {
+        const dx = e.touches[0].clientX - g.startX;
+        const dy = e.touches[0].clientY - g.startY;
+        if (Math.abs(dx) > 8 || Math.abs(dy) > 8) g.moved = true;
+      }
+    };
+
+    const onEnd = (e: TouchEvent) => {
+      const cur = viewRef.current;
+      // 핀치 중 손가락 하나를 떼면 남은 손가락으로 이동(pan) 이어가기.
+      if (e.touches.length > 0) {
+        if (cur.scale > 1) {
+          g.mode = 'pan';
+          g.startX = e.touches[0].clientX;
+          g.startY = e.touches[0].clientY;
+          g.startTx = cur.tx;
+          g.startTy = cur.ty;
+        }
+        return;
+      }
+      if (g.mode === 'pinch') {
+        if (cur.scale <= 1.01) applyView(1, 0, 0, true);
+        g.mode = viewRef.current.scale > 1 ? 'pan' : 'none';
+        return;
+      }
+      if (!g.moved) {
+        const now = Date.now();
+        if (now - g.lastTap < 300) {
+          // 더블탭 — 확대/원위치 토글
+          g.lastTap = 0;
+          if (cur.scale > 1) applyView(1, 0, 0, true);
+          else applyView(LIGHTBOX_DOUBLE_TAP_SCALE, 0, 0, true);
         } else {
-          setScale(LIGHTBOX_DOUBLE_TAP_SCALE);
+          g.lastTap = now;
+          // 사진 바깥(어두운 여백) 단일 탭 → 닫기. 사진 위 단일 탭은 아무 동작 안 함.
+          if (g.downOnBackdrop && cur.scale <= 1) onClose();
         }
-      } else {
-        g.current.lastTap = now;
-        // 배율 1일 때만 단일 탭으로 닫기(확대 상태에선 ✕ 로만 닫음). 단, 곧바로
-        // 두 번째 탭이 오면 더블탭 확대이므로 살짝 지연시켰다가 닫는다.
-        if (scale <= 1) {
-          clearCloseTimer();
-          closeTimer.current = setTimeout(onClose, 300);
-        }
+      } else if (cur.scale <= 1.01) {
+        applyView(1, 0, 0, true);
       }
-    } else if (scale <= 1.01) {
-      reset();
-    }
-    g.current.mode = scale > 1 ? 'pan' : 'none';
-  };
+      g.mode = viewRef.current.scale > 1 ? 'pan' : 'none';
+    };
+
+    el.addEventListener('touchstart', onStart, { passive: false });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd);
+    el.addEventListener('touchcancel', onEnd);
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+      el.removeEventListener('touchcancel', onEnd);
+    };
+    // onClose/applyView 는 렌더마다 새로 생기지만 최신 값은 viewRef 로 읽으므로
+    // zoomable 만 의존성으로 둔다(리스너 재부착 최소화).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoomable]);
 
   return (
     <div
+      ref={containerRef}
       data-noswipe
       className="fixed inset-0 z-50 flex touch-none items-center justify-center overflow-hidden bg-black/90"
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-      // 마우스(데스크톱): 휠로 확대/축소, 확대 상태에서 더블클릭으로 원위치.
-      onWheel={(e) => {
-        if (!zoomable) return;
-        setAnimate(false);
-        const ns = Math.max(1, Math.min(LIGHTBOX_MAX_SCALE, scale - e.deltaY * 0.002));
-        const p = clampPan(ns, tx, ty);
-        setScale(ns);
-        setTx(p.x);
-        setTy(p.y);
-      }}
-      onDoubleClick={() => {
-        if (!zoomable) return;
-        clearCloseTimer();
-        setAnimate(true);
-        if (scale > 1) reset();
-        else setScale(LIGHTBOX_DOUBLE_TAP_SCALE);
-      }}
-      onClick={() => {
+      // 데스크톱 마우스: 휠 확대/축소, 더블클릭 토글, 사진 바깥 클릭 시 닫기.
+      onWheel={
+        zoomable
+          ? (e) => {
+              const cur = viewRef.current;
+              applyView(
+                Math.max(1, Math.min(LIGHTBOX_MAX_SCALE, cur.scale - e.deltaY * 0.002)),
+                cur.tx,
+                cur.ty,
+                false,
+              );
+            }
+          : undefined
+      }
+      onDoubleClick={
+        zoomable
+          ? () => {
+              const cur = viewRef.current;
+              if (cur.scale > 1) applyView(1, 0, 0, true);
+              else applyView(LIGHTBOX_DOUBLE_TAP_SCALE, 0, 0, true);
+            }
+          : undefined
+      }
+      onClick={(e) => {
         if (!zoomable) {
           onClose();
           return;
         }
-        // 모바일 탭에서 파생된 유령 클릭은 무시(onTouchEnd 가 이미 처리).
-        if (Date.now() - g.current.lastTouch < 500) return;
-        // 데스크톱 마우스 클릭: 배율 1일 때만 닫되, 곧 더블클릭이 오면 확대이므로
-        // 살짝 지연.
-        if (scale <= 1) {
-          clearCloseTimer();
-          closeTimer.current = setTimeout(onClose, 250);
-        }
+        // 사진 바깥(컨테이너 자체) 클릭 시에만 닫기 — 마우스 전용. 모바일 탭은
+        // native onEnd 가 처리한다(여기로 오는 합성 클릭은 target 이 컨테이너라도
+        // 확대 상태에선 무시).
+        if (e.target === e.currentTarget && viewRef.current.scale <= 1) onClose();
       }}
       role="dialog"
       aria-label="사진 확대 보기"
@@ -627,7 +634,7 @@ function Lightbox({
         draggable={false}
         className="max-h-full max-w-full select-none object-contain"
         style={{
-          transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
+          transform: `translate(${view.tx}px, ${view.ty}px) scale(${view.scale})`,
           transition: animate ? 'transform 0.2s ease-out' : 'none',
           willChange: 'transform',
         }}
@@ -645,6 +652,45 @@ function Lightbox({
       >
         ✕
       </button>
+
+      {/* 확대/축소 버튼 — 제스처(핀치·더블탭)를 몰라도 탭으로 확실히 확대되게. */}
+      {zoomable && (
+        <div
+          className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              aria-label="축소"
+              disabled={view.scale <= 1}
+              onClick={(e) => {
+                e.stopPropagation();
+                zoomBy(-0.8);
+              }}
+              className="grid h-11 w-11 place-items-center rounded-full bg-black/55 text-2xl leading-none text-white transition-colors hover:bg-black/75 disabled:opacity-30"
+            >
+              −
+            </button>
+            <button
+              type="button"
+              aria-label="확대"
+              onClick={(e) => {
+                e.stopPropagation();
+                zoomBy(0.8);
+              }}
+              className="grid h-11 w-11 place-items-center rounded-full bg-black/55 text-2xl leading-none text-white transition-colors hover:bg-black/75"
+            >
+              ＋
+            </button>
+          </div>
+          {view.scale <= 1 && (
+            <span className="rounded-full bg-black/45 px-3 py-1 text-[11px] text-white/90">
+              ＋ 버튼·더블탭·두 손가락으로 확대해서 볼 수 있어요
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
