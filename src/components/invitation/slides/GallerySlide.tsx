@@ -494,6 +494,23 @@ function Lightbox({
   // native 리스너가 최신 값을 stale 없이 읽도록 ref 로 미러링.
   const viewRef = useRef(view);
   viewRef.current = view;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  // 전체보기(라이트박스) 상태에서 (모바일/브라우저) 뒤로가기를 누르면 알림장을
+  // 벗어나지 않고 갤러리로 돌아오도록, 열릴 때 히스토리 항목을 하나 쌓는다.
+  // 뒤로가기 → popstate → 닫기. ✕/배경 탭으로 닫으면 쌓아둔 항목을 정리한다.
+  useEffect(() => {
+    window.history.pushState({ wdLightbox: true }, '');
+    const onPop = () => onCloseRef.current();
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      if ((window.history.state as { wdLightbox?: boolean } | null)?.wdLightbox) {
+        window.history.back();
+      }
+    };
+  }, []);
 
   const applyView = (scale: number, tx: number, ty: number, withAnim = false) => {
     setAnimate(withAnim);
@@ -678,7 +695,8 @@ function Lightbox({
         }}
       />
 
-      {/* 닫기 ✕ — 항상 노출. 확대 상태에서도 확실히 닫을 수 있는 명시적 버튼. */}
+      {/* 닫기 ✕ — 좌측 상단. 우측 상단은 알림장 '전체보기' 버튼(FullscreenToggle,
+          fixed right-3 top-3)과 겹치므로 왼쪽에 둔다. 확대 상태에서도 항상 노출. */}
       <button
         type="button"
         onClick={(e) => {
@@ -686,7 +704,7 @@ function Lightbox({
           onClose();
         }}
         aria-label="닫기"
-        className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-black/50 text-2xl leading-none text-white transition-colors hover:bg-black/70"
+        className="absolute left-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-black/50 text-2xl leading-none text-white transition-colors hover:bg-black/70"
       >
         ✕
       </button>
