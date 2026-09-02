@@ -5,7 +5,6 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { InvitationContentSchema, type InvitationContent } from '@/types/invitation';
 import { fetchLiveDisplaySettings, applyLiveDisplaySettings } from '@/lib/invitation/live-display';
 import { InvitationSlides } from '@/components/invitation/InvitationSlides';
-import { InvitationEntryGate } from '@/components/invitation/InvitationEntryGate';
 import { FullscreenToggle } from '@/components/invitation/FullscreenToggle';
 
 interface PageProps {
@@ -57,8 +56,7 @@ export default async function OwnerInvitationPage({ params }: PageProps) {
   const invitationId = pub.invitation_id;
 
   // 표시용 설정(갤러리 확대 보기 등)은 재발행 없이 저장 즉시 반영되도록 원본에서 덮어쓴다.
-  const live = await fetchLiveDisplaySettings(invitationId);
-  applyLiveDisplaySettings(content, live);
+  applyLiveDisplaySettings(content, await fetchLiveDisplaySettings(invitationId));
 
   const [{ data: cheers }, { data: likes }, { data: quizPicks }, { data: votePicks }, { data: messages }, { data: signatures }] =
     await Promise.all([
@@ -104,7 +102,7 @@ export default async function OwnerInvitationPage({ params }: PageProps) {
     galleryLikes[row.image_index] = row.like_count;
   }
 
-  return <OwnerView invitationId={invitationId} pub={pub} content={content} showEntryGate={!!live.ownerIsAdmin} cheersCount={cheers?.cheers_count ?? 0} galleryLikes={galleryLikes} quizPicks={(quizPicks ?? []) as OwnerQuizPick[]} votePicks={(votePicks ?? []) as OwnerVotePick[]} messages={(messages ?? []) as OwnerMessage[]} signatures={ownerSignatures} />;
+  return <OwnerView invitationId={invitationId} pub={pub} content={content} cheersCount={cheers?.cheers_count ?? 0} galleryLikes={galleryLikes} quizPicks={(quizPicks ?? []) as OwnerQuizPick[]} votePicks={(votePicks ?? []) as OwnerVotePick[]} messages={(messages ?? []) as OwnerMessage[]} signatures={ownerSignatures} />;
 }
 
 /**
@@ -117,7 +115,6 @@ function OwnerView(props: {
   invitationId: string;
   pub: { groom_name: string; bride_name: string; wedding_date: string | null };
   content: InvitationContent;
-  showEntryGate: boolean;
   cheersCount: number;
   galleryLikes: Record<number, number>;
   quizPicks: OwnerQuizPick[];
@@ -127,15 +124,6 @@ function OwnerView(props: {
 }) {
   return (
     <div className="flex min-h-[100dvh] w-full items-center justify-center bg-neutral-950 md:p-6">
-      {/* 진입 인트로 — 관리자 계정이 만든 알림장에만(테스트용). 탭이 곧 사용자 제스처가
-          되어 배경음악이 입장과 동시에 재생됨. */}
-      {props.showEntryGate && (
-        <InvitationEntryGate
-          groomName={props.pub.groom_name}
-          brideName={props.pub.bride_name}
-          colorTheme={props.content.theme.colorTheme}
-        />
-      )}
       <FullscreenToggle />
       <div className="relative h-[100dvh] w-full overflow-hidden bg-black md:h-[min(92dvh,calc(100vw*16/9))] md:max-h-[min(92dvh,900px)] md:w-[min(92vw,calc(92dvh*9/16))] md:max-w-[506px] md:rounded-2xl md:shadow-2xl">
         <InvitationSlides
