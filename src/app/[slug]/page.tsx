@@ -179,6 +179,8 @@ export default async function PublicInvitationPage({ params }: PageProps) {
             weddingDate={inv.wedding_date}
             content={content}
             scoped
+            // 진입 게이트가 있으면 마운트 자동재생 대신 게이트 탭에서만 재생.
+            autoplayBgmOnMount={!live.ownerIsAdmin}
           />
         </div>
       </div>

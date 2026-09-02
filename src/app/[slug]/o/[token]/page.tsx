@@ -146,6 +146,8 @@ function OwnerView(props: {
           content={props.content}
           mode="owner"
           scoped
+          // 진입 게이트가 있으면 마운트 자동재생 대신 게이트 탭에서만 재생.
+          autoplayBgmOnMount={!props.showEntryGate}
           ownerData={{
             cheersCount: props.cheersCount,
             galleryLikes: props.galleryLikes,
