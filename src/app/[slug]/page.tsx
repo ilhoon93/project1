@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/server';
 import { InvitationContentSchema } from '@/types/invitation';
 import { fetchLiveDisplaySettings, applyLiveDisplaySettings } from '@/lib/invitation/live-display';
 import { InvitationSlides } from '@/components/invitation/InvitationSlides';
-import { InAppBrowserGuard } from '@/components/invitation/InAppBrowserGuard';
 import { FullscreenToggle } from '@/components/invitation/FullscreenToggle';
 
 // 노트북에서 저장한 직후 모바일에서 열어도 항상 최신 publications.content 가
@@ -154,7 +153,6 @@ export default async function PublicInvitationPage({ params }: PageProps) {
 
   return (
     <>
-      <InAppBrowserGuard />
       {/* 모바일은 풀스크린, 노트북/PC(>= md)는 가운데 폰 프레임 박스로 가둬 보여준다 —
           소장용(o/[token]) 뷰와 동일한 처리. 큰 모니터에서 가로로 늘어진 알림장이
           어색해 보이는 문제 해결. scoped 로 InvitationSlides 가 부모 박스 기준으로 렌더. */}
