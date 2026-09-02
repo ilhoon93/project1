@@ -70,6 +70,15 @@ export function GallerySlide({
   );
 }
 
+// 갤러리 사진 저장(내려받기) 방지용 공통 속성.
+//   - onContextMenu 차단: 데스크톱 우클릭 "이미지 저장" 막기
+//   - draggable=false: 드래그해서 저장/복사 막기
+//   - select-none + [-webkit-touch-callout:none]: iOS 길게 눌러 뜨는 "이미지 저장/
+//     복사" 콜아웃 및 텍스트/이미지 선택 막기
+// (웹 특성상 스크린샷까지 원천 차단은 불가 — 캐주얼 저장을 막는 표준 조치.)
+const noSaveImgClass = 'select-none [-webkit-touch-callout:none]';
+const preventCtxMenu = (e: React.MouseEvent) => e.preventDefault();
+
 /**
  * 갤러리 큰 사진 — cover 는 3:4 를 채우고(잘림), contain 은 전체를 보여주고 남는
  * 여백을 같은 사진의 흐린 배경으로 채운다(잘림 없음).
@@ -83,16 +92,18 @@ function GalleryHeroImage({ src, fit }: { src: string; fit: GalleryImageFit }) {
           src={src}
           alt=""
           aria-hidden
-          className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl"
+          className={`absolute inset-0 h-full w-full scale-110 object-cover blur-2xl ${noSaveImgClass}`}
           draggable={false}
+          onContextMenu={preventCtxMenu}
         />
       )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
         alt=""
-        className={`relative h-full w-full ${fit === 'contain' ? 'object-contain' : 'object-cover'}`}
+        className={`relative h-full w-full ${fit === 'contain' ? 'object-contain' : 'object-cover'} ${noSaveImgClass}`}
         draggable={false}
+        onContextMenu={preventCtxMenu}
       />
     </>
   );
@@ -623,7 +634,14 @@ function GallerySlider({
               style={{ width: 'calc((100% - 4 * 0.375rem) / 5)' }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
+              <img
+                src={url}
+                alt=""
+                className={`h-full w-full object-cover ${noSaveImgClass}`}
+                loading="lazy"
+                draggable={false}
+                onContextMenu={preventCtxMenu}
+              />
             </button>
           );
         })}
@@ -690,7 +708,14 @@ function GalleryGrid({
                 }`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                <img
+                  src={url}
+                  alt=""
+                  className={`h-full w-full object-cover ${noSaveImgClass}`}
+                  loading="lazy"
+                  draggable={false}
+                  onContextMenu={preventCtxMenu}
+                />
               </button>
             </li>
           );
