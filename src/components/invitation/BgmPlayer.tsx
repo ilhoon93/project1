@@ -10,6 +10,13 @@ interface Props {
    * 저절로 나면 곤란한" 곳에서는 false — 이때는 펄 버튼을 탭해야만 재생된다. 기본 true.
    */
   autoStart?: boolean;
+  /**
+   * autoplayOnMount: 마운트 즉시 재생을 시도할지(기본 true). 진입 게이트가 있는
+   * 뷰어에서는 false — 마운트 시엔 재생하지 않고, 첫 제스처(= 게이트 탭)에서만
+   * 처음부터 재생한다(게이트 뒤에서 미리 재생되는 것 방지). 제스처 리스너는 그대로
+   * 장착되므로 게이트 탭이 재생을 켠다.
+   */
+  autoplayOnMount?: boolean;
 }
 
 /**
@@ -28,7 +35,7 @@ interface Props {
  */
 const VISIBILITY_GRACE_MS = 2000;
 
-export function BgmPlayer({ url, autoStart = true }: Props) {
+export function BgmPlayer({ url, autoStart = true, autoplayOnMount = true }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const wasPlayingRef = useRef(false);
@@ -93,7 +100,8 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
     audio.addEventListener('play', markStarted);
     audio.addEventListener('playing', markStarted);
     GESTURE_EVENTS.forEach((ev) => window.addEventListener(ev, onGesture, true));
-    play(); // 마운트 즉시 시도(정지 상태에서만)
+    // 게이트가 있으면(autoplayOnMount=false) 마운트 재생은 생략 — 게이트 탭(첫 제스처)에서만 재생.
+    if (autoplayOnMount) play();
 
     // ── 창 이탈 정지 ─────────────────────────────────────────────
     const pauseForLeave = () => {
@@ -123,7 +131,7 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', pauseForLeave);
     };
-  }, [url, autoStart]);
+  }, [url, autoStart, autoplayOnMount]);
 
   const toggle = () => {
     const audio = audioRef.current;
