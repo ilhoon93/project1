@@ -73,13 +73,22 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
     const audio = audioRef.current;
     if (!audio) return;
 
+    // 자동재생 정책상 첫 "사용자 활성화" 제스처가 있어야 소리 재생이 허용된다.
+    // 브라우저마다 어떤 이벤트가 활성화로 인정되는지 달라(안드로이드 크롬은
+    // pointerdown 만으로는 인정 안 될 때가 많고 click/touchend/pointerup 은 인정),
+    // 여러 활성화 이벤트를 모두 걸어 iPhone·Galaxy 어디서든 첫 탭/스와이프에 바로
+    // 재생되게 한다.
+    const GESTURE_EVENTS = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
+    const removeGestureListeners = () => {
+      GESTURE_EVENTS.forEach((ev) => window.removeEventListener(ev, onGesture, true));
+    };
+
     const start = () => {
       audio
         .play()
         .then(() => {
           setPlaying(true);
-          window.removeEventListener('pointerdown', onGesture);
-          window.removeEventListener('keydown', onGesture);
+          removeGestureListeners();
         })
         .catch(() => {
           // Browser still refused — leave the listeners attached so the next
@@ -88,23 +97,20 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
     };
 
     // 재생 켜기/끄기 버튼(펄) 위에서 시작된 제스처는 무시한다. 그렇지 않으면
-    // 같은 탭에서 이 window 리스너가 pointerdown 에 재생을 시작하고, 이어지는
-    // 버튼 click(=toggle) 이 곧바로 일시정지시켜 "펄을 눌러도 음악이 안 나오는"
-    // 현상이 생긴다. 펄 탭은 버튼의 onClick(toggle) 에게만 맡긴다.
+    // 같은 탭에서 이 window 리스너가 재생을 시작한 직후 버튼 click(=toggle) 이
+    // 곧바로 일시정지시켜 "펄을 눌러도 음악이 안 나오는" 현상이 생긴다. 펄 탭은
+    // 버튼의 onClick(toggle) 에게만 맡긴다.
     const onGesture = (e: Event) => {
       if (e.target instanceof Node && btnRef.current?.contains(e.target)) return;
       start();
     };
 
-    window.addEventListener('pointerdown', onGesture, { once: false });
-    window.addEventListener('keydown', onGesture, { once: false });
+    // capture:true 로 걸어 다른 핸들러의 stopPropagation 에 가로채이지 않게 한다.
+    GESTURE_EVENTS.forEach((ev) => window.addEventListener(ev, onGesture, true));
     // 처음 열었을 때 바로 재생 시도 (기본값 = 재생). 브라우저 자동재생 정책이
     // 막으면 위 제스처 리스너가 첫 탭/키 입력에서 다시 시도한다.
     start();
-    return () => {
-      window.removeEventListener('pointerdown', onGesture);
-      window.removeEventListener('keydown', onGesture);
-    };
+    return removeGestureListeners;
   }, [url, autoStart]);
 
   const toggle = () => {
