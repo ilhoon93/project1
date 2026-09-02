@@ -15,17 +15,24 @@ interface Props {
 /**
  * 배경음악 ON/OFF 토글 — 슬라이드 컨테이너 좌하단 코너에 absolute 로 고정.
  *
- * "링크 열자마자 재생"을 최대한 보장하기 위한 전략:
- *   1) 마운트 즉시 소리(unmuted) 재생을 시도한다. 링크 탭으로 들어온 경우 그 탭이
- *      사용자 활성화로 인정되어(특히 카카오톡/인스타 인앱 브라우저) 바로 소리가 난다.
- *   2) 브라우저 자동재생 정책으로 소리 재생이 막히면 → "무음(muted) 자동재생" 으로
- *      음악을 미리 굴려 두고, 첫 사용자 접촉(어떤 탭/스와이프/키 입력) 순간 곧바로
- *      음소거를 풀어 소리로 전환한다. 그래서 첫 순간에 바로 소리가 이어진다.
+ * "링크 열자마자 재생"을 최대한 보장:
+ *   1) 마운트 즉시 소리(unmuted) 재생 시도. 링크 탭으로 들어온 경우 그 탭이 사용자
+ *      활성화로 인정되는 브라우저/인앱(카카오톡 등)에서는 바로 소리가 난다.
+ *   2) 정책으로 막히면 무음(muted) 자동재생으로 미리 굴려 두고, 첫 사용자 접촉
+ *      순간 음소거를 풀어 소리로 전환한다.
  *
- * ⚠️ iOS 사파리·Android 크롬 모두 "상호작용이 전혀 없는 소리 자동재생"은 브라우저
- * 정책으로 원천 차단되어 어떤 방법으로도 우회 불가하다. 위 2)는 그 제약 안에서
- * 가능한 "가장 이른 시점 재생"이다.
+ * 창 이탈 정지:
+ *   - pagehide(닫기/이탈) 시 정지.
+ *   - visibilitychange(탭/앱 전환)로도 정지하되, "로드 직후 인앱 브라우저가 순간
+ *     hidden→visible 로 깜빡이는" 구간(GRACE_MS)은 무시한다. 이 깜빡임에 반응해
+ *     정지하면 이후 자동 재개가 제스처 없이는 막혀(iOS) '한 번 터치해야 재생되는'
+ *     문제가 생기기 때문. 복귀 시 재생이 막히면 다음 사용자 접촉에 재개한다.
+ *
+ * ⚠️ iOS/Android 모두 "상호작용 0 상태의 소리 자동재생"은 정책상 원천 차단이라
+ * 완전 무접촉 재생은 불가하다. 위는 그 제약 안에서의 최대치.
  */
+const VISIBILITY_GRACE_MS = 2000;
+
 export function BgmPlayer({ url, autoStart = true }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
@@ -38,105 +45,99 @@ export function BgmPlayer({ url, autoStart = true }: Props) {
     setAudible(!!a && !a.paused && !a.muted);
   };
 
-  // 페이지가 화면에서 사라지면(탭 전환·앱 전환·인앱 브라우저 닫기 등) 음악을 멈춘다.
-  // 카카오톡/인스타 인앱 브라우저(특히 안드로이드 WebView)는 링크를 닫아도 WebView
-  // 를 곧바로 파괴하지 않고 백그라운드로만 내려, <audio loop> 가 계속 재생되는
-  // 현상이 있다("창을 종료해도 음악이 계속됨"). visibilitychange/pagehide 로 감지해
-  // 반드시 pause 하고, 다시 화면에 돌아오면 소리 나던 경우에만 이어서 재생한다.
-  useEffect(() => {
-    const onHidden = () => {
-      const audio = audioRef.current;
-      if (!audio) return;
-      if (!audio.paused && !audio.muted) {
-        wasAudibleRef.current = true;
-        audio.pause();
-      }
-    };
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        onHidden();
-      } else if (document.visibilityState === 'visible' && wasAudibleRef.current) {
-        wasAudibleRef.current = false;
-        const audio = audioRef.current;
-        if (audio) {
-          audio.muted = false;
-          audio.play().catch(() => {
-            /* 막히면 펄 버튼으로 다시 켤 수 있다. */
-          });
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    // pagehide: iOS Safari·모바일 크롬에서 페이지가 bfcache 로 내려가거나 닫힐 때.
-    window.addEventListener('pagehide', onHidden);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-      window.removeEventListener('pagehide', onHidden);
-    };
-  }, []);
-
   useEffect(() => {
     if (!autoStart) return;
     const audio = audioRef.current;
     if (!audio) return;
+    const mountedAt = Date.now();
 
-    // 다양한 "사용자 활성화" 이벤트에서 음소거를 풀고 소리 재생. 브라우저마다 활성화로
+    // 다양한 "사용자 활성화" 이벤트에서 음소거 해제 + 재생. 브라우저마다 활성화로
     // 인정하는 이벤트가 달라(Android 크롬은 pointerdown 만으론 인정 안 될 때가 많음)
-    // 여러 이벤트를 모두 건다. capture:true 로 다른 핸들러의 stopPropagation 회피.
+    // 여러 이벤트를 건다. capture:true 로 다른 핸들러의 stopPropagation 회피.
     const GESTURE_EVENTS = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
-    const removeGestureListeners = () => {
+    const armGesture = () => {
+      GESTURE_EVENTS.forEach((ev) => window.addEventListener(ev, onGesture, true));
+    };
+    const disarmGesture = () => {
       GESTURE_EVENTS.forEach((ev) => window.removeEventListener(ev, onGesture, true));
     };
 
-    // 첫 접촉에 소리로 전환(음소거 해제 + 재생). 성공하면 제스처 리스너 해제.
     const goAudible = () => {
       audio.muted = false;
       audio
         .play()
         .then(() => {
           syncAudible();
-          removeGestureListeners();
+          disarmGesture();
         })
         .catch(() => {
           /* 그래도 막히면 다음 제스처/펄 버튼에서 다시. */
         });
     };
 
-    // 펄 버튼 위에서 시작된 제스처는 무시(버튼 onClick=toggle 이 단독 처리) —
-    // 그렇지 않으면 리스너가 재생을 켠 직후 toggle 이 곧바로 꺼버린다.
+    // 펄 버튼 위에서 시작된 제스처는 무시(버튼 onClick=toggle 이 단독 처리).
     const onGesture = (e: Event) => {
       if (e.target instanceof Node && btnRef.current?.contains(e.target)) return;
       goAudible();
     };
-    GESTURE_EVENTS.forEach((ev) => window.addEventListener(ev, onGesture, true));
 
-    // 1) 우선 소리(unmuted) 자동재생 시도 — 링크 탭 활성화가 전달되면 즉시 소리.
+    armGesture();
+
+    // 1) 소리(unmuted) 자동재생 즉시 시도.
     audio.muted = false;
     audio
       .play()
       .then(() => {
         syncAudible();
-        removeGestureListeners();
+        disarmGesture();
       })
       .catch(() => {
-        // 2) 막히면 무음 자동재생으로 미리 굴려 두고, 첫 접촉에 음소거 해제.
+        // 2) 막히면 무음 자동재생으로 굴려 두고 첫 접촉에 음소거 해제.
         audio.muted = true;
         audio.play().then(syncAudible).catch(() => {});
       });
 
-    return removeGestureListeners;
+    // ── 창 이탈 정지 ─────────────────────────────────────────────
+    const pauseForLeave = () => {
+      if (!audio.paused && !audio.muted) {
+        wasAudibleRef.current = true;
+        audio.pause();
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        // 로드 직후 인앱 브라우저의 순간 깜빡임은 무시 — 여기에 반응해 정지하면
+        // 자동재생이 곧바로 멈춰 "한 번 터치해야 재생" 문제가 생긴다.
+        if (Date.now() - mountedAt < VISIBILITY_GRACE_MS) return;
+        pauseForLeave();
+      } else if (wasAudibleRef.current) {
+        wasAudibleRef.current = false;
+        audio.muted = false;
+        audio.play().then(syncAudible).catch(() => {
+          // 복귀 재생이 막히면(iOS 제스처 필요) 다음 사용자 접촉에 재개.
+          armGesture();
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    // pagehide: 닫기/이탈은 확실히 정지(인앱 브라우저가 백그라운드에서 계속 재생하는 것 방지).
+    window.addEventListener('pagehide', pauseForLeave);
+
+    return () => {
+      disarmGesture();
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', pauseForLeave);
+    };
   }, [url, autoStart]);
 
   const toggle = () => {
     const audio = audioRef.current;
     if (!audio) return;
     if (!audio.paused && !audio.muted) {
-      // 소리 나는 중 → 끄기(일시정지).
       audio.pause();
       syncAudible();
     } else {
-      // 정지/무음 → 소리로 재생.
       audio.muted = false;
       audio
         .play()
