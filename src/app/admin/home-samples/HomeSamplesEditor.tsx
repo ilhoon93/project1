@@ -27,8 +27,11 @@ import {
 } from '@/components/editor/sections/ThemeEditor';
 import {
   buildDesign,
+  createBlankSampleDesign,
   deriveSampleLayoutLabel,
   deriveSampleName,
+  sampleHasPhoto,
+  MAX_SAMPLE_DESIGNS,
   type BeforeAfterConfig,
   type BeforeAfterStyle,
   type DesignConfig,
@@ -152,6 +155,21 @@ export function InvitationSamplesEditor({
     [next[i], next[j]] = [next[j], next[i]];
     setDesigns(next);
   };
+  const addDesign = () => {
+    if (config.designs.length >= MAX_SAMPLE_DESIGNS) return;
+    // 고유 id — 기존과 겹치지 않게 타임스탬프 기반.
+    const id = `custom-${Date.now().toString(36)}`;
+    const created = createBlankSampleDesign(id);
+    setDesigns([...config.designs, created]);
+    setOpenId(id); // 추가 즉시 펼쳐서 편집.
+  };
+  const removeDesign = (i: number) => {
+    const target = config.designs[i];
+    if (!target) return;
+    if (!window.confirm('이 디자인 샘플을 삭제할까요?')) return;
+    if (openId === target.id) setOpenId(null);
+    setDesigns(config.designs.filter((_, k) => k !== i));
+  };
 
   const setTpl = (next: TemplateConfig) =>
     setConfig((c) => ({ ...c, template: next }));
@@ -210,11 +228,27 @@ export function InvitationSamplesEditor({
     <div className="space-y-8">
       {/* ───────────── 알림장 디자인 ───────────── */}
       <section className="rounded-lg border border-[#E8DCC9] bg-white p-4">
-        <h2 className="text-sm font-semibold text-[#3D2E1F]">알림장 디자인 샘플</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-[#3D2E1F]">
+            알림장 디자인 샘플{' '}
+            <span className="text-[11px] font-normal text-[#8B7355]">
+              ({config.designs.length} / {MAX_SAMPLE_DESIGNS})
+            </span>
+          </h2>
+          <button
+            type="button"
+            onClick={addDesign}
+            disabled={config.designs.length >= MAX_SAMPLE_DESIGNS}
+            className="rounded-full border border-[#8B7355]/40 px-3.5 py-1.5 text-[12px] font-medium text-[#5C4633] hover:bg-[#FAF7F2] disabled:opacity-40"
+          >
+            + 디자인 추가
+          </button>
+        </div>
         <p className="mt-0.5 text-[11px] text-[#8B7355]">
           노출/순서와 표지(메인 슬라이드)를 실제 에디터 수준으로 편집합니다 — 레이아웃·디자인,
           제목 텍스트/폰트/색/크기/위치, 이름·날짜·인사말 박스까지. 본문(스토리·갤러리 등)은
-          아래 &quot;공유 본문 템플릿&quot; 으로 일괄 관리합니다.
+          아래 &quot;공유 본문 템플릿&quot; 으로 일괄 관리합니다. 최대 {MAX_SAMPLE_DESIGNS}개까지 추가할 수
+          있으며, 추후 미리보기 페이지에서 사진 있음/없음 탭으로 12개씩 나눠 보여줄 예정입니다.
         </p>
 
         {/* 디자인 카드 그리드 — md 2열, xl 3열로 빈 공간 줄임. 카드 클릭으로 펼쳐서
@@ -249,6 +283,16 @@ export function InvitationSamplesEditor({
                       {deriveSampleName(d)}
                     </span>
                     <span className="ml-2 text-[10px] text-[#8B7355]">자동</span>
+                    {/* 추후 사진/무사진 탭 분류 — 레이아웃 기반 자동 판정 결과를 표시. */}
+                    <span
+                      className={`ml-2 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
+                        sampleHasPhoto(d)
+                          ? 'bg-[#8B7355]/15 text-[#5C4633]'
+                          : 'bg-[#E8DCC9] text-[#8B7355]'
+                      }`}
+                    >
+                      {sampleHasPhoto(d) ? '사진' : '무사진'}
+                    </span>
                   </div>
                   <label className="flex items-center gap-1 text-[11px] text-[#5C4633]">
                     <input
@@ -268,6 +312,14 @@ export function InvitationSamplesEditor({
                     className="rounded-full border border-[#8B7355]/40 px-3 py-1 text-[11px] text-[#5C4633]"
                   >
                     {open ? '닫기' : '편집'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeDesign(i)}
+                    aria-label="이 디자인 샘플 삭제"
+                    className="px-1 text-[13px] text-[#B5614F] hover:opacity-70"
+                  >
+                    ✕
                   </button>
                 </div>
 
@@ -386,6 +438,26 @@ export function InvitationSamplesEditor({
                             )}
                           />
                         </Field>
+                      </div>
+
+                      {/* 테마 나머지 디자인 옵션 — 혼주용 큰 글씨 / 슬라이드 전환 효과 */}
+                      <div className="flex flex-wrap gap-4">
+                        <label className="flex items-center gap-1.5 text-[11px] text-[#5C4633]">
+                          <input
+                            type="checkbox"
+                            checked={d.hostMode ?? false}
+                            onChange={(e) => patchDesign(i, { hostMode: e.target.checked })}
+                          />
+                          혼주용 큰 글씨
+                        </label>
+                        <label className="flex items-center gap-1.5 text-[11px] text-[#5C4633]">
+                          <input
+                            type="checkbox"
+                            checked={d.slideAnimation ?? false}
+                            onChange={(e) => patchDesign(i, { slideAnimation: e.target.checked })}
+                          />
+                          슬라이드 전환 효과
+                        </label>
                       </div>
 
                       {/* 샘플 배경음악 — 켜고 프리셋/URL 을 넣으면 content.theme.bgm 에 반영 */}
