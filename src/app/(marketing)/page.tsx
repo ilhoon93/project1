@@ -456,14 +456,7 @@ function InvitationPricingCard() {
                   </span>
                 </span>
               </div>
-              <p className="text-[10.5px] leading-relaxed">
-                {opt.note}
-                {saved > 0 && (
-                  <span className="font-medium text-[var(--wd-coral)]">
-                    {' '}· 따로 사면 {formatKRW(opt.regularPrice!)} → {formatKRW(saved)} 할인
-                  </span>
-                )}
-              </p>
+              <p className="text-[10.5px] leading-relaxed">{opt.note}</p>
             </div>
           );
         })}
