@@ -330,10 +330,22 @@ export type TextDesign = z.infer<typeof TextDesignSchema>;
 // 이미지 프레임 모양이고, 그 외 제목·이름·날짜·인사말 요소는 동일한 컨트롤로
 // 노출한다. 일러스트형과 동일한 패턴으로 variant 필드 하나로 변형을 선택한다.
 
-// 폴라로이드 / 하트 / 스크린 / 아치 / 클래식 (테두리 직사각형).
-//   - arch    : 세로 직사각형에 상단만 둥글게 처리한 아치형 액자
-//   - classic : 상하좌우에 직각 테두리(이중선)를 두른 갤러리 액자
-export const FRAME_VARIANTS = ['polaroid', 'heart', 'screen', 'arch', 'classic'] as const;
+// 폴라로이드 / 하트 / 스크린 / 아치 / 클래식 / 아래 사진 / 위 사진.
+//   - arch       : 세로 직사각형에 상단만 둥글게 처리한 아치형 액자
+//   - classic    : 테두리 없이 사진만 세로(3:4)로 깔끔하게
+//   - photoBottom: 위쪽 여백(테마 배경) + 아래를 사진으로 가로 꽉 채움
+//   - photoTop   : 아래쪽 여백(테마 배경) + 위를 사진으로 가로 꽉 채움
+// 모든 변형은 사진을 프레임에 맞춰 자르며(imagePosition 으로 보일 영역 이동),
+// screen 만 사진 비율에 따라 세로=정사각형 크롭 / 가로=전체표시로 동작한다.
+export const FRAME_VARIANTS = [
+  'polaroid',
+  'heart',
+  'screen',
+  'arch',
+  'classic',
+  'photoBottom',
+  'photoTop',
+] as const;
 export type FrameVariant = (typeof FRAME_VARIANTS)[number];
 
 export const FrameDesignSchema = z

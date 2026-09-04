@@ -48,11 +48,13 @@ interface Props {
   /** 혼주용 큰 글씨 모드 — 본문(rem 기반) 텍스트를 전반적으로 키운다(globals.css .wd-host-text). */
   hostMode?: boolean;
   /**
-   * 슬라이드별 전환 효과 on/off (children 인덱스와 정렬). 해당 슬라이드가 활성화될
-   * 때마다 콘텐츠가 페이드인 + 천천히 떠오르는 효과로 등장한다. 메인(표지)은 보통
-   * false 로 넘겨 효과를 주지 않는다. 미지정 시 전부 효과 없음.
+   * 슬라이드별 등장 방식(children 인덱스와 정렬):
+   *   'none'     — 효과 없음(메인 표지 / 옵션 off)
+   *   'stagger'  — 제목부터 아래로 계단식 순차 등장
+   *   'together' — 제목만 먼저 뜨고 나머지는 한번에(요소 많은 방명록 등)
+   * 미지정 시 전부 'none'.
    */
-  slideAnimate?: boolean[];
+  slideReveal?: Array<'none' | 'stagger' | 'together'>;
 }
 
 export function SlideContainer({
@@ -66,7 +68,7 @@ export function SlideContainer({
   forceBgm = false,
   manualBgm = false,
   hostMode = false,
-  slideAnimate,
+  slideReveal,
 }: Props) {
   const slides = children.filter(Boolean);
   const [index, setIndex] = useState(0);
@@ -187,13 +189,17 @@ export function SlideContainer({
         onMouseDown={onMouseDown}
       >
         {slides.map((slide, i) => {
-          // 이 슬라이드에 전환 효과를 줄지(메인 제외 + 옵션 on). 효과 대상 슬라이드는
-          // 기본적으로 콘텐츠가 숨겨져(.wd-anim) 스와이프 도중 다음 슬라이드가 보이지
-          // 않고, 스와이프가 끝나 이 슬라이드가 "정착"(settledIndex === i)하면
-          // .wd-reveal 이 붙어 제목부부터 아래로 순서대로 떠오른다(globals.css).
-          // 효과가 꺼진 슬라이드/메인은 클래스가 없어 즉시 전체가 보인다.
-          const anim = slideAnimate?.[i] ?? false;
-          const revealClass = anim ? (settledIndex === i ? 'wd-anim wd-reveal' : 'wd-anim') : '';
+          // 이 슬라이드의 등장 방식. 효과 대상('stagger'/'together')은 기본적으로
+          // 콘텐츠가 숨겨져(.wd-anim) 스와이프 도중 다음 슬라이드가 보이지 않고,
+          // 스와이프가 끝나 이 슬라이드가 "정착"(settledIndex === i)하면 .wd-reveal 이
+          // 붙어 순서대로/한번에 떠오른다(globals.css). 'none'/메인은 즉시 전체 노출.
+          const mode = slideReveal?.[i] ?? 'none';
+          const revealClass =
+            mode === 'none'
+              ? ''
+              : `wd-anim${mode === 'together' ? ' wd-together' : ''}${
+                  settledIndex === i ? ' wd-reveal' : ''
+                }`;
           return (
             <div
               key={i}

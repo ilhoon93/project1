@@ -334,14 +334,16 @@
  *     은은하게 떠오르며 페이드인(느린 페이드 + 계단식 지연).
  * 루트 섹션이 flex-col 이라 DOM 순서 = 화면상 위→아래 순서와 일치한다.
  * ───────────────────────────────────────────────────────────── */
+/* transform 이 아닌 개별 translate 속성을 쓴다 — 절대배치 요소가 자체적으로 쓰는
+   transform(예: 공유 버튼의 -translate-x-1/2 가로 중앙정렬)을 덮어쓰지 않도록. */
 @keyframes wd-slide-reveal {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    translate: 0 18px;
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    translate: 0 0;
   }
 }
 
@@ -361,6 +363,12 @@
 .wd-anim.wd-reveal > :first-child > *:nth-child(7) { animation-delay: 2.4s; }
 .wd-anim.wd-reveal > :first-child > *:nth-child(8) { animation-delay: 2.8s; }
 .wd-anim.wd-reveal > :first-child > *:nth-child(n + 9) { animation-delay: 3.2s; }
+
+/* '한번에' 등장(.wd-together) — 방명록처럼 요소가 많은 슬라이드는 제목(첫 요소)만
+   먼저 뜨고 나머지는 같은 지연으로 동시에 떠오른다. (클래스가 하나 더 붙어
+   위 계단식 규칙보다 우선한다.) */
+.wd-anim.wd-together.wd-reveal > :first-child > *:nth-child(1) { animation-delay: 0s; }
+.wd-anim.wd-together.wd-reveal > :first-child > *:nth-child(n + 2) { animation-delay: 0.4s; }
 
 @media (prefers-reduced-motion: reduce) {
   .wd-anim > :first-child > * { opacity: 1; }
