@@ -191,9 +191,10 @@ export function SlideContainer({
               }`}
               initial={false}
               animate={
-                anim ? (i === index ? { opacity: 1, y: 0 } : { opacity: 0, y: 28 }) : { opacity: 1, y: 0 }
+                anim ? (i === index ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }) : { opacity: 1, y: 0 }
               }
-              transition={anim ? { duration: 0.7, ease: [0.22, 1, 0.36, 1] } : { duration: 0 }}
+              // 은은하게 — 천천히 떠오르며 부드럽게 페이드인(상승폭은 작게, 시간은 길게).
+              transition={anim ? { duration: 1.2, ease: [0.22, 1, 0.36, 1] } : { duration: 0 }}
               // 모든 cqw/cqh 단위가 슬라이드 박스 자체를 기준으로 잡히도록
               // container-type 을 지정. 모바일 풀스크린에서는 슬라이드 = 뷰포트라
               // cqw≈vw 동일하게 동작하고, 데스크톱 미리보기 패널에서는 폰 프레임
