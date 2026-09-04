@@ -1293,7 +1293,8 @@ function TitleTextCombobox({
             onChange={(e) => onChange(e.target.value)}
             onFocus={() => setOpen(false)}
             placeholder="문구를 직접 입력하거나 우측 화살표로 선택"
-            className="h-10 flex-1 bg-transparent px-3 text-sm outline-none"
+            // min-w-0 필수 — 없으면 긴 문구에서 입력창이 안 줄어 화살표 버튼이 밀려 잘린다.
+            className="h-10 min-w-0 flex-1 bg-transparent px-3 text-sm outline-none"
           />
           {/* 프리셋 펼치기 — 폰트 콤보박스와 동일하게 아래 화살표(▾)만. */}
           <button
@@ -1656,8 +1657,6 @@ function PositionSliders({
           value={toDisplay(position.x)}
           min={0}
           max={100}
-          leftHint="좌"
-          rightHint="우"
           unit="%"
           onChange={(d) => onChange({ ...position, x: toStored(d) })}
         />
@@ -1667,8 +1666,6 @@ function PositionSliders({
         value={toDisplay(position.y)}
         min={0}
         max={100}
-        leftHint="상"
-        rightHint="하"
         unit="%"
         onChange={(d) => onChange({ ...position, y: toStored(d) })}
       />
@@ -1697,8 +1694,8 @@ function SliderRow({
 }) {
   // 슬라이더 + 우측에 직접 입력 가능한 숫자 칸(NumberField). 범위 검증은 NumberField.
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="w-9 shrink-0 text-muted-foreground">{label}</span>
+    <div className="flex items-center gap-1.5 text-xs">
+      <span className="w-7 shrink-0 whitespace-nowrap text-muted-foreground">{label}</span>
       {leftHint && <span className="shrink-0 text-muted-foreground">{leftHint}</span>}
       <input
         type="range"
@@ -1791,8 +1788,8 @@ function NumberField({
         if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
       }}
       aria-label={ariaLabel}
-      // 최대 3자리(100) 폭에 맞춘 고정 크기.
-      className="w-10 rounded border border-input bg-background px-1 py-0.5 text-right tabular-nums text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring/30"
+      // 최대 3자리(100) 폭에 딱 맞춘 고정 크기.
+      className="w-8 rounded border border-input bg-background px-1 py-0.5 text-right tabular-nums text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring/30"
     />
   );
 }
