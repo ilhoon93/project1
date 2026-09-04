@@ -1071,6 +1071,14 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
         )}
       </div>
 
+      {/* 배경 흐리게 — 액자 바깥 배경을 업로드 사진의 흐린 버전으로 채운다(갤러리 유사). */}
+      <ToggleRow
+        label="배경 흐리게(사진)"
+        hint="액자 바깥 배경을 업로드한 사진의 흐린 버전으로 채웁니다. 표지 사진이 있을 때만 적용돼요."
+        checked={design.blurBackground ?? false}
+        onChange={(v) => onChange({ ...design, blurBackground: v })}
+      />
+
       {/* 제목 텍스트 — 토글 + 문구 + 폰트 + 색 + 크기 + 상하 위치 */}
       <Group
         label="제목 텍스트"

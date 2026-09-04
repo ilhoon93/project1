@@ -1154,6 +1154,20 @@ function FrameSlide({
     // 통일 레이아웃 — 액자 카드 중앙 (variant 별 셰이프 유지), 텍스트는 슬라이드
     // 전체에서 PositionedBox 로 떠다님. 텍스트가 액자 위에 오버레이될 수도 있음.
     <section className="relative h-full min-h-full w-full overflow-hidden text-center">
+      {/* 액자 바깥 배경 — 옵션(blurBackground) 켜짐 + 사진 있을 때만, 업로드 사진의
+          흐린 버전을 전체에 깔아 갤러리 contain 배경과 유사한 효과를 준다. 꺼짐이면
+          렌더하지 않아 기존 동작(테마 배경) 그대로 — 기존 알림장 무영향. */}
+      {design.blurBackground && main.heroImage && (
+        <div aria-hidden className="absolute inset-0 z-0 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={main.heroImage}
+            alt=""
+            className="h-full w-full scale-110 object-cover blur-2xl"
+          />
+        </div>
+      )}
+
       {/* 액자 이미지 — 슬라이드 정중앙에 카드로 */}
       <div className="absolute inset-0 z-0 flex items-center justify-center">
         <FrameImage
