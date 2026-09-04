@@ -372,7 +372,7 @@ export function PosterDesignControls({ design, onChange, greeting, onGreetingCha
         />
 
         <SliderRow
-          label="글자 크기"
+          label="크기"
           value={design.title.fontSize}
           min={20}
           max={56}
@@ -407,7 +407,7 @@ export function PosterDesignControls({ design, onChange, greeting, onGreetingCha
           {design.dateBox.enabled && (
             <>
               <SliderRow
-                label="글자 크기"
+                label="크기"
                 value={design.dateBox.fontSize}
                 min={12}
                 max={40}
@@ -441,7 +441,7 @@ export function PosterDesignControls({ design, onChange, greeting, onGreetingCha
           {design.nameBox.enabled && (
             <>
               <SliderRow
-                label="글자 크기"
+                label="크기"
                 value={design.nameBox.fontSize}
                 min={14}
                 max={40}
@@ -477,7 +477,7 @@ export function PosterDesignControls({ design, onChange, greeting, onGreetingCha
         {design.messageBox.enabled && (
           <>
             <SliderRow
-              label="글자 크기"
+              label="크기"
               value={design.messageBox.fontSize}
               min={12}
               max={28}
@@ -627,7 +627,7 @@ export function IllustrationDesignControls({ design, onChange, greeting, onGreet
           allowThemeDefault
         />
         <SliderRow
-          label="글자 크기"
+          label="크기"
           value={design.title.fontSize}
           min={22}
           max={100}
@@ -661,7 +661,7 @@ export function IllustrationDesignControls({ design, onChange, greeting, onGreet
           {design.dateBox.enabled && (
             <>
               <SliderRow
-                label="글자 크기"
+                label="크기"
                 value={design.dateBox.fontSize}
                 min={11}
                 max={30}
@@ -695,7 +695,7 @@ export function IllustrationDesignControls({ design, onChange, greeting, onGreet
           {design.nameBox.enabled && (
             <>
               <SliderRow
-                label="글자 크기"
+                label="크기"
                 value={design.nameBox.fontSize}
                 min={12}
                 max={32}
@@ -731,7 +731,7 @@ export function IllustrationDesignControls({ design, onChange, greeting, onGreet
         {design.messageBox.enabled && (
           <>
             <SliderRow
-              label="글자 크기"
+              label="크기"
               value={design.messageBox.fontSize}
               min={11}
               max={20}
@@ -842,7 +842,7 @@ export function TextDesignControls({ design, onChange, greeting, onGreetingChang
           allowThemeDefault
         />
         <SliderRow
-          label="글자 크기"
+          label="크기"
           value={design.title.fontSize}
           min={22}
           max={100}
@@ -877,7 +877,7 @@ export function TextDesignControls({ design, onChange, greeting, onGreetingChang
           {design.dateBox.enabled && (
             <>
               <SliderRow
-                label="글자 크기"
+                label="크기"
                 value={design.dateBox.fontSize}
                 min={11}
                 max={30}
@@ -936,7 +936,7 @@ export function TextDesignControls({ design, onChange, greeting, onGreetingChang
               />
 
               <SliderRow
-                label="글자 크기"
+                label="크기"
                 value={design.nameBox.fontSize}
                 min={14}
                 max={56}
@@ -972,7 +972,7 @@ export function TextDesignControls({ design, onChange, greeting, onGreetingChang
         {design.messageBox.enabled && (
           <>
             <SliderRow
-              label="글자 크기"
+              label="크기"
               value={design.messageBox.fontSize}
               min={11}
               max={20}
@@ -1116,7 +1116,7 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
               allowThemeDefault
             />
             <SliderRow
-              label="글자 크기"
+              label="크기"
               value={design.title.fontSize}
               min={18}
               max={100}
@@ -1152,7 +1152,7 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
           {design.dateBox.enabled && (
             <>
               <SliderRow
-                label="글자 크기"
+                label="크기"
                 value={design.dateBox.fontSize}
                 min={11}
                 max={30}
@@ -1186,7 +1186,7 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
           {design.nameBox.enabled && (
             <>
               <SliderRow
-                label="글자 크기"
+                label="크기"
                 value={design.nameBox.fontSize}
                 min={12}
                 max={36}
@@ -1222,7 +1222,7 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
         {design.messageBox.enabled && (
           <>
             <SliderRow
-              label="글자 크기"
+              label="크기"
               value={design.messageBox.fontSize}
               min={11}
               max={22}
@@ -1629,29 +1629,39 @@ function PositionSliders({
   /** true 면 상하(y) 슬라이더만 노출 — 날짜/이름/인사말 박스용. */
   verticalOnly?: boolean;
 }) {
+  // 슬라이더 양 끝(0/100%)에서도 요소가 화면 밖으로 잘리지 않도록, 표시 0–100% 를
+  // 실제 저장값 5–95% 로 매핑한다(중앙 50% 는 그대로). 이 매핑은 "슬라이더 입력"에만
+  // 적용되고 저장값 자체는 그대로 렌더되므로 이미 발행된 알림장에는 영향이 없다
+  // (기존 저장값 12/88 등은 손대지 않는 한 그대로 유지·렌더).
+  const STORED_MIN = 5;
+  const STORED_SPAN = 90; // 95 - 5
+  const toDisplay = (stored: number) =>
+    Math.round(Math.min(100, Math.max(0, ((stored - STORED_MIN) / STORED_SPAN) * 100)));
+  const toStored = (display: number) =>
+    Math.round(STORED_MIN + (display / 100) * STORED_SPAN);
   return (
     <div className="flex flex-col gap-2">
       {!verticalOnly && (
         <SliderRow
           label="좌우"
-          value={position.x}
+          value={toDisplay(position.x)}
           min={0}
           max={100}
           leftHint="좌"
           rightHint="우"
           unit="%"
-          onChange={(x) => onChange({ ...position, x })}
+          onChange={(d) => onChange({ ...position, x: toStored(d) })}
         />
       )}
       <SliderRow
         label="상하"
-        value={position.y}
+        value={toDisplay(position.y)}
         min={0}
         max={100}
         leftHint="상"
         rightHint="하"
         unit="%"
-        onChange={(y) => onChange({ ...position, y })}
+        onChange={(d) => onChange({ ...position, y: toStored(d) })}
       />
     </div>
   );
@@ -1679,7 +1689,7 @@ function SliderRow({
   // 슬라이더 + 우측에 직접 입력 가능한 숫자 칸(NumberField). 범위 검증은 NumberField.
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className="w-14 shrink-0 text-muted-foreground">{label}</span>
+      <span className="w-9 shrink-0 text-muted-foreground">{label}</span>
       {leftHint && <span className="shrink-0 text-muted-foreground">{leftHint}</span>}
       <input
         type="range"
@@ -1754,12 +1764,13 @@ function NumberField({
     <input
       type="text"
       inputMode="numeric"
+      maxLength={3}
       value={draft}
       onFocus={() => {
         focused.current = true;
       }}
       onChange={(e) => {
-        const raw = e.target.value.replace(/[^\d]/g, ''); // 숫자만, 빈 값 허용
+        const raw = e.target.value.replace(/[^\d]/g, '').slice(0, 3); // 숫자만·최대 3자리
         setDraft(raw);
         if (raw === '') return; // 비움은 허용하되 커밋하지 않음
         const n = Number(raw);
@@ -1771,7 +1782,8 @@ function NumberField({
         if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
       }}
       aria-label={ariaLabel}
-      className="w-11 rounded border border-input bg-background px-1 py-0.5 text-right tabular-nums text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring/30"
+      // 최대 3자리(100) 폭에 맞춘 고정 크기.
+      className="w-10 rounded border border-input bg-background px-1 py-0.5 text-right tabular-nums text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring/30"
     />
   );
 }
