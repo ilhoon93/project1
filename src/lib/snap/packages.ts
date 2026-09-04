@@ -145,6 +145,11 @@ export interface InvitationOption {
   note: string;
   /** AI 스냅이 포함된 번들 옵션 — 홈 알림장 가격 카드에는 노출하지 않는다. */
   snapBundle?: boolean;
+  /**
+   * 묶음(예: 1+1) 옵션의 "따로 살 때" 정가. 총액(INVITATION_PRICE + addonPrice)
+   * 보다 크면 홈 가격 카드에서 정가 취소선 + 할인액/할인율을 함께 표기한다.
+   */
+  regularPrice?: number;
 }
 
 export const INVITATION_OPTIONS: InvitationOption[] = [
@@ -179,11 +184,15 @@ export const INVITATION_OPTIONS: InvitationOption[] = [
     label: '알림장 1+1',
     addonPrice: 5000,
     note: '알림장 2건 발행',
+    // 따로 2건 = 9,900 × 2 = 19,800원 → 1+1(14,900원)은 4,900원 할인.
+    regularPrice: INVITATION_PRICE * 2,
   },
   {
     optionCode: '59246230105',
     label: '알림장 1+1 + 영구소장',
     addonPrice: 8000,
     note: '알림장 2건 발행 + 두 건 모두 영구소장',
+    // 따로 2건(각 영구소장 포함) = (9,900 + 3,000) × 2 = 25,800원 → 17,900원은 7,900원 할인.
+    regularPrice: (INVITATION_PRICE + ARCHIVE_PRICE) * 2,
   },
 ];

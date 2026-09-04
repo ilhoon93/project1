@@ -47,6 +47,12 @@ interface Props {
   manualBgm?: boolean;
   /** 혼주용 큰 글씨 모드 — 본문(rem 기반) 텍스트를 전반적으로 키운다(globals.css .wd-host-text). */
   hostMode?: boolean;
+  /**
+   * 슬라이드별 전환 효과 on/off (children 인덱스와 정렬). 해당 슬라이드가 활성화될
+   * 때마다 콘텐츠가 페이드인 + 천천히 떠오르는 효과로 등장한다. 메인(표지)은 보통
+   * false 로 넘겨 효과를 주지 않는다. 미지정 시 전부 효과 없음.
+   */
+  slideAnimate?: boolean[];
 }
 
 export function SlideContainer({
@@ -60,6 +66,7 @@ export function SlideContainer({
   forceBgm = false,
   manualBgm = false,
   hostMode = false,
+  slideAnimate,
 }: Props) {
   const slides = children.filter(Boolean);
   const [index, setIndex] = useState(0);
@@ -170,25 +177,37 @@ export function SlideContainer({
         }}
         onMouseDown={onMouseDown}
       >
-        {slides.map((slide, i) => (
-          <div
-            key={i}
-            className={`mw-thin-scroll relative h-full flex-shrink-0 touch-pan-y overflow-y-auto ${
-              scoped ? 'w-full' : 'w-screen'
-            }`}
-            // 모든 cqw/cqh 단위가 슬라이드 박스 자체를 기준으로 잡히도록
-            // container-type 을 지정. 모바일 풀스크린에서는 슬라이드 = 뷰포트라
-            // cqw≈vw 동일하게 동작하고, 데스크톱 미리보기 패널에서는 폰 프레임
-            // 박스를 기준이라 폰트 크기·비율이 모바일과 동일하게 보인다.
-            style={{ containerType: 'size' }}
-          >
-            {slide}
-            {/* 배경 효과 — 각 슬라이드 박스 안에 z-10 으로 깔아둔다.
-                슬라이드 콘텐츠(z-auto) 위에 펠탈/별빛이 떨어지지만, VideoSlide 처럼
-                z-20 이상을 설정한 요소(영상 컨테이너)는 효과 위로 올라와 가려짐. */}
-            <FallingPetals type={petalType} colors={palette.petals} />
-          </div>
-        ))}
+        {slides.map((slide, i) => {
+          // 이 슬라이드에 전환 효과를 줄지(메인 제외 + 옵션 on). 효과가 켜진
+          // 슬라이드는 활성화(i === index)될 때마다 페이드인 + 천천히 떠오르며 등장.
+          // 스크롤 컨테이너 자체에 y/opacity 를 주므로 긴 콘텐츠의 세로 스크롤에는
+          // 영향이 없다(y 는 등장 순간에만 잠깐 적용되고 0 으로 정착).
+          const anim = slideAnimate?.[i] ?? false;
+          return (
+            <motion.div
+              key={i}
+              className={`mw-thin-scroll relative h-full flex-shrink-0 touch-pan-y overflow-y-auto ${
+                scoped ? 'w-full' : 'w-screen'
+              }`}
+              initial={false}
+              animate={
+                anim ? (i === index ? { opacity: 1, y: 0 } : { opacity: 0, y: 28 }) : { opacity: 1, y: 0 }
+              }
+              transition={anim ? { duration: 0.7, ease: [0.22, 1, 0.36, 1] } : { duration: 0 }}
+              // 모든 cqw/cqh 단위가 슬라이드 박스 자체를 기준으로 잡히도록
+              // container-type 을 지정. 모바일 풀스크린에서는 슬라이드 = 뷰포트라
+              // cqw≈vw 동일하게 동작하고, 데스크톱 미리보기 패널에서는 폰 프레임
+              // 박스를 기준이라 폰트 크기·비율이 모바일과 동일하게 보인다.
+              style={{ containerType: 'size' }}
+            >
+              {slide}
+              {/* 배경 효과 — 각 슬라이드 박스 안에 z-10 으로 깔아둔다.
+                  슬라이드 콘텐츠(z-auto) 위에 펠탈/별빛이 떨어지지만, VideoSlide 처럼
+                  z-20 이상을 설정한 요소(영상 컨테이너)는 효과 위로 올라와 가려짐. */}
+              <FallingPetals type={petalType} colors={palette.petals} />
+            </motion.div>
+          );
+        })}
       </motion.div>
 
       {/* 하단 점 표시 (인디케이터) — 슬라이드가 2장 이상일 때만. 표지 1장짜리
