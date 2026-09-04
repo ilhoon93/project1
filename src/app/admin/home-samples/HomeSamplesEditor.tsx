@@ -325,22 +325,28 @@ export function InvitationSamplesEditor({
 
                 {open && (
                   <div className="grid gap-4 border-t border-[#E8DCC9] p-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-                    {/* 좌: 큰 표지 미리보기 + (하단) 이름/날짜/표지사진 */}
-                    <div className="mx-auto w-full max-w-[260px]">
-                      {/* 실제 모바일 에디터처럼 전체 슬라이드를 실시간 미리보기 — 표지 한 장이
-                          아니라 본문(스토리·갤러리 등)까지 좌우 스와이프로 넘겨 볼 수 있고,
-                          편집 내용이 즉시 반영된다(cover 제거 → InvitationSlides 전체 렌더). */}
-                      <div className="overflow-hidden rounded-[18px] border-[2px] border-[#15110E] bg-[#15110E]">
-                        <div className="relative aspect-[1/2] w-full overflow-hidden">
-                          <InvitationPreview design={buildDesign(d, config.template)} />
+                    {/* 미리보기 — 데스크톱 좌측/모바일 상단에 고정(sticky)되어, 아래 편집 칸을
+                        만지는 동안에도 화면에 계속 붙어 있다. 편집 항목을 바꾸면 즉시 반영되고,
+                        본문(스토리·갤러리 등)까지 좌우 스와이프로 넘겨 볼 수 있다. 모바일에선
+                        미리보기가 위에 고정된 채 아래 편집 칸이 그 뒤로 스크롤된다. */}
+                    <div className="sticky top-2 z-10 self-start bg-[#FCFAF6] pb-2">
+                      <div className="mx-auto w-[44vw] max-w-[190px] lg:w-full lg:max-w-[260px]">
+                        <div className="overflow-hidden rounded-[18px] border-[2px] border-[#15110E] bg-[#15110E]">
+                          <div className="relative aspect-[1/2] w-full overflow-hidden">
+                            <InvitationPreview design={buildDesign(d, config.template)} />
+                          </div>
                         </div>
+                        <p className="mt-1.5 text-center text-[10px] text-[#8B7355]">
+                          실시간 미리보기 — 편집 즉시 반영 · 좌우로 넘겨 보세요
+                        </p>
                       </div>
-                      <p className="mt-2 text-center text-[10px] text-[#8B7355]">
-                        실시간 미리보기 — 좌우로 넘겨 보세요
-                      </p>
+                    </div>
 
-                      {/* 미리보기 하단의 데이터 입력 — 신랑/신부/날짜/표지사진 */}
-                      <div className="mt-4 grid grid-cols-2 gap-2">
+                    {/* 편집 항목 — 데스크톱 우측/모바일 아래. 미리보기가 고정돼 있어 이 칸을
+                        스크롤하며 편집해도 변경 화면을 바로 확인할 수 있다. */}
+                    <div className="min-w-0 space-y-4 overflow-hidden">
+                      {/* 신랑/신부/날짜/표지사진 */}
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                         <Field label="신랑 이름">
                           <input
                             className={inputCls}
@@ -377,15 +383,11 @@ export function InvitationSamplesEditor({
                           </select>
                         </Field>
                       </div>
-                      <p className="mt-2 text-center text-[10px] text-[#8B7355]">
+                      <p className="text-[10px] text-[#8B7355]">
                         태그는 저장 시점에{' '}
                         <span className="font-medium text-[#5C4633]">{deriveSampleLayoutLabel(d)}</span>{' '}
                         로 자동 지정됩니다.
                       </p>
-                    </div>
-
-                    {/* 우: 레이아웃/색상/배경효과/폰트 + 표지 디자인 컨트롤 */}
-                    <div className="min-w-0 space-y-4 overflow-hidden">
                       {/* 레이아웃 + 컬러 + 효과 + 폰트 — 에디터 형식의 콤보박스 */}
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                         <Field label="레이아웃">
