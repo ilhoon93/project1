@@ -41,6 +41,7 @@ import {
   type TemplateConfig,
 } from '@/lib/marketing/sample-invitations';
 import { InvitationPreview } from '@/components/marketing/InvitationPreview';
+import { SampleLivePreviewSheet } from './SampleLivePreviewSheet';
 import { PresetTextArea } from '@/components/editor/PresetTextArea';
 import {
   BASIC_GREETING_PRESETS,
@@ -103,13 +104,19 @@ function SaveBar({
   pending,
   msg,
   onSave,
+  bottomOffset = '0px',
 }: {
   pending: boolean;
   msg: string | null;
   onSave: () => void;
+  /** 하단 고정 미리보기 시트가 떠 있을 때 그 위로 밀어 올려 저장 버튼이 가리지 않게. */
+  bottomOffset?: string;
 }) {
   return (
-    <div className="sticky bottom-0 flex items-center gap-3 border-t border-[#E8DCC9] bg-[#FAF7F2]/95 py-3 backdrop-blur">
+    <div
+      className="sticky z-[51] flex items-center gap-3 border-t border-[#E8DCC9] bg-[#FAF7F2]/95 py-3 backdrop-blur"
+      style={{ bottom: bottomOffset }}
+    >
       <button
         type="button"
         onClick={onSave}
@@ -136,6 +143,15 @@ export function InvitationSamplesEditor({
 }) {
   const { config, setConfig, pending, msg, save } = useHomeSamplesSaver(initialConfig);
   const [openId, setOpenId] = useState<string | null>(null);
+  // 하단 고정 실시간 미리보기 시트 펼침 상태(카드를 열면 자동 펼침).
+  const [sheetOpen, setSheetOpen] = useState(true);
+  // 편집 카드 열기/닫기 — 열 때 미리보기 시트도 펼친다.
+  const toggleOpen = (id: string) =>
+    setOpenId((cur) => {
+      const next = cur === id ? null : id;
+      if (next) setSheetOpen(true);
+      return next;
+    });
 
   const byId = useMemo(() => new Map(catalog.map((c) => [c.id, c])), [catalog]);
   const srcOf = (id: string) => byId.get(id)?.src ?? `/wedding-snap/catalog/${id}.jpg`;
@@ -224,8 +240,15 @@ export function InvitationSamplesEditor({
     });
   };
 
+  // 현재 편집 중인(펼친) 샘플 — 하단 고정 실시간 미리보기 시트에 넘긴다.
+  const openConfig = openId ? config.designs.find((d) => d.id === openId) ?? null : null;
+
   return (
-    <div className="space-y-8">
+    <div
+      className="space-y-8"
+      // 하단 고정 미리보기 시트가 콘텐츠를 가리지 않도록 편집 중엔 아래 여백 확보.
+      style={openConfig ? { paddingBottom: sheetOpen ? '66vh' : '56px' } : undefined}
+    >
       {/* ───────────── 알림장 디자인 ───────────── */}
       <section className="rounded-lg border border-[#E8DCC9] bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -308,7 +331,7 @@ export function InvitationSamplesEditor({
                   </div>
                   <button
                     type="button"
-                    onClick={() => setOpenId(open ? null : d.id)}
+                    onClick={() => toggleOpen(d.id)}
                     className="rounded-full border border-[#8B7355]/40 px-3 py-1 text-[11px] text-[#5C4633]"
                   >
                     {open ? '닫기' : '편집'}
@@ -324,26 +347,10 @@ export function InvitationSamplesEditor({
                 </div>
 
                 {open && (
-                  <div className="grid gap-4 border-t border-[#E8DCC9] p-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-                    {/* 미리보기 — 데스크톱 좌측/모바일 상단에 고정(sticky)되어, 아래 편집 칸을
-                        만지는 동안에도 화면에 계속 붙어 있다. 편집 항목을 바꾸면 즉시 반영되고,
-                        본문(스토리·갤러리 등)까지 좌우 스와이프로 넘겨 볼 수 있다. 모바일에선
-                        미리보기가 위에 고정된 채 아래 편집 칸이 그 뒤로 스크롤된다. */}
-                    <div className="sticky top-2 z-10 self-start bg-[#FCFAF6] pb-2">
-                      <div className="mx-auto w-[44vw] max-w-[190px] lg:w-full lg:max-w-[260px]">
-                        <div className="overflow-hidden rounded-[18px] border-[2px] border-[#15110E] bg-[#15110E]">
-                          <div className="relative aspect-[1/2] w-full overflow-hidden">
-                            <InvitationPreview design={buildDesign(d, config.template)} />
-                          </div>
-                        </div>
-                        <p className="mt-1.5 text-center text-[10px] text-[#8B7355]">
-                          실시간 미리보기 — 편집 즉시 반영 · 좌우로 넘겨 보세요
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* 편집 항목 — 데스크톱 우측/모바일 아래. 미리보기가 고정돼 있어 이 칸을
-                        스크롤하며 편집해도 변경 화면을 바로 확인할 수 있다. */}
+                  <div className="border-t border-[#E8DCC9] p-4">
+                    {/* 편집 항목 — 실제 알림장 에디터처럼 편집한다. 실시간 미리보기는 화면
+                        하단에 fixed 로 붙는 SampleLivePreviewSheet 가 담당하므로(스크롤과
+                        무관하게 항상 보임), 여기 카드 안에는 별도 미리보기를 두지 않는다. */}
                     <div className="min-w-0 space-y-4 overflow-hidden">
                       {/* 신랑/신부/날짜/표지사진 */}
                       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -731,7 +738,21 @@ export function InvitationSamplesEditor({
         </div>
       </section>
 
-      <SaveBar pending={pending} msg={msg} onSave={handleSave} />
+      <SaveBar
+        pending={pending}
+        msg={msg}
+        onSave={handleSave}
+        bottomOffset={openConfig ? (sheetOpen ? '64vh' : '46px') : '0px'}
+      />
+
+      {/* 편집 중인 샘플의 실시간 미리보기 — 실제 에디터처럼 화면 하단에 고정. */}
+      {openConfig && (
+        <SampleLivePreviewSheet
+          design={buildDesign(openConfig, config.template)}
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+        />
+      )}
     </div>
   );
 }
