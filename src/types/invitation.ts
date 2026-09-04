@@ -354,6 +354,9 @@ export const FrameDesignSchema = z
     // 사진 어느 부분을 프레임에 보일지 — object-position 으로 매핑 (0–100 %).
     // screen 변형(정사각형 + contain) 처럼 잘리지 않는 케이스에서는 의미 없음.
     imagePosition: PositionSchema.default({ x: 50, y: 50 }),
+    // 액자 바깥 배경을 업로드한 사진의 흐린 버전으로 채우는 효과. 구버전 호환 위해
+    // optional + 기본 false — 기존 알림장은 이 필드가 없어 false 로 파싱되어 영향 없음.
+    blurBackground: z.boolean().default(false),
     title: z
       .object({
         enabled: z.boolean().default(true),
@@ -398,6 +401,7 @@ export const FrameDesignSchema = z
   .default({
     variant: 'polaroid',
     imagePosition: { x: 50, y: 50 },
+    blurBackground: false,
     title: {
       enabled: true,
       text: TITLE_TEXT_PRESETS[0],
