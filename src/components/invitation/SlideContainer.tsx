@@ -70,6 +70,12 @@ export function SlideContainer({
 }: Props) {
   const slides = children.filter(Boolean);
   const [index, setIndex] = useState(0);
+  // 스와이프(가로 트랙 이동)가 끝나 "정착"한 슬라이드 인덱스. 전환 효과가 켜진
+  // 슬라이드는 이 값이 자기 인덱스가 될 때만 콘텐츠를 드러낸다 → 스와이프 도중에는
+  // 다음 슬라이드가 보이지 않고, 정착 후에야 위에서부터 순서대로 떠오른다.
+  const [settledIndex, setSettledIndex] = useState(0);
+  const indexRef = useRef(index);
+  indexRef.current = index;
   const palette = THEME_PALETTES[colorTheme];
   const fontFamily = FONT_OPTIONS[font].family;
 
@@ -170,6 +176,9 @@ export function SlideContainer({
         className="flex h-full"
         animate={{ x: scoped ? `-${index * 100}%` : `-${index * 100}vw` }}
         transition={{ type: 'spring', stiffness: 300, damping: 32 }}
+        // 트랙 이동(스와이프)이 끝나면 현재 인덱스를 "정착"으로 확정 → 그 슬라이드의
+        // 콘텐츠 순차 등장을 시작한다.
+        onAnimationComplete={() => setSettledIndex(indexRef.current)}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
         onTouchCancel={() => {
@@ -178,23 +187,19 @@ export function SlideContainer({
         onMouseDown={onMouseDown}
       >
         {slides.map((slide, i) => {
-          // 이 슬라이드에 전환 효과를 줄지(메인 제외 + 옵션 on). 효과가 켜진
-          // 슬라이드는 활성화(i === index)될 때마다 페이드인 + 천천히 떠오르며 등장.
-          // 스크롤 컨테이너 자체에 y/opacity 를 주므로 긴 콘텐츠의 세로 스크롤에는
-          // 영향이 없다(y 는 등장 순간에만 잠깐 적용되고 0 으로 정착).
+          // 이 슬라이드에 전환 효과를 줄지(메인 제외 + 옵션 on). 효과 대상 슬라이드는
+          // 기본적으로 콘텐츠가 숨겨져(.wd-anim) 스와이프 도중 다음 슬라이드가 보이지
+          // 않고, 스와이프가 끝나 이 슬라이드가 "정착"(settledIndex === i)하면
+          // .wd-reveal 이 붙어 제목부부터 아래로 순서대로 떠오른다(globals.css).
+          // 효과가 꺼진 슬라이드/메인은 클래스가 없어 즉시 전체가 보인다.
           const anim = slideAnimate?.[i] ?? false;
+          const revealClass = anim ? (settledIndex === i ? 'wd-anim wd-reveal' : 'wd-anim') : '';
           return (
-            <motion.div
+            <div
               key={i}
               className={`mw-thin-scroll relative h-full flex-shrink-0 touch-pan-y overflow-y-auto ${
                 scoped ? 'w-full' : 'w-screen'
-              }`}
-              initial={false}
-              animate={
-                anim ? (i === index ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }) : { opacity: 1, y: 0 }
-              }
-              // 은은하게 — 천천히 떠오르며 부드럽게 페이드인(상승폭은 작게, 시간은 길게).
-              transition={anim ? { duration: 1.2, ease: [0.22, 1, 0.36, 1] } : { duration: 0 }}
+              }${revealClass ? ` ${revealClass}` : ''}`}
               // 모든 cqw/cqh 단위가 슬라이드 박스 자체를 기준으로 잡히도록
               // container-type 을 지정. 모바일 풀스크린에서는 슬라이드 = 뷰포트라
               // cqw≈vw 동일하게 동작하고, 데스크톱 미리보기 패널에서는 폰 프레임
@@ -206,7 +211,7 @@ export function SlideContainer({
                   슬라이드 콘텐츠(z-auto) 위에 펠탈/별빛이 떨어지지만, VideoSlide 처럼
                   z-20 이상을 설정한 요소(영상 컨테이너)는 효과 위로 올라와 가려짐. */}
               <FallingPetals type={petalType} colors={palette.petals} />
-            </motion.div>
+            </div>
           );
         })}
       </motion.div>
