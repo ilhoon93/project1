@@ -55,6 +55,9 @@ const DesignConfigSchema = z.object({
   main: MainSectionSchema,
   // 샘플 배경음악 (선택) — 구버전 호환 위해 optional.
   bgm: z.object({ enabled: z.boolean(), url: z.string() }).optional(),
+  // 테마 나머지 디자인 옵션 — 구버전 호환 위해 optional(기본 false).
+  hostMode: z.boolean().optional(),
+  slideAnimation: z.boolean().optional(),
 });
 
 const BeforeAfterStyleSchema = z.object({
@@ -215,31 +218,22 @@ async function readRow(): Promise<HomeSamplesConfig | null> {
 }
 
 /**
- * 운영자 편집용 raw 설정. 노출 디자인 집합을 코드의 SEEDS(DEFAULT_SAMPLE_CONFIGS)
- * 에 고정한다:
- *   - DB 에 같은 id 의 편집본이 있으면 그 편집 내용을 우선 사용
- *   - DB 에 저장된 순서 그대로 사용 (운영자가 admin 에서 ▲/▼ 로 바꾼 순서 보존)
- *   - 코드 SEEDS 에 없는 DB 전용 디자인(예: 단종된 sage/dusk/handwritten)은 제외
- *   - DB 에 아직 없는 신규 SEED 는 뒤에 자동 추가
- * 결과적으로 운영자 정렬은 유지되면서, 코드에서 SEED 가 늘면 자동으로 합쳐진다.
+ * 운영자 편집용 raw 설정. 디자인 목록은 관리자가 직접 관리하므로 DB 를 원본으로
+ * 그대로 사용한다(추가·삭제·정렬이 그대로 반영). DB 행이 없거나 디자인이 비어
+ * 있을 때만 코드 기본값(SEEDS 12종)으로 시작한다.
+ *
+ * (예전엔 코드 SEEDS 12개에 고정해 비-시드는 걸러내고 누락 시드는 자동 추가했지만,
+ *  관리자에서 최대 24개까지 자유롭게 추가/삭제하도록 DB 원본 방식으로 전환.)
  */
 export async function getHomeSamplesConfig(): Promise<HomeSamplesConfig> {
   const row = await readRow();
   if (!row || row.designs.length === 0) return DEFAULT_HOME_SAMPLES_CONFIG;
 
-  const seedIds = new Set(DEFAULT_SAMPLE_CONFIGS.map((s) => s.id));
-  // 1) DB 에 저장된 순서대로, 단 코드 SEEDS 에 있는 id 만 (단종 디자인 제외).
-  const rowOrdered = row.designs.filter((d) => seedIds.has(d.id));
-  // 2) DB 에 없는 코드 신규 SEED 만 뒤에 추가.
-  const dbIds = new Set(rowOrdered.map((d) => d.id));
-  const newDefaults = DEFAULT_SAMPLE_CONFIGS.filter((s) => !dbIds.has(s.id));
-  const designs = [...rowOrdered, ...newDefaults];
-
   return {
     aiSnapCatalogIds: row.aiSnapCatalogIds.length
       ? row.aiSnapCatalogIds
       : DEFAULT_AI_SNAP_IDS,
-    designs,
+    designs: row.designs,
     ownerUrlExample: row.ownerUrlExample ?? '',
     beforeAfter: row.beforeAfter,
     template: row.template,

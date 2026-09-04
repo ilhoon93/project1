@@ -291,21 +291,24 @@ function FramedPreview({
   if (frameVariant === 'photoBottom' || frameVariant === 'photoTop') {
     const alignBottom = frameVariant === 'photoBottom';
     return (
-      <div
-        className={`${previewAspect} relative flex w-full overflow-hidden rounded-md`}
-        style={{
-          backgroundColor: 'var(--mw-bg, #f5f5f5)',
-          alignItems: alignBottom ? 'flex-end' : 'flex-start',
-        }}
-      >
-        <div className="w-full overflow-hidden" style={{ height: '66%' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={src}
-            alt="업로드된 사진"
-            className="h-full w-full object-cover"
-            style={objectPos ? { objectPosition: objectPos } : undefined}
-          />
+      <div className="flex w-full justify-center">
+        <div
+          className={`${previewAspect} relative flex overflow-hidden rounded-md`}
+          style={{
+            width: '6.5rem',
+            backgroundColor: 'var(--mw-bg, #f5f5f5)',
+            alignItems: alignBottom ? 'flex-end' : 'flex-start',
+          }}
+        >
+          <div className="w-full overflow-hidden" style={{ height: '66%' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt="업로드된 사진"
+              className="h-full w-full object-cover"
+              style={objectPos ? { objectPosition: objectPos } : undefined}
+            />
+          </div>
         </div>
       </div>
     );
@@ -318,21 +321,24 @@ function FramedPreview({
   if (frameVariant === 'screen') {
     const isLandscape = (aspect ?? 1) >= 1;
     return (
-      <div
-        className="relative w-full overflow-hidden rounded-md"
-        style={{
-          aspectRatio: isLandscape ? `${aspect ?? 1}` : '1 / 1',
-          backgroundColor: 'var(--mw-bg, #f5f5f5)',
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={src}
-          alt="업로드된 사진"
-          onLoad={measure}
-          className={`h-full w-full ${isLandscape ? 'object-contain' : 'object-cover'}`}
-          style={!isLandscape && objectPos ? { objectPosition: objectPos } : undefined}
-        />
+      <div className="flex w-full justify-center">
+        <div
+          className="relative overflow-hidden rounded-md"
+          style={{
+            width: '6.5rem',
+            aspectRatio: isLandscape ? `${aspect ?? 1}` : '1 / 1',
+            backgroundColor: 'var(--mw-bg, #f5f5f5)',
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt="업로드된 사진"
+            onLoad={measure}
+            className={`h-full w-full ${isLandscape ? 'object-contain' : 'object-cover'}`}
+            style={!isLandscape && objectPos ? { objectPosition: objectPos } : undefined}
+          />
+        </div>
       </div>
     );
   }

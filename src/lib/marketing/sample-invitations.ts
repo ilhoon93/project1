@@ -55,6 +55,23 @@ export interface DesignConfig {
   main: InvitationContent['main'];
   /** 샘플 배경음악 (선택). enabled+url 이면 content.theme.bgm 에 반영. */
   bgm?: { enabled: boolean; url: string };
+  /** 혼주용 큰 글씨 모드 (선택, 기본 false) — content.theme.hostMode 에 반영. */
+  hostMode?: boolean;
+  /** 슬라이드 전환 효과 (선택, 기본 false) — content.theme.slideAnimation 에 반영. */
+  slideAnimation?: boolean;
+}
+
+/** 샘플 디자인 최대 개수 — 관리자에서 이 수까지 추가 가능(추후 사진/무사진 12+12 탭 분리 대비). */
+export const MAX_SAMPLE_DESIGNS = 24;
+
+/**
+ * 이 샘플이 "사진 있는" 디자인인지 — 표지에 하객 업로드 사진(hero)이 들어가는
+ * 레이아웃(포스터·액자)이면 true, 텍스트·일러스트처럼 사진 없이 구성되면 false.
+ * 추후 디자인 미리보기 페이지의 "사진 있음 / 없음" 탭 분리 기준으로 사용.
+ */
+export function sampleHasPhoto(c: DesignConfig): boolean {
+  const layout = c.main.layout;
+  return layout === 'poster' || layout === 'frame' || layout === 'polaroid';
 }
 
 export interface AiSnapItem {
@@ -300,6 +317,8 @@ export function buildDesign(
   content.theme.colorTheme = c.colorTheme;
   content.theme.petalType = c.petalType;
   content.theme.font = c.font;
+  content.theme.hostMode = c.hostMode ?? false;
+  content.theme.slideAnimation = c.slideAnimation ?? false;
   // 샘플 배경음악 — 운영자가 켜고 URL 을 넣었을 때만 적용.
   if (c.bgm?.enabled && c.bgm.url.trim()) {
     content.theme.bgm = { enabled: true, url: c.bgm.url.trim() };
@@ -497,6 +516,32 @@ function seedToConfig(s: Seed): DesignConfig {
 }
 
 export const DEFAULT_SAMPLE_CONFIGS: DesignConfig[] = SEEDS.map(seedToConfig);
+
+/**
+ * 관리자 "디자인 추가" 버튼용 새 샘플 한 건. id 는 호출측에서 고유하게 넘긴다.
+ * 기본은 포스터 레이아웃 + 크림 테마 — 관리자가 이후 자유롭게 편집한다.
+ */
+export function createBlankSampleDesign(id: string): DesignConfig {
+  const main = defaultInvitationContent().main;
+  main.layout = 'poster';
+  main.heroImage = null;
+  return {
+    id,
+    enabled: true,
+    name: '',
+    layoutLabel: '',
+    groomName: '민준',
+    brideName: '서연',
+    weddingDate: '2026-05-23',
+    colorTheme: 'cream',
+    petalType: 'flower',
+    font: 'gowun',
+    heroImageId: 'studio-floral-pastel',
+    main,
+    hostMode: false,
+    slideAnimation: false,
+  };
+}
 
 export const DEFAULT_AI_SNAP_IDS: string[] = [
   'hanbok-couple-studio',
