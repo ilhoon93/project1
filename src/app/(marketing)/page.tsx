@@ -262,7 +262,7 @@ function DesignAndValues({
             자연스럽게 여러 줄. n 항목은 실제 코드 정의 개수로 표기. */}
         <FadeUp scroll delay={0.22}>
           <ul className="mb-7 flex flex-wrap gap-1.5">
-            <KeyChip>⚡ 로그인 없이 3분이면 완성</KeyChip>
+            <KeyChip>⚡ 준비된 디자인·문구로 쉽고 빠르게</KeyChip>
             <KeyChip>⇄ 가로 스와이프</KeyChip>
             <KeyChip>움직이는 디자인</KeyChip>
             <KeyChip>200가지의 테마와 레이아웃 조합</KeyChip>
