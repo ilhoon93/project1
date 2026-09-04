@@ -141,8 +141,9 @@ export function MainEditor({ drag }: { drag?: SectionDragProps }) {
               <div className="rounded-md border border-dashed border-input bg-muted/30 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
                 <p className="mb-1 font-medium text-foreground">액자 프레임 팁</p>
                 <ul className="list-disc space-y-0.5 pl-4">
-                  <li>폴라로이드·하트·아치·클래식은 사진을 프레임에 맞춰 자릅니다 — 이미지 위치로 보일 영역을 고르세요.</li>
-                  <li>스크린(레터박스)은 사진을 자르지 않고 전체를 보여줘 가로/세로 사진 모두 잘림 없이 들어가요.</li>
+                  <li>폴라로이드·하트·아치·클래식·아래 사진·위 사진은 사진을 프레임에 맞춰 자릅니다 — 이미지 위치로 보일 영역을 고르세요.</li>
+                  <li>스크린은 세로 사진이면 정사각형으로 잘려(위치 조정 가능), 가로 사진이면 전체가 그대로 보여요.</li>
+                  <li>미리보기에는 실제 알림장에 보일 영역만 나타납니다.</li>
                 </ul>
               </div>
             )}
@@ -164,17 +165,18 @@ export function MainEditor({ drag }: { drag?: SectionDragProps }) {
                 folder="main"
                 previewAspect={
                   isFrame
-                    ? frame?.variant === 'arch' || frame?.variant === 'classic'
+                    ? frame?.variant === 'arch' ||
+                      frame?.variant === 'classic' ||
+                      frame?.variant === 'photoBottom' ||
+                      frame?.variant === 'photoTop'
                       ? 'aspect-[3/4]'
                       : 'aspect-square'
                     : 'aspect-[9/16]'
                 }
                 previewFit={
-                  isFrame
-                    ? frame?.variant === 'screen'
-                      ? 'contain'
-                      : 'cover'
-                    : design?.image.fit ?? 'cover'
+                  // 프레임 변형은 각 셰이프가 자체적으로 cover/contain 을 정하므로 cover 로 넘긴다
+                  // (screen 은 미리보기에서 사진 비율을 측정해 세로=cover / 가로=contain 자동 처리).
+                  isFrame ? 'cover' : design?.image.fit ?? 'cover'
                 }
                 previewPosition={
                   isFrame
@@ -1019,9 +1021,11 @@ interface FrameProps {
 const FRAME_VARIANT_LABELS: Record<FrameVariant, { name: string; hint: string }> = {
   polaroid: { name: '폴라로이드', hint: '흰 테두리 + 살짝 기울임' },
   heart: { name: '하트', hint: '하트 모양으로 클립' },
-  screen: { name: '스크린', hint: '영화관 letterbox' },
+  screen: { name: '스크린', hint: '세로 사진은 정사각형으로, 가로 사진은 전체 표시' },
   arch: { name: '아치', hint: '상단이 둥근 세로 액자' },
-  classic: { name: '클래식', hint: '상하좌우 테두리 액자' },
+  classic: { name: '클래식', hint: '테두리 없는 세로(3:4) 사진' },
+  photoBottom: { name: '아래 사진', hint: '위쪽 여백 + 아래를 사진으로 채움' },
+  photoTop: { name: '위 사진', hint: '아래쪽 여백 + 위를 사진으로 채움' },
 };
 
 export function FrameDesignControls({ design, onChange, greeting, onGreetingChange }: FrameProps) {
@@ -1030,8 +1034,10 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
     const defaults = FrameDesignSchema.parse(undefined);
     onChange({ ...defaults, variant: design.variant });
   };
-  // screen 변형은 contain 으로 잘림 없음 — imagePosition 그룹을 숨긴다.
-  const showImagePosition = design.variant !== 'screen';
+  // 모든 변형이 사진을 프레임에 맞춰 자르므로 이미지 위치 조정을 항상 노출한다.
+  // (screen 은 세로 사진일 때만 적용 — 가로 사진은 전체 표시라 위치 이동이 무의미.)
+  const showImagePosition = true;
+  const isScreen = design.variant === 'screen';
   return (
     <div className="flex flex-col gap-5 rounded-md border border-input bg-muted/20 p-3">
       <DesignPanelHeader title="액자프레임 디자인" onReset={handleReset} />
@@ -1050,11 +1056,12 @@ export function FrameDesignControls({ design, onChange, greeting, onGreetingChan
           />
         </Group>
 
-        {/* 이미지 위치 — screen 외 변형에서만 노출. 프레임에 보일 영역의 중심을 0–100% 로 선택. */}
+        {/* 이미지 위치 — 프레임에 보일 영역의 중심을 0–100% 로 선택. */}
         {showImagePosition && (
           <Group label="이미지 위치">
             <p className="text-xs text-muted-foreground">
               슬라이더로 사진에서 보일 영역의 중심을 선택하세요.
+              {isScreen && ' (스크린은 세로 사진일 때만 적용됩니다.)'}
             </p>
             <PositionSliders
               position={design.imagePosition}

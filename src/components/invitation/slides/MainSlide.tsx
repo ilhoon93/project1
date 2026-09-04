@@ -1089,7 +1089,14 @@ function formatDate(s: string) {
 // variant 별로 이미지 프레임만 다르게 렌더한다.
 // ─────────────────────────────────────────────────────────────
 
-type FrameVariant = 'polaroid' | 'heart' | 'screen' | 'arch' | 'classic';
+type FrameVariant =
+  | 'polaroid'
+  | 'heart'
+  | 'screen'
+  | 'arch'
+  | 'classic'
+  | 'photoBottom'
+  | 'photoTop';
 
 interface FrameProps extends FooterMode {
   main: InvitationContent['main'];
@@ -1303,6 +1310,35 @@ function FrameImage({
             aspectRatio: '3 / 4',
           }}
         >
+          {src ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={src}
+              alt=""
+              className="h-full w-full object-cover"
+              style={{ objectPosition: objectPos }}
+            />
+          ) : (
+            <div className="grid h-full w-full place-items-center bg-stone-100 text-3xl text-stone-400">
+              🖼️
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === 'photoBottom' || variant === 'photoTop') {
+    // 한쪽(위 또는 아래)에 테마 배경 여백을 두고, 반대쪽을 사진으로 가로 꽉 채운다.
+    // 사진 영역 = 슬라이드 높이의 약 66% + object-cover + imagePosition 으로 크롭.
+    // 남는 여백(약 34%)에는 제목·이름·날짜 텍스트(PositionedBox)가 떠서 올라간다.
+    const alignBottom = variant === 'photoBottom';
+    return (
+      <div
+        className="flex h-full w-full"
+        style={{ alignItems: alignBottom ? 'flex-end' : 'flex-start' }}
+      >
+        <div className="w-full overflow-hidden" style={{ height: '66%' }}>
           {src ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img

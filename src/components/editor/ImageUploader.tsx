@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { nanoid } from '@/lib/utils/nanoid';
 import { HeartClip } from '@/components/shared/HeartClip';
+import type { FrameVariant } from '@/types/invitation';
 import {
   IMAGE_LIMITS,
   compressImage,
@@ -31,11 +32,11 @@ interface Props {
    */
   showWideAspectCropMask?: boolean;
   /**
-   * 액자프레임 변형(폴라로이드/하트/스크린) 미리보기 셰이프.
-   * 설정 시 미리보기에 실제 프레임 모양(흰 테두리 + 기울임, 하트 클립 등) 을 적용해
-   * 사용자가 잘릴 영역을 그대로 확인할 수 있게 한다.
+   * 액자프레임 변형 미리보기 셰이프. 설정 시 미리보기에 실제 슬라이드와 동일한
+   * 프레임 모양·잘림을 적용해, 사용자가 알림장에 실제로 보일 영역을 그대로 확인할
+   * 수 있게 한다.
    */
-  frameVariant?: 'polaroid' | 'heart' | 'screen' | 'arch' | 'classic';
+  frameVariant?: FrameVariant;
   label?: string;
 }
 
@@ -173,7 +174,7 @@ interface FramedPreviewProps {
   previewFit: 'cover' | 'contain';
   previewPosition?: { x: number; y: number };
   showWideAspectCropMask: boolean;
-  frameVariant?: 'polaroid' | 'heart' | 'screen' | 'arch' | 'classic';
+  frameVariant?: FrameVariant;
 }
 
 function FramedPreview({
@@ -187,6 +188,16 @@ function FramedPreview({
   const objectPos = previewPosition
     ? `${previewPosition.x}% ${previewPosition.y}%`
     : undefined;
+
+  // screen 변형은 실제 슬라이드와 동일하게 "세로 사진=정사각형 크롭 / 가로 사진=전체표시"
+  // 로 동작하므로, 미리보기도 업로드 이미지의 실제 비율을 측정해 그대로 반영한다.
+  const [aspect, setAspect] = useState<number | null>(null);
+  const measure = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const el = e.currentTarget;
+    if (el.naturalWidth > 0 && el.naturalHeight > 0) {
+      setAspect(el.naturalWidth / el.naturalHeight);
+    }
+  };
 
   // 폴라로이드 — 흰 테두리 + 살짝 기울임. 사진 부분만 cover + position.
   if (frameVariant === 'polaroid') {
@@ -231,12 +242,13 @@ function FramedPreview({
     );
   }
 
-  // 아치 — 세로 직사각형 + 상단이 둥근 형태. CSS border-radius 로 상단만 둥글게.
+  // 아치 — 세로 직사각형 + 상단이 둥근 형태. 실제 슬라이드와 동일하게 테두리 없이
+  // 그림자만(사진이 주인공). CSS border-radius 로 상단만 둥글게.
   if (frameVariant === 'arch') {
     return (
       <div className="flex w-full justify-center">
         <div
-          className={`${previewAspect} relative overflow-hidden border border-foreground/30 shadow-sm`}
+          className={`${previewAspect} relative overflow-hidden shadow-md`}
           style={{
             width: '6.5rem',
             borderRadius: '999px 999px 4px 4px',
@@ -254,47 +266,72 @@ function FramedPreview({
     );
   }
 
-  // 클래식 — 상하좌우에 직각 이중 테두리. 작은 안쪽 여백으로 매트(액자 안쪽 배경) 표현.
+  // 클래식 — 실제 슬라이드와 동일하게 테두리·매트 없이 사진만 세로(3:4) + 그림자.
   if (frameVariant === 'classic') {
     return (
       <div className="flex w-full justify-center">
         <div
-          className="relative bg-background p-1.5 shadow-sm"
-          style={{
-            width: '6.5rem',
-            border: '1px solid currentColor',
-            // 안쪽에 한 줄 더 — outline 으로 매트 라인 표현.
-            outline: '1px solid currentColor',
-            outlineOffset: '-6px',
-          }}
+          className={`${previewAspect} relative overflow-hidden shadow-md`}
+          style={{ width: '6.5rem' }}
         >
-          <div className={`${previewAspect} relative w-full overflow-hidden bg-stone-100`}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={src}
-              alt="업로드된 사진"
-              className="h-full w-full object-cover"
-              style={objectPos ? { objectPosition: objectPos } : undefined}
-            />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt="업로드된 사진"
+            className="h-full w-full object-cover"
+            style={objectPos ? { objectPosition: objectPos } : undefined}
+          />
         </div>
       </div>
     );
   }
 
-  // 스크린 — 정사각형 (또는 contain) + 테마 배경색을 카드 배경으로 깔아 letterbox 톤 시각화.
-  if (frameVariant === 'screen') {
+  // 아래 사진 / 위 사진 — 한쪽에 테마 배경 여백을 두고 반대쪽을 사진으로 가로 꽉 채움.
+  // 실제 슬라이드와 동일하게 사진 영역 = 약 66% 높이 + object-cover + imagePosition.
+  if (frameVariant === 'photoBottom' || frameVariant === 'photoTop') {
+    const alignBottom = frameVariant === 'photoBottom';
     return (
       <div
-        className={`${previewAspect} relative w-full overflow-hidden rounded-md`}
-        style={{ backgroundColor: 'var(--mw-bg, #f5f5f5)' }}
+        className={`${previewAspect} relative flex w-full overflow-hidden rounded-md`}
+        style={{
+          backgroundColor: 'var(--mw-bg, #f5f5f5)',
+          alignItems: alignBottom ? 'flex-end' : 'flex-start',
+        }}
+      >
+        <div className="w-full overflow-hidden" style={{ height: '66%' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt="업로드된 사진"
+            className="h-full w-full object-cover"
+            style={objectPos ? { objectPosition: objectPos } : undefined}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // 스크린 — 실제 슬라이드와 동일하게 사진 비율에 따라 동작:
+  //   세로 사진(비율<1): 1:1 정사각형 + object-cover + imagePosition 으로 크롭(상하 잘림).
+  //   가로 사진(비율≥1): 사진 자연 비율 + object-contain 으로 전체 표시(잘림 없음).
+  //   비율 측정 전(로드 전)엔 정사각형 크롭 폴백. 어느 쪽이든 여백은 테마 배경색.
+  if (frameVariant === 'screen') {
+    const isLandscape = (aspect ?? 1) >= 1;
+    return (
+      <div
+        className="relative w-full overflow-hidden rounded-md"
+        style={{
+          aspectRatio: isLandscape ? `${aspect ?? 1}` : '1 / 1',
+          backgroundColor: 'var(--mw-bg, #f5f5f5)',
+        }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
           alt="업로드된 사진"
-          className={`h-full w-full ${previewFit === 'contain' ? 'object-contain' : 'object-cover'}`}
-          style={previewFit === 'cover' && objectPos ? { objectPosition: objectPos } : undefined}
+          onLoad={measure}
+          className={`h-full w-full ${isLandscape ? 'object-contain' : 'object-cover'}`}
+          style={!isLandscape && objectPos ? { objectPosition: objectPos } : undefined}
         />
       </div>
     );
