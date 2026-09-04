@@ -1295,18 +1295,17 @@ function TitleTextCombobox({
             placeholder="문구를 직접 입력하거나 우측 화살표로 선택"
             className="h-10 flex-1 bg-transparent px-3 text-sm outline-none"
           />
-          {/* 프리셋 펼치기 — 연한 배경에서도 확실히 보이도록 배경색 + 진한 아이콘 + "추천" 라벨. */}
+          {/* 프리셋 펼치기 — 폰트 콤보박스와 동일하게 아래 화살표(▾)만. */}
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
             aria-label="문구 프리셋 펼치기"
             aria-expanded={open}
-            className="flex shrink-0 items-center gap-1 border-l border-input bg-muted px-2.5 text-xs font-medium text-foreground hover:bg-muted-foreground/20"
+            className="grid w-9 shrink-0 place-items-center border-l border-input transition-colors hover:bg-muted"
           >
-            추천
             <ChevronDown
-              size={15}
-              className={`transition-transform ${open ? 'rotate-180' : ''}`}
+              size={16}
+              className={`shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
             />
           </button>
         </div>
