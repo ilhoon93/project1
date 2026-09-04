@@ -323,3 +323,45 @@
 .wd-host-text .text-xl   { font-size: 1.4375rem; line-height: 1.95rem; }  /* 20→23px */
 .wd-host-text .text-2xl  { font-size: 1.6875rem; line-height: 2.1rem; }   /* 24→27px */
 .wd-host-text .text-3xl  { font-size: 2.0625rem; line-height: 2.35rem; }  /* 30→33px */
+
+/* ─────────────────────────────────────────────────────────────
+ * 슬라이드 전환 효과 (theme.slideAnimation)
+ * SlideContainer 가 효과 대상 슬라이드(메인 표지 제외)에 .wd-anim 을 붙이고,
+ * 스와이프가 끝나 그 슬라이드가 활성으로 "정착"하면 .wd-reveal 을 함께 붙인다.
+ *   - .wd-anim  : 슬라이드 콘텐츠(루트 섹션의 직속 자식)를 기본 숨김 → 스와이프
+ *     중이거나 비활성인 동안 다음 슬라이드 내용이 보이지 않는다.
+ *   - .wd-reveal: 제목부(첫 자식)부터 그 아래 블록까지 위에서부터 순서대로
+ *     은은하게 떠오르며 페이드인(느린 페이드 + 계단식 지연).
+ * 루트 섹션이 flex-col 이라 DOM 순서 = 화면상 위→아래 순서와 일치한다.
+ * ───────────────────────────────────────────────────────────── */
+@keyframes wd-slide-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wd-anim > :first-child > * {
+  opacity: 0;
+}
+.wd-anim.wd-reveal > :first-child > * {
+  animation: wd-slide-reveal 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.wd-anim.wd-reveal > :first-child > *:nth-child(1) { animation-delay: 0s; }
+.wd-anim.wd-reveal > :first-child > *:nth-child(2) { animation-delay: 0.2s; }
+.wd-anim.wd-reveal > :first-child > *:nth-child(3) { animation-delay: 0.4s; }
+.wd-anim.wd-reveal > :first-child > *:nth-child(4) { animation-delay: 0.6s; }
+.wd-anim.wd-reveal > :first-child > *:nth-child(5) { animation-delay: 0.8s; }
+.wd-anim.wd-reveal > :first-child > *:nth-child(6) { animation-delay: 1s; }
+.wd-anim.wd-reveal > :first-child > *:nth-child(7) { animation-delay: 1.2s; }
+.wd-anim.wd-reveal > :first-child > *:nth-child(8) { animation-delay: 1.4s; }
+.wd-anim.wd-reveal > :first-child > *:nth-child(n + 9) { animation-delay: 1.6s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wd-anim > :first-child > * { opacity: 1; }
+  .wd-anim.wd-reveal > :first-child > * { animation: none; }
+}
