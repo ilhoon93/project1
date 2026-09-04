@@ -194,14 +194,21 @@ export function InvitationSlides({
     ? (['main'] as SectionKey[])
     : reconcilePageOrder(content.theme.pageOrder);
 
-  // 슬라이드 전환 효과 — 렌더되는(비어있지 않은) 슬라이드만 골라 순서를 유지하고,
-  // 메인(표지)은 제외한 나머지에만 페이드인 + 떠오르기 플래그를 매긴다.
+  // 슬라이드 전환 효과 — 렌더되는(비어있지 않은) 슬라이드만 골라 순서를 유지한다.
+  // 슬라이드별 등장 방식:
+  //   'none'     : 효과 없음(메인 표지 / 옵션 off)
+  //   'stagger'  : 제목부터 아래로 요소를 계단식으로 순차 등장
+  //   'together' : 제목만 먼저 뜨고 나머지는 한번에 — 요소가 많은 방명록에 사용
   const slideAnimationOn = content.theme.slideAnimation ?? false;
   const rendered = orderedKeys
     .map((key) => ({ key, node: slidesByKey[key] }))
     .filter((s) => Boolean(s.node));
   const slides = rendered.map((s) => s.node) as ReactNode[];
-  const slideAnimate = rendered.map((s) => slideAnimationOn && s.key !== 'main');
+  const slideReveal = rendered.map<'none' | 'stagger' | 'together'>((s) => {
+    if (!slideAnimationOn || s.key === 'main') return 'none';
+    if (s.key === 'guestbook') return 'together';
+    return 'stagger';
+  });
 
   return (
     <>
@@ -216,7 +223,7 @@ export function InvitationSlides({
         forceBgm={forceBgm}
         manualBgm={manualBgm}
         hostMode={content.theme.hostMode}
-        slideAnimate={slideAnimate}
+        slideReveal={slideReveal}
       >
         {slides}
       </SlideContainer>
