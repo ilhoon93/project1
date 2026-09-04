@@ -349,17 +349,18 @@
   opacity: 0;
 }
 .wd-anim.wd-reveal > :first-child > * {
-  animation: wd-slide-reveal 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: wd-slide-reveal 1.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+/* 첫 요소는 지연 없이 바로 페이드인, 이후 요소는 0.4s 간격으로 순차 등장. */
 .wd-anim.wd-reveal > :first-child > *:nth-child(1) { animation-delay: 0s; }
-.wd-anim.wd-reveal > :first-child > *:nth-child(2) { animation-delay: 0.2s; }
-.wd-anim.wd-reveal > :first-child > *:nth-child(3) { animation-delay: 0.4s; }
-.wd-anim.wd-reveal > :first-child > *:nth-child(4) { animation-delay: 0.6s; }
-.wd-anim.wd-reveal > :first-child > *:nth-child(5) { animation-delay: 0.8s; }
-.wd-anim.wd-reveal > :first-child > *:nth-child(6) { animation-delay: 1s; }
-.wd-anim.wd-reveal > :first-child > *:nth-child(7) { animation-delay: 1.2s; }
-.wd-anim.wd-reveal > :first-child > *:nth-child(8) { animation-delay: 1.4s; }
-.wd-anim.wd-reveal > :first-child > *:nth-child(n + 9) { animation-delay: 1.6s; }
+.wd-anim.wd-reveal > :first-child > *:nth-child(2) { animation-delay: 0.4s; }
+.wd-anim.wd-reveal > :first-child > *:nth-child(3) { animation-delay: 0.8s; }
+.wd-anim.wd-reveal > :first-child > *:nth-child(4) { animation-delay: 1.2s; }
+.wd-anim.wd-reveal > :first-child > *:nth-child(5) { animation-delay: 1.6s; }
+.wd-anim.wd-reveal > :first-child > *:nth-child(6) { animation-delay: 2s; }
+.wd-anim.wd-reveal > :first-child > *:nth-child(7) { animation-delay: 2.4s; }
+.wd-anim.wd-reveal > :first-child > *:nth-child(8) { animation-delay: 2.8s; }
+.wd-anim.wd-reveal > :first-child > *:nth-child(n + 9) { animation-delay: 3.2s; }
 
 @media (prefers-reduced-motion: reduce) {
   .wd-anim > :first-child > * { opacity: 1; }
