@@ -262,6 +262,7 @@ function DesignAndValues({
             자연스럽게 여러 줄. n 항목은 실제 코드 정의 개수로 표기. */}
         <FadeUp scroll delay={0.22}>
           <ul className="mb-7 flex flex-wrap gap-1.5">
+            <KeyChip>⚡ 로그인 없이 3분이면 완성</KeyChip>
             <KeyChip>⇄ 가로 스와이프</KeyChip>
             <KeyChip>움직이는 디자인</KeyChip>
             <KeyChip>200가지의 테마와 레이아웃 조합</KeyChip>
@@ -424,20 +425,48 @@ function InvitationPricingCard() {
         <p className="text-[10.5px] font-medium uppercase tracking-[0.18em] text-[var(--wd-coral)]">
           옵션별 가격
         </p>
-        {INVITATION_OPTIONS.filter((o) => !o.snapBundle).map((opt, i) => (
-          <div
-            key={opt.optionCode}
-            className={i > 0 ? 'mt-1 border-t border-[var(--wd-line)] pt-2' : ''}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <span className="break-keep text-[var(--wd-ink)]">{opt.label}</span>
-              <span className="whitespace-nowrap font-semibold text-[var(--wd-ink)]">
-                {formatKRW(INVITATION_PRICE + opt.addonPrice)}
-              </span>
+        {INVITATION_OPTIONS.filter((o) => !o.snapBundle).map((opt, i) => {
+          const total = INVITATION_PRICE + opt.addonPrice;
+          // 묶음 옵션: 따로 살 때 정가(regularPrice) 대비 할인액/할인율 계산.
+          const saved =
+            opt.regularPrice && opt.regularPrice > total ? opt.regularPrice - total : 0;
+          const savedPct = saved ? Math.round((saved / opt.regularPrice!) * 100) : 0;
+          return (
+            <div
+              key={opt.optionCode}
+              className={i > 0 ? 'mt-1 border-t border-[var(--wd-line)] pt-2' : ''}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className="flex flex-wrap items-center gap-1.5 break-keep text-[var(--wd-ink)]">
+                  {opt.label}
+                  {saved > 0 && (
+                    <span className="whitespace-nowrap rounded-full bg-[var(--wd-coral)] px-1.5 py-0.5 text-[9.5px] font-semibold text-white">
+                      {savedPct}% 할인
+                    </span>
+                  )}
+                </span>
+                <span className="flex flex-col items-end">
+                  {saved > 0 && (
+                    <span className="text-[10.5px] font-normal text-[var(--wd-mute)] line-through">
+                      {formatKRW(opt.regularPrice!)}
+                    </span>
+                  )}
+                  <span className="whitespace-nowrap font-semibold text-[var(--wd-ink)]">
+                    {formatKRW(total)}
+                  </span>
+                </span>
+              </div>
+              <p className="text-[10.5px] leading-relaxed">
+                {opt.note}
+                {saved > 0 && (
+                  <span className="font-medium text-[var(--wd-coral)]">
+                    {' '}· 따로 사면 {formatKRW(opt.regularPrice!)} → {formatKRW(saved)} 할인
+                  </span>
+                )}
+              </p>
             </div>
-            <p className="text-[10.5px] leading-relaxed">{opt.note}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <Link

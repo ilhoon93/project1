@@ -194,10 +194,14 @@ export function InvitationSlides({
     ? (['main'] as SectionKey[])
     : reconcilePageOrder(content.theme.pageOrder);
 
-  // SlideContainer의 cloneElement가 정상 작동하도록 컴포넌트 자체를 넘김
-  const slides = orderedKeys
-    .map((key) => slidesByKey[key])
-    .filter(Boolean) as ReactNode[];
+  // 슬라이드 전환 효과 — 렌더되는(비어있지 않은) 슬라이드만 골라 순서를 유지하고,
+  // 메인(표지)은 제외한 나머지에만 페이드인 + 떠오르기 플래그를 매긴다.
+  const slideAnimationOn = content.theme.slideAnimation ?? false;
+  const rendered = orderedKeys
+    .map((key) => ({ key, node: slidesByKey[key] }))
+    .filter((s) => Boolean(s.node));
+  const slides = rendered.map((s) => s.node) as ReactNode[];
+  const slideAnimate = rendered.map((s) => slideAnimationOn && s.key !== 'main');
 
   return (
     <>
@@ -212,6 +216,7 @@ export function InvitationSlides({
         forceBgm={forceBgm}
         manualBgm={manualBgm}
         hostMode={content.theme.hostMode}
+        slideAnimate={slideAnimate}
       >
         {slides}
       </SlideContainer>

@@ -16,7 +16,7 @@ export default async function DesignsPage() {
   return (
     <main className="px-6 py-12 sm:py-16">
       <div className="mx-auto max-w-3xl">
-        {/* 소개글 좌 + CTA 우(상단 정렬) — 페이지 진입 즉시 "3분만에 만들기"
+        {/* 소개글 좌 + CTA 우(상단 정렬) — 페이지 진입 즉시 "무료로 만들기"
             액션이 viewport 안에 들어오게. 모바일은 CTA 가 자연스럽게 아래로 떨어짐. */}
         <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:gap-6">
           <div className="min-w-0 flex-1">
@@ -36,7 +36,7 @@ export default async function DesignsPage() {
             href="/new"
             className="inline-flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--wd-ink)] px-5 py-3 text-[13px] font-medium text-[var(--wd-cream)] transition-transform active:scale-[0.97] sm:mt-1"
           >
-            3분만에 내 알림장 만들기 →
+            무료로 내 알림장 만들기 →
           </Link>
         </div>
 

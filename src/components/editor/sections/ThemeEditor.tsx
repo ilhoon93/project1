@@ -118,6 +118,34 @@ export function ThemeEditor() {
           </span>
         </button>
 
+        {/* 슬라이드 전환 효과 — 메인(표지) 제외, 다음 슬라이드로 넘길 때 페이드인 + 떠오르기. */}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={theme.slideAnimation ?? false}
+          aria-label="슬라이드 전환 효과 사용 여부"
+          onClick={() => setTheme({ ...theme, slideAnimation: !(theme.slideAnimation ?? false) })}
+          className="flex items-center justify-between gap-3 rounded-md border border-input px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
+        >
+          <span className="flex flex-col">
+            <span className="text-sm font-medium text-foreground">슬라이드 전환 효과</span>
+            <span className="mt-0.5 text-[11px] leading-tight text-muted-foreground">
+              메인(표지)을 제외하고, 다음 슬라이드로 넘어갈 때 내용이 은은하게 떠오르며 나타나요.
+            </span>
+          </span>
+          <span
+            className={`inline-flex h-5 w-9 shrink-0 items-center overflow-hidden rounded-full p-0.5 transition-colors ${
+              theme.slideAnimation ? 'bg-primary' : 'bg-muted-foreground/30'
+            }`}
+          >
+            <span
+              className={`block h-4 w-4 rounded-full bg-background shadow-sm transition-transform ${
+                theme.slideAnimation ? 'translate-x-4' : 'translate-x-0'
+              }`}
+            />
+          </span>
+        </button>
+
         {/* 배경 음악 */}
         <BgmField
           invitationId={invitationId}
@@ -179,7 +207,7 @@ function BgmField({
   return (
     <Field
       label="배경 음악"
-      hint="브라우저 정책상 첫 화면 터치 후에 자동으로 재생되며, 우측 상단 버튼으로 끄거나 켤 수 있습니다."
+      hint="브라우저 정책상 첫 화면 터치 후에 자동으로 재생되며, 좌측 하단 버튼으로 끄거나 켤 수 있습니다."
     >
       <div className="flex flex-col gap-2 rounded-md border bg-background p-3">
         <div className="flex items-center justify-between">
