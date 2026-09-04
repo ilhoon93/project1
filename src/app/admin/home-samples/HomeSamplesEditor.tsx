@@ -327,12 +327,17 @@ export function InvitationSamplesEditor({
                   <div className="grid gap-4 border-t border-[#E8DCC9] p-4 lg:grid-cols-[260px_minmax(0,1fr)]">
                     {/* 좌: 큰 표지 미리보기 + (하단) 이름/날짜/표지사진 */}
                     <div className="mx-auto w-full max-w-[260px]">
+                      {/* 실제 모바일 에디터처럼 전체 슬라이드를 실시간 미리보기 — 표지 한 장이
+                          아니라 본문(스토리·갤러리 등)까지 좌우 스와이프로 넘겨 볼 수 있고,
+                          편집 내용이 즉시 반영된다(cover 제거 → InvitationSlides 전체 렌더). */}
                       <div className="overflow-hidden rounded-[18px] border-[2px] border-[#15110E] bg-[#15110E]">
                         <div className="relative aspect-[1/2] w-full overflow-hidden">
-                          <InvitationPreview design={buildDesign(d, config.template)} cover />
+                          <InvitationPreview design={buildDesign(d, config.template)} />
                         </div>
                       </div>
-                      <p className="mt-2 text-center text-[10px] text-[#8B7355]">표지 미리보기</p>
+                      <p className="mt-2 text-center text-[10px] text-[#8B7355]">
+                        실시간 미리보기 — 좌우로 넘겨 보세요
+                      </p>
 
                       {/* 미리보기 하단의 데이터 입력 — 신랑/신부/날짜/표지사진 */}
                       <div className="mt-4 grid grid-cols-2 gap-2">
