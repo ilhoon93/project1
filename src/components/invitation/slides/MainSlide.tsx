@@ -1163,8 +1163,10 @@ function FrameSlide({
           <img
             src={main.heroImage}
             alt=""
-            className="h-full w-full scale-110 object-cover blur-xl"
+            className="h-full w-full scale-105 object-cover blur-sm"
           />
+          {/* 어둡게 덮어 액자 프레임 사진이 더 돋보이게. */}
+          <div className="absolute inset-0 bg-black/45" />
         </div>
       )}
 
