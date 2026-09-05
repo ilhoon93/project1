@@ -1163,7 +1163,7 @@ function FrameSlide({
           <img
             src={main.heroImage}
             alt=""
-            className="h-full w-full scale-110 object-cover blur-2xl"
+            className="h-full w-full scale-110 object-cover blur-xl"
           />
         </div>
       )}
