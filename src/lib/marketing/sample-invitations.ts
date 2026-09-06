@@ -38,6 +38,11 @@ export interface SampleDesign {
   brideName: string;
   weddingDate: string;
   content: InvitationContent;
+  /**
+   * 사진 있는 디자인(포스터·액자) 여부 — 홈 디자인 미리보기의 사진/무사진 탭 분류용.
+   * buildDesign 이 채운다(구버전 호환 위해 optional; 미지정이면 무사진 취급).
+   */
+  hasPhoto?: boolean;
 }
 
 export interface DesignConfig {
@@ -412,6 +417,7 @@ export function buildDesign(
     brideName: c.brideName,
     weddingDate: c.weddingDate,
     content,
+    hasPhoto: sampleHasPhoto(c),
   };
 }
 
@@ -519,11 +525,15 @@ export const DEFAULT_SAMPLE_CONFIGS: DesignConfig[] = SEEDS.map(seedToConfig);
 
 /**
  * 관리자 "디자인 추가" 버튼용 새 샘플 한 건. id 는 호출측에서 고유하게 넘긴다.
- * 기본은 포스터 레이아웃 + 크림 테마 — 관리자가 이후 자유롭게 편집한다.
+ * layout 으로 사진 있는(포스터) / 없는(텍스트) 그룹을 정한다 — 관리자가 이후
+ * 자유롭게 편집한다.
  */
-export function createBlankSampleDesign(id: string): DesignConfig {
+export function createBlankSampleDesign(
+  id: string,
+  layout: InvitationContent['main']['layout'] = 'poster',
+): DesignConfig {
   const main = defaultInvitationContent().main;
-  main.layout = 'poster';
+  main.layout = layout;
   main.heroImage = null;
   return {
     id,

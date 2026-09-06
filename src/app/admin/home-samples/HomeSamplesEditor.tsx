@@ -164,27 +164,34 @@ export function InvitationSamplesEditor({
     setDesigns(
       config.designs.map((d, k) => (k === i ? { ...d, main: { ...d.main, ...patch } } : d)),
     );
-  const moveDesign = (i: number, dir: -1 | 1) => {
-    const j = i + dir;
-    if (j < 0 || j >= config.designs.length) return;
-    const next = [...config.designs];
-    [next[i], next[j]] = [next[j], next[i]];
+  // 같은 그룹(사진/무사진) 안에서만 순서를 바꾼다 — 가장 가까운 동일 그룹 이웃과 교환.
+  const moveDesignInGroup = (id: string, dir: -1 | 1) => {
+    const arr = config.designs;
+    const idx = arr.findIndex((d) => d.id === id);
+    if (idx < 0) return;
+    const photo = sampleHasPhoto(arr[idx]);
+    let j = idx + dir;
+    while (j >= 0 && j < arr.length && sampleHasPhoto(arr[j]) !== photo) j += dir;
+    if (j < 0 || j >= arr.length) return;
+    const next = [...arr];
+    [next[idx], next[j]] = [next[j], next[idx]];
     setDesigns(next);
   };
-  const addDesign = () => {
+  const addDesign = (group: 'photo' | 'nophoto') => {
     if (config.designs.length >= MAX_SAMPLE_DESIGNS) return;
-    // 고유 id — 기존과 겹치지 않게 타임스탬프 기반.
+    // 고유 id — 기존과 겹치지 않게 타임스탬프 기반. 무사진 그룹은 텍스트 레이아웃으로 시작.
     const id = `custom-${Date.now().toString(36)}`;
-    const created = createBlankSampleDesign(id);
+    const created = createBlankSampleDesign(id, group === 'photo' ? 'poster' : 'text');
     setDesigns([...config.designs, created]);
     setOpenId(id); // 추가 즉시 펼쳐서 편집.
+    setSheetOpen(true);
   };
-  const removeDesign = (i: number) => {
-    const target = config.designs[i];
+  const removeDesignById = (id: string) => {
+    const target = config.designs.find((d) => d.id === id);
     if (!target) return;
     if (!window.confirm('이 디자인 샘플을 삭제할까요?')) return;
-    if (openId === target.id) setOpenId(null);
-    setDesigns(config.designs.filter((_, k) => k !== i));
+    if (openId === id) setOpenId(null);
+    setDesigns(config.designs.filter((d) => d.id !== id));
   };
 
   const setTpl = (next: TemplateConfig) =>
@@ -243,6 +250,206 @@ export function InvitationSamplesEditor({
   // 현재 편집 중인(펼친) 샘플 — 하단 고정 실시간 미리보기 시트에 넘긴다.
   const openConfig = openId ? config.designs.find((d) => d.id === openId) ?? null : null;
 
+  // 사진 있는 / 없는 두 그룹으로 나눠 별도 섹션으로 보여준다(레이아웃 기반 분류).
+  const photoDesigns = config.designs.filter((d) => sampleHasPhoto(d));
+  const noPhotoDesigns = config.designs.filter((d) => !sampleHasPhoto(d));
+
+  const renderDesignCard = (d: DesignConfig) => {
+    const i = config.designs.findIndex((x) => x.id === d.id);
+    const open = openId === d.id;
+    const accent = THEME_PALETTES[d.colorTheme].accent;
+    const heroOptions = byId.has(d.heroImageId)
+      ? catalog
+      : [{ id: d.heroImageId, label: d.heroImageId, src: srcOf(d.heroImageId) }, ...catalog];
+    // 같은 그룹 안에서의 위치 — 위/아래 이동 버튼 비활성 판정.
+    const groupList = config.designs.filter((x) => sampleHasPhoto(x) === sampleHasPhoto(d));
+    const gi = groupList.findIndex((x) => x.id === d.id);
+    return (
+      <div
+        key={d.id}
+        className={`overflow-hidden rounded-md border ${
+          open ? 'md:col-span-2 xl:col-span-3' : ''
+        } ${
+          d.enabled ? 'border-[#E8DCC9] bg-[#FCFAF6]' : 'border-[#EEE6D8] bg-[#F3EFE8]'
+        }`}
+      >
+        {/* 헤더 — 작은 라이브 표지 썸네일 + 메타 */}
+        <div className="flex flex-wrap items-center gap-3 p-3">
+          {/* 목록 썸네일 — 첫 로딩 시 이미지만(정적). */}
+          <div className="wd-static-preview h-[64px] w-[34px] flex-shrink-0 overflow-hidden rounded border border-[#15110E]/80">
+            <div className="relative aspect-[1/2] w-full">
+              <InvitationPreview design={buildDesign(d, config.template)} cover staticPreview />
+            </div>
+          </div>
+          <div className="min-w-[120px] flex-1 truncate">
+            <span className="text-[13px] font-medium text-[#3D2E1F]">{deriveSampleName(d)}</span>
+            <span className="ml-2 text-[10px] text-[#8B7355]">자동</span>
+          </div>
+          <label className="flex items-center gap-1 text-[11px] text-[#5C4633]">
+            <input
+              type="checkbox"
+              checked={d.enabled}
+              onChange={(e) => patchDesign(i, { enabled: e.target.checked })}
+            />
+            노출
+          </label>
+          <div className="flex flex-col">
+            <button type="button" onClick={() => moveDesignInGroup(d.id, -1)} disabled={gi === 0} className="text-[11px] text-[#8B7355] disabled:opacity-30">▲</button>
+            <button type="button" onClick={() => moveDesignInGroup(d.id, 1)} disabled={gi === groupList.length - 1} className="text-[11px] text-[#8B7355] disabled:opacity-30">▼</button>
+          </div>
+          <button
+            type="button"
+            onClick={() => toggleOpen(d.id)}
+            className="rounded-full border border-[#8B7355]/40 px-3 py-1 text-[11px] text-[#5C4633]"
+          >
+            {open ? '닫기' : '편집'}
+          </button>
+          <button
+            type="button"
+            onClick={() => removeDesignById(d.id)}
+            aria-label="이 디자인 샘플 삭제"
+            className="px-1 text-[13px] text-[#B5614F] hover:opacity-70"
+          >
+            ✕
+          </button>
+        </div>
+
+        {open && (
+          <div className="border-t border-[#E8DCC9] p-4">
+            <div className="min-w-0 space-y-4 overflow-hidden">
+              {/* 신랑/신부/날짜/표지사진 */}
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <Field label="신랑 이름">
+                  <input className={inputCls} value={d.groomName} onChange={(e) => patchDesign(i, { groomName: e.target.value })} />
+                </Field>
+                <Field label="신부 이름">
+                  <input className={inputCls} value={d.brideName} onChange={(e) => patchDesign(i, { brideName: e.target.value })} />
+                </Field>
+                <Field label="예식일 (YYYY-MM-DD)">
+                  <input className={inputCls} value={d.weddingDate} onChange={(e) => patchDesign(i, { weddingDate: e.target.value })} placeholder="2026-05-23" />
+                </Field>
+                <Field label="표지 사진">
+                  <select className={inputCls} value={d.heroImageId} onChange={(e) => patchDesign(i, { heroImageId: e.target.value })}>
+                    {heroOptions.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+              <p className="text-[10px] text-[#8B7355]">
+                태그는 저장 시점에{' '}
+                <span className="font-medium text-[#5C4633]">{deriveSampleLayoutLabel(d)}</span>{' '}
+                로 자동 지정됩니다.
+              </p>
+              {/* 레이아웃 + 컬러 + 효과 + 폰트 */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <Field label="레이아웃">
+                  <Combobox<MainLayout>
+                    options={LAYOUT_OPTIONS.map((o) => o.value)}
+                    value={normalizeLayout(d.main.layout)}
+                    onChange={(layout) => patchMain(i, { layout })}
+                    renderItem={(v) => <span>{LAYOUT_OPTIONS.find((o) => o.value === v)?.label ?? v}</span>}
+                  />
+                </Field>
+                <Field label="컬러 테마">
+                  <Combobox<ColorTheme>
+                    options={COLOR_THEMES}
+                    value={d.colorTheme}
+                    onChange={(colorTheme) => patchDesign(i, { colorTheme })}
+                    renderItem={(t) => (
+                      <>
+                        <ColorSwatchSm value={t} />
+                        <span>{COLOR_THEME_LABELS[t]}</span>
+                      </>
+                    )}
+                  />
+                </Field>
+                <Field label="배경 효과">
+                  <Combobox<PetalType>
+                    options={PETAL_TYPES}
+                    value={d.petalType}
+                    onChange={(petalType) => patchDesign(i, { petalType })}
+                    renderItem={(t) => (
+                      <>
+                        <span className="inline-flex h-5 w-5 items-center justify-center">
+                          <PetalIcon type={t} accent={accent} />
+                        </span>
+                        <span>{PETAL_LABELS[t]}</span>
+                      </>
+                    )}
+                  />
+                </Field>
+                <Field label="폰트(본문)">
+                  <Combobox<FontKey>
+                    options={AVAILABLE_FONT_KEYS}
+                    value={d.font}
+                    onChange={(font) => patchDesign(i, { font })}
+                    renderItem={(f) => (
+                      <span className="truncate" style={{ fontFamily: FONT_OPTIONS[f].family }}>
+                        {FONT_OPTIONS[f].label}
+                      </span>
+                    )}
+                  />
+                </Field>
+              </div>
+
+              {/* 테마 나머지 디자인 옵션 — 혼주용 큰 글씨 / 슬라이드 전환 효과 */}
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-1.5 text-[11px] text-[#5C4633]">
+                  <input type="checkbox" checked={d.hostMode ?? false} onChange={(e) => patchDesign(i, { hostMode: e.target.checked })} />
+                  혼주용 큰 글씨
+                </label>
+                <label className="flex items-center gap-1.5 text-[11px] text-[#5C4633]">
+                  <input type="checkbox" checked={d.slideAnimation ?? false} onChange={(e) => patchDesign(i, { slideAnimation: e.target.checked })} />
+                  슬라이드 전환 효과
+                </label>
+              </div>
+
+              {/* 샘플 배경음악 */}
+              <SampleBgmField value={d.bgm ?? { enabled: false, url: '' }} onChange={(bgm) => patchDesign(i, { bgm })} />
+
+              {/* 에디터 디자인 컨트롤 */}
+              <div className="max-w-full overflow-x-auto">
+                <DesignControls d={d} onMain={(patch) => patchMain(i, patch)} />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderDesignGroup = (
+    title: string,
+    list: DesignConfig[],
+    group: 'photo' | 'nophoto',
+  ) => (
+    <div className="mt-5">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-[12px] font-semibold text-[#5C4633]">
+          {title} <span className="font-normal text-[#8B7355]">({list.length})</span>
+        </h3>
+        <button
+          type="button"
+          onClick={() => addDesign(group)}
+          disabled={config.designs.length >= MAX_SAMPLE_DESIGNS}
+          className="rounded-full border border-[#8B7355]/40 px-3 py-1 text-[11px] font-medium text-[#5C4633] hover:bg-[#FAF7F2] disabled:opacity-40"
+        >
+          + 추가
+        </button>
+      </div>
+      {list.length === 0 ? (
+        <p className="mt-2 text-[11px] text-[#8B7355]">등록된 디자인이 없습니다.</p>
+      ) : (
+        <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {list.map(renderDesignCard)}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div
       className="space-y-8"
@@ -258,241 +465,16 @@ export function InvitationSamplesEditor({
               ({config.designs.length} / {MAX_SAMPLE_DESIGNS})
             </span>
           </h2>
-          <button
-            type="button"
-            onClick={addDesign}
-            disabled={config.designs.length >= MAX_SAMPLE_DESIGNS}
-            className="rounded-full border border-[#8B7355]/40 px-3.5 py-1.5 text-[12px] font-medium text-[#5C4633] hover:bg-[#FAF7F2] disabled:opacity-40"
-          >
-            + 디자인 추가
-          </button>
         </div>
         <p className="mt-0.5 text-[11px] text-[#8B7355]">
           노출/순서와 표지(메인 슬라이드)를 실제 에디터 수준으로 편집합니다 — 레이아웃·디자인,
           제목 텍스트/폰트/색/크기/위치, 이름·날짜·인사말 박스까지. 본문(스토리·갤러리 등)은
-          아래 &quot;공유 본문 템플릿&quot; 으로 일괄 관리합니다. 최대 {MAX_SAMPLE_DESIGNS}개까지 추가할 수
-          있으며, 추후 미리보기 페이지에서 사진 있음/없음 탭으로 12개씩 나눠 보여줄 예정입니다.
+          아래 &quot;공유 본문 템플릿&quot; 으로 일괄 관리합니다. 사진 있는 / 없는 디자인을 각각
+          관리하며, 최대 {MAX_SAMPLE_DESIGNS}개까지 추가할 수 있습니다.
         </p>
 
-        {/* 디자인 카드 그리드 — md 2열, xl 3열로 빈 공간 줄임. 카드 클릭으로 펼쳐서
-            상세 편집. 펼친 카드는 grid 안에서 그대로 확장 (col-span-full). */}
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {config.designs.map((d, i) => {
-            const open = openId === d.id;
-            const accent = THEME_PALETTES[d.colorTheme].accent;
-            const heroOptions = byId.has(d.heroImageId)
-              ? catalog
-              : [{ id: d.heroImageId, label: d.heroImageId, src: srcOf(d.heroImageId) }, ...catalog];
-            return (
-              <div
-                key={d.id}
-                className={`overflow-hidden rounded-md border ${
-                  open ? 'md:col-span-2 xl:col-span-3' : ''
-                } ${
-                  d.enabled ? 'border-[#E8DCC9] bg-[#FCFAF6]' : 'border-[#EEE6D8] bg-[#F3EFE8]'
-                }`}
-              >
-                {/* 헤더 — 작은 라이브 표지 썸네일 + 메타 */}
-                <div className="flex flex-wrap items-center gap-3 p-3">
-                  {/* 목록 썸네일 — 첫 로딩 시 이미지만(정적). 그려지는 등장 효과는 편집용
-                      실시간 미리보기 시트에서만 재생된다. */}
-                  <div className="wd-static-preview h-[64px] w-[34px] flex-shrink-0 overflow-hidden rounded border border-[#15110E]/80">
-                    <div className="relative aspect-[1/2] w-full">
-                      <InvitationPreview design={buildDesign(d, config.template)} cover staticPreview />
-                    </div>
-                  </div>
-                  {/* 디자인 이름은 입력란 없이 컬러+레이아웃 기반으로 자동 — 컬러/레이아웃을
-                      바꾸면 즉시 이 이름이 갱신되고, 저장 시점에 DB에도 stamping 된다. */}
-                  <div className="min-w-[120px] flex-1 truncate">
-                    <span className="text-[13px] font-medium text-[#3D2E1F]">
-                      {deriveSampleName(d)}
-                    </span>
-                    <span className="ml-2 text-[10px] text-[#8B7355]">자동</span>
-                    {/* 추후 사진/무사진 탭 분류 — 레이아웃 기반 자동 판정 결과를 표시. */}
-                    <span
-                      className={`ml-2 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
-                        sampleHasPhoto(d)
-                          ? 'bg-[#8B7355]/15 text-[#5C4633]'
-                          : 'bg-[#E8DCC9] text-[#8B7355]'
-                      }`}
-                    >
-                      {sampleHasPhoto(d) ? '사진' : '무사진'}
-                    </span>
-                  </div>
-                  <label className="flex items-center gap-1 text-[11px] text-[#5C4633]">
-                    <input
-                      type="checkbox"
-                      checked={d.enabled}
-                      onChange={(e) => patchDesign(i, { enabled: e.target.checked })}
-                    />
-                    노출
-                  </label>
-                  <div className="flex flex-col">
-                    <button type="button" onClick={() => moveDesign(i, -1)} disabled={i === 0} className="text-[11px] text-[#8B7355] disabled:opacity-30">▲</button>
-                    <button type="button" onClick={() => moveDesign(i, 1)} disabled={i === config.designs.length - 1} className="text-[11px] text-[#8B7355] disabled:opacity-30">▼</button>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => toggleOpen(d.id)}
-                    className="rounded-full border border-[#8B7355]/40 px-3 py-1 text-[11px] text-[#5C4633]"
-                  >
-                    {open ? '닫기' : '편집'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeDesign(i)}
-                    aria-label="이 디자인 샘플 삭제"
-                    className="px-1 text-[13px] text-[#B5614F] hover:opacity-70"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                {open && (
-                  <div className="border-t border-[#E8DCC9] p-4">
-                    {/* 편집 항목 — 실제 알림장 에디터처럼 편집한다. 실시간 미리보기는 화면
-                        하단에 fixed 로 붙는 SampleLivePreviewSheet 가 담당하므로(스크롤과
-                        무관하게 항상 보임), 여기 카드 안에는 별도 미리보기를 두지 않는다. */}
-                    <div className="min-w-0 space-y-4 overflow-hidden">
-                      {/* 신랑/신부/날짜/표지사진 */}
-                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                        <Field label="신랑 이름">
-                          <input
-                            className={inputCls}
-                            value={d.groomName}
-                            onChange={(e) => patchDesign(i, { groomName: e.target.value })}
-                          />
-                        </Field>
-                        <Field label="신부 이름">
-                          <input
-                            className={inputCls}
-                            value={d.brideName}
-                            onChange={(e) => patchDesign(i, { brideName: e.target.value })}
-                          />
-                        </Field>
-                        <Field label="예식일 (YYYY-MM-DD)">
-                          <input
-                            className={inputCls}
-                            value={d.weddingDate}
-                            onChange={(e) => patchDesign(i, { weddingDate: e.target.value })}
-                            placeholder="2026-05-23"
-                          />
-                        </Field>
-                        <Field label="표지 사진">
-                          <select
-                            className={inputCls}
-                            value={d.heroImageId}
-                            onChange={(e) => patchDesign(i, { heroImageId: e.target.value })}
-                          >
-                            {heroOptions.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.label}
-                              </option>
-                            ))}
-                          </select>
-                        </Field>
-                      </div>
-                      <p className="text-[10px] text-[#8B7355]">
-                        태그는 저장 시점에{' '}
-                        <span className="font-medium text-[#5C4633]">{deriveSampleLayoutLabel(d)}</span>{' '}
-                        로 자동 지정됩니다.
-                      </p>
-                      {/* 레이아웃 + 컬러 + 효과 + 폰트 — 에디터 형식의 콤보박스 */}
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        <Field label="레이아웃">
-                          <Combobox<MainLayout>
-                            options={LAYOUT_OPTIONS.map((o) => o.value)}
-                            value={normalizeLayout(d.main.layout)}
-                            onChange={(layout) => patchMain(i, { layout })}
-                            renderItem={(v) => (
-                              <span>
-                                {LAYOUT_OPTIONS.find((o) => o.value === v)?.label ?? v}
-                              </span>
-                            )}
-                          />
-                        </Field>
-                        <Field label="컬러 테마">
-                          <Combobox<ColorTheme>
-                            options={COLOR_THEMES}
-                            value={d.colorTheme}
-                            onChange={(colorTheme) => patchDesign(i, { colorTheme })}
-                            renderItem={(t) => (
-                              <>
-                                <ColorSwatchSm value={t} />
-                                <span>{COLOR_THEME_LABELS[t]}</span>
-                              </>
-                            )}
-                          />
-                        </Field>
-                        <Field label="배경 효과">
-                          <Combobox<PetalType>
-                            options={PETAL_TYPES}
-                            value={d.petalType}
-                            onChange={(petalType) => patchDesign(i, { petalType })}
-                            renderItem={(t) => (
-                              <>
-                                <span className="inline-flex h-5 w-5 items-center justify-center">
-                                  <PetalIcon type={t} accent={accent} />
-                                </span>
-                                <span>{PETAL_LABELS[t]}</span>
-                              </>
-                            )}
-                          />
-                        </Field>
-                        <Field label="폰트(본문)">
-                          <Combobox<FontKey>
-                            options={AVAILABLE_FONT_KEYS}
-                            value={d.font}
-                            onChange={(font) => patchDesign(i, { font })}
-                            renderItem={(f) => (
-                              <span
-                                className="truncate"
-                                style={{ fontFamily: FONT_OPTIONS[f].family }}
-                              >
-                                {FONT_OPTIONS[f].label}
-                              </span>
-                            )}
-                          />
-                        </Field>
-                      </div>
-
-                      {/* 테마 나머지 디자인 옵션 — 혼주용 큰 글씨 / 슬라이드 전환 효과 */}
-                      <div className="flex flex-wrap gap-4">
-                        <label className="flex items-center gap-1.5 text-[11px] text-[#5C4633]">
-                          <input
-                            type="checkbox"
-                            checked={d.hostMode ?? false}
-                            onChange={(e) => patchDesign(i, { hostMode: e.target.checked })}
-                          />
-                          혼주용 큰 글씨
-                        </label>
-                        <label className="flex items-center gap-1.5 text-[11px] text-[#5C4633]">
-                          <input
-                            type="checkbox"
-                            checked={d.slideAnimation ?? false}
-                            onChange={(e) => patchDesign(i, { slideAnimation: e.target.checked })}
-                          />
-                          슬라이드 전환 효과
-                        </label>
-                      </div>
-
-                      {/* 샘플 배경음악 — 켜고 프리셋/URL 을 넣으면 content.theme.bgm 에 반영 */}
-                      <SampleBgmField
-                        value={d.bgm ?? { enabled: false, url: '' }}
-                        onChange={(bgm) => patchDesign(i, { bgm })}
-                      />
-
-                      {/* 에디터 디자인 컨트롤 — 가로 넘침 방지 */}
-                      <div className="max-w-full overflow-x-auto">
-                        <DesignControls d={d} onMain={(patch) => patchMain(i, patch)} />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        {renderDesignGroup('사진 있는 디자인', photoDesigns, 'photo')}
+        {renderDesignGroup('사진 없는 디자인', noPhotoDesigns, 'nophoto')}
       </section>
 
       {/* ───────────── 소장용 URL 예시 ───────────── */}
