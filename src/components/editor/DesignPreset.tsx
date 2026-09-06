@@ -58,7 +58,6 @@ export function DesignPreset({
   const [view, setView] = useState<'photo' | 'nophoto'>(
     photo.length > 0 ? 'photo' : 'nophoto',
   );
-  const shown = view === 'photo' ? photo : nophoto;
 
   if (currentKey === null) return null;
 
@@ -137,6 +136,44 @@ export function DesignPreset({
       on ? 'bg-primary text-primary-foreground' : 'bg-muted/60 text-muted-foreground hover:bg-muted'
     }`;
 
+  const renderCard = (d: EditorSampleDesign) => {
+    const active = sigOf(d.colorTheme, d.petalType, d.font, d.main) === currentKey;
+    return (
+      <button
+        key={d.id}
+        type="button"
+        onClick={() => apply(d)}
+        aria-pressed={active}
+        className={`group flex flex-col overflow-hidden rounded-lg border text-left transition-colors ${
+          active ? 'border-primary ring-1 ring-primary' : 'border-input hover:border-primary/50'
+        }`}
+      >
+        {/* 실제 표지 미리보기(정적) 썸네일 — 표지 안엔 번호를 얹지 않는다. */}
+        <div className="wd-static-preview relative aspect-[1/2] w-full overflow-hidden bg-[#15110E]">
+          <InvitationPreview design={d.preview} cover staticPreview />
+          {active && (
+            <span className="pointer-events-none absolute right-1.5 top-1.5 z-10 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-primary-foreground">
+              선택됨
+            </span>
+          )}
+        </div>
+        <div className="px-2 py-1.5">
+          <span className="flex items-center gap-1">
+            {d.number != null && (
+              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-foreground px-1 text-[9px] font-semibold leading-none text-background">
+                {d.number}
+              </span>
+            )}
+            <span className="truncate text-[11px] font-semibold">{d.name}</span>
+          </span>
+          <span className="block truncate text-[10px] leading-tight text-muted-foreground">
+            {d.layoutLabel}
+          </span>
+        </div>
+      </button>
+    );
+  };
+
   return (
     <div>
       <h3 className="text-xs font-semibold text-foreground">추천 디자인</h3>
@@ -156,48 +193,26 @@ export function DesignPreset({
         </div>
       )}
 
-      {shown.length === 0 ? (
+      {designs.length === 0 ? (
         <p className="mt-2 text-[11px] leading-tight text-muted-foreground">
           등록된 디자인이 없습니다.
         </p>
       ) : (
-        <div className="mt-2 grid grid-cols-2 gap-2.5">
-          {shown.map((d) => {
-            const active = sigOf(d.colorTheme, d.petalType, d.font, d.main) === currentKey;
-            return (
-              <button
-                key={d.id}
-                type="button"
-                onClick={() => apply(d)}
-                aria-pressed={active}
-                className={`group flex flex-col overflow-hidden rounded-lg border text-left transition-colors ${
-                  active ? 'border-primary ring-1 ring-primary' : 'border-input hover:border-primary/50'
-                }`}
-              >
-                {/* 실제 표지 미리보기(정적) 썸네일 */}
-                <div className="wd-static-preview relative aspect-[1/2] w-full overflow-hidden bg-[#15110E]">
-                  <InvitationPreview design={d.preview} cover staticPreview />
-                  {d.number != null && (
-                    <span className="pointer-events-none absolute left-1.5 top-1.5 z-10 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-black/55 px-1 text-[10px] font-semibold text-white backdrop-blur-sm">
-                      {d.number}
-                    </span>
-                  )}
-                  {active && (
-                    <span className="pointer-events-none absolute right-1.5 top-1.5 z-10 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-primary-foreground">
-                      선택됨
-                    </span>
-                  )}
-                </div>
-                <div className="px-2 py-1.5">
-                  <span className="block truncate text-[11px] font-semibold">{d.name}</span>
-                  <span className="block truncate text-[10px] leading-tight text-muted-foreground">
-                    {d.layoutLabel}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        // 두 그룹을 모두 마운트해 두고 탭에 따라 hidden 으로만 전환한다 —
+        // 탭 전환 때 썸네일이 리마운트되며 scale=0(검은 프레임)부터 다시
+        // 페이드인하는 "잠깐 검은 화면" 깜빡임을 없앤다(한 번만 그려짐).
+        <>
+          {photo.length > 0 && (
+            <div className="mt-2 grid grid-cols-2 gap-2.5" hidden={view !== 'photo'}>
+              {photo.map(renderCard)}
+            </div>
+          )}
+          {nophoto.length > 0 && (
+            <div className="mt-2 grid grid-cols-2 gap-2.5" hidden={view !== 'nophoto'}>
+              {nophoto.map(renderCard)}
+            </div>
+          )}
+        </>
       )}
       {usesSamplePhoto && (
         <p className="mt-2 rounded-md bg-amber-50 px-2.5 py-1.5 text-[11px] leading-tight text-amber-900 ring-1 ring-amber-200">
