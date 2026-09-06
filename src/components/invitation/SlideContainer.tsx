@@ -52,9 +52,10 @@ interface Props {
    *   'none'     — 효과 없음(메인 표지 / 옵션 off)
    *   'stagger'  — 제목부터 아래로 계단식 순차 등장
    *   'together' — 제목만 먼저 뜨고 나머지는 한번에(요소 많은 방명록 등)
+   *   'account'  — 헤더 → 글귀 → 그 외 전체 3단계(계좌 슬라이드)
    * 미지정 시 전부 'none'.
    */
-  slideReveal?: Array<'none' | 'stagger' | 'together'>;
+  slideReveal?: Array<'none' | 'stagger' | 'together' | 'account'>;
 }
 
 export function SlideContainer({
@@ -194,12 +195,12 @@ export function SlideContainer({
           // 스와이프가 끝나 이 슬라이드가 "정착"(settledIndex === i)하면 .wd-reveal 이
           // 붙어 순서대로/한번에 떠오른다(globals.css). 'none'/메인은 즉시 전체 노출.
           const mode = slideReveal?.[i] ?? 'none';
+          const modeClass =
+            mode === 'together' ? ' wd-together' : mode === 'account' ? ' wd-account' : '';
           const revealClass =
             mode === 'none'
               ? ''
-              : `wd-anim${mode === 'together' ? ' wd-together' : ''}${
-                  settledIndex === i ? ' wd-reveal' : ''
-                }`;
+              : `wd-anim${modeClass}${settledIndex === i ? ' wd-reveal' : ''}`;
           return (
             <div
               key={i}

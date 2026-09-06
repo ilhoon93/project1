@@ -25,6 +25,7 @@ export function InvitationPreview({
   cover = false,
   withBgm = false,
   coverOnly = false,
+  staticPreview = false,
 }: {
   design: SampleDesign;
   cover?: boolean;
@@ -36,6 +37,8 @@ export function InvitationPreview({
    * 들어 있어 표지 뒤로 넘어가면 안 된다. 샘플 디자인 미리보기는 false(스와이프 가능).
    */
   coverOnly?: boolean;
+  /** 첫 로딩 시 "그려지는" 등장 효과 없이 이미지만 정적으로 — 관리자 목록 썸네일용. */
+  staticPreview?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
@@ -76,6 +79,7 @@ export function InvitationPreview({
           scoped
           forceBgm={withBgm && !cover}
           coverOnly={coverOnly}
+          staticPreview={staticPreview}
         />
       </div>
     </div>

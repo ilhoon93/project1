@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import {
   FrameDesignSchema,
   IllustrationDesignSchema,
@@ -24,6 +24,14 @@ import { Confetti } from '@/components/shared/Confetti';
 import { HeartClip } from '@/components/shared/HeartClip';
 import { HandwritingStroke } from '@/components/invitation/slides/HandwritingStroke';
 
+/**
+ * 정적 렌더 모드 — true 면 메인 슬라이드의 "그려지는" 등장 효과(제목 필기, 위치
+ * 박스 페이드인)를 끄고 최종 상태로 즉시 렌더한다. 관리자 샘플 목록 썸네일처럼
+ * "첫 로딩 시 이미지만" 보여야 하는 정적 미리보기에서 사용. 편집용 실시간
+ * 미리보기(기본 false)에서는 평소대로 애니메이션이 재생된다.
+ */
+export const StaticRenderContext = createContext(false);
+
 interface Props {
   invitationId: string;
   groomName: string;
@@ -42,6 +50,8 @@ interface Props {
   mode?: 'guest' | 'owner';
   /** owner 모드에서 표시할 누적 축하 횟수. */
   cheersCount?: number;
+  /** 정적 렌더 — 제목 필기·텍스트 페이드인 등 등장 효과 없이 최종 상태로 즉시 표시. */
+  staticRender?: boolean;
 }
 
 export function MainSlide({
@@ -54,6 +64,7 @@ export function MainSlide({
   isPreview,
   mode = 'guest',
   cheersCount = 0,
+  staticRender = false,
 }: Props) {
   const [confettiTrigger, setConfettiTrigger] = useState<number | null>(null);
 
@@ -81,6 +92,8 @@ export function MainSlide({
   const layout = main.layout ?? 'poster';
   const hasImage = !!main.heroImage;
 
+  // 레이아웃별 슬라이드를 고른 뒤, 정적 렌더 여부를 컨텍스트로 하위(제목·위치박스)에 전달.
+  const rendered = (() => {
   if (layout === 'poster' && hasImage) {
     return (
       <PosterFullImageSlide
@@ -157,6 +170,11 @@ export function MainSlide({
       mode={mode}
       cheersCount={cheersCount}
     />
+  );
+  })();
+
+  return (
+    <StaticRenderContext.Provider value={staticRender}>{rendered}</StaticRenderContext.Provider>
   );
 }
 
@@ -399,6 +417,8 @@ function AnimatedTitleH1({
   color: string;
   fontSize: number;
 }) {
+  // 정적 미리보기에서는 필기 애니메이션 없이 완성된 제목만 즉시 보여준다.
+  const isStatic = useContext(StaticRenderContext);
   return (
     <h1
       className="whitespace-pre-wrap text-center font-bold leading-snug"
@@ -409,7 +429,7 @@ function AnimatedTitleH1({
       }}
       aria-label={text}
     >
-      {animate ? (
+      {animate && !isStatic ? (
         <AnimatedTitleInner
           key={`${text}-${fontFamily}`}
           text={text}
@@ -487,15 +507,17 @@ function PositionedBox({
   delay?: number;
   children: React.ReactNode;
 }) {
+  // 정적 미리보기에서는 fade-in 없이 최종 위치·불투명도로 즉시 렌더.
+  const isStatic = useContext(StaticRenderContext);
   return (
     <div
-      className="mw-pos-fade absolute z-10 w-full px-6"
+      className={`${isStatic ? '' : 'mw-pos-fade '}absolute z-10 w-full px-6`}
       style={{
         left: `${position.x}%`,
         top: `${position.y}%`,
         transform: 'translate(-50%, -50%)',
         maxWidth: 'min(90vw, 32rem)',
-        animationDelay: `${delay}s`,
+        ...(isStatic ? {} : { animationDelay: `${delay}s` }),
       }}
     >
       {children}

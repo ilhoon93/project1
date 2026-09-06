@@ -370,7 +370,22 @@
 .wd-anim.wd-together.wd-reveal > :first-child > *:nth-child(1) { animation-delay: 0s; }
 .wd-anim.wd-together.wd-reveal > :first-child > *:nth-child(n + 2) { animation-delay: 0.4s; }
 
+/* 계좌 슬라이드(.wd-account) — 헤더 → 글귀 → 그 외 전체 3단계. */
+.wd-anim.wd-account.wd-reveal > :first-child > *:nth-child(1) { animation-delay: 0s; }
+.wd-anim.wd-account.wd-reveal > :first-child > *:nth-child(2) { animation-delay: 0.4s; }
+.wd-anim.wd-account.wd-reveal > :first-child > *:nth-child(n + 3) { animation-delay: 0.8s; }
+
 @media (prefers-reduced-motion: reduce) {
   .wd-anim > :first-child > * { opacity: 1; }
   .wd-anim.wd-reveal > :first-child > * { animation: none; }
+}
+
+/* 정적 미리보기(.wd-static-preview) — 관리자 샘플 목록 썸네일처럼 "첫 로딩 시 이미지만"
+   보여야 하는 곳. 내부 모든 CSS 애니메이션·전환을 꺼서 제목 써지기·켄번즈·꽃잎 등
+   동적 효과 없이 정지 화면으로 렌더한다(편집용 실시간 미리보기에는 적용 안 함). */
+.wd-static-preview *,
+.wd-static-preview *::before,
+.wd-static-preview *::after {
+  animation: none !important;
+  transition: none !important;
 }

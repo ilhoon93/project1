@@ -55,6 +55,12 @@ interface Props {
    * 커버처럼 표지만 보여줄 때 사용. pageOrder 를 무시하고 main 만 노출한다.
    */
   coverOnly?: boolean;
+  /**
+   * staticPreview: 메인 표지의 "그려지는" 등장 효과(제목 필기·텍스트 페이드인)를
+   * 끄고 최종 상태로 즉시 렌더. 관리자 샘플 목록 썸네일처럼 첫 로딩 시 이미지만
+   * 정적으로 보여야 하는 곳에서 사용. 편집용 실시간 미리보기에서는 미지정(false).
+   */
+  staticPreview?: boolean;
 }
 
 export function InvitationSlides({
@@ -70,6 +76,7 @@ export function InvitationSlides({
   forceBgm,
   manualBgm,
   coverOnly,
+  staticPreview,
 }: Props) {
   // 운영자가 고른 출력 형식으로 사전 포맷팅 — 자식 슬라이드들은 받은 문자열을
   // 그대로 표시(슬라이드별로 다른 변환을 거치지 않게 단일 출처).
@@ -104,6 +111,7 @@ export function InvitationSlides({
         scoped={scoped}
         mode={mode}
         cheersCount={ownerData?.cheersCount ?? 0}
+        staticRender={staticPreview}
       />
     ),
     basic: content.basic.enabled ? (
@@ -199,14 +207,16 @@ export function InvitationSlides({
   //   'none'     : 효과 없음(메인 표지 / 옵션 off)
   //   'stagger'  : 제목부터 아래로 요소를 계단식으로 순차 등장
   //   'together' : 제목만 먼저 뜨고 나머지는 한번에 — 요소가 많은 방명록에 사용
+  //   'account'  : 헤더 → 글귀 → 그 외 전체 3단계 — 계좌 슬라이드용
   const slideAnimationOn = content.theme.slideAnimation ?? false;
   const rendered = orderedKeys
     .map((key) => ({ key, node: slidesByKey[key] }))
     .filter((s) => Boolean(s.node));
   const slides = rendered.map((s) => s.node) as ReactNode[];
-  const slideReveal = rendered.map<'none' | 'stagger' | 'together'>((s) => {
+  const slideReveal = rendered.map<'none' | 'stagger' | 'together' | 'account'>((s) => {
     if (!slideAnimationOn || s.key === 'main') return 'none';
     if (s.key === 'guestbook') return 'together';
+    if (s.key === 'account') return 'account';
     return 'stagger';
   });
 
