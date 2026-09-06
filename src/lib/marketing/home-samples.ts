@@ -22,6 +22,7 @@ import {
   DEFAULT_SAMPLE_CONFIGS,
   DEFAULT_TEMPLATE,
   buildDesign,
+  withAssignedNumbers,
   type AiSnapItem,
   type BeforeAfterConfig,
   type ExampleFlowConfig,
@@ -58,6 +59,8 @@ const DesignConfigSchema = z.object({
   // 테마 나머지 디자인 옵션 — 구버전 호환 위해 optional(기본 false).
   hostMode: z.boolean().optional(),
   slideAnimation: z.boolean().optional(),
+  // 고유 번호(영구) — 구버전 호환 optional. 로더가 누락분을 채운다.
+  number: z.number().optional(),
 });
 
 const BeforeAfterStyleSchema = z.object({
@@ -233,7 +236,8 @@ export async function getHomeSamplesConfig(): Promise<HomeSamplesConfig> {
     aiSnapCatalogIds: row.aiSnapCatalogIds.length
       ? row.aiSnapCatalogIds
       : DEFAULT_AI_SNAP_IDS,
-    designs: row.designs,
+    // 누락된 고유 번호를 채워 카드·모달·관리자·에디터에서 동일하게 표시.
+    designs: withAssignedNumbers(row.designs),
     ownerUrlExample: row.ownerUrlExample ?? '',
     beforeAfter: row.beforeAfter,
     template: row.template,

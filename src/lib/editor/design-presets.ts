@@ -1,5 +1,6 @@
 import type { ColorTheme, FontKey, PetalType } from '@/lib/theme';
 import type { InvitationContent } from '@/types/invitation';
+import type { SampleDesign } from '@/lib/marketing/sample-invitations';
 
 /**
  * 에디터 "추천으로 시작하기 → 추천 디자인" 항목.
@@ -25,4 +26,10 @@ export interface EditorSampleDesign {
   groomName: string;
   brideName: string;
   weddingDate: string | null;
+  /** 사진 있는 디자인(포스터·액자) 여부 — 추천 구성 사진/무사진 탭 분류용. */
+  hasPhoto: boolean;
+  /** 고유 번호(영구) — /designs·관리자와 동일하게 표시. */
+  number?: number;
+  /** 썸네일용 실제 표지 미리보기 콘텐츠(정적). buildDesign 결과 그대로. */
+  preview: SampleDesign;
 }

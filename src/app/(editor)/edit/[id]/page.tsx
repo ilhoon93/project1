@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { InvitationContentSchema } from '@/types/invitation';
 import { getHomeSamplesConfig } from '@/lib/marketing/home-samples';
+import { buildDesign, sampleHasPhoto } from '@/lib/marketing/sample-invitations';
 import type { EditorSampleDesign } from '@/lib/editor/design-presets';
 import { EditorClient } from './editor-client';
 
@@ -13,7 +14,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://wooridaun.com';
  * heroImageUrl 은 카탈로그 사진의 절대 URL(heroImage 는 url() 검증이 필요).
  */
 async function loadSampleDesigns(): Promise<EditorSampleDesign[]> {
-  const { designs } = await getHomeSamplesConfig();
+  const { designs, template } = await getHomeSamplesConfig();
   return designs
     .filter((d) => d.enabled)
     .map((d) => ({
@@ -30,6 +31,10 @@ async function loadSampleDesigns(): Promise<EditorSampleDesign[]> {
       groomName: d.groomName,
       brideName: d.brideName,
       weddingDate: d.weddingDate,
+      hasPhoto: sampleHasPhoto(d),
+      number: d.number,
+      // 실제 표지 미리보기(정적) 썸네일용 — /designs 카드와 같은 렌더러.
+      preview: buildDesign(d, template),
     }));
 }
 

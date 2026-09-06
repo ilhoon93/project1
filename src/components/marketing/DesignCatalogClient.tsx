@@ -99,6 +99,11 @@ export function DesignCatalogClient({ designs }: { designs: SampleDesign[] }) {
                   <div className="relative aspect-[1/2] w-full overflow-hidden">
                     <InvitationPreview design={d} cover />
                     <div className="absolute inset-0 z-10" />
+                    {d.number != null && (
+                      <span className="pointer-events-none absolute left-2 top-2 z-20 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-black/55 px-1.5 text-[11px] font-semibold text-white backdrop-blur-sm">
+                        {d.number}
+                      </span>
+                    )}
                     <span className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-center justify-center bg-gradient-to-t from-black/55 to-transparent pb-2.5 pt-7 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
                       전체 미리보기 →
                     </span>
@@ -129,7 +134,7 @@ function PreviewModal({ design, onClose }: { design: SampleDesign; onClose: () =
         type="button"
         onClick={onClose}
         aria-label="닫기"
-        className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/90 text-lg text-[var(--wd-ink)] shadow-md"
+        className="absolute right-4 top-4 z-[60] grid h-10 w-10 place-items-center rounded-full bg-white/90 text-lg text-[var(--wd-ink)] shadow-md"
       >
         ✕
       </button>
@@ -146,6 +151,7 @@ function PreviewModal({ design, onClose }: { design: SampleDesign; onClose: () =
 
       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
         <span className="rounded-full bg-white/90 px-3 py-1.5 text-[12px] font-medium text-[var(--wd-ink)]">
+          {design.number != null && `No.${design.number} · `}
           {design.name} · {design.layoutLabel}
         </span>
         <Link
