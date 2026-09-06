@@ -1181,11 +1181,13 @@ function FrameSlide({
           렌더하지 않아 기존 동작(테마 배경) 그대로 — 기존 알림장 무영향. */}
       {design.blurBackground && main.heroImage && (
         <div aria-hidden className="absolute inset-0 z-0 overflow-hidden">
+          {/* 사진 "전체"를 배경으로 — object-contain 이라 잘린 크롭을 확대하지 않는다
+              (특정 부위 얼굴이 크게 배경에 뜨는 문제 방지). 남는 여백은 테마 배경. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={main.heroImage}
             alt=""
-            className="h-full w-full scale-105 object-cover blur-sm"
+            className="h-full w-full object-contain blur-sm"
           />
           {/* 어둡게 덮어 액자 프레임 사진이 더 돋보이게. */}
           <div className="absolute inset-0 bg-black/45" />

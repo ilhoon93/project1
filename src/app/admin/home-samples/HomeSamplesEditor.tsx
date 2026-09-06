@@ -31,6 +31,7 @@ import {
   deriveSampleLayoutLabel,
   deriveSampleName,
   sampleHasPhoto,
+  nextSampleNumber,
   MAX_SAMPLE_DESIGNS,
   type BeforeAfterConfig,
   type BeforeAfterStyle,
@@ -182,6 +183,8 @@ export function InvitationSamplesEditor({
     // 고유 id — 기존과 겹치지 않게 타임스탬프 기반. 무사진 그룹은 텍스트 레이아웃으로 시작.
     const id = `custom-${Date.now().toString(36)}`;
     const created = createBlankSampleDesign(id, group === 'photo' ? 'poster' : 'text');
+    // 고유 번호(영구) 부여 — 순서를 바꿔도 유지된다.
+    created.number = nextSampleNumber(config.designs);
     setDesigns([...config.designs, created]);
     setOpenId(id); // 추가 즉시 펼쳐서 편집.
     setSheetOpen(true);
@@ -282,6 +285,11 @@ export function InvitationSamplesEditor({
             </div>
           </div>
           <div className="min-w-[120px] flex-1 truncate">
+            {d.number != null && (
+              <span className="mr-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#3D2E1F] px-1 text-[10px] font-semibold text-white">
+                {d.number}
+              </span>
+            )}
             <span className="text-[13px] font-medium text-[#3D2E1F]">{deriveSampleName(d)}</span>
             <span className="ml-2 text-[10px] text-[#8B7355]">자동</span>
           </div>

@@ -43,6 +43,8 @@ export interface SampleDesign {
    * buildDesign 이 채운다(구버전 호환 위해 optional; 미지정이면 무사진 취급).
    */
   hasPhoto?: boolean;
+  /** 고유 번호(영구) — 카드·모달·관리자·에디터에서 동일하게 표시. */
+  number?: number;
 }
 
 export interface DesignConfig {
@@ -64,10 +66,30 @@ export interface DesignConfig {
   hostMode?: boolean;
   /** 슬라이드 전환 효과 (선택, 기본 false) — content.theme.slideAnimation 에 반영. */
   slideAnimation?: boolean;
+  /**
+   * 고유 번호 — 한 번 부여되면 순서를 바꿔도 유지되는 영구 번호(고객이 "N번 디자인"
+   * 으로 참조). 관리자에서 추가 시 max+1 로 부여. 구버전 호환 위해 optional
+   * (getHomeSamplesConfig 에서 누락분을 채운다).
+   */
+  number?: number;
 }
 
-/** 샘플 디자인 최대 개수 — 관리자에서 이 수까지 추가 가능(추후 사진/무사진 12+12 탭 분리 대비). */
+/** 샘플 디자인 최대 개수 — 관리자에서 이 수까지 추가 가능(사진/무사진 각 그룹). */
 export const MAX_SAMPLE_DESIGNS = 24;
+
+/** 디자인 목록에서 다음에 부여할 고유 번호(현재 최대 번호 + 1). */
+export function nextSampleNumber(designs: DesignConfig[]): number {
+  return designs.reduce((mx, d) => Math.max(mx, d.number ?? 0), 0) + 1;
+}
+
+/**
+ * 누락된 고유 번호를 채운다 — 이미 번호가 있는 건 유지, 없는 건 현재 최대+1 부터
+ * 순서대로 부여. (이미 부여된 번호는 절대 바뀌지 않아 영구성 보장.)
+ */
+export function withAssignedNumbers(designs: DesignConfig[]): DesignConfig[] {
+  let mx = designs.reduce((m, d) => Math.max(m, d.number ?? 0), 0);
+  return designs.map((d) => (d.number ? d : { ...d, number: ++mx }));
+}
 
 /**
  * 이 샘플이 "사진 있는" 디자인인지 — 표지에 하객 업로드 사진(hero)이 들어가는
@@ -418,6 +440,7 @@ export function buildDesign(
     weddingDate: c.weddingDate,
     content,
     hasPhoto: sampleHasPhoto(c),
+    number: c.number,
   };
 }
 
@@ -498,7 +521,7 @@ const SEEDS: Seed[] = [
   { id: 'charcoal-modern', name: '차콜 모던', layoutLabel: '일러스트 · 잎', colorTheme: 'charcoal', petalType: 'leaf', font: 'pretendard', layout: 'illustration', heroImageId: 'studio-greenwall-glasses', groomName: '도현', brideName: '예지', weddingDate: '2026-12-05', greetingShort: '모던한 시작' },
 ];
 
-function seedToConfig(s: Seed): DesignConfig {
+function seedToConfig(s: Seed, number: number): DesignConfig {
   const main = defaultInvitationContent().main;
   main.layout = s.layout;
   main.greeting = s.greetingShort;
@@ -518,10 +541,13 @@ function seedToConfig(s: Seed): DesignConfig {
     font: s.font,
     heroImageId: s.heroImageId,
     main,
+    number,
   };
 }
 
-export const DEFAULT_SAMPLE_CONFIGS: DesignConfig[] = SEEDS.map(seedToConfig);
+export const DEFAULT_SAMPLE_CONFIGS: DesignConfig[] = SEEDS.map((s, i) =>
+  seedToConfig(s, i + 1),
+);
 
 /**
  * 관리자 "디자인 추가" 버튼용 새 샘플 한 건. id 는 호출측에서 고유하게 넘긴다.

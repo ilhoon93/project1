@@ -1,7 +1,9 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { useEditorStore } from '@/stores/editor';
 import type { EditorSampleDesign } from '@/lib/editor/design-presets';
+import { InvitationPreview } from '@/components/marketing/InvitationPreview';
 
 /**
  * 추천 디자인 — 운영자가 admin "알림장 샘플 설정"에 등록한 디자인 미리보기 샘플을
@@ -48,6 +50,15 @@ export function DesignPreset({
   const usesSamplePhoto = useEditorStore(
     (s) => !!s.content?.main.heroImage?.includes(SAMPLE_PHOTO_MARK),
   );
+
+  // 사진 있는 / 없는 두 그룹 — 관리자 샘플 설정 분류(hasPhoto)와 동일.
+  const photo = useMemo(() => designs.filter((d) => d.hasPhoto), [designs]);
+  const nophoto = useMemo(() => designs.filter((d) => !d.hasPhoto), [designs]);
+  // 기본값은 사진 있는 디자인. 한쪽 그룹이 비어 있으면 있는 쪽을 기본으로.
+  const [view, setView] = useState<'photo' | 'nophoto'>(
+    photo.length > 0 ? 'photo' : 'nophoto',
+  );
+  const shown = view === 'photo' ? photo : nophoto;
 
   if (currentKey === null) return null;
 
@@ -119,6 +130,13 @@ export function DesignPreset({
     }
   };
 
+  // 두 그룹 모두 있을 때만 탭 노출.
+  const showTabs = photo.length > 0 && nophoto.length > 0;
+  const tabCls = (on: boolean) =>
+    `flex-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
+      on ? 'bg-primary text-primary-foreground' : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+    }`;
+
   return (
     <div>
       <h3 className="text-xs font-semibold text-foreground">추천 디자인</h3>
@@ -126,27 +144,61 @@ export function DesignPreset({
         표지 색상·폰트·형태를 한 번에 골라요.
         {isFresh && ' 새 알림장이라 사진·인사말도 샘플로 채워 분위기를 보여드려요.'}
       </p>
-      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {designs.map((d) => {
-          const active = sigOf(d.colorTheme, d.petalType, d.font, d.main) === currentKey;
-          return (
-            <button
-              key={d.id}
-              type="button"
-              onClick={() => apply(d)}
-              aria-pressed={active}
-              className={`flex flex-col items-start gap-0.5 rounded-md border px-2.5 py-2 text-left transition-colors ${
-                active ? 'border-primary bg-primary/10' : 'border-input hover:bg-muted/50'
-              }`}
-            >
-              <span className="text-xs font-semibold">{d.name}</span>
-              <span className="text-[10px] leading-tight text-muted-foreground">
-                {d.layoutLabel}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+
+      {showTabs && (
+        <div className="mt-2 flex gap-1.5">
+          <button type="button" onClick={() => setView('photo')} className={tabCls(view === 'photo')}>
+            사진 있는 디자인
+          </button>
+          <button type="button" onClick={() => setView('nophoto')} className={tabCls(view === 'nophoto')}>
+            사진 없는 디자인
+          </button>
+        </div>
+      )}
+
+      {shown.length === 0 ? (
+        <p className="mt-2 text-[11px] leading-tight text-muted-foreground">
+          등록된 디자인이 없습니다.
+        </p>
+      ) : (
+        <div className="mt-2 grid grid-cols-2 gap-2.5">
+          {shown.map((d) => {
+            const active = sigOf(d.colorTheme, d.petalType, d.font, d.main) === currentKey;
+            return (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => apply(d)}
+                aria-pressed={active}
+                className={`group flex flex-col overflow-hidden rounded-lg border text-left transition-colors ${
+                  active ? 'border-primary ring-1 ring-primary' : 'border-input hover:border-primary/50'
+                }`}
+              >
+                {/* 실제 표지 미리보기(정적) 썸네일 */}
+                <div className="wd-static-preview relative aspect-[1/2] w-full overflow-hidden bg-[#15110E]">
+                  <InvitationPreview design={d.preview} cover staticPreview />
+                  {d.number != null && (
+                    <span className="pointer-events-none absolute left-1.5 top-1.5 z-10 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-black/55 px-1 text-[10px] font-semibold text-white backdrop-blur-sm">
+                      {d.number}
+                    </span>
+                  )}
+                  {active && (
+                    <span className="pointer-events-none absolute right-1.5 top-1.5 z-10 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold text-primary-foreground">
+                      선택됨
+                    </span>
+                  )}
+                </div>
+                <div className="px-2 py-1.5">
+                  <span className="block truncate text-[11px] font-semibold">{d.name}</span>
+                  <span className="block truncate text-[10px] leading-tight text-muted-foreground">
+                    {d.layoutLabel}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
       {usesSamplePhoto && (
         <p className="mt-2 rounded-md bg-amber-50 px-2.5 py-1.5 text-[11px] leading-tight text-amber-900 ring-1 ring-amber-200">
           지금 메인 사진은 <strong>샘플 사진</strong>이에요. 아래 &ldquo;메인 화면&rdquo;에서 내
