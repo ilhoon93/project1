@@ -294,9 +294,11 @@ export function InvitationSamplesEditor({
               >
                 {/* 헤더 — 작은 라이브 표지 썸네일 + 메타 */}
                 <div className="flex flex-wrap items-center gap-3 p-3">
-                  <div className="h-[64px] w-[34px] flex-shrink-0 overflow-hidden rounded border border-[#15110E]/80">
+                  {/* 목록 썸네일 — 첫 로딩 시 이미지만(정적). 그려지는 등장 효과는 편집용
+                      실시간 미리보기 시트에서만 재생된다. */}
+                  <div className="wd-static-preview h-[64px] w-[34px] flex-shrink-0 overflow-hidden rounded border border-[#15110E]/80">
                     <div className="relative aspect-[1/2] w-full">
-                      <InvitationPreview design={buildDesign(d, config.template)} cover />
+                      <InvitationPreview design={buildDesign(d, config.template)} cover staticPreview />
                     </div>
                   </div>
                   {/* 디자인 이름은 입력란 없이 컬러+레이아웃 기반으로 자동 — 컬러/레이아웃을
